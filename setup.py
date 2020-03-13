@@ -12,7 +12,7 @@ install_requires = []  # Examples: ["gunicorn", "docutils>=0.3", "lxml==0.5a7"]
 if os.path.isfile(requirements_path):
     with open(requirements_path) as f:
         install_requires = f.read().splitlines()
-
+print("install_requires = " + str(install_requires))
 
 setuptools.setup(
     name="scos_actions",
@@ -30,5 +30,8 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    install_requires=install_requires
+    install_requires=install_requires,
+    dependency_links=[
+        'git+https://github.com/NTIA/SigMF.git@multi-recording-archive#egg=SigMF'
+    ],
 )
