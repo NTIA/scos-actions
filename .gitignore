@@ -109,6 +109,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+scos_actions_venv/
 
 # Spyder project settings
 .spyderproject
