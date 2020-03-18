@@ -68,8 +68,8 @@ class SigMFBuilder():
         self.sigmf_md.set_global_field("ntia-core:measurement",  {
             "time_start": start_time,
             "time_stop": end_time,
-            "domain": domain,
-            "measurement_type": measurement_type,
+            "domain": domain.value,
+            "measurement_type": measurement_type.value,
             "frequency_tuned_low": frequency,
             "frequency_tuned_high": frequency,
         })
