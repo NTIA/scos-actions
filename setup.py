@@ -31,7 +31,4 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=install_requires,
-    dependency_links=[
-        'git+https://github.com/NTIA/SigMF.git@multi-recording-archive#egg=SigMF-0.0.2beta'
-    ],
 )
