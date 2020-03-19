@@ -92,16 +92,20 @@ def test_metadata_timedomain_iq_multiple_acquisition():
     _metadata = None
     _task_id = 0
     _count = 0
+    _recording_ids = []
 
     def callback(sender,**kwargs):
         nonlocal _data
         nonlocal _metadata
         nonlocal _task_id
         nonlocal _count
+        nonlocal _recording_ids
         _task_id = kwargs["task_id"]
         _data = kwargs["data"]
         _metadata = kwargs["metadata"]
         _count += 1
+        recording_id = _metadata["global"]["ntia-scos:recording"]
+        _recording_ids.append(recording_id)
     measurement_action_completed.connect(callback)
     action = actions["test_multi_frequency_iq_action"]
     action(SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1, SENSOR_DEFINITION)
@@ -109,3 +113,4 @@ def test_metadata_timedomain_iq_multiple_acquisition():
     assert _metadata
     assert _task_id
     assert _count == 10
+    assert all([x in _recording_ids for x in range(1, 11)])
