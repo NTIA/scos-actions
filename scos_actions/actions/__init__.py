@@ -1,4 +1,3 @@
-from . import logger as logger_action
 from .acquire_single_freq_fft import SingleFrequencyFftAcquisition
 from .acquire_stepped_freq_tdomain_iq import SteppedFrequencyTimeDomainIqAcquisition
 
