@@ -1,7 +1,5 @@
-import json
-
 from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.actions.tests.utils import SENSOR_DEFINITION
+from scos_actions.actions.tests.utils import SENSOR_DEFINITION, check_metadata_fields
 from scos_actions.discover import test_actions as actions
 
 
@@ -20,42 +18,6 @@ SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION = {
     "interval": None,
     "action": "test_multi_frequency_iq_action",
 }
-
-# SCHEMA_DIR = path.join(settings.REPO_ROOT, "schemas")
-# SCHEMA_FNAME = "scos_transfer_spec_schema.json"
-# SCHEMA_PATH = path.join(SCHEMA_DIR, SCHEMA_FNAME)
-
-# with open(SCHEMA_PATH, "r") as f:
-#     schema = json.load(f)
-
-
-# def test_metadata():
-#     action = actions["test_multi_frequency_iq_action"]
-#     action_results = action()
-#     for action_result in action_results:
-#         assert action_result.annotations
-#         for annotation in action_result.annotations:
-#             assert "start_index" in annotation
-#             assert annotation["start_index"] >= 0
-#             assert annotation["length"]
-#             assert annotation["metadata"]
-#         #assert sigmf_validate(acquisition.metadata)
-#         # FIXME: update schema so that this passes
-#         # schema_validate(sigmf_metadata, schema)
-#
-#
-# def test_data():
-#     action = actions["test_multi_frequency_iq_action"]
-#     action_results = action()
-#     for action_result in action_results:
-#         assert action_result.acq_data.any()
-#     # entry_name = simulate_multirec_acquisition(user_client)
-#     # tr = TaskResult.objects.get(schedule_entry__name=entry_name, task_id=1)
-#     # acquisitions = Acquisition.objects.filter(task_result=tr)
-#     # for acquisition in acquisitions:
-#     #     assert acquisition.data
-#     #     assert path.exists(acquisition.data.path)
-#     #     os.remove(acquisition.data.path)
 
 
 def test_metadata_timedomain_iq_single_acquisition():
@@ -76,41 +38,38 @@ def test_metadata_timedomain_iq_single_acquisition():
     assert _data.any()
     assert _metadata
     assert _task_id
-    # entry_name = simulate_timedomain_iq_acquisition(user_client)
-    # tr = TaskResult.objects.get(schedule_entry__name=entry_name, task_id=1)
-    # acquisition = Acquisition.objects.get(task_result=tr)
-    # check_metadata_fields(
-    #     acquisition,
-    #     entry_name,
-    #     SINGLE_TIMEDOMAIN_IQ_ACQUISITION,
-    #     is_multirecording=False,
-    # )
+    check_metadata_fields(
+        _metadata,
+        SINGLE_TIMEDOMAIN_IQ_ACQUISITION["name"],
+        SINGLE_TIMEDOMAIN_IQ_ACQUISITION["action"],
+        1
+    )
 
 
 def test_metadata_timedomain_iq_multiple_acquisition():
-    _data = None
-    _metadata = None
-    _task_id = 0
+    _datas = []
+    _metadatas = []
+    _task_ids = []
     _count = 0
     _recording_ids = []
 
     def callback(sender,**kwargs):
-        nonlocal _data
-        nonlocal _metadata
-        nonlocal _task_id
+        nonlocal _datas
+        nonlocal _metadatas
+        nonlocal _task_ids
         nonlocal _count
         nonlocal _recording_ids
-        _task_id = kwargs["task_id"]
-        _data = kwargs["data"]
-        _metadata = kwargs["metadata"]
+        _task_ids.append(kwargs["task_id"])
+        _datas.append(kwargs["data"])
+        _metadatas.append(kwargs["metadata"])
         _count += 1
-        recording_id = _metadata["global"]["ntia-scos:recording"]
-        _recording_ids.append(recording_id)
+        _recording_ids.append(kwargs["metadata"]["global"]["ntia-scos:recording"])
     measurement_action_completed.connect(callback)
     action = actions["test_multi_frequency_iq_action"]
     action(SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1, SENSOR_DEFINITION)
-    assert _data.any()
-    assert _metadata
-    assert _task_id
+    for i in range(_count):
+        assert _datas[i].any()
+        assert _metadatas[i]
+        assert _task_ids[i] == 1
+        assert _recording_ids[i] == i + 1
     assert _count == 10
-    assert all([x in _recording_ids for x in range(1, 11)])

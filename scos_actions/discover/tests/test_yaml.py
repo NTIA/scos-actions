@@ -6,7 +6,7 @@ from ruamel.yaml.scanner import ScannerError
 
 # Indentation makes this invalid
 from scos_actions import actions
-from scos_actions.discover import load_from_yaml
+from scos_actions.discover.yaml import load_from_yaml
 
 INVALID_YAML = b"""\
 single_frequency_fft:

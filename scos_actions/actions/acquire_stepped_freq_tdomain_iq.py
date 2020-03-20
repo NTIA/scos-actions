@@ -45,16 +45,13 @@ import logging
 from itertools import zip_longest
 
 import numpy as np
-from django.core.files.base import ContentFile
-from sigmf.sigmffile import SigMFFile
 
-from .interfaces.action import Action
-from .interfaces.signals import measurement_action_completed
-from .measurement_params import MeasurementParams
-from .. import utils
-from ..hardware import radio
+from scos_actions import utils
+from scos_actions.actions.interfaces.action import Action
+from scos_actions.actions.interfaces.signals import measurement_action_completed
+from scos_actions.actions.measurement_params import MeasurementParams
+from scos_actions.hardware import radio
 from scos_actions.actions import sigmf_builder as scos_actions_sigmf
-
 
 logger = logging.getLogger(__name__)
 

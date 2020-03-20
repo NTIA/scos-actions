@@ -2,8 +2,6 @@ from enum import Enum
 
 from sigmf import SigMFFile
 
-from scos_actions.utils import convert_datetime_to_millisecond_iso_format
-
 GLOBAL_INFO = {
     "core:version": "0.0.2",
     "core:extensions": {

@@ -95,15 +95,17 @@ import logging
 
 # django.core.files.base import ContentFile
 #from sigmf.sigmffile import SigMFFile
-from .fft import *
-from .interfaces.action import Action
-from .interfaces.signals import measurement_action_completed
-from .measurement_params import MeasurementParams
 #from .sigmf import build_sigmf_md
-#import scos_actions.actions.sigmf_builder as scos_actions_sigmf
-from scos_actions.actions import sigmf_builder as scos_actions_sigmf
-from .. import utils
-from ..hardware import radio
+import numpy as np
+
+from scos_actions import utils
+from scos_actions.actions.fft import get_fft_frequencies, M4sDetector, get_frequency_domain_data, convert_volts_to_watts, \
+    apply_detector, convert_watts_to_dbm
+from scos_actions.actions.interfaces.action import Action
+from scos_actions.actions.interfaces.signals import measurement_action_completed
+from scos_actions.actions.measurement_params import MeasurementParams
+from scos_actions.actions.sigmf_builder import SigMFBuilder, Domain, MeasurementType
+from scos_actions.hardware import radio
 
 logger = logging.getLogger(__name__)
 
@@ -192,15 +194,15 @@ class SingleFrequencyFftAcquisition(Action):
         #     "ntia-sensor:calibration_datetime", get_last_calibration_time()
         # )
 
-        sigmf_builder = scos_actions_sigmf.SigMFBuilder()
+        sigmf_builder = SigMFBuilder()
         sigmf_builder.set_action(self.name, self.description, self.description.splitlines()[0])
         sigmf_builder.set_capture(frequency, capture_time)
         sigmf_builder.set_coordinate_system()
         sigmf_builder.set_data_type(is_complex=False)
         sigmf_builder.set_measurement(
             start_time, end_time,
-            domain=scos_actions_sigmf.Domain.FREQUENCY,
-            measurement_type=scos_actions_sigmf.MeasurementType.SINGLE_FREQUENCY,
+            domain=Domain.FREQUENCY,
+            measurement_type=MeasurementType.SINGLE_FREQUENCY,
             frequency=frequency
         )
 
