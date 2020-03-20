@@ -31,4 +31,5 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=install_requires,
+    package_data={'scos_actions': ['configs/actions/*.yml']},
 )
