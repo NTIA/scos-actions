@@ -4,7 +4,6 @@ import logging
 
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import location_action_completed
-from scos_actions.hardware import gps
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 class SyncGps(Action):
     """Query the GPS and syncronize time and location."""
 
-    def __init__(self, admin_only=True):
+    def __init__(self, gps, admin_only=True):
         super(SyncGps, self).__init__(admin_only=admin_only)
 
         self.gps = gps
