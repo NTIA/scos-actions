@@ -50,7 +50,6 @@ from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.measurement_params import MeasurementParams
-from scos_actions.hardware import radio
 from scos_actions.actions import sigmf_builder as scos_actions_sigmf
 
 logger = logging.getLogger(__name__)
@@ -64,10 +63,11 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
     :param gains: requested gain in dB, per center_frequency
     :param sample_rates: iterable of sample_rates in Hz, per center_frequency
     :param durations_ms: duration to acquire in ms, per center_frequency
+    :param radio: instance of RadioInterface
 
     """
 
-    def __init__(self, name, fcs, gains, sample_rates, durations_ms):
+    def __init__(self, name, fcs, gains, sample_rates, durations_ms, radio):
         super(SteppedFrequencyTimeDomainIqAcquisition, self).__init__()
 
         num_center_frequencies = len(fcs)

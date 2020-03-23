@@ -1,6 +1,6 @@
 from scos_actions.actions.interfaces.signals import location_action_completed
 from scos_actions.actions.tests.utils import SENSOR_DEFINITION
-from scos_actions.discover import actions
+from scos_actions.discover import test_actions
 
 SYNC_GPS = {
     "name": "sync_gps",
@@ -20,7 +20,7 @@ def test_detector():
         _latitude = kwargs["latitude"]
         _longitude = kwargs["longitude"]
     location_action_completed.connect(callback)
-    action = actions["sync_gps"]
+    action = test_actions["sync_gps"]
     action(SYNC_GPS, 1, SENSOR_DEFINITION)
     assert _latitude
     assert _longitude

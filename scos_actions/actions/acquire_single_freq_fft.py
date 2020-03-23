@@ -105,7 +105,6 @@ from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.measurement_params import MeasurementParams
 from scos_actions.actions.sigmf_builder import SigMFBuilder, Domain, MeasurementType
-from scos_actions.hardware import radio
 
 logger = logging.getLogger(__name__)
 
@@ -119,10 +118,11 @@ class SingleFrequencyFftAcquisition(Action):
     :param sample_rate: requested sample_rate in Hz
     :param fft_size: number of points in FFT (some 2^n)
     :param nffts: number of consecutive FFTs to pass to detector
+    :param radio: instance of RadioInterface
 
     """
 
-    def __init__(self, name, frequency, gain, sample_rate, fft_size, nffts):
+    def __init__(self, name, frequency, gain, sample_rate, fft_size, nffts, radio):
         super(SingleFrequencyFftAcquisition, self).__init__()
 
         self.name = name
