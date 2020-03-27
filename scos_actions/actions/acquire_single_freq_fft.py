@@ -91,20 +91,21 @@ The resulting matrix is real-valued, 32-bit floats representing dBm.
 """
 
 import logging
-#import numpy as np
-
-# django.core.files.base import ContentFile
-#from sigmf.sigmffile import SigMFFile
-#from .sigmf import build_sigmf_md
-import numpy as np
 
 from scos_actions import utils
-from scos_actions.actions.fft import get_fft_frequencies, M4sDetector, get_frequency_domain_data, convert_volts_to_watts, \
-    apply_detector, convert_watts_to_dbm
+from scos_actions.actions.fft import (
+    get_fft_frequencies,
+    M4sDetector,
+    get_frequency_domain_data,
+    convert_volts_to_watts,
+    apply_detector,
+    convert_watts_to_dbm,
+)
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.measurement_params import MeasurementParams
 from scos_actions.actions.sigmf_builder import SigMFBuilder, Domain, MeasurementType
+
 
 logger = logging.getLogger(__name__)
 
@@ -145,14 +146,23 @@ class SingleFrequencyFftAcquisition(Action):
         data = self.acquire_data()
         end_time = utils.get_datetime_str_now()
         m4s_data = self.apply_detector(data)
-        sigmf_builder = self.build_sigmf_md(start_time, end_time, self.radio.capture_time, schedule_entry_json,
-                                            sensor_definition, task_id, m4s_data)
-        #self.archive(task_result_json, m4s_data, sigmf_builder)
-        measurement_action_completed.send(sender=self.__class__, task_id=task_id, data=m4s_data, metadata=sigmf_builder.metadata)
+        sigmf_builder = self.build_sigmf_md(
+            start_time,
+            end_time,
+            self.radio.capture_time,
+            schedule_entry_json,
+            sensor_definition,
+            task_id,
+        )
+        measurement_action_completed.send(
+            sender=self.__class__,
+            task_id=task_id,
+            data=m4s_data,
+            metadata=sigmf_builder.metadata,
+        )
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
-        # self.radio.connect()
         if not self.radio.is_available:
             msg = "acquisition failed: SDR required but not available"
             raise RuntimeError(msg)
@@ -178,32 +188,33 @@ class SingleFrequencyFftAcquisition(Action):
         )
         return data
 
-    def build_sigmf_md(self, start_time, end_time, capture_time, schedule_entry_json, sensor, task_id, data):
+    def build_sigmf_md(
+        self,
+        start_time,
+        end_time,
+        capture_time,
+        schedule_entry_json,
+        sensor,
+        task_id,
+    ):
         sample_rate = self.radio.sample_rate
         frequency = self.radio.frequency
-
-        #sensor = sensor_definition
-        # TODO
-        # sensor["id"] = settings.FQDN
-        #get_sensor_location_sigmf(sensor)
-
-        # TODO
-        # from status.views import get_last_calibration_time
-        #
-        # sigmf_md.set_global_field(
-        #     "ntia-sensor:calibration_datetime", get_last_calibration_time()
-        # )
-
         sigmf_builder = SigMFBuilder()
-        sigmf_builder.set_action(self.name, self.description, self.description.splitlines()[0])
+
+        sigmf_builder.set_last_calibration_time(self.radio.last_calibration_time)
+
+        sigmf_builder.set_action(
+            self.name, self.description, self.description.splitlines()[0]
+        )
         sigmf_builder.set_capture(frequency, capture_time)
         sigmf_builder.set_coordinate_system()
         sigmf_builder.set_data_type(is_complex=False)
         sigmf_builder.set_measurement(
-            start_time, end_time,
+            start_time,
+            end_time,
             domain=Domain.FREQUENCY,
             measurement_type=MeasurementType.SINGLE_FREQUENCY,
-            frequency=frequency
+            frequency=frequency,
         )
 
         sigmf_builder.set_sample_rate(sample_rate)
@@ -211,26 +222,24 @@ class SingleFrequencyFftAcquisition(Action):
         sigmf_builder.set_sensor(sensor)
         sigmf_builder.set_task(task_id)
 
-        # sigmf_md = scos_actions_sigmf.build_sigmf_md(sample_rate, frequency, start_time, end_time, capture_time)
-
         frequencies = get_fft_frequencies(
             self.measurement_params.fft_size, sample_rate, frequency
         ).tolist()
 
         for i, detector in enumerate(M4sDetector):  # TODO check this
-            sigmf_builder.add_frequency_domain_detection(start_index=(i * self.measurement_params.fft_size),
-                                                         fft_size=self.measurement_params.fft_size,
-                                                         enbw=self.enbw,
-                                                         detector=detector,
-                                                         num_ffts=self.measurement_params.num_ffts,
-                                                         window="flattop",
-                                                         units="dBm",
-                                                         reference="preselector input",
-                                                         frequency_start=frequencies[0],
-                                                         frequency_stop=frequencies[-1],
-                                                         frequency_step=frequencies[1] - frequencies[0]
-                                                         )
-
+            sigmf_builder.add_frequency_domain_detection(
+                start_index=(i * self.measurement_params.fft_size),
+                fft_size=self.measurement_params.fft_size,
+                enbw=self.enbw,
+                detector=detector,
+                num_ffts=self.measurement_params.num_ffts,
+                window="flattop",
+                units="dBm",
+                reference="preselector input",
+                frequency_start=frequencies[0],
+                frequency_stop=frequencies[-1],
+                frequency_step=frequencies[1] - frequencies[0],
+            )
 
         calibration_annotation_md = self.radio.create_calibration_annotation()
         sigmf_builder.add_annotation(
@@ -239,28 +248,14 @@ class SingleFrequencyFftAcquisition(Action):
             annotation_md=calibration_annotation_md,
         )
 
-        # Recover the sigan overload flag
         overload = self.radio.overload
 
-        # Check time domain average power versus calibrated compression
-        flattened_data = data.flatten()
-        time_domain_avg_power = 10 * np.log10(np.mean(np.abs(flattened_data) ** 2))
-        time_domain_avg_power += (
-                10 * np.log10(1 / (2 * 50)) + 30
-        )  # Convert log(V^2) to dBm
-        # move to usrp
-        # sensor_overload = False
-        # # explicitly check is not None since 1db compression could be 0
-        # if self.radio.sensor_calibration_data["1db_compression_sensor"] is not None:
-        #     sensor_overload = (
-        #             time_domain_avg_power
-        #             > self.radio.sensor_calibration_data["1db_compression_sensor"]
-        #     )
-
-        sigmf_builder.add_sensor_annotation(start_index=0,
-                                            length=self.measurement_params.fft_size * len(M4sDetector),
-                                            overload=overload,
-                                            gain=self.measurement_params.gain)
+        sigmf_builder.add_sensor_annotation(
+            start_index=0,
+            length=self.measurement_params.fft_size * len(M4sDetector),
+            overload=overload,
+            gain=self.measurement_params.gain,
+        )
         return sigmf_builder
 
     def apply_detector(self, data):

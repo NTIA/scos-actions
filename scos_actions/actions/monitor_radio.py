@@ -44,21 +44,17 @@ class RadioMonitor(Action):
 
         if healthy:
             try:
-                #Path(settings.SDR_HEALTHCHECK_FILE).unlink()
                 monitor_action_completed.send(sender=self.__class__, radio_healthy=True)
                 logger.info("USRP healthy")
             except FileNotFoundError:
                 pass
         else:
             logger.warning("USRP unhealthy")
-            #if settings.IN_DOCKER:
-            #    Path(settings.SDR_HEALTHCHECK_FILE).touch()
             monitor_action_completed.send(sender=self.__class__, radio_healthy=False)
             raise RuntimeError(detail)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
-        # self.usrp.connect()
         if not self.radio.is_available:
             msg = "acquisition failed: USRP required but not available"
             raise RuntimeError(msg)

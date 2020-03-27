@@ -29,18 +29,15 @@ class MeasurementType(Enum):
     SURVEY = "survey"
 
 
-
 class Domain(Enum):
     FREQUENCY = "frequency"
     TIME = "time"
 
 
-class SigMFBuilder():
+class SigMFBuilder:
     def __init__(self):
         self.sigmf_md = SigMFFile()
-        self.sigmf_md.set_global_info(
-            GLOBAL_INFO.copy()
-        )
+        self.sigmf_md.set_global_info(GLOBAL_INFO.copy())
 
     @property
     def metadata(self):
@@ -62,15 +59,20 @@ class SigMFBuilder():
     def set_recording(self, recording_id):
         self.sigmf_md.set_global_field("ntia-scos:recording", recording_id)
 
-    def set_measurement(self, start_time, end_time, domain, measurement_type, frequency):
-        self.sigmf_md.set_global_field("ntia-core:measurement",  {
-            "time_start": start_time,
-            "time_stop": end_time,
-            "domain": domain.value,
-            "measurement_type": measurement_type.value,
-            "frequency_tuned_low": frequency,
-            "frequency_tuned_high": frequency,
-        })
+    def set_measurement(
+        self, start_time, end_time, domain, measurement_type, frequency
+    ):
+        self.sigmf_md.set_global_field(
+            "ntia-core:measurement",
+            {
+                "time_start": start_time,
+                "time_stop": end_time,
+                "domain": domain.value,
+                "measurement_type": measurement_type.value,
+                "frequency_tuned_low": frequency,
+                "frequency_tuned_high": frequency,
+            },
+        )
 
     def set_sensor(self, sensor):
         self.sigmf_md.set_global_field("ntia-sensor:sensor", sensor)
@@ -79,11 +81,10 @@ class SigMFBuilder():
         self.sigmf_md.set_global_field("ntia-scos:task", task_id)
 
     def set_action(self, name, description, summary):
-        self.sigmf_md.set_global_field("ntia-scos:action", {
-            "name": name,
-            "description": description,
-            "summary": summary,
-        })
+        self.sigmf_md.set_global_field(
+            "ntia-scos:action",
+            {"name": name, "description": description, "summary": summary,},
+        )
 
     def set_schedule(self, schedule_entry_json):
         self.sigmf_md.set_global_field("ntia-scos:schedule", schedule_entry_json)
@@ -101,23 +102,38 @@ class SigMFBuilder():
 
         self.sigmf_md.add_capture(start_index=0, metadata=capture_md)
 
-    def add_frequency_domain_detection(self, start_index, fft_size, enbw, detector, num_ffts, window, units, reference, frequency_start, frequency_stop, frequency_step):
-        metadata={
-                "ntia-core:annotation_type": "FrequencyDomainDetection",
-                "ntia-algorithm:number_of_samples_in_fft": fft_size,
-                "ntia-algorithm:window": window,
-                "ntia-algorithm:equivalent_noise_bandwidth": enbw,
-                "ntia-algorithm:detector": detector.name,
-                "ntia-algorithm:number_of_ffts": num_ffts,
-                "ntia-algorithm:units": units,
-                "ntia-algorithm:reference": reference,
-                "ntia-algorithm:frequency_start": frequency_start,
-                "ntia-algorithm:frequency_stop": frequency_stop,
-                "ntia-algorithm:frequency_step": frequency_step,
+    def add_frequency_domain_detection(
+        self,
+        start_index,
+        fft_size,
+        enbw,
+        detector,
+        num_ffts,
+        window,
+        units,
+        reference,
+        frequency_start,
+        frequency_stop,
+        frequency_step,
+    ):
+        metadata = {
+            "ntia-core:annotation_type": "FrequencyDomainDetection",
+            "ntia-algorithm:number_of_samples_in_fft": fft_size,
+            "ntia-algorithm:window": window,
+            "ntia-algorithm:equivalent_noise_bandwidth": enbw,
+            "ntia-algorithm:detector": detector.name,
+            "ntia-algorithm:number_of_ffts": num_ffts,
+            "ntia-algorithm:units": units,
+            "ntia-algorithm:reference": reference,
+            "ntia-algorithm:frequency_start": frequency_start,
+            "ntia-algorithm:frequency_stop": frequency_stop,
+            "ntia-algorithm:frequency_step": frequency_step,
         }
         self.add_annotation(start_index, fft_size, metadata)
 
-    def add_time_domain_detection(self, start_index, num_samples, detector, units, reference):
+    def add_time_domain_detection(
+        self, start_index, num_samples, detector, units, reference
+    ):
         time_domain_detection_md = {
             "ntia-core:annotation_type": "TimeDomainDetection",
             "ntia-algorithm:detector": detector,
@@ -129,15 +145,18 @@ class SigMFBuilder():
 
     def add_annotation(self, start_index, length, annotation_md):
         self.sigmf_md.add_annotation(
-            start_index=start_index,
-            length=length,
-            metadata=annotation_md
+            start_index=start_index, length=length, metadata=annotation_md
         )
 
     def add_sensor_annotation(self, start_index, length, overload, gain):
-        metadata={
+        metadata = {
             "ntia-core:annotation_type": "SensorAnnotation",
             "ntia-sensor:overload": overload,
             "ntia-sensor:gain_setting_sigan": gain,
         }
         self.add_annotation(start_index, length, metadata)
+
+    def set_last_calibration_time(self, last_cal_time):
+        self.sigmf_md.set_global_field(
+            "ntia-sensor:calibration_datetime", last_cal_time
+        )

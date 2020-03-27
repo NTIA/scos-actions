@@ -75,7 +75,7 @@ def apply_detector(power_fft):
 
 def convert_watts_to_dbm(power_fft):
     # If testing, don't flood output with divide-by-zero warnings from np.log10
-    #if settings.RUNNING_TESTS:
+    # if settings.RUNNING_TESTS:
     if "PYTEST_CURRENT_TEST" in os.environ:
         np_error_settings_savepoint = np.seterr(divide="ignore")
     # Convert to dBm dBm = dB +30; dB = 10log(W)
@@ -120,7 +120,6 @@ def get_fft_window_correction(window, correction_type="amplitude"):
 
 
 def get_fft_frequencies(fft_size, sample_rate, center_frequency):
-    frequency_info = {}
     time_step = 1 / sample_rate
     frequencies = np.fft.fftfreq(fft_size, time_step)
     frequencies = np.fft.fftshift(frequencies) + center_frequency

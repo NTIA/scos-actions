@@ -23,11 +23,16 @@ def test_detector():
         _task_id = kwargs["task_id"]
         _data = kwargs["data"]
         _metadata = kwargs["metadata"]
+
     measurement_action_completed.connect(callback)
     action = actions["test_single_frequency_m4s_action"]
     action(SINGLE_FREQUENCY_FFT_ACQUISITION, 1, SENSOR_DEFINITION)
     assert _task_id
     assert _data.any()
     assert _metadata
-    check_metadata_fields(_metadata, SINGLE_FREQUENCY_FFT_ACQUISITION["name"], SINGLE_FREQUENCY_FFT_ACQUISITION["action"], 1)
-
+    check_metadata_fields(
+        _metadata,
+        SINGLE_FREQUENCY_FFT_ACQUISITION["name"],
+        SINGLE_FREQUENCY_FFT_ACQUISITION["action"],
+        1,
+    )

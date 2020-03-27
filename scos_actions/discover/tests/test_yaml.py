@@ -3,7 +3,6 @@ import tempfile
 import pytest
 from ruamel.yaml.scanner import ScannerError
 
-
 # Indentation makes this invalid
 from scos_actions import actions
 from scos_actions.discover.yaml import load_from_yaml

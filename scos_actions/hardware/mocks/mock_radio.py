@@ -69,7 +69,6 @@ class MockRadio(RadioInterface):
         self.sigan_overload = False
         self._capture_time = None
 
-
         # Try to acquire the samples
         max_retries = retries
         data = []
@@ -118,3 +117,7 @@ class MockRadio(RadioInterface):
     @property
     def overload(self):
         return self._overload
+
+    @property
+    def last_calibration_time(self):
+        return get_datetime_str_now()

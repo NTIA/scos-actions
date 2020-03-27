@@ -2,7 +2,6 @@ from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.tests.utils import SENSOR_DEFINITION, check_metadata_fields
 from scos_actions.discover import test_actions as actions
 
-
 SINGLE_TIMEDOMAIN_IQ_ACQUISITION = {
     "name": "test_acq",
     "start": None,
@@ -32,6 +31,7 @@ def test_metadata_timedomain_iq_single_acquisition():
         _task_id = kwargs["task_id"]
         _data = kwargs["data"]
         _metadata = kwargs["metadata"]
+
     measurement_action_completed.connect(callback)
     action = actions["test_single_frequency_iq_action"]
     action(SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1, SENSOR_DEFINITION)
@@ -42,7 +42,7 @@ def test_metadata_timedomain_iq_single_acquisition():
         _metadata,
         SINGLE_TIMEDOMAIN_IQ_ACQUISITION["name"],
         SINGLE_TIMEDOMAIN_IQ_ACQUISITION["action"],
-        1
+        1,
     )
 
 
@@ -53,7 +53,7 @@ def test_metadata_timedomain_iq_multiple_acquisition():
     _count = 0
     _recording_ids = []
 
-    def callback(sender,**kwargs):
+    def callback(sender, **kwargs):
         nonlocal _datas
         nonlocal _metadatas
         nonlocal _task_ids
@@ -64,6 +64,7 @@ def test_metadata_timedomain_iq_multiple_acquisition():
         _metadatas.append(kwargs["metadata"])
         _count += 1
         _recording_ids.append(kwargs["metadata"]["global"]["ntia-scos:recording"])
+
     measurement_action_completed.connect(callback)
     action = actions["test_multi_frequency_iq_action"]
     action(SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1, SENSOR_DEFINITION)

@@ -1,5 +1,4 @@
 import logging
-from os import path
 from pathlib import Path
 
 from ruamel.yaml import YAML
@@ -9,7 +8,6 @@ from scos_actions.settings import ACTION_DEFINITIONS_DIR
 logger = logging.getLogger(__name__)
 
 
-#def load_from_yaml(action_classes, yaml_dir=ACTION_DEFINITIONS_DIR):
 def load_from_yaml(action_classes, radio, yaml_dir=ACTION_DEFINITIONS_DIR):
     """Load any YAML files in yaml_dir."""
     parsed_actions = {}

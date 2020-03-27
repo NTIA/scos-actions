@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
-from dateutil import parser
 
+from dateutil import parser
 
 logger = logging.getLogger(__name__)
 

@@ -47,10 +47,10 @@ from itertools import zip_longest
 import numpy as np
 
 from scos_actions import utils
+from scos_actions.actions import sigmf_builder as scos_actions_sigmf
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.measurement_params import MeasurementParams
-from scos_actions.actions import sigmf_builder as scos_actions_sigmf
 
 logger = logging.getLogger(__name__)
 
@@ -107,19 +107,23 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
             start_time = utils.get_datetime_str_now()
             data = self.acquire_data(measurement_params)
             end_time = utils.get_datetime_str_now()
-            # sigmf_md = self.build_sigmf_md(
-            #     task_id,
-            #     measurement_params,
-            #     data,
-            #     task_result.schedule_entry,
-            #     recording_id,
-            #     start_time,
-            #     end_time,
-            # )
-            sigmf_builder = self.build_sigmf_md(measurement_params, start_time, end_time, self.radio.capture_time, schedule_entry_json,
-                                                sensor_definition, task_id, data, recording_id)
-            #self.archive(task_result, recording_id, data, sigmf_md)
-            measurement_action_completed.send(sender=self.__class__, task_id=task_id, data=data, metadata=sigmf_builder.metadata)
+
+            sigmf_builder = self.build_sigmf_md(
+                measurement_params,
+                start_time,
+                end_time,
+                self.radio.capture_time,
+                schedule_entry_json,
+                sensor_definition,
+                task_id,
+                recording_id,
+            )
+            measurement_action_completed.send(
+                sender=self.__class__,
+                task_id=task_id,
+                data=data,
+                metadata=sigmf_builder.metadata,
+            )
 
     @property
     def is_multirecording(self):
@@ -127,7 +131,6 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
-        # self.radio.connect()
         if not self.radio.is_available:
             msg = "acquisition failed: SDR required but not available"
             raise RuntimeError(msg)
@@ -148,21 +151,31 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
         acq = self.radio.acquire_time_domain_samples(
             num_samples, num_samples_skip=nskip
         ).astype(np.complex64)
-        # acq = self.radio.acquire_samples(num_samples, nskip=nskip).astype(
-        #     np.complex64
-        # )
+
         data = np.append(data, acq)
 
         return data
 
     def build_sigmf_md(
-        self, measurement_params, start_time, end_time, capture_time, schedule_entry_json, sensor, task_id, data, recording_id
+        self,
+        measurement_params,
+        start_time,
+        end_time,
+        capture_time,
+        schedule_entry_json,
+        sensor,
+        task_id,
+        recording_id,
     ):
         frequency = self.radio.frequency
         sample_rate = self.radio.sample_rate
-
         sigmf_builder = scos_actions_sigmf.SigMFBuilder()
-        sigmf_builder.set_action(self.name, self.description, self.description.splitlines()[0])
+
+        sigmf_builder.set_last_calibration_time(self.radio.last_calibration_time)
+
+        sigmf_builder.set_action(
+            self.name, self.description, self.description.splitlines()[0]
+        )
         sigmf_builder.set_capture(frequency, capture_time)
         sigmf_builder.set_coordinate_system()
         sigmf_builder.set_data_type(is_complex=True)
@@ -171,10 +184,11 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
         else:
             measurement_type = scos_actions_sigmf.MeasurementType.SINGLE_FREQUENCY
         sigmf_builder.set_measurement(
-            start_time, end_time,
+            start_time,
+            end_time,
             domain=scos_actions_sigmf.Domain.TIME,
             measurement_type=measurement_type,
-            frequency=frequency
+            frequency=frequency,
         )
 
         sigmf_builder.set_sample_rate(sample_rate)
@@ -186,38 +200,27 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
 
         num_samples = measurement_params.get_num_samples()
 
-        sigmf_builder.add_time_domain_detection(start_index=0, num_samples=num_samples,
-                                                detector="sample_iq", units="volts",
-                                                reference="preselector input")
+        sigmf_builder.add_time_domain_detection(
+            start_index=0,
+            num_samples=num_samples,
+            detector="sample_iq",
+            units="volts",
+            reference="preselector input",
+        )
 
         calibration_annotation_md = self.radio.create_calibration_annotation()
         sigmf_builder.add_annotation(
-            start_index=0,
-            length=num_samples,
-            annotation_md=calibration_annotation_md,
+            start_index=0, length=num_samples, annotation_md=calibration_annotation_md,
         )
 
-        # Recover the sigan overload flag
         overload = self.radio.overload
 
-        # Check time domain average power versus calibrated compression
-        time_domain_avg_power = 10 * np.log10(np.mean(np.abs(data) ** 2))
-        time_domain_avg_power += (
-                10 * np.log10(1 / (2 * 50)) + 30
-        )  # Convert log(V^2) to dBm
-        # move to usrp
-        # sensor_overload = False
-        # # explicitly check is not None since 1db compression could be 0
-        # if self.radio.sensor_calibration_data["1db_compression_sensor"] is not None:
-        #     sensor_overload = (
-        #             time_domain_avg_power
-        #             > self.radio.sensor_calibration_data["1db_compression_sensor"]
-        #     )
-
-        sigmf_builder.add_sensor_annotation(start_index=0,
-                                            length=num_samples,
-                                            overload=overload,
-                                            gain=measurement_params.gain)
+        sigmf_builder.add_sensor_annotation(
+            start_index=0,
+            length=num_samples,
+            overload=overload,
+            gain=measurement_params.gain,
+        )
         return sigmf_builder
 
     def configure_sdr(self, measurement_params):

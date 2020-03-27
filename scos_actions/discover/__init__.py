@@ -1,4 +1,4 @@
-#from scos_actions.actions import action_classes
+# from scos_actions.actions import action_classes
 from scos_actions.actions import action_classes
 from scos_actions.actions.monitor_radio import RadioMonitor
 from scos_actions.actions.sync_gps import SyncGps
@@ -6,18 +6,16 @@ from scos_actions.discover.yaml import load_from_yaml
 from scos_actions.hardware import radio, gps
 from scos_actions.settings import ACTION_DEFINITIONS_DIR
 
-actions = {
-}
-test_actions = {
-    "sync_gps": SyncGps(gps),
-    "monitor_radio": RadioMonitor(radio)
-}
+actions = {}
+test_actions = {"sync_gps": SyncGps(gps), "monitor_radio": RadioMonitor(radio)}
 
 
 def init(action_classes=action_classes, radio=radio, yaml_dir=ACTION_DEFINITIONS_DIR):
     yaml_actions = {}
     yaml_test_actions = {}
-    for key, value in load_from_yaml(action_classes, radio=radio, yaml_dir=yaml_dir).items():
+    for key, value in load_from_yaml(
+        action_classes, radio=radio, yaml_dir=yaml_dir
+    ).items():
         if key.startswith("test_"):
             yaml_test_actions[key] = value
         else:

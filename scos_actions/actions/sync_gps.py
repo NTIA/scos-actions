@@ -24,4 +24,6 @@ class SyncGps(Action):
             raise RuntimeError("Unable to synchronize to GPS")
 
         latitude, longitude = location
-        location_action_completed.send(self.__class__, latitude=latitude, longitude=longitude)
+        location_action_completed.send(
+            self.__class__, latitude=latitude, longitude=longitude
+        )

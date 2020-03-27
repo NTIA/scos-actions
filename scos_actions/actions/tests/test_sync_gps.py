@@ -10,6 +10,7 @@ SYNC_GPS = {
     "action": "sync_gps",
 }
 
+
 def test_detector():
     _latitude = None
     _longitude = None
@@ -19,6 +20,7 @@ def test_detector():
         nonlocal _longitude
         _latitude = kwargs["latitude"]
         _longitude = kwargs["longitude"]
+
     location_action_completed.connect(callback)
     action = test_actions["sync_gps"]
     action(SYNC_GPS, 1, SENSOR_DEFINITION)
