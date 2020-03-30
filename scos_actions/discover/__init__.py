@@ -26,3 +26,7 @@ def init(action_classes=action_classes, radio=radio, yaml_dir=ACTION_DEFINITIONS
 yaml_actions, yaml_test_actions = init()
 actions.update(yaml_actions)
 test_actions.update(yaml_test_actions)
+
+
+def get_last_calibration_time():
+    return None
