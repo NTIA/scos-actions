@@ -6,14 +6,14 @@ hardware.
 
 Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`)
 
-This repository includes the base Action class and offers 2 action classes for 
+This repository includes the base [Action](scos_actions/actions/interfaces/action.py) class and offers 2 action classes for 
 common measurements. The [acquire_single_freq_fft action](scos_actions/actions/acquire_single_freq_fft.py) is an action
 class which performs FFTs and calculates mean, median, min, max, and sample statistics at a single center frequency.
 The [acquire_stepped_freq_tdomain_iq action](scos_actions/actions/acquire_stepped_freq_tdomain_iq.py) acquires iq data
 at 1 or more center frequencies.
 
 3 parameterized actions using these action classes are
-offered for testing using a mock RadioInterface. The 3 actions' parameters are defined in 
+offered for testing using a mock radio. The 3 actions' parameters are defined in 
 [configs/actions](scos_actions/configs/actions). The 3 actions are listed below:
 
 * test_multi_frequency_iq_action
@@ -53,7 +53,7 @@ API, you should able to do so with little effort:
    files and initialize actions. These methods allow you to pass your new radio object to the action's constructor.
 
 If your SDR doesn't have a Python API, you'll need a Python wrapper that
-calls out to your SDRs available API and reads the samples back into Python. Libraries, such as
+calls out to your SDR's available API and reads the samples back into Python. Libraries, such as
 [SWIG](http://www.swig.org/), can automatically generate Python wrappers for programs written in C/C++.
 
 The next step in supporting a different SDR would be to create a class which inherits from the
@@ -61,6 +61,16 @@ The next step in supporting a different SDR would be to create a class which inh
 your `actions` dictionary, passing the gps object to the SyncGps constructor, and the radio object to the RadioMonitor
 constructor.
 
+The final step would be add a setup.py to allow for installation of the new repository as a Python package. You can use
+the [setup.py](setup.py) in this repository as a reference. You can find more information about Python packaging
+[here](https://packaging.python.org/tutorials/packaging-projects/). Then add the new repository as a dependency to
+scos-sensor requirements.txt using the following format:
+`<package_name> @ git+<link_to_github_repo>@<branch_name>#egg=<package_name>`
+
+If specific drivers are required for your SDR, you can attempt to link to them within the package or create a docker
+image with the necessary files. You can host the docker image as a
+[GitHub package](https://help.github.com/en/packages/using-github-packages-with-your-projects-ecosystem/configuring-docker-for-use-with-github-packages).
+Then, when running scos-sensor, set the environment variable `BASE_IMAGE=<image tag>`.
 
 Writing Custom Actions
 ======================
