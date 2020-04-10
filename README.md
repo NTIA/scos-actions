@@ -66,8 +66,8 @@ constructor.
 The final step would be add a setup.py to allow for installation of the new repository as a Python package. You can use
 the [setup.py](setup.py) in this repository as a reference. You can find more information about Python packaging
 [here](https://packaging.python.org/tutorials/packaging-projects/). Then add the new repository as a dependency to
-scos-sensor requirements.txt using the following format:
-`<package_name> @ git+<link_to_github_repo>@<branch_name>#egg=<package_name>`
+[scos-sensor requirements.txt](https://github.com/NTIA/scos-sensor/blob/master/src/requirements.txt) using the
+following format: `<package_name> @ git+<link_to_github_repo>@<branch_name>#egg=<package_name>`
 
 If specific drivers are required for your SDR, you can attempt to link to them within the package or create a docker
 image with the necessary files. You can host the docker image as a
