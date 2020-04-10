@@ -50,7 +50,9 @@ API, you should able to do so with little effort:
  - In the new repository, add a `discover/__init__.py` file. This should contain a dictionary called `actions` with a
    key of action name and a value of action object. You can use the [`init()`](scos_actions/discover/__init__.py)
    and/or the [`load_from_yaml()`](scos_actions/discover/yaml.py) methods provided in this repository to look for yaml
-   files and initialize actions. These methods allow you to pass your new radio object to the action's constructor.
+   files and initialize actions. These methods allow you to pass your new radio object to the action's constructor. You
+   can use the existing action classes [defined in this repository](scos_actions/actions/__init__.py) or
+   [create custom actions](#writing-custom-actions).
 
 If your SDR doesn't have a Python API, you'll need a Python wrapper that
 calls out to your SDR's available API and reads the samples back into Python. Libraries, such as
@@ -76,7 +78,7 @@ Writing Custom Actions
 ======================
 
 "Actions" are one of the main concepts used by [scos-sensor](https://github.com/NTIA/scos-sensor). At a high level,
-they are the things that the sensor owner wants the sensor to be able to _do_. At a lower level, they are simply python
+they are the things that the sensor owner wants the sensor to be able to _do_. At a lower level, they are simply Python
 classes with a special method `__call__`. Actions use
 [Django Signals](https://docs.djangoproject.com/en/3.0/topics/signals/) to provide data and results to scos-sensor.
 
@@ -100,4 +102,6 @@ Lastly, to expose a custom action to the API and make it schedulable,
 instantiate it in the `actions` dict in the discover module,
 [here](scos_actions/discover/__init__.py). To use yaml initialization, create the desired yaml files in
 [scos_actions/configs/actions](scos_actions/configs/actions) and add the action class to `action_classes` in
-[scos_actions/actions/__init__.py](scos_actions/actions/__init__.py)
+[scos_actions/actions/\_\_init\_\_.py](scos_actions/actions/__init__.py). The custom action can instead be put into a
+new repository as long as it is follows the actions discovery convention where the action name and object are added to
+a dictionary in `package_name/discover/__init__.py` and the package name starts with `scos_`.
