@@ -121,7 +121,7 @@ class SigMFBuilder:
             "ntia-algorithm:number_of_samples_in_fft": fft_size,
             "ntia-algorithm:window": window,
             "ntia-algorithm:equivalent_noise_bandwidth": enbw,
-            "ntia-algorithm:detector": detector.name,
+            "ntia-algorithm:detector": detector,
             "ntia-algorithm:number_of_ffts": num_ffts,
             "ntia-algorithm:units": units,
             "ntia-algorithm:reference": reference,

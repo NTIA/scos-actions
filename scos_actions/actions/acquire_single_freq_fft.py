@@ -231,7 +231,7 @@ class SingleFrequencyFftAcquisition(Action):
                 start_index=(i * self.measurement_params.fft_size),
                 fft_size=self.measurement_params.fft_size,
                 enbw=self.enbw,
-                detector=detector,
+                detector= "fft_" + detector.name + "_power",
                 num_ffts=self.measurement_params.num_ffts,
                 window="flattop",
                 units="dBm",
