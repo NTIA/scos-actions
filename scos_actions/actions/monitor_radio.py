@@ -16,7 +16,7 @@ class RadioMonitor(Action):
 
         self.radio = radio
 
-    def __call__(self, name, tid):
+    def __call__(self, schedule_entry_json, task_id, sensor_definition):
         logger.debug("Performing USRP health check")
 
         healthy = True
