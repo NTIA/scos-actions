@@ -1,6 +1,6 @@
 # YAML-Defined Action Initialization
 
-Actions can be manually initialized in [`actions/__init__.py`](../discover/__init__.py), but an easier method for
+Actions can be manually initialized in [`discover/__init__.py`](../discover/__init__.py), but an easier method for
 non-developers and configuration-management software is to place a YAML file in the
 [`configs\actions` directory](../configs/actions) which contains the action class name and parameter definitions.
 
@@ -23,7 +23,7 @@ Next, we want to find the appropriate string key for the `SingleFrequencyFftAcqu
 ```python
 action_classes = {
     ...
-    "single_frequency_fft": acquire_single_freq_fft.SingleFrequencyFftAcquisition,
+    "single_frequency_fft": SingleFrequencyFftAcquisition,
     ...
 }
 ```
@@ -58,8 +58,8 @@ class SingleFrequencyFftAcquisition(Action):
 ```
 
 Lastly, simply modify the YAML file to define any required parameters. Note that the radio is a special parameter
-that automatically gets passed in to all measurement actions. Therefore, it does not need to be defined in the yaml
-file.
+that will get passed in separately when the action is initialized from the YAML. Therefore, it does not need to be
+defined in the YAML file.
 
 ```yaml
 # File: acquire_700c_dl.yml
