@@ -4,7 +4,7 @@ NTIA/SCOS Actions
 Base repository for creating new actions for [scos-sensor](https://github.com/NTIA/scos-sensor) and supporting new
 hardware.
 
-Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`)
+Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`) and python>=3.6
 
 This repository includes the base [Action](scos_actions/actions/interfaces/action.py) class and offers 2 action classes for 
 common measurements. The [acquire_single_freq_fft action](scos_actions/actions/acquire_single_freq_fft.py) is an action
@@ -23,6 +23,32 @@ offered for testing using a mock radio. The 3 actions' parameters are defined in
 This repository also contains an action class for getting gps location 
 called sync_gps, and a monitor_radio action class for ensuring a radio
 is available and is able to maintain a connection to the computer.
+
+Running in scos-sensor
+----------------------
+
+1. Clone scos-sensor: `git clone https://github.com/NTIA/scos-sensor.git`
+2. Checkout SMBWTB475_refactor_radio_interface branch:`git checkout SMBWTB475_refactor_radio_interface`
+3. In scos-sensor/src/requirements.txt, comment out the following line:
+`scos_usrp @ git+${DOCKER_GIT_CREDENTIALS}/NTIA/scos_usrp@initial_development#egg=scos_usrp`
+4. `cp env.template ./env`
+5. In env file, change `BASE_IMAGE=ubuntu` (at the bottom of the file)
+6. If you are already using git credential manager (you have the file ~/.git-credentials), you can skip this step. In the env file, change 
+`DOCKER_GIT_CREDENTIALS=https://<username>:<password>@github.com`
+7. Set MOCK_RADIO and MOCK_RADIO_RANDOM equal to 1 in docker-compose.yml
+8. Get environment variables: `source ./env`
+9. Start services: `docker-compose up -d --build --force-recreate`
+
+Running Tests
+-------------
+
+1. Clone scos_actions in a folder of your choosing: `git clone https://github.com/NTIA/scos_actions.git`
+2. Go to scos_actions directory: `cd scos_actions`
+3. Create Python virtual environment. `python3 -m venv scos_actions_venv`
+4. Activate virtual environment. `source scos_actions_venv/bin/activate`
+5. Upgrade pip in your Python environment: `python3 -m pip install --upgrade pip`
+6. Install dependencies. `pip install -r requirements.txt` and `pip install -r requirements-dev.txt`
+7. Run `pytest .`
 
 Adding Actions
 --------------
