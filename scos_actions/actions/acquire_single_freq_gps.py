@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 
 class SingleFrequencyGPSAcquisition(Action):
-    """Perform m4s detection over requested number of single-frequency FFTs.
+    """Perform a single IQ capture at a specific Hz, dB, samp_rate, and length of time. GPS clock used for start time.
 
     :param name: the name of the action
     :param frequency: center frequency in Hz
@@ -66,10 +66,9 @@ class SingleFrequencyGPSAcquisition(Action):
         logger.debug("radio struct: ".format(radio))
         self.enbw = None
 
-    def __call__(self, schedule_entry_json, task_id, sensor_definition):#, new_epoch_time):
+    def __call__(self, schedule_entry_json, task_id, sensor_definition):
         """This is the entrypoint function called by the scheduler."""
         new_epoch_time = schedule_entry_json['GPS_sync_start']
-        print(type(new_epoch_time), "that was the epoch time type right there brand new.")
 
         self.test_required_components()
         self.configure_sdr()
@@ -114,8 +113,7 @@ class SingleFrequencyGPSAcquisition(Action):
 
     def build_sigmf_md(self, start_time, end_time, capture_time, schedule_entry_json, sensor, task_id, data):
         #self, measurement_params, start_time, end_time, capture_time, schedule_entry_json, sensor, task_id, data, recording_id
-        
-        
+                
         logger.debug("Building SigMF metadata file")
 
         # Use the radio's actual reported sample rate instead of requested rate
