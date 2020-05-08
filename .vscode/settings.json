@@ -1,3 +1,3 @@
 {
-    "python.pythonPath": "scos_actions_venv/bin/python3"
+    "python.pythonPath": "/usr/bin/python3"
 }
