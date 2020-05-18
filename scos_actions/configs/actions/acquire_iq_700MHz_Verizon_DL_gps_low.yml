@@ -1,0 +1,6 @@
+single_frequency_gps:
+  name: acquire_iq_700MHz_Verizon_DL_gps_low
+  frequency: 751e6
+  gain: 20
+  sample_rate: 15.36e6
+  duration_ms: 1000
