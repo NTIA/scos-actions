@@ -22,7 +22,7 @@ def test_detector():
         _longitude = kwargs["longitude"]
 
     location_action_completed.connect(callback)
-    action = test_actions["sync_gps"]
+    action = test_actions["test_sync_gps"]
     action(SYNC_GPS, 1, SENSOR_DEFINITION)
     assert _latitude
     assert _longitude
