@@ -4,6 +4,7 @@ import logging
 
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import location_action_completed
+import subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,11 @@ class SyncGps(Action):
 
     def __call__(self, schedule_entry_json, task_id, sensor_definition):
         logger.debug("Syncing to GPS")
+
+        dt = self.gps.get_gps_time()
+        date_cmd = ["date", "-s", "{:}".format(dt.strftime("%Y/%m/%d %H:%M:%S"))]
+        subprocess.check_output(date_cmd, shell=True)
+        logger.info("Set USRP and system time to GPS time {}".format(dt.ctime()))
 
         location = self.gps.get_lat_long()
         if location is None:
