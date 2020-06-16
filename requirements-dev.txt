@@ -1,3 +1,4 @@
 -rrequirements.txt
 black==19.10b0
 pytest~=5.4.3
+tox~=3.15.2
