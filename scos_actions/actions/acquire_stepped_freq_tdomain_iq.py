@@ -107,7 +107,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
             start_time = utils.get_datetime_str_now()
             data = self.acquire_data(measurement_params)
             end_time = utils.get_datetime_str_now()
-
+            received_samples = len(data)
             sigmf_builder = self.build_sigmf_md(
                 measurement_params,
                 start_time,
@@ -117,6 +117,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
                 sensor_definition,
                 task_id,
                 recording_id,
+                received_samples
             )
             measurement_action_completed.send(
                 sender=self.__class__,
@@ -166,6 +167,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
         sensor,
         task_id,
         recording_id,
+        received_samples
     ):
         frequency = self.radio.frequency
         sample_rate = self.radio.sample_rate
@@ -198,11 +200,10 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
         if self.is_multirecording:
             sigmf_builder.set_recording(recording_id)
 
-        num_samples = measurement_params.get_num_samples()
 
         sigmf_builder.add_time_domain_detection(
             start_index=0,
-            num_samples=num_samples,
+            num_samples=received_samples,
             detector="sample_iq",
             units="volts",
             reference="preselector input",
@@ -210,14 +211,14 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
 
         calibration_annotation_md = self.radio.create_calibration_annotation()
         sigmf_builder.add_annotation(
-            start_index=0, length=num_samples, annotation_md=calibration_annotation_md,
+            start_index=0, length=received_samples, annotation_md=calibration_annotation_md,
         )
 
         overload = self.radio.overload
 
         sigmf_builder.add_sensor_annotation(
             start_index=0,
-            length=num_samples,
+            length=received_samples,
             overload=overload,
             gain=measurement_params.gain,
         )
