@@ -18,7 +18,7 @@ def load_from_yaml(action_classes, radio, yaml_dir=ACTION_DEFINITIONS_DIR):
         for class_name, parameters in definition.items():
             try:
                 parameters["radio"] = radio
-                action = action_classes[class_name](**parameters)
+                action = action_classes[class_name](parameters=parameters)
                 parsed_actions[action.name] = action
             except KeyError as exc:
                 err = "Nonexistent action class name {!r} referenced in {!r}"

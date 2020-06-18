@@ -123,17 +123,10 @@ class SingleFrequencyFftAcquisition(Action):
 
     """
 
-    def __init__(self, name, frequency, gain, sample_rate, fft_size, nffts, radio):
+    def __init__(self, parameters):
         super(SingleFrequencyFftAcquisition, self).__init__()
 
-        self.name = name
-        self.measurement_params = MeasurementParams(
-            center_frequency=frequency,
-            gain=gain,
-            sample_rate=sample_rate,
-            fft_size=fft_size,
-            num_ffts=nffts,
-        )
+        self.parameters = parameters
         self.radio = radio  # make instance variable to allow mocking
         self.enbw = None
 
@@ -168,23 +161,36 @@ class SingleFrequencyFftAcquisition(Action):
             raise RuntimeError(msg)
 
     def configure_sdr(self):
-        self.radio.sample_rate = self.measurement_params.sample_rate
-        self.radio.frequency = self.measurement_params.center_frequency
-        self.radio.gain = self.measurement_params.gain
+        # self.radio.sample_rate = self.measurement_params.sample_rate
+        # self.radio.frequency = self.measurement_params.center_frequency
+        # self.radio.gain = self.measurement_params.gain
+        for key, value in self.parameters.items():
+            if hasattr(self.radio, key):
+                setattr(self.radio, key, value)
 
     def acquire_data(self):
         msg = "Acquiring {} FFTs at {} MHz"
-        num_ffts = self.measurement_params.num_ffts
-        frequency = self.measurement_params.center_frequency
-        sample_rate = self.measurement_params.sample_rate
-        fft_size = self.measurement_params.fft_size
+        #num_ffts = self.measurement_params.num_ffts
+        #frequency = self.measurement_params.center_frequency
+        #sample_rate = self.measurement_params.sample_rate
+        #fft_size = self.measurement_params.fft_size
         logger.debug(msg.format(num_ffts, frequency / 1e6))
+        if not "nffts" in self.parameters:
+            raise Exception("nffts missing from measurement parameters")
+        num_ffts = self.parameters["num_ffts"]
+        if not "frequency" in self.parameters:
+            raise Exception("frequency missing from measurement parameters")
+        frequency = self.parameters["frequency"]
+        if not "fft_size" in self.parameters:
+            raise Exception("fft_size missing from measurement parameters")
+        fft_size = self.parameters["fft_size"]
 
         # Drop ~10 ms of samples
-        nskip = int(0.01 * sample_rate)
+        # TODO move to radio interface
+        # nskip = int(0.01 * sample_rate)
 
         data = self.radio.acquire_time_domain_samples(
-            num_ffts * fft_size, num_samples_skip=nskip
+            num_ffts * fft_size
         )
         return data
 
