@@ -51,11 +51,12 @@ from scos_actions.actions import sigmf_builder as scos_actions_sigmf
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.measurement_params import MeasurementParams
+from scos_actions.actions.sigmf_builder import SigMFBuilder
 
 logger = logging.getLogger(__name__)
 
 
-class SteppedFrequencyTimeDomainIqAcquisition(Action):
+class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     """Acquire IQ data at each of the requested frequecies.
 
     :param name: the name of the action
@@ -67,19 +68,19 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
 
     """
 
-    def __init__(self, name, fcs, gains, sample_rates, durations_ms, radio):
+    def __init__(self, parameters, radio):
         super(SteppedFrequencyTimeDomainIqAcquisition, self).__init__()
-
-        num_center_frequencies = len(fcs)
+        self.parameters = parameters
+        self.sorted_measurement_parameters = []
+        num_center_frequencies = len(self.parameters["fcs"])
 
         parameter_names = ("center_frequency", "gain", "sample_rate", "duration_ms")
-        measurement_params_list = []
 
         # Sort combined parameter list by frequency
         def sortFrequency(zipped_params):
             return zipped_params[0]
 
-        sorted_params = list(zip_longest(fcs, gains, sample_rates, durations_ms))
+        sorted_params = list(zip_longest(self.parameters["fcs"], self.parameters["gains"], self.parameters["sample_rates"], self.parameters["durations_ms"]))
         sorted_params.sort(key=sortFrequency)
 
         for params in sorted_params:
@@ -88,147 +89,47 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
                 err = "Wrong number of {}s, expected {}"
                 raise TypeError(err.format(param_name, num_center_frequencies))
 
-            measurement_params_list.append(
-                MeasurementParams(**dict(zip(parameter_names, params)))
-            )
+                self.sorted_measurement_parameters.append(dict(zip(parameter_names, params)))
 
-        self.name = name
         self.radio = radio  # make instance variable to allow mocking
         self.num_center_frequencies = num_center_frequencies
-        self.measurement_params_list = measurement_params_list
 
     def __call__(self, schedule_entry_json, task_id, sensor_definition):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
 
         for recording_id, measurement_params in enumerate(
-            self.measurement_params_list, start=1
+            self.sorted_measurement_parameters, start=1
         ):
             start_time = utils.get_datetime_str_now()
-            data = self.acquire_data(measurement_params)
+            #data = self.acquire_data(measurement_params)
+            measurement_result = super().acquire_data(measurement_params)
             end_time = utils.get_datetime_str_now()
-            received_samples = len(data)
-            sigmf_builder = self.build_sigmf_md(
-                measurement_params,
-                start_time,
-                end_time,
-                self.radio.capture_time,
-                schedule_entry_json,
-                sensor_definition,
-                task_id,
-                recording_id,
-                received_samples
-            )
+            received_samples = len(measurement_result["data"])
+            # sigmf_builder = super().build_sigmf_md(
+            #     start_time,
+            #     end_time,
+            #     self.radio.capture_time,
+            #     schedule_entry_json,
+            #     sensor_definition,
+            #     task_id,
+            #     recording_id
+            # )
+            sigmf_builder = SigMFBuilder()
+            self.get_sigmf_global(sigmf_builder, schedule_entry_json, sensor_definition, measurement_result, start_time, end_time, task_id)
+            self.get_sigmf_global_measurement(sigmf_builder, start_time, end_time, measurement_result, recording_id)
+            self.get_sigmf_capture(sigmf_builder, measurement_result)
+            self.get_sigmf_annotation(sigmf_builder, measurement_result)
             measurement_action_completed.send(
                 sender=self.__class__,
                 task_id=task_id,
-                data=data,
+                data=measurement_result["data"],
                 metadata=sigmf_builder.metadata,
             )
 
     @property
     def is_multirecording(self):
-        return len(self.measurement_params_list) > 1
-
-    def test_required_components(self):
-        """Fail acquisition if a required component is not available."""
-        if not self.radio.is_available:
-            msg = "acquisition failed: SDR required but not available"
-            raise RuntimeError(msg)
-
-    def acquire_data(self, measurement_params):
-        self.configure_sdr(measurement_params)
-
-        # Use the radio's actual reported sample rate instead of requested rate
-        sample_rate = self.radio.sample_rate
-
-        # Acquire data and build per-capture metadata
-        data = np.array([], dtype=np.complex64)
-
-        num_samples = measurement_params.get_num_samples()
-
-        # Drop ~10 ms of samples
-        nskip = int(0.01 * sample_rate)
-        acq = self.radio.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip
-        ).astype(np.complex64)
-
-        data = np.append(data, acq)
-
-        return data
-
-    def build_sigmf_md(
-        self,
-        measurement_params,
-        start_time,
-        end_time,
-        capture_time,
-        schedule_entry_json,
-        sensor,
-        task_id,
-        recording_id,
-        received_samples
-    ):
-        frequency = self.radio.frequency
-        sample_rate = self.radio.sample_rate
-        sigmf_builder = scos_actions_sigmf.SigMFBuilder()
-
-        sigmf_builder.set_last_calibration_time(self.radio.last_calibration_time)
-
-        sigmf_builder.set_action(
-            self.name, self.description, self.description.splitlines()[0]
-        )
-        sigmf_builder.set_capture(frequency, capture_time)
-        sigmf_builder.set_coordinate_system()
-        sigmf_builder.set_data_type(is_complex=True)
-        if self.is_multirecording:
-            measurement_type = scos_actions_sigmf.MeasurementType.SURVEY
-        else:
-            measurement_type = scos_actions_sigmf.MeasurementType.SINGLE_FREQUENCY
-        sigmf_builder.set_measurement(
-            start_time,
-            end_time,
-            domain=scos_actions_sigmf.Domain.TIME,
-            measurement_type=measurement_type,
-            frequency=frequency,
-        )
-
-        sigmf_builder.set_sample_rate(sample_rate)
-        sigmf_builder.set_schedule(schedule_entry_json)
-        sigmf_builder.set_sensor(sensor)
-        sigmf_builder.set_task(task_id)
-        if self.is_multirecording:
-            sigmf_builder.set_recording(recording_id)
-
-
-        sigmf_builder.add_time_domain_detection(
-            start_index=0,
-            num_samples=received_samples,
-            detector="sample_iq",
-            units="volts",
-            reference="preselector input",
-        )
-
-        calibration_annotation_md = self.radio.create_calibration_annotation()
-        sigmf_builder.add_annotation(
-            start_index=0, length=received_samples, annotation_md=calibration_annotation_md,
-        )
-
-        overload = self.radio.overload
-
-        sigmf_builder.add_sensor_annotation(
-            start_index=0,
-            length=received_samples,
-            overload=overload,
-            gain=measurement_params.gain,
-        )
-        return sigmf_builder
-
-    def configure_sdr(self, measurement_params):
-        self.radio.sample_rate = measurement_params.sample_rate
-        self.radio.frequency = measurement_params.center_frequency
-        self.radio.gain = measurement_params.gain
-        self.radio.configure(self.name)
+        return len(self.sorted_measurement_parameters) > 1
 
     @property
     def description(self):

@@ -31,39 +31,11 @@ class MockRadio(RadioInterface):
         self.randomize_values = randomize_values
 
     @property
-    def capture_time(self):
-        return self._capture_time
-
-    @property
     def is_available(self):
         return True
 
-    @property
-    def sample_rate(self):  # -> float:
-        return self._sample_rate
-
-    @sample_rate.setter
-    def sample_rate(self, sample_rate):
-        self._sample_rate = sample_rate
-
-    @property
-    def frequency(self):  # -> float:
-        return self._frequency
-
-    @frequency.setter
-    def frequency(self, frequency):
-        self._frequency = frequency
-
     def configure(self, action_name):
         pass
-
-    @property
-    def gain(self):  # -> float:
-        return self._gain
-
-    @gain.setter
-    def gain(self, gain):
-        self._gain = gain
 
     def acquire_time_domain_samples(self, num_samples, num_samples_skip=0, retries=5):
         self.sigan_overload = False
@@ -101,7 +73,14 @@ class MockRadio(RadioInterface):
                     raise RuntimeError(err)
             else:
                 logger.debug("Successfully acquired {} samples.".format(num_samples))
-                return data
+                return  {
+                            "data":data,
+                            "overload": self._overload,
+                            "frequency": self._frequency,
+                            "gain": self._gain,
+                            "sample_rate": self._sample_rate,
+                            "capture_time": self._capture_time
+                        }
 
     def create_calibration_annotation(self):
         annotation_md = {
@@ -113,10 +92,6 @@ class MockRadio(RadioInterface):
     def set_times_to_fail_recv(self, n):
         self.times_to_fail_recv = n
         self.times_failed_recv = 0
-
-    @property
-    def overload(self):
-        return self._overload
 
     @property
     def last_calibration_time(self):

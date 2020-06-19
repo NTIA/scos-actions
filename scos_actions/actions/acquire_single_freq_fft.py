@@ -110,7 +110,7 @@ from scos_actions.actions.sigmf_builder import SigMFBuilder, Domain, Measurement
 logger = logging.getLogger(__name__)
 
 
-class SingleFrequencyFftAcquisition(Action):
+class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     """Perform m4s detection over requested number of single-frequency FFTs.
 
     :param name: the name of the action
@@ -123,7 +123,7 @@ class SingleFrequencyFftAcquisition(Action):
 
     """
 
-    def __init__(self, parameters):
+    def __init__(self, parameters, radio):
         super(SingleFrequencyFftAcquisition, self).__init__()
 
         self.parameters = parameters
@@ -134,19 +134,26 @@ class SingleFrequencyFftAcquisition(Action):
         """This is the entrypoint function called by the scheduler."""
 
         self.test_required_components()
-        self.configure_sdr()
         start_time = utils.get_datetime_str_now()
-        data = self.acquire_data()
+        measurement_result = self.acquire_data()
         end_time = utils.get_datetime_str_now()
-        m4s_data = self.apply_detector(data)
-        sigmf_builder = self.build_sigmf_md(
-            start_time,
-            end_time,
-            self.radio.capture_time,
-            schedule_entry_json,
-            sensor_definition,
-            task_id,
-        )
+        m4s_data = self.apply_detector(measurement_result["data"])
+        # sigmf_builder = self.build_sigmf_md(
+        #     start_time,
+        #     end_time,
+        #     measurement_results,
+        #     schedule_entry_json,
+        #     sensor_definition,
+        #     task_id,
+        # )
+        sigmf_builder = SigMFBuilder()
+        self.get_sigmf_global(sigmf_builder, schedule_entry_json, sensor_definition, measurement_result, start_time, end_time, task_id, is_complex=False)
+        # TODO override get_sigmf_global_measurement
+        self.get_sigmf_global_measurement(sigmf_builder, start_time, end_time, measurement_result)
+        self.get_sigmf_capture(sigmf_builder, measurement_result)
+        # TODO override get_sigmf_annotation
+        self.get_sigmf_annotation(sigmf_builder, measurement_result)
+        # TODO remove build_sigmf
         measurement_action_completed.send(
             sender=self.__class__,
             task_id=task_id,
@@ -160,15 +167,8 @@ class SingleFrequencyFftAcquisition(Action):
             msg = "acquisition failed: SDR required but not available"
             raise RuntimeError(msg)
 
-    def configure_sdr(self):
-        # self.radio.sample_rate = self.measurement_params.sample_rate
-        # self.radio.frequency = self.measurement_params.center_frequency
-        # self.radio.gain = self.measurement_params.gain
-        for key, value in self.parameters.items():
-            if hasattr(self.radio, key):
-                setattr(self.radio, key, value)
-
     def acquire_data(self):
+        super().configure_sdr(self.parameters)
         msg = "Acquiring {} FFTs at {} MHz"
         #num_ffts = self.measurement_params.num_ffts
         #frequency = self.measurement_params.center_frequency
@@ -178,9 +178,6 @@ class SingleFrequencyFftAcquisition(Action):
         if not "nffts" in self.parameters:
             raise Exception("nffts missing from measurement parameters")
         num_ffts = self.parameters["num_ffts"]
-        if not "frequency" in self.parameters:
-            raise Exception("frequency missing from measurement parameters")
-        frequency = self.parameters["frequency"]
         if not "fft_size" in self.parameters:
             raise Exception("fft_size missing from measurement parameters")
         fft_size = self.parameters["fft_size"]
@@ -189,32 +186,25 @@ class SingleFrequencyFftAcquisition(Action):
         # TODO move to radio interface
         # nskip = int(0.01 * sample_rate)
 
-        data = self.radio.acquire_time_domain_samples(
+        measurement_results = self.radio.acquire_time_domain_samples(
             num_ffts * fft_size
         )
-        return data
+        return measurement_results
+
 
     def build_sigmf_md(
         self,
         start_time,
         end_time,
-        capture_time,
+        measurement_results,
         schedule_entry_json,
         sensor,
         task_id,
     ):
-        sample_rate = self.radio.sample_rate
-        frequency = self.radio.frequency
+        sample_rate = measurement_results["sample_rate"]
+        frequency = measurement_results["frequency"]
         sigmf_builder = SigMFBuilder()
 
-        sigmf_builder.set_last_calibration_time(self.radio.last_calibration_time)
-
-        sigmf_builder.set_action(
-            self.name, self.description, self.description.splitlines()[0]
-        )
-        sigmf_builder.set_capture(frequency, capture_time)
-        sigmf_builder.set_coordinate_system()
-        sigmf_builder.set_data_type(is_complex=False)
         sigmf_builder.set_measurement(
             start_time,
             end_time,
@@ -254,13 +244,13 @@ class SingleFrequencyFftAcquisition(Action):
             annotation_md=calibration_annotation_md,
         )
 
-        overload = self.radio.overload
+        overload = measurement_results["overload"]
 
         sigmf_builder.add_sensor_annotation(
             start_index=0,
             length=self.measurement_params.fft_size * len(M4sDetector),
             overload=overload,
-            gain=self.measurement_params.gain,
+            gain=measurement_results["gain"],
         )
         return sigmf_builder
 
