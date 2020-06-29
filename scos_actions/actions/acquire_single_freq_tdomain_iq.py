@@ -16,7 +16,7 @@
 # - Markdown reference: https://commonmark.org/help/
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
-r"""Capture time-domain IQ samples at the following {num_center_frequencies} frequencies: {center_frequencies}.
+r"""Capture time-domain IQ samples at {center_frequency}.
 
 # {name}
 
@@ -25,9 +25,6 @@ r"""Capture time-domain IQ samples at the following {num_center_frequencies} fre
 Each time this task runs, the following process is followed:
 
 {acquisition_plan}
-
-This will take a minimum of {min_duration_ms:.2f} ms, not including radio
-tuning, dropping samples after retunes, and data storage.
 
 ## Time-domain processing
 
@@ -50,8 +47,7 @@ from scos_actions import utils
 from scos_actions.actions import sigmf_builder as scos_actions_sigmf
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.actions.measurement_params import MeasurementParams
-from scos_actions.actions.sigmf_builder import SigMFBuilder
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +70,10 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         self.parameters = parameters
         self.radio = radio  # make instance variable to allow mocking
 
+    @property
+    def name(self):
+        return self.parameters["name"]
+
     def __call__(self, schedule_entry_json, task_id, sensor_definition):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
@@ -89,14 +89,27 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         #     sensor_definition,
         #     task_id)
         sigmf_builder = SigMFBuilder()
-        self.get_sigmf_global(sigmf_builder, schedule_entry_json, sensor_definition, measurement_result, start_time, end_time, task_id)
-        self.get_sigmf_global_measurement(sigmf_builder, start_time, end_time, measurement_result)
-        self.get_sigmf_capture(sigmf_builder, measurement_result)
-        self.get_sigmf_annotation(sigmf_builder, measurement_result)
+        self.set_base_sigmf_global(sigmf_builder, schedule_entry_json, sensor_definition, measurement_result, task_id)
+        sigmf_builder.set_measurement(
+            start_time,
+            end_time,
+            domain=Domain.TIME,
+            measurement_type=MeasurementType.SINGLE_FREQUENCY,
+            frequency=measurement_result["frequency"],
+        )
+        self.add_sigmf_capture(sigmf_builder, measurement_result)
+        self.add_base_sigmf_annotations(sigmf_builder, measurement_result)
+        sigmf_builder.add_time_domain_detection(
+            start_index=0,
+            num_samples=received_samples,
+            detector="sample_iq",
+            units="volts",
+            reference="preselector input",
+        )
         measurement_action_completed.send(
             sender=self.__class__,
             task_id=task_id,
-            data=measurement_result["data"],
+            data=measurement_result["data"].astype(np.complex64),
             metadata=sigmf_builder.metadata,
         )
 
@@ -106,25 +119,25 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             msg = "acquisition failed: SDR required but not available"
             raise RuntimeError(msg)
 
-    def acquire_data(self, measurement_params, num_samples):
+    def acquire_data(self, measurement_params):
         self.configure_sdr(measurement_params)
 
         # Use the radio's actual reported sample rate instead of requested rate
         sample_rate = self.radio.sample_rate
 
-        num_samples = int(sample_rate * measurement_params["self.duration_ms"] * 1e-3)
+        num_samples = int(sample_rate * measurement_params["duration_ms"] * 1e-3)
 
-        # Drop ~10 ms of samples
-        nskip = int(0.01 * sample_rate)
+        nskip = None
+        if "nskip" in self.parameters:
+            nskip = self.parameters["nskip"]
         measurement_results = self.radio.acquire_time_domain_samples(
             num_samples, num_samples_skip=nskip
-        ).astype(np.complex64)
-
+        )
 
         return measurement_results
 
-    def get_sigmf_global(self, sigmf_builder, schedule_entry_json, sensor_def, measurement_results, task_id, recording_id=None, is_complex=True):
-        sample_rate = measurement_results["sample_rate"] 
+    def set_base_sigmf_global(self, sigmf_builder, schedule_entry_json, sensor_def, measurement_result, task_id, recording_id=None, is_complex=True):
+        sample_rate = measurement_result["sample_rate"] 
         sigmf_builder.set_last_calibration_time(self.radio.last_calibration_time)
         sigmf_builder.set_action(
             self.parameters["name"], self.description, self.description.splitlines()[0]
@@ -138,55 +151,30 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         if recording_id:
             sigmf_builder.set_recording(recording_id)
 
-    def get_sigmf_global_measurement(self, sigmf_builder, start_time, end_time, measurement_results, recording_id=None):
-        if recording_id:
-            measurement_type = scos_actions_sigmf.MeasurementType.SURVEY
-        else:
-            measurement_type = scos_actions_sigmf.MeasurementType.SINGLE_FREQUENCY
-        sigmf_builder.set_measurement(
-            start_time,
-            end_time,
-            domain=scos_actions_sigmf.Domain.TIME,
-            measurement_type=measurement_type,
-            frequency=measurement_results["frequency"],
-        )
-
-    def get_sigmf_capture(self, sigmf_builder, measurement_results):
-        sigmf_builder.set_capture(measurement_results["frequency"], measurement_results["capture_time"])
+    def add_sigmf_capture(self, sigmf_builder, measurement_result):
+        sigmf_builder.set_capture(measurement_result["frequency"], measurement_result["capture_time"])
 
 
-    def get_sigmf_annotation(
+    def add_base_sigmf_annotations(
         self,
         sigmf_builder,
-        measurement_results,
+        measurement_result,
         ):
-        received_samples = len(measurement_results["data"])
+        received_samples = len(measurement_result["data"])
 
-        sigmf_builder.add_time_domain_detection(
-            start_index=0,
-            num_samples=received_samples,
-            detector="sample_iq",
-            units="volts",
-            reference="preselector input",
-        )
-
-        calibration_annotation_md = self.radio.create_calibration_annotation()
         sigmf_builder.add_annotation(
-            start_index=0, length=received_samples, annotation_md=calibration_annotation_md,
+            start_index=0, length=received_samples, annotation_md=measurement_result["calibration_annotation"],
         )
-
-        overload = self.radio.overload
 
         sigmf_builder.add_sensor_annotation(
             start_index=0,
             length=received_samples,
-            overload=overload,
-            gain=measurement_results["gain"],
+            overload=measurement_result["overload"],
+            gain=measurement_result["gain"],
         )
-        return sigmf_builder
 
     def configure_sdr(self, measurement_params):
-        for key, value in measurement_params:
+        for key, value in measurement_params.items():
             if hasattr(self.radio, key):
                 setattr(self.radio, key, value)
 
@@ -201,43 +189,24 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         acq_plan_template += "for {duration_ms} ms\n"
 
         total_samples = 0
-        for measurement_params in self.measurement_params_list:
-            acq_plan_template.format(
-                **{
-                    "fc_MHz": measurement_params.center_frequency / 1e6,
-                    "gain": measurement_params.gain,
-                    "sample_rate_Msps": measurement_params.sample_rate / 1e6,
-                    "duration_ms": measurement_params.duration_ms,
-                }
-            )
-            total_samples += int(
-                measurement_params.duration_ms / 1e6 * measurement_params.sample_rate
-            )
-
-        f_low = self.measurement_params_list[0].center_frequency
-        f_low_srate = self.measurement_params_list[0].sample_rate
-        f_low_edge = (f_low - f_low_srate / 2.0) / 1e6
-
-        f_high = self.measurement_params_list[-1].center_frequency
-        f_high_srate = self.measurement_params_list[-1].sample_rate
-        f_high_edge = (f_high - f_high_srate / 2.0) / 1e6
-
-        durations = [v.duration_ms for v in self.measurement_params_list]
-        min_duration_ms = np.sum(durations)
+        acq_plan_template.format(
+            **{
+                "fc_MHz": self.parameters["frequency"] / 1e6,
+                "gain": self.parameters["gain"],
+                "sample_rate_Msps": self.parameters["sample_rate"] / 1e6,
+                "duration_ms": self.parameters["duration_ms"],
+            }
+        )
+        total_samples += int(
+            self.parameters["duration_ms"] / 1e6 * self.parameters["sample_rate"]
+        )
 
         filesize_mb = total_samples * 8 / 1e6  # 8 bytes per complex64 sample
 
         defs = {
             "name": self.name,
-            "num_center_frequencies": self.num_center_frequencies,
-            "center_frequencies": ", ".join(
-                [
-                    "{:.2f} MHz".format(param.center_frequency / 1e6)
-                    for param in self.measurement_params_list
-                ]
-            ),
+            "center_frequency": "{:.2f} MHz".format(self.parameters["frequency"] / 1e6),
             "acquisition_plan": acquisition_plan,
-            "min_duration_ms": min_duration_ms,
             "total_samples": total_samples,
             "filesize_mb": filesize_mb,
         }

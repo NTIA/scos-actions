@@ -37,7 +37,7 @@ def test_metadata_timedomain_iq_single_acquisition():
     action(SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1, SENSOR_DEFINITION)
     assert _data.any()
     assert _metadata
-    assert _task_id
+    assert _task_id == 1
     check_metadata_fields(
         _metadata,
         SINGLE_TIMEDOMAIN_IQ_ACQUISITION["name"],

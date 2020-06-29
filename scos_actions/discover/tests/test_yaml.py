@@ -23,16 +23,6 @@ this_doesnt_exist:
     name: test_expected_failure
 """
 
-# "frequency" is misspelled
-INVALID_PARAMETERS = b"""\
-single_frequency_fft:
-    name: acquire_700c_dl
-    frequnecy: 751e6
-    gain: 40
-    sample_rate: 15.36e6
-    fft_size: 1024
-    nffts: 300
-"""
 
 
 def test_load_from_yaml_existing():
@@ -61,7 +51,3 @@ def test_load_from_yaml_invalid_class_name():
     """A nonexistent action class name should raise an error."""
     _test_load_from_yaml_check_error(NONEXISTENT_ACTION_CLASS_NAME, KeyError)
 
-
-def test_load_from_yaml_invalid_parameters():
-    """A nonexistent action class name should raise an error."""
-    _test_load_from_yaml_check_error(INVALID_PARAMETERS, TypeError)

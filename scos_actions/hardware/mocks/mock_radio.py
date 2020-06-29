@@ -79,7 +79,8 @@ class MockRadio(RadioInterface):
                             "frequency": self._frequency,
                             "gain": self._gain,
                             "sample_rate": self._sample_rate,
-                            "capture_time": self._capture_time
+                            "capture_time": self._capture_time,
+                            "calibration_annotation": self.create_calibration_annotation()
                         }
 
     def create_calibration_annotation(self):
@@ -92,6 +93,22 @@ class MockRadio(RadioInterface):
     def set_times_to_fail_recv(self, n):
         self.times_to_fail_recv = n
         self.times_failed_recv = 0
+
+    @property
+    def gain(self):
+        return self._gain
+
+    @gain.setter
+    def gain(self, gain):
+        self._gain = gain
+
+    @property
+    def sample_rate(self):
+        return self._sample_rate
+
+    @sample_rate.setter
+    def sample_rate(self, sample_rate):
+        self._sample_rate = sample_rate
 
     @property
     def last_calibration_time(self):
