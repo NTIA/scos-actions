@@ -198,6 +198,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         nskip = None
         if "nskip" in self.parameters:
             nskip = self.parameters["nskip"]
+        logger.debug(f"acquiring {num_ffts * fft_size} samples and skipping the first {nskip if nskip else 0} samples")
         measurement_results = self.radio.acquire_time_domain_samples(
             num_ffts * fft_size, num_samples_skip=nskip
         )
