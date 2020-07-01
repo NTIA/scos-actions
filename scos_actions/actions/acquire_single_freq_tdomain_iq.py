@@ -199,7 +199,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             }
         )
         total_samples += int(
-            self.parameters["duration_ms"] / 1e6 * self.parameters["sample_rate"]
+            self.parameters["duration_ms"] / 1000 * self.parameters["sample_rate"]
         )
 
         filesize_mb = total_samples * 8 / 1e6  # 8 bytes per complex64 sample
