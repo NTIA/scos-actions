@@ -36,7 +36,7 @@ signals.
 
 ## Data Archive
 
-Each capture will be ${total_samples}\; \text{{samples}} \times 8\;
+The total size for all captures will be ${total_samples}\; \text{{samples}} \times 8\;
 \text{{bytes per sample}} = {filesize_mb:.2f}\; \text{{MB}}$ plus metadata.
 
 """
@@ -165,7 +165,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                 }
             )
             total_samples += int(
-                measurement_params["duration_ms"] / 1e6 * measurement_params["sample_rate"]
+                measurement_params["duration_ms"] / 1000 * measurement_params["sample_rate"]
             )
 
         f_low = self.sorted_measurement_parameters[0]["frequency"]
