@@ -116,7 +116,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
         if not self.radio.is_available:
-            msg = "acquisition failed: SDR required but not available"
+            msg = "acquisition failed: signal analyzer required but not available"
             raise RuntimeError(msg)
 
     def acquire_data(self, measurement_params):
@@ -131,11 +131,11 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         if "nskip" in self.parameters:
             nskip = self.parameters["nskip"]
         logger.debug(f"acquiring {num_samples} samples and skipping the first {nskip if nskip else 0} samples")
-        measurement_results = self.radio.acquire_time_domain_samples(
+        measurement_result = self.radio.acquire_time_domain_samples(
             num_samples, num_samples_skip=nskip
         )
 
-        return measurement_results
+        return measurement_result
 
     def set_base_sigmf_global(self, sigmf_builder, schedule_entry_json, sensor_def, measurement_result, task_id, recording_id=None, is_complex=True):
         sample_rate = measurement_result["sample_rate"] 

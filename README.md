@@ -42,13 +42,31 @@ Running in scos-sensor
 Running Tests
 -------------
 
-1. Clone scos_actions in a folder of your choosing: `git clone https://github.com/NTIA/scos_actions.git`
-2. Go to scos_actions directory: `cd scos_actions`
-3. Create Python virtual environment. `python3 -m venv scos_actions_venv`
-4. Activate virtual environment. `source scos_actions_venv/bin/activate`
-5. Upgrade pip in your Python environment: `python3 -m pip install --upgrade pip`
-6. Install dependencies. `pip install -r requirements.txt` and `pip install -r requirements-dev.txt`
-7. Run `pytest .`
+Ideally, you should add a test that covers any new feature that you add. If
+you've done that, then running the included test suite is the easiest way to
+check that everything is working. Either way, all tests should be run after
+making any local modifications to ensure that you haven't caused a regression.
+
+`scos_actions` uses [pytest](https://docs.pytest.org/en/latest/) for testing.
+
+[tox](https://tox.readthedocs.io/en/latest/) is a tool that can run all
+available tests in a virtual environment against all supported version of
+python. Running `pytest` directly is faster, but running `tox` is a more
+thorough test.
+
+The following commands install the sensor's development requirements. We highly
+recommend you initialize a virtual development environment using a tool such a
+`conda` or `venv` first. To create a virtual environment using venv, run
+`python3 -m venv ./venv`. To activate the virtual environment, run
+`source venv/bin/activate`.
+
+```bash
+$ python3 -m pip install -r requirements-dev.txt
+$ pytest          # faster, but less thorough
+$ tox             # tests code in clean virtualenv
+$ tox --recreate  # if you change `requirements.txt`
+$ tox -e coverage # check where test coverage lacks
+```
 
 Adding Actions
 --------------

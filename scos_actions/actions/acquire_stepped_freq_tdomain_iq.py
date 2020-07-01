@@ -141,10 +141,6 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             )
 
     @property
-    def is_multirecording(self):
-        return len(self.sorted_measurement_parameters) > 1
-
-    @property
     def description(self):
         """Parameterize and return the module-level docstring."""
 
@@ -156,7 +152,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
 
         total_samples = 0
         for measurement_params in self.sorted_measurement_parameters:
-            acq_plan_template.format(
+            acquisition_plan += acq_plan_template.format(
                 **{
                     "fc_MHz": measurement_params["frequency"] / 1e6,
                     "gain": measurement_params["gain"],

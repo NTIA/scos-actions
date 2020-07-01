@@ -178,13 +178,6 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
                 frequency_step=frequencies[1] - frequencies[0],
             )
 
-
-    def test_required_components(self):
-        """Fail acquisition if a required component is not available."""
-        if not self.radio.is_available:
-            msg = "acquisition failed: SDR required but not available"
-            raise RuntimeError(msg)
-
     def acquire_data(self):
         super().configure_sdr(self.parameters)
         msg = "Acquiring {} FFTs at {} MHz"

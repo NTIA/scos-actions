@@ -22,6 +22,7 @@ class MockRadio(RadioInterface):
         self._gain = 0
         self._overload = False
         self._capture_time = None
+        self._is_available = True
 
         # Simulate returning less than the requested number of samples from
         # self.recv_num_samps
@@ -32,7 +33,7 @@ class MockRadio(RadioInterface):
 
     @property
     def is_available(self):
-        return True
+        return self._is_available
 
     def configure(self, action_name):
         pass
@@ -47,18 +48,18 @@ class MockRadio(RadioInterface):
         while True:
             if self.times_failed_recv < self.times_to_fail_recv:
                 self.times_failed_recv += 1
-                return np.ones(0, dtype=np.complex64)
-
-            self._capture_time = get_datetime_str_now()
-            if self.randomize_values:
-                i = np.random.normal(0.5, 0.5, num_samples)
-                q = np.random.normal(0.5, 0.5, num_samples)
-                rand_iq = np.empty(num_samples, dtype=np.complex64)
-                rand_iq.real = i
-                rand_iq.imag = q
-                data = rand_iq
+                data = np.ones(0, dtype=np.complex64)
             else:
-                data = np.ones(num_samples, dtype=np.complex64)
+                self._capture_time = get_datetime_str_now()
+                if self.randomize_values:
+                    i = np.random.normal(0.5, 0.5, num_samples)
+                    q = np.random.normal(0.5, 0.5, num_samples)
+                    rand_iq = np.empty(num_samples, dtype=np.complex64)
+                    rand_iq.real = i
+                    rand_iq.imag = q
+                    data = rand_iq
+                else:
+                    data = np.ones(num_samples, dtype=np.complex64)
 
             data_len = len(data)
             if not len(data) == num_samples:
