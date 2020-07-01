@@ -145,7 +145,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         """Parameterize and return the module-level docstring."""
 
         acquisition_plan = ""
-        acq_plan_template = "1. Tune to {fc_MHz:.2f} MHz, "
+        acq_plan_template = "Tune to {fc_MHz:.2f} MHz, "
         acq_plan_template += "set gain to {gain} dB, "
         acq_plan_template += "and acquire at {sample_rate_Msps:.2f} Msps "
         acq_plan_template += "for {duration_ms} ms\n"
