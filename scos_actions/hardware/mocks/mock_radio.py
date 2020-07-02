@@ -112,5 +112,13 @@ class MockRadio(RadioInterface):
         self._sample_rate = sample_rate
 
     @property
+    def frequency(self):
+        return self._frequency
+
+    @frequency.setter
+    def frequency(self, frequency):
+        self._frequency = frequency
+
+    @property
     def last_calibration_time(self):
         return get_datetime_str_now()
