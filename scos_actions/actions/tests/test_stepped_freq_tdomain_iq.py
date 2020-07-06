@@ -3,7 +3,6 @@ from scos_actions.actions.tests.utils import SENSOR_DEFINITION, check_metadata_f
 from scos_actions.discover import test_actions as actions
 
 
-
 SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION = {
     "name": "test_multirec_acq",
     "start": None,

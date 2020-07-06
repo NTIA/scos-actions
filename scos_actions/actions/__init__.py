@@ -7,5 +7,5 @@ from .acquire_single_freq_tdomain_iq import SingleFrequencyTimeDomainIqAcquisiti
 action_classes = {
     "single_frequency_fft": SingleFrequencyFftAcquisition,
     "stepped_frequency_time_domain_iq": SteppedFrequencyTimeDomainIqAcquisition,
-    "single_frequency_time_domain_iq": SingleFrequencyTimeDomainIqAcquisition
+    "single_frequency_time_domain_iq": SingleFrequencyTimeDomainIqAcquisition,
 }

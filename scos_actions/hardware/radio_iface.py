@@ -8,7 +8,9 @@ class RadioInterface(ABC):
         pass
 
     @abstractmethod
-    def acquire_time_domain_samples(self, num_samples, num_samples_skip=0, retries=5) -> dict:
+    def acquire_time_domain_samples(
+        self, num_samples, num_samples_skip=0, retries=5
+    ) -> dict:
         """ Acquires time domain IQ samples
         :type num_samples: integer
         :param num_samples: Number of samples to acquire

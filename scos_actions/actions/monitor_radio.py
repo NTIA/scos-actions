@@ -32,7 +32,9 @@ class RadioMonitor(Action):
 
         if healthy:
             try:
-                measurement_result = self.radio.acquire_time_domain_samples(requested_samples)
+                measurement_result = self.radio.acquire_time_domain_samples(
+                    requested_samples
+                )
             except Exception:
                 detail = "Unable to acquire samples from the signal analyzer"
                 healthy = False

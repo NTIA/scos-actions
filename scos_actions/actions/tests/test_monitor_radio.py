@@ -10,6 +10,7 @@ MONITOR_RADIO_SCHEDULE = {
     "action": "test_monitor_radio",
 }
 
+
 def test_monitor_radio_not_available():
     _radio_healthy = None
 
@@ -23,6 +24,7 @@ def test_monitor_radio_not_available():
     radio._is_available = False
     action(MONITOR_RADIO_SCHEDULE, 1, SENSOR_DEFINITION)
     assert _radio_healthy == False
+
 
 def test_monitor_radio_acq_fail():
     _radio_healthy = None
@@ -38,6 +40,7 @@ def test_monitor_radio_acq_fail():
     radio.set_times_to_fail_recv(10)
     action(MONITOR_RADIO_SCHEDULE, 1, SENSOR_DEFINITION)
     assert _radio_healthy == False
+
 
 def test_monitor_radio_healthy():
     _radio_healthy = None

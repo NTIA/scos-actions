@@ -6,11 +6,13 @@ hardware.
 
 Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`) and python>=3.6
 
-This repository includes the base [Action](scos_actions/actions/interfaces/action.py) class and offers 2 action classes for 
+This repository includes the base [Action](scos_actions/actions/interfaces/action.py) class and offers 3 action classes for 
 common measurements. The [acquire_single_freq_fft action](scos_actions/actions/acquire_single_freq_fft.py) is an action
 class which performs FFTs and calculates mean, median, min, max, and sample statistics at a single center frequency.
+The [acquire_single_freq_tdomain_iq action](scos_actions/actions/acquire_single_freq_tdomain_iq.py) acquires iq data
+at a single center frequency.
 The [acquire_stepped_freq_tdomain_iq action](scos_actions/actions/acquire_stepped_freq_tdomain_iq.py) acquires iq data
-at 1 or more center frequencies.
+at multiple center frequencies.
 
 3 parameterized actions using these action classes are
 offered for testing using a mock radio. The 3 actions' parameters are defined in 
@@ -20,8 +22,8 @@ offered for testing using a mock radio. The 3 actions' parameters are defined in
 * test_single_frequency_iq_action
 * test_single_frequency_m4s_action
 
-This repository also contains an action class for getting gps location 
-called sync_gps, and a monitor_radio action class for ensuring a radio
+This repository also contains an action class for getting GPS location
+ and syncing the host to GPS time called sync_gps, and a monitor_radio action class for ensuring a radio
 is available and is able to maintain a connection to the computer.
 
 Running in scos-sensor
@@ -130,6 +132,8 @@ classes with a special method `__call__`. Actions use
 Start by looking at the [Action base class](scos_actions/actions/interfaces/action.py). It includes some logic to parse
 a description and summary out of the action class's docstring, and a `__call__` method that must be overridden. If you
 pass `admin_only=True` to this base class, the API will not make it or any data it created available to non-admin users.
+
+A new custom action can inherit from the existing action classes to reuse and build upon existing functionality.
 
 Depending on the type of action, a signal should be sent upon action completion. This enables scos-sensor to do
 something with the results of the action. This could range from storing measurement data to recycling a 

@@ -51,7 +51,9 @@ from scos_actions.actions import sigmf_builder as scos_actions_sigmf
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
-from scos_actions.actions.acquire_single_freq_tdomain_iq import SingleFrequencyTimeDomainIqAcquisition
+from scos_actions.actions.acquire_single_freq_tdomain_iq import (
+    SingleFrequencyTimeDomainIqAcquisition,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +75,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         self.sorted_measurement_parameters = []
         num_center_frequencies = len(self.parameters["fcs"])
 
-        parameter_names =  {
+        parameter_names = {
             "fcs": "frequency",
             "gains": "gain",
             "attenuations": "attenuation",
@@ -93,13 +95,13 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             for key in parameters.keys():
                 if key == "name":
                     continue
-                if key in parameter_names: # convert plural name to singular name to map to radio interface property
+                if key in parameter_names:
+                    # convert plural name to singular name to map to radio interface property
                     sorted_params[parameter_names[key]] = parameters[key][i]
                 else:
                     sorted_params[key] = parameters[key][i]
             self.sorted_measurement_parameters.append(sorted_params)
         self.sorted_measurement_parameters.sort(key=lambda params: params["frequency"])
-
 
         self.radio = radio  # make instance variable to allow mocking
         self.num_center_frequencies = num_center_frequencies
@@ -116,7 +118,14 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             end_time = utils.get_datetime_str_now()
             received_samples = len(measurement_result["data"])
             sigmf_builder = SigMFBuilder()
-            self.set_base_sigmf_global(sigmf_builder, schedule_entry_json, sensor_definition, measurement_result, task_id, recording_id)
+            self.set_base_sigmf_global(
+                sigmf_builder,
+                schedule_entry_json,
+                sensor_definition,
+                measurement_result,
+                task_id,
+                recording_id,
+            )
             sigmf_builder.set_measurement(
                 start_time,
                 end_time,
@@ -161,7 +170,9 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                 }
             )
             total_samples += int(
-                measurement_params["duration_ms"] / 1000 * measurement_params["sample_rate"]
+                measurement_params["duration_ms"]
+                / 1000
+                * measurement_params["sample_rate"]
             )
 
         f_low = self.sorted_measurement_parameters[0]["frequency"]

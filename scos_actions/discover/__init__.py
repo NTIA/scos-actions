@@ -7,7 +7,10 @@ from scos_actions.hardware import radio, gps
 from scos_actions.settings import ACTION_DEFINITIONS_DIR
 
 actions = {}
-test_actions = {"test_sync_gps": SyncGps(gps), "test_monitor_radio": RadioMonitor(radio)}
+test_actions = {
+    "test_sync_gps": SyncGps(gps),
+    "test_monitor_radio": RadioMonitor(radio),
+}
 
 
 def init(action_classes=action_classes, radio=radio, yaml_dir=ACTION_DEFINITIONS_DIR):

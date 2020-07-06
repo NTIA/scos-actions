@@ -39,5 +39,8 @@ def test_detector():
         1,
     )
     for annotation in _metadata["annotations"]:
-        if annotation["ntia-core:annotation_type"] in ["SensorAnnotation", "CalibrationAnnotation"]:
+        if annotation["ntia-core:annotation_type"] in [
+            "SensorAnnotation",
+            "CalibrationAnnotation",
+        ]:
             assert annotation["core:sample_count"] == len(_data.flatten())

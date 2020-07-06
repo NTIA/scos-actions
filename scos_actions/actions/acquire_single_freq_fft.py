@@ -104,7 +104,9 @@ from scos_actions.actions.fft import (
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.sigmf_builder import SigMFBuilder, Domain, MeasurementType
-from scos_actions.actions.acquire_single_freq_tdomain_iq import SingleFrequencyTimeDomainIqAcquisition
+from scos_actions.actions.acquire_single_freq_tdomain_iq import (
+    SingleFrequencyTimeDomainIqAcquisition,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -138,7 +140,14 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         self.apply_m4s(measurement_result)
 
         sigmf_builder = SigMFBuilder()
-        self.set_base_sigmf_global(sigmf_builder, schedule_entry_json, sensor_definition, measurement_result, task_id, is_complex=False)
+        self.set_base_sigmf_global(
+            sigmf_builder,
+            schedule_entry_json,
+            sensor_definition,
+            measurement_result,
+            task_id,
+            is_complex=False,
+        )
         sigmf_builder.set_measurement(
             start_time,
             end_time,
@@ -160,7 +169,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         frequencies = get_fft_frequencies(
             self.parameters["fft_size"],
             measurement_result["sample_rate"],
-            measurement_result["frequency"]
+            measurement_result["frequency"],
         ).tolist()
 
         for i, detector in enumerate(M4sDetector):
@@ -168,7 +177,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
                 start_index=(i * self.parameters["fft_size"]),
                 fft_size=self.parameters["fft_size"],
                 enbw=self.enbw,
-                detector= "fft_" + detector.name + "_power",
+                detector="fft_" + detector.name + "_power",
                 num_ffts=self.parameters["nffts"],
                 window="flattop",
                 units="dBm",
@@ -191,7 +200,9 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         nskip = None
         if "nskip" in self.parameters:
             nskip = self.parameters["nskip"]
-        logger.debug(f"acquiring {num_ffts * fft_size} samples and skipping the first {nskip if nskip else 0} samples")
+        logger.debug(
+            f"acquiring {num_ffts * fft_size} samples and skipping the first {nskip if nskip else 0} samples"
+        )
         measurement_results = self.radio.acquire_time_domain_samples(
             num_ffts * fft_size, num_samples_skip=nskip
         )

@@ -24,7 +24,6 @@ this_doesnt_exist:
 """
 
 
-
 def test_load_from_yaml_existing():
     """Any existing action definitions should be valid yaml."""
     load_from_yaml(actions.action_classes, radio)
@@ -50,4 +49,3 @@ def test_load_from_yaml_parse_error():
 def test_load_from_yaml_invalid_class_name():
     """A nonexistent action class name should raise an error."""
     _test_load_from_yaml_check_error(NONEXISTENT_ACTION_CLASS_NAME, KeyError)
-

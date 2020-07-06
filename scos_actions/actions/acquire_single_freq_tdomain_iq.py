@@ -81,15 +81,14 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         measurement_result = self.acquire_data(self.parameters)
         end_time = utils.get_datetime_str_now()
         received_samples = len(measurement_result["data"])
-        # sigmf_builder = self.build_sigmf_md(
-        #     start_time,
-        #     end_time,
-        #     measurement_result,
-        #     schedule_entry_json,
-        #     sensor_definition,
-        #     task_id)
         sigmf_builder = SigMFBuilder()
-        self.set_base_sigmf_global(sigmf_builder, schedule_entry_json, sensor_definition, measurement_result, task_id)
+        self.set_base_sigmf_global(
+            sigmf_builder,
+            schedule_entry_json,
+            sensor_definition,
+            measurement_result,
+            task_id,
+        )
         sigmf_builder.set_measurement(
             start_time,
             end_time,
@@ -130,15 +129,26 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         nskip = None
         if "nskip" in self.parameters:
             nskip = self.parameters["nskip"]
-        logger.debug(f"acquiring {num_samples} samples and skipping the first {nskip if nskip else 0} samples")
+        logger.debug(
+            f"acquiring {num_samples} samples and skipping the first {nskip if nskip else 0} samples"
+        )
         measurement_result = self.radio.acquire_time_domain_samples(
             num_samples, num_samples_skip=nskip
         )
 
         return measurement_result
 
-    def set_base_sigmf_global(self, sigmf_builder, schedule_entry_json, sensor_def, measurement_result, task_id, recording_id=None, is_complex=True):
-        sample_rate = measurement_result["sample_rate"] 
+    def set_base_sigmf_global(
+        self,
+        sigmf_builder,
+        schedule_entry_json,
+        sensor_def,
+        measurement_result,
+        task_id,
+        recording_id=None,
+        is_complex=True,
+    ):
+        sample_rate = measurement_result["sample_rate"]
         sigmf_builder.set_last_calibration_time(self.radio.last_calibration_time)
         sigmf_builder.set_action(
             self.parameters["name"], self.description, self.description.splitlines()[0]
@@ -153,18 +163,19 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             sigmf_builder.set_recording(recording_id)
 
     def add_sigmf_capture(self, sigmf_builder, measurement_result):
-        sigmf_builder.set_capture(measurement_result["frequency"], measurement_result["capture_time"])
-
+        sigmf_builder.set_capture(
+            measurement_result["frequency"], measurement_result["capture_time"]
+        )
 
     def add_base_sigmf_annotations(
-        self,
-        sigmf_builder,
-        measurement_result,
-        ):
+        self, sigmf_builder, measurement_result,
+    ):
         received_samples = len(measurement_result["data"].flatten())
 
         sigmf_builder.add_annotation(
-            start_index=0, length=received_samples, annotation_md=measurement_result["calibration_annotation"],
+            start_index=0,
+            length=received_samples,
+            annotation_md=measurement_result["calibration_annotation"],
         )
 
         sigmf_builder.add_sensor_annotation(

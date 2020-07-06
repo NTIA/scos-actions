@@ -35,8 +35,32 @@ class MockRadio(RadioInterface):
     def is_available(self):
         return self._is_available
 
+    @property
+    def sample_rate(self):
+        return self._sample_rate
+
+    @sample_rate.setter
+    def sample_rate(self, sample_rate):
+        self._sample_rate = sample_rate
+
+    @property
+    def frequency(self):
+        return self._frequency
+
+    @frequency.setter
+    def frequency(self, frequency):
+        self._frequency = frequency
+
     def configure(self, action_name):
         pass
+
+    @property
+    def gain(self):
+        return self._gain
+
+    @gain.setter
+    def gain(self, gain):
+        self._gain = gain
 
     def acquire_time_domain_samples(self, num_samples, num_samples_skip=0, retries=5):
         self.sigan_overload = False
@@ -74,15 +98,15 @@ class MockRadio(RadioInterface):
                     raise RuntimeError(err)
             else:
                 logger.debug("Successfully acquired {} samples.".format(num_samples))
-                return  {
-                            "data":data,
-                            "overload": self._overload,
-                            "frequency": self._frequency,
-                            "gain": self._gain,
-                            "sample_rate": self._sample_rate,
-                            "capture_time": self._capture_time,
-                            "calibration_annotation": self.create_calibration_annotation()
-                        }
+                return {
+                    "data": data,
+                    "overload": self._overload,
+                    "frequency": self._frequency,
+                    "gain": self._gain,
+                    "sample_rate": self._sample_rate,
+                    "capture_time": self._capture_time,
+                    "calibration_annotation": self.create_calibration_annotation(),
+                }
 
     def create_calibration_annotation(self):
         annotation_md = {
@@ -94,30 +118,6 @@ class MockRadio(RadioInterface):
     def set_times_to_fail_recv(self, n):
         self.times_to_fail_recv = n
         self.times_failed_recv = 0
-
-    @property
-    def gain(self):
-        return self._gain
-
-    @gain.setter
-    def gain(self, gain):
-        self._gain = gain
-
-    @property
-    def sample_rate(self):
-        return self._sample_rate
-
-    @sample_rate.setter
-    def sample_rate(self, sample_rate):
-        self._sample_rate = sample_rate
-
-    @property
-    def frequency(self):
-        return self._frequency
-
-    @frequency.setter
-    def frequency(self, frequency):
-        self._frequency = frequency
 
     @property
     def last_calibration_time(self):
