@@ -38,6 +38,9 @@ def test_metadata_timedomain_iq_single_acquisition():
         SINGLE_TIMEDOMAIN_IQ_ACQUISITION["action"],
         1,
     )
+    for annotation in _metadata["annotations"]:
+        if annotation["ntia-core:annotation_type"] in ["SensorAnnotation", "CalibrationAnnotation"]:
+            assert annotation["core:sample_count"] == len(_data.flatten())
 
 
 def test_required_components():

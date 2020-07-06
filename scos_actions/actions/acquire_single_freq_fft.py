@@ -135,7 +135,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         start_time = utils.get_datetime_str_now()
         measurement_result = self.acquire_data()
         end_time = utils.get_datetime_str_now()
-        m4s_data = self.apply_m4s(measurement_result)
+        self.apply_m4s(measurement_result)
 
         sigmf_builder = SigMFBuilder()
         self.set_base_sigmf_global(sigmf_builder, schedule_entry_json, sensor_definition, measurement_result, task_id, is_complex=False)
@@ -152,7 +152,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         measurement_action_completed.send(
             sender=self.__class__,
             task_id=task_id,
-            data=m4s_data,
+            data=measurement_result["data"],
             metadata=sigmf_builder.metadata,
         )
 
@@ -205,7 +205,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         power_fft = convert_volts_to_watts(complex_fft)
         power_fft_m4s = apply_detector(power_fft)
         power_fft_dbm = convert_watts_to_dbm(power_fft_m4s)
-        return power_fft_dbm
+        measurement_result["data"] = power_fft_dbm
 
     @property
     def description(self):

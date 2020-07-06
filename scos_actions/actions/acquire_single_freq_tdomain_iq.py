@@ -161,7 +161,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         sigmf_builder,
         measurement_result,
         ):
-        received_samples = len(measurement_result["data"])
+        received_samples = len(measurement_result["data"].flatten())
 
         sigmf_builder.add_annotation(
             start_index=0, length=received_samples, annotation_md=measurement_result["calibration_annotation"],

@@ -1,6 +1,7 @@
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.tests.utils import SENSOR_DEFINITION, check_metadata_fields
 from scos_actions.discover import test_actions as actions
+from scos_actions.actions.fft import M4sDetector
 
 SINGLE_FREQUENCY_FFT_ACQUISITION = {
     "name": "test_acq",
@@ -37,3 +38,6 @@ def test_detector():
         SINGLE_FREQUENCY_FFT_ACQUISITION["action"],
         1,
     )
+    for annotation in _metadata["annotations"]:
+        if annotation["ntia-core:annotation_type"] in ["SensorAnnotation", "CalibrationAnnotation"]:
+            assert annotation["core:sample_count"] == len(_data.flatten())
