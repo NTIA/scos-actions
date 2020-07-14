@@ -65,6 +65,7 @@ class MockRadio(RadioInterface):
     def acquire_time_domain_samples(self, num_samples, num_samples_skip=0, retries=5):
         self.sigan_overload = False
         self._capture_time = None
+        self._num_samples_skip = num_samples_skip
 
         # Try to acquire the samples
         max_retries = retries

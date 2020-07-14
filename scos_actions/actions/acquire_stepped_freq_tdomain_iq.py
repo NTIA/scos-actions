@@ -33,12 +33,6 @@ tuning, dropping samples after retunes, and data storage.
 
 If specified, a voltage scaling factor is applied to the complex time-domain
 signals.
-
-## Data Archive
-
-The total size for all captures will be ${total_samples}\; \text{{samples}} \times 8\;
-\text{{bytes per sample}} = {filesize_mb:.2f}\; \text{{MB}}$ plus metadata.
-
 """
 
 import logging
@@ -61,13 +55,18 @@ logger = logging.getLogger(__name__)
 class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     """Acquire IQ data at each of the requested frequecies.
 
-    :param name: the name of the action
-    :param fcs: an iterable of center frequencies in Hz
-    :param gains: requested gain in dB, per center_frequency
-    :param sample_rates: iterable of sample_rates in Hz, per center_frequency
-    :param durations_ms: duration to acquire in ms, per center_frequency
-    :param radio: instance of RadioInterface
+    :param parameters: The dictionary of parameters needed for the action and the radio. 
+    
+    The action will call any matching attributes found in the radio object. The following
+    parameters are required by the action:
 
+        name: name of the action
+        fcs: an iterable of center frequencies in Hz
+        durations_ms: duration to acquire in ms, per center_frequency
+
+    For the parameters required by the radio, see the documentation for the radio being used.
+
+    :param radio: instance of RadioInterface
     """
 
     def __init__(self, parameters, radio):
@@ -154,39 +153,26 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         """Parameterize and return the module-level docstring."""
 
         acquisition_plan = ""
-        acq_plan_template = "Tune to {fc_MHz:.2f} MHz, "
-        acq_plan_template += "set gain to {gain} dB, "
-        acq_plan_template += "and acquire at {sample_rate_Msps:.2f} Msps "
-        acq_plan_template += "for {duration_ms} ms\n"
+        used_keys = ["frequency", "duration_ms", "name"]
+        acq_plan_template = "Tune to {center_frequency:.2f} MHz, and sets the following parameters:"
+        acq_plan_template += "{parameters}\n"
+        acq_plan_template += "\nThen, acquire samples for {duration_ms} ms\n."
 
-        total_samples = 0
         for measurement_params in self.sorted_measurement_parameters:
+            parameters = ""
+            for name, value in measurement_params.items():
+                if name not in used_keys:
+                    parameters += f"{name} = {value}\n"
             acquisition_plan += acq_plan_template.format(
                 **{
-                    "fc_MHz": measurement_params["frequency"] / 1e6,
-                    "gain": measurement_params["gain"],
-                    "sample_rate_Msps": measurement_params["sample_rate"] / 1e6,
+                    "center_frequency": measurement_params["frequency"] / 1e6,
+                    "parameters": parameters,
                     "duration_ms": measurement_params["duration_ms"],
                 }
             )
-            total_samples += int(
-                measurement_params["duration_ms"]
-                / 1000
-                * measurement_params["sample_rate"]
-            )
-
-        f_low = self.sorted_measurement_parameters[0]["frequency"]
-        f_low_srate = self.sorted_measurement_parameters[0]["sample_rate"]
-        f_low_edge = (f_low - f_low_srate / 2.0) / 1e6
-
-        f_high = self.sorted_measurement_parameters[-1]["frequency"]
-        f_high_srate = self.sorted_measurement_parameters[-1]["sample_rate"]
-        f_high_edge = (f_high - f_high_srate / 2.0) / 1e6
 
         durations = [v["duration_ms"] for v in self.sorted_measurement_parameters]
         min_duration_ms = np.sum(durations)
-
-        filesize_mb = total_samples * 8 / 1e6  # 8 bytes per complex64 sample
 
         defs = {
             "name": self.name,
@@ -199,8 +185,6 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             ),
             "acquisition_plan": acquisition_plan,
             "min_duration_ms": min_duration_ms,
-            "total_samples": total_samples,
-            "filesize_mb": filesize_mb,
         }
 
         # __doc__ refers to the module docstring at the top of the file

@@ -44,3 +44,9 @@ def test_detector():
             "CalibrationAnnotation",
         ]:
             assert annotation["core:sample_count"] == len(_data.flatten())
+
+def test_num_samples_skip():
+    action = actions["test_single_frequency_m4s_action"]
+    assert action.description
+    action(SINGLE_FREQUENCY_FFT_ACQUISITION, 1, SENSOR_DEFINITION)
+    assert action.radio._num_samples_skip == action.parameters["nskip"]

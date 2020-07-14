@@ -53,3 +53,9 @@ def test_required_components():
     with pytest.raises(RuntimeError):
         action(SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1, SENSOR_DEFINITION)
     radio._is_available = True
+
+def test_num_samples_skip():
+    action = actions["test_single_frequency_iq_action"]
+    assert action.description
+    action(SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1, SENSOR_DEFINITION)
+    assert action.radio._num_samples_skip == action.parameters["nskip"]

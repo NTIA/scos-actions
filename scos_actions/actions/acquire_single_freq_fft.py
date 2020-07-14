@@ -22,12 +22,8 @@ r"""Apply m4s detector over {nffts} {fft_size}-pt FFTs at {center_frequency:.2f}
 
 ## Radio setup and sample acquisition
 
-This action first tunes the radio to {center_frequency:.2f} MHz and requests a sample
-rate of {sample_rate:.2f} Msps and {gain} dB of gain.
-
-It then begins acquiring, and discards an appropriate number of samples while
-the radio's IQ balance algorithm runs. Then, ${nffts} \times {fft_size}$
-samples are acquired gap-free.
+Each time this task runs, the following process is followed:
+{acquisition_plan}
 
 ## Time-domain processing
 
@@ -115,14 +111,19 @@ logger = logging.getLogger(__name__)
 class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     """Perform m4s detection over requested number of single-frequency FFTs.
 
-    :param name: the name of the action
-    :param frequency: center frequency in Hz
-    :param gain: requested gain in dB
-    :param sample_rate: requested sample_rate in Hz
-    :param fft_size: number of points in FFT (some 2^n)
-    :param nffts: number of consecutive FFTs to pass to detector
-    :param radio: instance of RadioInterface
+    :param parameters: The dictionary of parameters needed for the action and the radio. 
+    
+    The action will set any matching attributes found in the radio object. The following
+    parameters are required by the action:
 
+        name: name of the action
+        frequency: center frequency in Hz
+        fft_size: number of points in FFT (some 2^n)
+        nffts: number of consecutive FFTs to pass to detector
+
+    For the parameters required by the radio, see the documentation for the radio being used.
+
+    :param radio: instance of RadioInterface
     """
 
     def __init__(self, parameters, radio):
@@ -220,13 +221,22 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
 
     @property
     def description(self):
+        center_frequency = self.parameters["frequency"] / 1e6
+        nffts = self.parameters["nffts"]
+        fft_size = self.parameters["fft_size"]
+        used_keys = ["frequency", "nffts", "fft_size", "name"]
+        acq_plan = f"This action first tunes the radio to {center_frequency:.2f} MHz and sets the following parameters:"
+        for name, value in self.parameters.items():
+            if name not in used_keys:
+                acq_plan += f"{name} = {value}\n"
+        acq_plan += f"\nThen, ${nffts} \times {fft_size}$ samples are acquired gap-free."
+
         definitions = {
             "name": self.name,
-            "center_frequency": self.parameters["frequency"] / 1e6,
-            "sample_rate": self.parameters["sample_rate"] / 1e6,
-            "fft_size": self.parameters["fft_size"],
-            "nffts": self.parameters["nffts"],
-            "gain": self.parameters["gain"],
+            "center_frequency": center_frequency,
+            "acquisition_plan": acq_plan,
+            "fft_size": fft_size,
+            "nffts": nffts,
         }
 
         # __doc__ refers to the module docstring at the top of the file

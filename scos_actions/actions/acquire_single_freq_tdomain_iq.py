@@ -16,26 +16,19 @@
 # - Markdown reference: https://commonmark.org/help/
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
-r"""Capture time-domain IQ samples at {center_frequency}.
+r"""Capture time-domain IQ samples at {center_frequency:.2f} MHz.
 
 # {name}
 
 ## Radio setup and sample acquisition
 
 Each time this task runs, the following process is followed:
-
 {acquisition_plan}
 
 ## Time-domain processing
 
 If specified, a voltage scaling factor is applied to the complex time-domain
 signals.
-
-## Data Archive
-
-Each capture will be ${total_samples}\; \text{{samples}} \times 8\;
-\text{{bytes per sample}} = {filesize_mb:.2f}\; \text{{MB}}$ plus metadata.
-
 """
 
 import logging
@@ -55,13 +48,18 @@ logger = logging.getLogger(__name__)
 class SingleFrequencyTimeDomainIqAcquisition(Action):
     """Acquire IQ data at each of the requested frequecies.
 
-    :param name: the name of the action
-    :param fcs: an iterable of center frequencies in Hz
-    :param gains: requested gain in dB, per center_frequency
-    :param sample_rates: iterable of sample_rates in Hz, per center_frequency
-    :param durations_ms: duration to acquire in ms, per center_frequency
-    :param radio: instance of RadioInterface
+    :param parameters: The dictionary of parameters needed for the action and the radio. 
+    
+    The action will set any matching attributes found in the radio object. The following
+    parameters are required by the action:
 
+        name: name of the action
+        frequency: center frequency in Hz
+        durations_ms: duration to acquire in ms
+
+    For the parameters required by the radio, see the documentation for the radio being used.
+
+    :param radio: instance of RadioInterface
     """
 
     def __init__(self, parameters, radio):
@@ -127,8 +125,8 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         num_samples = int(sample_rate * measurement_params["duration_ms"] * 1e-3)
 
         nskip = None
-        if "nskip" in self.parameters:
-            nskip = self.parameters["nskip"]
+        if "nskip" in measurement_params:
+            nskip = measurement_params["nskip"]
         logger.debug(
             f"acquiring {num_samples} samples and skipping the first {nskip if nskip else 0} samples"
         )
@@ -193,34 +191,19 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
     @property
     def description(self):
         """Parameterize and return the module-level docstring."""
-
-        acquisition_plan = ""
-        acq_plan_template = "Tune to {fc_MHz:.2f} MHz, "
-        acq_plan_template += "set gain to {gain} dB, "
-        acq_plan_template += "and acquire at {sample_rate_Msps:.2f} Msps "
-        acq_plan_template += "for {duration_ms} ms\n"
-
-        total_samples = 0
-        acquisition_plan += acq_plan_template.format(
-            **{
-                "fc_MHz": self.parameters["frequency"] / 1e6,
-                "gain": self.parameters["gain"],
-                "sample_rate_Msps": self.parameters["sample_rate"] / 1e6,
-                "duration_ms": self.parameters["duration_ms"],
-            }
-        )
-        total_samples += int(
-            self.parameters["duration_ms"] / 1000 * self.parameters["sample_rate"]
-        )
-
-        filesize_mb = total_samples * 8 / 1e6  # 8 bytes per complex64 sample
+        center_frequency = self.parameters["frequency"] / 1e6
+        duration_ms = self.parameters["duration_ms"]
+        used_keys = ["frequency", "duration_ms", "name"]
+        acq_plan = f"Tune to {center_frequency:.2f} MHz, and sets the following parameters:"
+        for name, value in self.parameters.items():
+            if name not in used_keys:
+                acq_plan += f"{name} = {value}\n"
+        acq_plan += f"\nThen, acquire samples for {duration_ms} ms\n."
 
         defs = {
             "name": self.name,
-            "center_frequency": "{:.2f} MHz".format(self.parameters["frequency"] / 1e6),
-            "acquisition_plan": acquisition_plan,
-            "total_samples": total_samples,
-            "filesize_mb": filesize_mb,
+            "center_frequency": center_frequency,
+            "acquisition_plan": acq_plan,
         }
 
         # __doc__ refers to the module docstring at the top of the file

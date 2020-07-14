@@ -41,3 +41,9 @@ def test_metadata_timedomain_iq_multiple_acquisition():
         assert _task_ids[i] == 1
         assert _recording_ids[i] == i + 1
     assert _count == 10
+
+def test_num_samples_skip():
+    action = actions["test_multi_frequency_iq_action"]
+    assert action.description
+    action(SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1, SENSOR_DEFINITION)
+    assert action.radio._num_samples_skip == action.parameters["nskip"][-1]
