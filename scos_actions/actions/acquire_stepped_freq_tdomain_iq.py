@@ -56,8 +56,8 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     """Acquire IQ data at each of the requested frequecies.
 
     :param parameters: The dictionary of parameters needed for the action and the radio. 
-    
-    The action will call any matching attributes found in the radio object. The following
+    S
+    The action will set any matching attributes found in the radio object. The following
     parameters are required by the action:
 
         name: name of the action
