@@ -194,7 +194,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         center_frequency = self.parameters["frequency"] / 1e6
         duration_ms = self.parameters["duration_ms"]
         used_keys = ["frequency", "duration_ms", "name"]
-        acq_plan = f"The radio is tuned to {center_frequency:.2f} MHz and the following parameters are set:"
+        acq_plan = f"The radio is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
         for name, value in self.parameters.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
