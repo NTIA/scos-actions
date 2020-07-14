@@ -154,7 +154,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
 
         acquisition_plan = ""
         used_keys = ["frequency", "duration_ms", "name"]
-        acq_plan_template = "Tune to {center_frequency:.2f} MHz, and sets the following parameters:"
+        acq_plan_template = "The radio is tuned to {center_frequency:.2f} MHz and the following parameters are set:"
         acq_plan_template += "{parameters}\n"
         acq_plan_template += "\nThen, acquire samples for {duration_ms} ms\n."
 

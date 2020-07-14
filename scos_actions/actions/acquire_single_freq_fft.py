@@ -225,7 +225,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         nffts = self.parameters["nffts"]
         fft_size = self.parameters["fft_size"]
         used_keys = ["frequency", "nffts", "fft_size", "name"]
-        acq_plan = f"This action first tunes the radio to {center_frequency:.2f} MHz and sets the following parameters:"
+        acq_plan = f"The radio is tuned to {center_frequency:.2f} MHz and the following parameters are set:"
         for name, value in self.parameters.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
