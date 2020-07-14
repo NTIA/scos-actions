@@ -155,8 +155,8 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         acquisition_plan = ""
         used_keys = ["frequency", "duration_ms", "name"]
         acq_plan_template = "The radio is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
-        acq_plan_template += "{parameters}\n"
-        acq_plan_template += "\nThen, acquire samples for {duration_ms} ms\n."
+        acq_plan_template += "{parameters}"
+        acq_plan_template += "Then, acquire samples for {duration_ms} ms\n."
 
         for measurement_params in self.sorted_measurement_parameters:
             parameters = ""
