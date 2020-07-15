@@ -44,6 +44,8 @@ def test_metadata_timedomain_iq_single_acquisition():
             "CalibrationAnnotation",
         ]:
             assert annotation["core:sample_count"] == len(_data.flatten())
+        if annotation["ntia-core:annotation_type"] == "SensorAnnotation":
+            assert annotation["ntia-sensor:gain_setting_sigan"] == action.radio.gain
 
 
 def test_required_components():

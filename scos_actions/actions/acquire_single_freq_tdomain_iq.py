@@ -176,11 +176,16 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             annotation_md=measurement_result["calibration_annotation"],
         )
 
+        gain = measurement_result["gain"] if "gain" in measurement_result else None
+        attenuation = measurement_result["attenuation"] if "attenuation" in measurement_result else None
+        overload = measurement_result["overload"] if "overload" in measurement_result else None
+
         sigmf_builder.add_sensor_annotation(
             start_index=0,
             length=received_samples,
-            overload=measurement_result["overload"],
-            gain=measurement_result["gain"],
+            overload=overload,
+            gain=gain,
+            attenuation=attenuation
         )
 
     def configure_sdr(self, measurement_params):
