@@ -137,7 +137,6 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         start_time = utils.get_datetime_str_now()
         measurement_result = self.acquire_data()
         end_time = utils.get_datetime_str_now()
-        self.apply_m4s(measurement_result)
 
         sigmf_builder = SigMFBuilder()
         self.set_base_sigmf_global(
@@ -203,10 +202,11 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         logger.debug(
             f"acquiring {num_ffts * fft_size} samples and skipping the first {nskip if nskip else 0} samples"
         )
-        measurement_results = self.radio.acquire_time_domain_samples(
+        measurement_result = self.radio.acquire_time_domain_samples(
             num_ffts * fft_size, num_samples_skip=nskip
         )
-        return measurement_results
+        self.apply_m4s(measurement_result)
+        return measurement_result
 
     def apply_m4s(self, measurement_result):
         fft_size = self.parameters["fft_size"]

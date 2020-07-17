@@ -20,30 +20,11 @@ class RadioMonitor(Action):
         logger.debug("Performing signal analyzer health check")
 
         healthy = True
-        detail = ""
 
-        try:
-            self.test_required_components()
-        except RuntimeError as err:
+        if not self.radio.is_available:
             healthy = False
-            detail = str(err)
-
-        requested_samples = 100000  # Issue #42 hit error at ~70k, so test more
-
-        if healthy:
-            try:
-                measurement_result = self.radio.acquire_time_domain_samples(
-                    requested_samples
-                )
-            except Exception:
-                detail = "Unable to acquire samples from the signal analyzer"
-                healthy = False
-
-        if healthy:
-            data = measurement_result["data"]
-            if not len(data) == requested_samples:
-                detail = "signal analyzer data doesn't match request"
-                healthy = False
+        else:
+            healthy = self.radio.healthy
 
         if healthy:
             monitor_action_completed.send(sender=self.__class__, radio_healthy=True)
@@ -51,9 +32,3 @@ class RadioMonitor(Action):
         else:
             logger.warning("signal analyzer unhealthy")
             monitor_action_completed.send(sender=self.__class__, radio_healthy=False)
-
-    def test_required_components(self):
-        """Fail acquisition if a required component is not available."""
-        if not self.radio.is_available:
-            msg = "acquisition failed: signal analyzer required but not available"
-            raise RuntimeError(msg)

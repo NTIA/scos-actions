@@ -24,9 +24,10 @@ def test_monitor_radio_not_available():
     radio._is_available = False
     action(MONITOR_RADIO_SCHEDULE, 1, SENSOR_DEFINITION)
     assert _radio_healthy == False
+    radio._is_available = True
 
 
-def test_monitor_radio_acq_fail():
+def test_monitor_radio_not_healthy():
     _radio_healthy = None
 
     def callback(sender, **kwargs):
@@ -36,10 +37,10 @@ def test_monitor_radio_acq_fail():
     monitor_action_completed.connect(callback)
     action = actions["test_monitor_radio"]
     radio = action.radio
-    radio._is_available = True
-    radio.set_times_to_fail_recv(10)
+    radio._healthy = False
     action(MONITOR_RADIO_SCHEDULE, 1, SENSOR_DEFINITION)
     assert _radio_healthy == False
+    radio._healthy = True
 
 
 def test_monitor_radio_healthy():

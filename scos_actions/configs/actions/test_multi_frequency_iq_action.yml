@@ -1,6 +1,6 @@
 stepped_frequency_time_domain_iq:
   name: test_multi_frequency_iq_action
-  fcs:
+  frequency:
     - 700.5e6
     - 709e6
     - 731.5e6
@@ -11,7 +11,7 @@ stepped_frequency_time_domain_iq:
     - 782e6
     - 793e6
     - 802e6
-  gains:
+  gain:
     - 40
     - 40
     - 40
@@ -22,7 +22,7 @@ stepped_frequency_time_domain_iq:
     - 40
     - 40
     - 40
-  sample_rates:
+  sample_rate:
     - 15.36e6
     - 15.36e6
     - 15.36e6
@@ -33,7 +33,7 @@ stepped_frequency_time_domain_iq:
     - 15.36e6
     - 15.36e6
     - 15.36e6
-  durations_ms:
+  duration_ms:
     - 80
     - 80
     - 80

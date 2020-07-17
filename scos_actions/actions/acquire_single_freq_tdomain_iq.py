@@ -198,6 +198,8 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         for key, value in measurement_params.items():
             if hasattr(self.radio, key):
                 setattr(self.radio, key, value)
+            else:
+                logger.warning(f"radio does not have attribute {key}")
 
     @property
     def description(self):

@@ -23,7 +23,7 @@ class RadioInterface(ABC):
 
         :rtype: dictionary containing data, sample_rate, frequency, capture_time, etc
         """
-        raise NotImplementedError("Implement acquire_time_domain_samples")
+        pass
 
     @abstractmethod
     def create_calibration_annotation(self):
@@ -32,4 +32,9 @@ class RadioInterface(ABC):
     @property
     @abstractmethod
     def last_calibration_time(self):
+        pass
+
+    @property
+    @abstractmethod
+    def healthy(self):
         pass

@@ -72,15 +72,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     def __init__(self, parameters, radio):
         super(SteppedFrequencyTimeDomainIqAcquisition, self).__init__(parameters, radio)
         self.sorted_measurement_parameters = []
-        num_center_frequencies = len(self.parameters["fcs"])
-
-        parameter_names = {
-            "fcs": "frequency",
-            "gains": "gain",
-            "attenuations": "attenuation",
-            "sample_rates": "sample_rate",
-            "durations_ms": "duration_ms",
-        }
+        num_center_frequencies = len(self.parameters["frequency"])
 
         # convert dictionary of lists from yaml file to list of dictionaries
         longest_length = 0
@@ -94,11 +86,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             for key in parameters.keys():
                 if key == "name":
                     continue
-                if key in parameter_names:
-                    # convert plural name to singular name to map to radio interface property
-                    sorted_params[parameter_names[key]] = parameters[key][i]
-                else:
-                    sorted_params[key] = parameters[key][i]
+                sorted_params[key] = parameters[key][i]
             self.sorted_measurement_parameters.append(sorted_params)
         self.sorted_measurement_parameters.sort(key=lambda params: params["frequency"])
 
