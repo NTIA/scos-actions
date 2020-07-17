@@ -1,5 +1,6 @@
-from scos_actions.hardware.gps_iface import GPSInterface
 from datetime import datetime
+
+from scos_actions.hardware.gps_iface import GPSInterface
 
 
 class MockGPS(GPSInterface):

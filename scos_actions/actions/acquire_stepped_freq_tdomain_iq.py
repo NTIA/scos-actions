@@ -42,12 +42,12 @@ import numpy as np
 
 from scos_actions import utils
 from scos_actions.actions import sigmf_builder as scos_actions_sigmf
-from scos_actions.actions.interfaces.action import Action
-from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     SingleFrequencyTimeDomainIqAcquisition,
 )
+from scos_actions.actions.interfaces.action import Action
+from scos_actions.actions.interfaces.signals import measurement_action_completed
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +55,8 @@ logger = logging.getLogger(__name__)
 class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     """Acquire IQ data at each of the requested frequecies.
 
-    :param parameters: The dictionary of parameters needed for the action and the radio. 
-    
+    :param parameters: The dictionary of parameters needed for the action and the radio.
+
     The action will set any matching attributes found in the radio object. The following
     parameters are required by the action:
 

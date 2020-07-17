@@ -1,7 +1,8 @@
+import pytest
+
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.tests.utils import SENSOR_DEFINITION, check_metadata_fields
 from scos_actions.discover import test_actions as actions
-import pytest
 
 SINGLE_TIMEDOMAIN_IQ_ACQUISITION = {
     "name": "test_acq",
@@ -55,6 +56,7 @@ def test_required_components():
     with pytest.raises(RuntimeError):
         action(SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1, SENSOR_DEFINITION)
     radio._is_available = True
+
 
 def test_num_samples_skip():
     action = actions["test_single_frequency_iq_action"]

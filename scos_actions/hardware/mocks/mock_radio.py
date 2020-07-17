@@ -14,6 +14,15 @@ MockTuneResult = namedtuple("MockTuneResult", tune_result_params)
 
 
 class MockRadio(RadioInterface):
+    """
+    MockRadio is mock radio object for testing.
+
+    The following parameters are required for measurements:
+    sample_rate: requested sample rate in samples/second
+    frequency: center frequency in Hz
+    gain: requested gain in dB
+    """
+
     def __init__(self, randomize_values=False):
         self.auto_dc_offset = False
         self._frequency = 700e6

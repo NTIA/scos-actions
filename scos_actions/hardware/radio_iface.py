@@ -14,13 +14,13 @@ class RadioInterface(ABC):
         """ Acquires time domain IQ samples
         :type num_samples: integer
         :param num_samples: Number of samples to acquire
-    
+
         :type num_samples_skip: integer
         :param num_samples_skip: Number of samples to skip
-    
+
         :type retries: integer
         :param retries: Maximum number of retries on failure
-    
+
         :rtype: dictionary containing data, sample_rate, frequency, capture_time, etc
         """
         raise NotImplementedError("Implement acquire_time_domain_samples")

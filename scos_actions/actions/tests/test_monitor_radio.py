@@ -1,6 +1,6 @@
-from scos_actions.discover import test_actions as actions
 from scos_actions.actions.interfaces.signals import monitor_action_completed
 from scos_actions.actions.tests.utils import SENSOR_DEFINITION
+from scos_actions.discover import test_actions as actions
 
 MONITOR_RADIO_SCHEDULE = {
     "name": "test_monitor",

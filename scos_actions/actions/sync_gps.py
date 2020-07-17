@@ -1,10 +1,10 @@
 """Monitor the on-board USRP and touch or remove an indicator file."""
 
 import logging
+import subprocess
 
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import location_action_completed
-import subprocess
 
 logger = logging.getLogger(__name__)
 

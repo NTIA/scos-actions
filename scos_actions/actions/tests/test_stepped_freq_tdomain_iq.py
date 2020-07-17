@@ -2,7 +2,6 @@ from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.tests.utils import SENSOR_DEFINITION, check_metadata_fields
 from scos_actions.discover import test_actions as actions
 
-
 SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION = {
     "name": "test_multirec_acq",
     "start": None,
@@ -41,6 +40,7 @@ def test_metadata_timedomain_iq_multiple_acquisition():
         assert _task_ids[i] == 1
         assert _recording_ids[i] == i + 1
     assert _count == 10
+
 
 def test_num_samples_skip():
     action = actions["test_multi_frequency_iq_action"]

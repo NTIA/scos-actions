@@ -48,8 +48,8 @@ logger = logging.getLogger(__name__)
 class SingleFrequencyTimeDomainIqAcquisition(Action):
     """Acquire IQ data at each of the requested frequecies.
 
-    :param parameters: The dictionary of parameters needed for the action and the radio. 
-    
+    :param parameters: The dictionary of parameters needed for the action and the radio.
+
     The action will set any matching attributes found in the radio object. The following
     parameters are required by the action:
 
@@ -177,15 +177,21 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         )
 
         gain = measurement_result["gain"] if "gain" in measurement_result else None
-        attenuation = measurement_result["attenuation"] if "attenuation" in measurement_result else None
-        overload = measurement_result["overload"] if "overload" in measurement_result else None
+        attenuation = (
+            measurement_result["attenuation"]
+            if "attenuation" in measurement_result
+            else None
+        )
+        overload = (
+            measurement_result["overload"] if "overload" in measurement_result else None
+        )
 
         sigmf_builder.add_sensor_annotation(
             start_index=0,
             length=received_samples,
             overload=overload,
             gain=gain,
-            attenuation=attenuation
+            attenuation=attenuation,
         )
 
     def configure_sdr(self, measurement_params):

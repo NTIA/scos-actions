@@ -89,21 +89,20 @@ The resulting matrix is real-valued, 32-bit floats representing dBm.
 import logging
 
 from scos_actions import utils
-from scos_actions.actions.fft import (
-    get_fft_frequencies,
-    M4sDetector,
-    get_frequency_domain_data,
-    convert_volts_to_watts,
-    apply_detector,
-    convert_watts_to_dbm,
-)
-from scos_actions.actions.interfaces.action import Action
-from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.actions.sigmf_builder import SigMFBuilder, Domain, MeasurementType
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     SingleFrequencyTimeDomainIqAcquisition,
 )
-
+from scos_actions.actions.fft import (
+    M4sDetector,
+    apply_detector,
+    convert_volts_to_watts,
+    convert_watts_to_dbm,
+    get_fft_frequencies,
+    get_frequency_domain_data,
+)
+from scos_actions.actions.interfaces.action import Action
+from scos_actions.actions.interfaces.signals import measurement_action_completed
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +110,8 @@ logger = logging.getLogger(__name__)
 class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     """Perform m4s detection over requested number of single-frequency FFTs.
 
-    :param parameters: The dictionary of parameters needed for the action and the radio. 
-    
+    :param parameters: The dictionary of parameters needed for the action and the radio.
+
     The action will set any matching attributes found in the radio object. The following
     parameters are required by the action:
 
@@ -229,7 +228,9 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         for name, value in self.parameters.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
-        acq_plan += f"\nThen, ${nffts} \times {fft_size}$ samples are acquired gap-free."
+        acq_plan += (
+            f"\nThen, ${nffts} \times {fft_size}$ samples are acquired gap-free."
+        )
 
         definitions = {
             "name": self.name,

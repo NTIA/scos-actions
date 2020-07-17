@@ -3,7 +3,7 @@ from scos_actions.actions import action_classes
 from scos_actions.actions.monitor_radio import RadioMonitor
 from scos_actions.actions.sync_gps import SyncGps
 from scos_actions.discover.yaml import load_from_yaml
-from scos_actions.hardware import radio, gps
+from scos_actions.hardware import gps, radio
 from scos_actions.settings import ACTION_DEFINITIONS_DIR
 
 actions = {}
