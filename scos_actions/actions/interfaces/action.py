@@ -25,7 +25,7 @@ class Action(ABC):
 
     @abstractmethod
     def __call__(self, schedule_entry_json, task_id, sensor_definition):
-        raise NotImplementedError("Implement action logic.")
+        pass
 
     @property
     def summary(self):

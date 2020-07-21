@@ -14,6 +14,15 @@ MockTuneResult = namedtuple("MockTuneResult", tune_result_params)
 
 
 class MockRadio(RadioInterface):
+    """
+    MockRadio is mock radio object for testing.
+
+    The following parameters are required for measurements:
+    sample_rate: requested sample rate in samples/second
+    frequency: center frequency in Hz
+    gain: requested gain in dB
+    """
+
     def __init__(self, randomize_values=False):
         self.auto_dc_offset = False
         self._frequency = 700e6
@@ -22,6 +31,8 @@ class MockRadio(RadioInterface):
         self._gain = 0
         self._overload = False
         self._capture_time = None
+        self._is_available = True
+        self._healthy = True
 
         # Simulate returning less than the requested number of samples from
         # self.recv_num_samps
@@ -31,15 +42,11 @@ class MockRadio(RadioInterface):
         self.randomize_values = randomize_values
 
     @property
-    def capture_time(self):
-        return self._capture_time
-
-    @property
     def is_available(self):
-        return True
+        return self._is_available
 
     @property
-    def sample_rate(self):  # -> float:
+    def sample_rate(self):
         return self._sample_rate
 
     @sample_rate.setter
@@ -47,7 +54,7 @@ class MockRadio(RadioInterface):
         self._sample_rate = sample_rate
 
     @property
-    def frequency(self):  # -> float:
+    def frequency(self):
         return self._frequency
 
     @frequency.setter
@@ -58,7 +65,7 @@ class MockRadio(RadioInterface):
         pass
 
     @property
-    def gain(self):  # -> float:
+    def gain(self):
         return self._gain
 
     @gain.setter
@@ -68,6 +75,7 @@ class MockRadio(RadioInterface):
     def acquire_time_domain_samples(self, num_samples, num_samples_skip=0, retries=5):
         self.sigan_overload = False
         self._capture_time = None
+        self._num_samples_skip = num_samples_skip
 
         # Try to acquire the samples
         max_retries = retries
@@ -75,18 +83,18 @@ class MockRadio(RadioInterface):
         while True:
             if self.times_failed_recv < self.times_to_fail_recv:
                 self.times_failed_recv += 1
-                return np.ones(0, dtype=np.complex64)
-
-            self._capture_time = get_datetime_str_now()
-            if self.randomize_values:
-                i = np.random.normal(0.5, 0.5, num_samples)
-                q = np.random.normal(0.5, 0.5, num_samples)
-                rand_iq = np.empty(num_samples, dtype=np.complex64)
-                rand_iq.real = i
-                rand_iq.imag = q
-                data = rand_iq
+                data = np.ones(0, dtype=np.complex64)
             else:
-                data = np.ones(num_samples, dtype=np.complex64)
+                self._capture_time = get_datetime_str_now()
+                if self.randomize_values:
+                    i = np.random.normal(0.5, 0.5, num_samples)
+                    q = np.random.normal(0.5, 0.5, num_samples)
+                    rand_iq = np.empty(num_samples, dtype=np.complex64)
+                    rand_iq.real = i
+                    rand_iq.imag = q
+                    data = rand_iq
+                else:
+                    data = np.ones(num_samples, dtype=np.complex64)
 
             data_len = len(data)
             if not len(data) == num_samples:
@@ -101,7 +109,15 @@ class MockRadio(RadioInterface):
                     raise RuntimeError(err)
             else:
                 logger.debug("Successfully acquired {} samples.".format(num_samples))
-                return data
+                return {
+                    "data": data,
+                    "overload": self._overload,
+                    "frequency": self._frequency,
+                    "gain": self._gain,
+                    "sample_rate": self._sample_rate,
+                    "capture_time": self._capture_time,
+                    "calibration_annotation": self.create_calibration_annotation(),
+                }
 
     def create_calibration_annotation(self):
         annotation_md = {
@@ -115,9 +131,9 @@ class MockRadio(RadioInterface):
         self.times_failed_recv = 0
 
     @property
-    def overload(self):
-        return self._overload
-
-    @property
     def last_calibration_time(self):
         return get_datetime_str_now()
+
+    @property
+    def healthy(self):
+        return self._healthy

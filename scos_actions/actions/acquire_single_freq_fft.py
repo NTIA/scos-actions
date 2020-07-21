@@ -22,12 +22,8 @@ r"""Apply m4s detector over {nffts} {fft_size}-pt FFTs at {center_frequency:.2f}
 
 ## Radio setup and sample acquisition
 
-This action first tunes the radio to {center_frequency:.2f} MHz and requests a sample
-rate of {sample_rate:.2f} Msps and {gain} dB of gain.
-
-It then begins acquiring, and discards an appropriate number of samples while
-the radio's IQ balance algorithm runs. Then, ${nffts} \times {fft_size}$
-samples are acquired gap-free.
+Each time this task runs, the following process is followed:
+{acquisition_plan}
 
 ## Time-domain processing
 
@@ -93,146 +89,95 @@ The resulting matrix is real-valued, 32-bit floats representing dBm.
 import logging
 
 from scos_actions import utils
+from scos_actions.actions.acquire_single_freq_tdomain_iq import (
+    SingleFrequencyTimeDomainIqAcquisition,
+)
 from scos_actions.actions.fft import (
-    get_fft_frequencies,
     M4sDetector,
-    get_frequency_domain_data,
-    convert_volts_to_watts,
     apply_detector,
+    convert_volts_to_watts,
     convert_watts_to_dbm,
+    get_fft_frequencies,
+    get_frequency_domain_data,
 )
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.actions.measurement_params import MeasurementParams
-from scos_actions.actions.sigmf_builder import SigMFBuilder, Domain, MeasurementType
-
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 
 logger = logging.getLogger(__name__)
 
 
-class SingleFrequencyFftAcquisition(Action):
+class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     """Perform m4s detection over requested number of single-frequency FFTs.
 
-    :param name: the name of the action
-    :param frequency: center frequency in Hz
-    :param gain: requested gain in dB
-    :param sample_rate: requested sample_rate in Hz
-    :param fft_size: number of points in FFT (some 2^n)
-    :param nffts: number of consecutive FFTs to pass to detector
-    :param radio: instance of RadioInterface
+    :param parameters: The dictionary of parameters needed for the action and the radio.
 
+    The action will set any matching attributes found in the radio object. The following
+    parameters are required by the action:
+
+        name: name of the action
+        frequency: center frequency in Hz
+        fft_size: number of points in FFT (some 2^n)
+        nffts: number of consecutive FFTs to pass to detector
+
+    For the parameters required by the radio, see the documentation for the radio being used.
+
+    :param radio: instance of RadioInterface
     """
 
-    def __init__(self, name, frequency, gain, sample_rate, fft_size, nffts, radio):
-        super(SingleFrequencyFftAcquisition, self).__init__()
+    def __init__(self, parameters, radio):
+        super(SingleFrequencyFftAcquisition, self).__init__(parameters, radio)
 
-        self.name = name
-        self.measurement_params = MeasurementParams(
-            center_frequency=frequency,
-            gain=gain,
-            sample_rate=sample_rate,
-            fft_size=fft_size,
-            num_ffts=nffts,
-        )
-        self.radio = radio  # make instance variable to allow mocking
         self.enbw = None
 
     def __call__(self, schedule_entry_json, task_id, sensor_definition):
         """This is the entrypoint function called by the scheduler."""
 
         self.test_required_components()
-        self.configure_sdr()
         start_time = utils.get_datetime_str_now()
-        data = self.acquire_data()
+        measurement_result = self.acquire_data()
         end_time = utils.get_datetime_str_now()
-        m4s_data = self.apply_detector(data)
-        sigmf_builder = self.build_sigmf_md(
-            start_time,
-            end_time,
-            self.radio.capture_time,
+
+        sigmf_builder = SigMFBuilder()
+        self.set_base_sigmf_global(
+            sigmf_builder,
             schedule_entry_json,
             sensor_definition,
+            measurement_result,
             task_id,
+            is_complex=False,
         )
-        measurement_action_completed.send(
-            sender=self.__class__,
-            task_id=task_id,
-            data=m4s_data,
-            metadata=sigmf_builder.metadata,
-        )
-
-    def test_required_components(self):
-        """Fail acquisition if a required component is not available."""
-        if not self.radio.is_available:
-            msg = "acquisition failed: SDR required but not available"
-            raise RuntimeError(msg)
-
-    def configure_sdr(self):
-        self.radio.sample_rate = self.measurement_params.sample_rate
-        self.radio.frequency = self.measurement_params.center_frequency
-        self.radio.gain = self.measurement_params.gain
-
-    def acquire_data(self):
-        msg = "Acquiring {} FFTs at {} MHz"
-        num_ffts = self.measurement_params.num_ffts
-        frequency = self.measurement_params.center_frequency
-        sample_rate = self.measurement_params.sample_rate
-        fft_size = self.measurement_params.fft_size
-        logger.debug(msg.format(num_ffts, frequency / 1e6))
-
-        # Drop ~10 ms of samples
-        nskip = int(0.01 * sample_rate)
-
-        data = self.radio.acquire_time_domain_samples(
-            num_ffts * fft_size, num_samples_skip=nskip
-        )
-        return data
-
-    def build_sigmf_md(
-        self,
-        start_time,
-        end_time,
-        capture_time,
-        schedule_entry_json,
-        sensor,
-        task_id,
-    ):
-        sample_rate = self.radio.sample_rate
-        frequency = self.radio.frequency
-        sigmf_builder = SigMFBuilder()
-
-        sigmf_builder.set_last_calibration_time(self.radio.last_calibration_time)
-
-        sigmf_builder.set_action(
-            self.name, self.description, self.description.splitlines()[0]
-        )
-        sigmf_builder.set_capture(frequency, capture_time)
-        sigmf_builder.set_coordinate_system()
-        sigmf_builder.set_data_type(is_complex=False)
         sigmf_builder.set_measurement(
             start_time,
             end_time,
             domain=Domain.FREQUENCY,
             measurement_type=MeasurementType.SINGLE_FREQUENCY,
-            frequency=frequency,
+            frequency=measurement_result["frequency"],
+        )
+        self.add_sigmf_capture(sigmf_builder, measurement_result)
+        self.add_base_sigmf_annotations(sigmf_builder, measurement_result)
+        self.add_fft_annotations(sigmf_builder, measurement_result)
+        measurement_action_completed.send(
+            sender=self.__class__,
+            task_id=task_id,
+            data=measurement_result["data"],
+            metadata=sigmf_builder.metadata,
         )
 
-        sigmf_builder.set_sample_rate(sample_rate)
-        sigmf_builder.set_schedule(schedule_entry_json)
-        sigmf_builder.set_sensor(sensor)
-        sigmf_builder.set_task(task_id)
-
+    def add_fft_annotations(self, sigmf_builder, measurement_result):
         frequencies = get_fft_frequencies(
-            self.measurement_params.fft_size, sample_rate, frequency
+            self.parameters["fft_size"],
+            measurement_result["sample_rate"],
+            measurement_result["frequency"],
         ).tolist()
 
-        for i, detector in enumerate(M4sDetector):  # TODO check this
+        for i, detector in enumerate(M4sDetector):
             sigmf_builder.add_frequency_domain_detection(
-                start_index=(i * self.measurement_params.fft_size),
-                fft_size=self.measurement_params.fft_size,
+                start_index=(i * self.parameters["fft_size"]),
+                fft_size=self.parameters["fft_size"],
                 enbw=self.enbw,
-                detector= "fft_" + detector.name + "_power",
-                num_ffts=self.measurement_params.num_ffts,
+                detector="fft_" + detector.name + "_power",
+                num_ffts=self.parameters["nffts"],
                 window="flattop",
                 units="dBm",
                 reference="preselector input",
@@ -241,42 +186,58 @@ class SingleFrequencyFftAcquisition(Action):
                 frequency_step=frequencies[1] - frequencies[0],
             )
 
-        calibration_annotation_md = self.radio.create_calibration_annotation()
-        sigmf_builder.add_annotation(
-            start_index=0,
-            length=self.measurement_params.fft_size * len(M4sDetector),
-            annotation_md=calibration_annotation_md,
+    def acquire_data(self):
+        super().configure_sdr(self.parameters)
+        msg = "Acquiring {} FFTs at {} MHz"
+        if not "nffts" in self.parameters:
+            raise Exception("nffts missing from measurement parameters")
+        num_ffts = self.parameters["nffts"]
+        if not "fft_size" in self.parameters:
+            raise Exception("fft_size missing from measurement parameters")
+        fft_size = self.parameters["fft_size"]
+
+        nskip = None
+        if "nskip" in self.parameters:
+            nskip = self.parameters["nskip"]
+        logger.debug(
+            f"acquiring {num_ffts * fft_size} samples and skipping the first {nskip if nskip else 0} samples"
         )
-
-        overload = self.radio.overload
-
-        sigmf_builder.add_sensor_annotation(
-            start_index=0,
-            length=self.measurement_params.fft_size * len(M4sDetector),
-            overload=overload,
-            gain=self.measurement_params.gain,
+        measurement_result = self.radio.acquire_time_domain_samples(
+            num_ffts * fft_size, num_samples_skip=nskip
         )
-        return sigmf_builder
+        self.apply_m4s(measurement_result)
+        return measurement_result
 
-    def apply_detector(self, data):
-        fft_size = self.measurement_params.fft_size
+    def apply_m4s(self, measurement_result):
+        fft_size = self.parameters["fft_size"]
         complex_fft, self.enbw = get_frequency_domain_data(
-            data, self.radio.sample_rate, fft_size
+            measurement_result["data"], measurement_result["sample_rate"], fft_size
         )
         power_fft = convert_volts_to_watts(complex_fft)
         power_fft_m4s = apply_detector(power_fft)
         power_fft_dbm = convert_watts_to_dbm(power_fft_m4s)
-        return power_fft_dbm
+        measurement_result["data"] = power_fft_dbm
 
     @property
     def description(self):
+        center_frequency = self.parameters["frequency"] / 1e6
+        nffts = self.parameters["nffts"]
+        fft_size = self.parameters["fft_size"]
+        used_keys = ["frequency", "nffts", "fft_size", "name"]
+        acq_plan = f"The radio is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
+        for name, value in self.parameters.items():
+            if name not in used_keys:
+                acq_plan += f"{name} = {value}\n"
+        acq_plan += (
+            f"\nThen, ${nffts} \times {fft_size}$ samples are acquired gap-free."
+        )
+
         definitions = {
             "name": self.name,
-            "center_frequency": self.measurement_params.center_frequency / 1e6,
-            "sample_rate": self.measurement_params.sample_rate / 1e6,
-            "fft_size": self.measurement_params.fft_size,
-            "nffts": self.measurement_params.num_ffts,
-            "gain": self.measurement_params.gain,
+            "center_frequency": center_frequency,
+            "acquisition_plan": acq_plan,
+            "fft_size": fft_size,
+            "nffts": nffts,
         }
 
         # __doc__ refers to the module docstring at the top of the file

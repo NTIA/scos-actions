@@ -5,3 +5,4 @@ single_frequency_fft:
   sample_rate: 15.36e6
   fft_size: 1024
   nffts: 300
+  nskip: 15.36e4

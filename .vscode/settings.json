@@ -1,3 +1,13 @@
 {
-    "python.pythonPath": "scos_actions_venv/bin/python3"
+  "python.pythonPath": "venv/bin/python",
+  "python.testing.pytestArgs": ["."],
+  "python.testing.unittestEnabled": false,
+  "python.testing.nosetestsEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "python.formatting.provider": "black",
+  "[markdown]": {
+    "editor.rulers": [
+        88
+    ]
+  }
 }
