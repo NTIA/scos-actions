@@ -117,7 +117,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                 start_time,
                 end_time,
                 domain=Domain.TIME,
-                measurement_type=MeasurementType.SURVEY,
+                measurement_type=MeasurementType.SINGLE_FREQUENCY,
                 frequency=measurement_result["frequency"],
             )
             self.add_sigmf_capture(sigmf_builder, measurement_result)
