@@ -152,11 +152,11 @@ class SigMFBuilder:
         self, start_index, length, overload=None, gain=None, attenuation=None
     ):
         metadata = {"ntia-core:annotation_type": "SensorAnnotation"}
-        if overload:
+        if overload is not None:
             metadata["ntia-sensor:overload"] = overload
-        if gain:
+        if gain is not None:
             metadata["ntia-sensor:gain_setting_sigan"] = gain
-        if attenuation:
+        if attenuation is not None:
             metadata["ntia-sensor:attenuation_setting_sigan"] = attenuation
         self.add_annotation(start_index, length, metadata)
 
