@@ -26,7 +26,7 @@ def get_coordinate_system_sigmf():
 
 class MeasurementType(Enum):
     SINGLE_FREQUENCY = "single-frequency"
-    SURVEY = "survey"
+    SCAN = "scan"
 
 
 class Domain(Enum):
