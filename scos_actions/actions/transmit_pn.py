@@ -78,7 +78,7 @@ class TransmitPN(Action):
         self.test_required_components()
         self.configure_sdr()
         start_time = utils.get_datetime_str_now()
-        data = self.acquire_data(new_epoch_time)
+        data = self.call_transmit_pn()
         end_time = utils.get_datetime_str_now()
         #sigmf_md = self.build_sigmf_md(
         #    task_id, data, task_result.schedule_entry, start_time, end_time
