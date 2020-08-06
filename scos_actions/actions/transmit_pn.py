@@ -112,7 +112,7 @@ class TransmitPN(Action):
         # Drop ~10 ms of samples
         #nskip = int(0.01 * sample_rate)
         logger.debug("in acquire_data; radio struct: ".format(self.radio))
-        data = self.radio.transmit_pn()
+        data = self.radio.transmit_pn(self.measurement_params.seed, self.measurement_params.sampspersymbol, self.measurement_params.spacing, self.measurement_params.duration_ms)
 
         return data
 
