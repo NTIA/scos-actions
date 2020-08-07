@@ -1,5 +1,5 @@
 transmit_pn:
-  name: transmit_pn_test3
+  name: transmit_pn_test4
   frequency: 709e6
   gain: 50
   sample_rate: 5e6
