@@ -3,6 +3,7 @@ import logging
 from collections import namedtuple
 
 import numpy as np
+from numba import jit
 
 from scos_actions.hardware.radio_iface import RadioInterface
 from scos_actions.utils import get_datetime_str_now
@@ -11,6 +12,12 @@ logger = logging.getLogger(__name__)
 
 tune_result_params = ["actual_dsp_freq", "actual_rf_freq"]
 MockTuneResult = namedtuple("MockTuneResult", tune_result_params)
+
+
+@jit(nopython=True)
+def generate_random(data, num_samples):
+    for i in range(num_samples):
+        data[i] = np.random.normal(0.5, 0.5) + 1j * np.random.normal(0.5, 0.5)
 
 
 class MockRadio(RadioInterface):
@@ -87,12 +94,8 @@ class MockRadio(RadioInterface):
             else:
                 self._capture_time = get_datetime_str_now()
                 if self.randomize_values:
-                    i = np.random.normal(0.5, 0.5, num_samples)
-                    q = np.random.normal(0.5, 0.5, num_samples)
-                    rand_iq = np.empty(num_samples, dtype=np.complex64)
-                    rand_iq.real = i
-                    rand_iq.imag = q
-                    data = rand_iq
+                    data = np.empty(num_samples, dtype=np.complex64)
+                    generate_random(data, num_samples)
                 else:
                     data = np.ones(num_samples, dtype=np.complex64)
 

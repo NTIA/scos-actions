@@ -168,7 +168,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
     def add_base_sigmf_annotations(
         self, sigmf_builder, measurement_result,
     ):
-        received_samples = len(measurement_result["data"].flatten())
+        received_samples = len(measurement_result["data"])
 
         sigmf_builder.add_annotation(
             start_index=0,
