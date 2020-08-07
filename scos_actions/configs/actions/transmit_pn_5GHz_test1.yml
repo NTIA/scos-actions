@@ -1,8 +1,8 @@
 transmit_pn:
-  name: transmit_pn_test1
-  frequency: 709e6
+  name: transmit_pn_5GHz_test1
+  frequency: 5800e6
   gain: 20
-  sample_rate: 5e6
+  sample_rate: 10e6
   duration_ms: 1000
   seed: [0, 0, 0, 0, 0, 0, 0, 0, 1]
   sampspersymbol: 3
