@@ -96,11 +96,14 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     def __call__(self, schedule_entry_json, task_id, sensor_definition):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
-
+        measurement_result = None
         for recording_id, measurement_params in enumerate(
             self.sorted_measurement_parameters, start=1
         ):
             start_time = utils.get_datetime_str_now()
+            # clear away previous data and optimize memory usage
+            if measurement_result:
+                del measurement_result
             measurement_result = super().acquire_data(measurement_params)
             end_time = utils.get_datetime_str_now()
             received_samples = len(measurement_result["data"])
