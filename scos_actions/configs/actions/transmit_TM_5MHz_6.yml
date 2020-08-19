@@ -1,0 +1,8 @@
+transmit_pn:
+  name: transmit_TM_5MHz_6
+  frequency: 5800e6
+  gain: 60
+  sample_rate: 5e6
+  duration_ms: 10000
+  seed: [0, 0, 0, 0, 0, 0, 0, 0, 1]
+  sampspersymbol: 16
