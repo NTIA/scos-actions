@@ -16,7 +16,7 @@
 # - Markdown reference: https://commonmark.org/help/
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
-r"""Send PN iq: {sampspersymbol} sps, for {duration_ms}ms, at {center_frequency:.2f}MHz, {gain} dB.
+r"""Send PN iq, for {duration_ms}ms, at {center_frequency:.2f}MHz, {gain} dB.
 
 # {name}
 
