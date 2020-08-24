@@ -106,7 +106,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         measurement_action_completed.send(
             sender=self.__class__,
             task_id=task_id,
-            data=measurement_result["data"].astype(np.complex64),
+            data=measurement_result["data"],
             metadata=sigmf_builder.metadata,
         )
 
