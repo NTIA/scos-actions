@@ -1,5 +1,5 @@
 transmit_pn:
-  name: transmit_home_10MHz_8
+  name: transmit_home_5MHz_8
   frequency: 709e6
   gain: 30
   sample_rate: 5e6
