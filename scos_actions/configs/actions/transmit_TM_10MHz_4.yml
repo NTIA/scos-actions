@@ -1,7 +1,7 @@
 transmit_pn:
   name: transmit_TM_10MHz_4
   frequency: 5800e6
-  gain: 40
+  gain: 80
   sample_rate: 10e6
   duration_ms: 10000
   seed: [0, 0, 0, 0, 0, 0, 0, 0, 1]
