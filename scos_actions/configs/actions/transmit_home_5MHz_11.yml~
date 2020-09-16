@@ -1,0 +1,8 @@
+transmit_pn:
+  name: transmit_home_5MHz_1
+  frequency: 5800e6
+  gain: 5
+  sample_rate: 5e6
+  duration_ms: 1000
+  seed: [0, 0, 0, 0, 0, 0, 0, 0, 1]
+  sampspersymbol: 4
