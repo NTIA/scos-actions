@@ -1,7 +1,11 @@
 """
-This is a sample file showing how an action be called for debugging purposes.
+This is a sample file showing how an action be created and called for debugging purposes
+using a mock radio.
 """
+import json
+
 from scos_actions.actions.acquire_single_freq_fft import SingleFrequencyFftAcquisition
+from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.hardware import radio
 
 parameters = {
@@ -11,7 +15,6 @@ parameters = {
     "sample_rate": 15.36e6,
     "fft_size": 1024,
     "nffts": 300,
-    "radio": radio,
 }
 schedule_entry_json = {
     "name": "test_m4s_multi_1",
@@ -28,6 +31,25 @@ sensor = {
     "signal_analyzer": {"sigan_spec": {"id": "", "model": "Ettus USRP B210"}},
     "computer_spec": {"id": "", "model": "Intel NUC"},
 }
-action = SingleFrequencyFftAcquisition(**parameters)
+
+_data = None
+_metadata = None
+_task_id = 0
+
+
+def callback(sender, **kwargs):
+    global _data
+    global _metadata
+    global _task_id
+    _task_id = kwargs["task_id"]
+    _data = kwargs["data"]
+    _metadata = kwargs["metadata"]
+
+
+measurement_action_completed.connect(callback)
+
+action = SingleFrequencyFftAcquisition(parameters=parameters, radio=radio)
 action(schedule_entry_json, 1, sensor)
+print("metadata:")
+print(json.dumps(_metadata, indent=4))
 print("finished")
