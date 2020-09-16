@@ -1,7 +1,7 @@
 transmit_pn:
-  name: transmit_home_5MHz_1
-  frequency: 709e6
-  gain: 80
+  name: transmit_home_5MHz_21
+  frequency: 5800e6
+  gain: 55
   sample_rate: 5e6
   duration_ms: 1000
   seed: [0, 0, 0, 0, 0, 0, 0, 0, 1]
