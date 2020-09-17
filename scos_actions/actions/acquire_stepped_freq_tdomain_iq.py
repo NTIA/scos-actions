@@ -62,7 +62,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
 
         name: name of the action
         frequency: an iterable of center frequencies in Hz
-        duration_ms: duration to acquire in ms, per center_frequency
+        duration_ms: an iterable of measurement durations per center_frequency in ms
 
     For the parameters required by the radio, see the documentation for the radio being used.
 
