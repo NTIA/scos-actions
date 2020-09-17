@@ -61,8 +61,8 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     parameters are required by the action:
 
         name: name of the action
-        fcs: an iterable of center frequencies in Hz
-        durations_ms: duration to acquire in ms, per center_frequency
+        frequency: an iterable of center frequencies in Hz
+        duration_ms: duration to acquire in ms, per center_frequency
 
     For the parameters required by the radio, see the documentation for the radio being used.
 
