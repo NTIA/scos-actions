@@ -8,7 +8,7 @@
 # escaped to {{m \over n}}.
 #
 # To print out this docstring after parameterization, see
-# REPO_ROOT/scripts/print_action_docstring.py. You can then paste that into the
+# scos-sensor/scripts/print_action_docstring.py. You can then paste that into the
 # SCOS Markdown Editor (link below) to see the final rendering.
 #
 # Resources:
