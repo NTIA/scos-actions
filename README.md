@@ -39,7 +39,7 @@ is available and is able to maintain a connection to the computer.
 1. If you are using a different branch than master, change master in the following line
     to the branch you are using:
     `scos_actions @
-    git+${DOCKER_GIT_CREDENTIALS}/NTIA/scos_actions@master#egg=scos_actions`
+    git+${DOCKER_GIT_CREDENTIALS}/NTIA/scos-actions@master#egg=scos_actions`
 1. `cp env.template ./env`
 1. In env file, change `BASE_IMAGE=ubuntu:18.04` (at the bottom of the file)
 1. If you are already using git credential manager (you have the file
