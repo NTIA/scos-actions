@@ -19,6 +19,7 @@ setuptools.setup(
     author="The Institute for Telecommunication Sciences",
     # author_email="author@example.com",
     description="Base actions and hardware support library for scos-sensor",
+    license="LICENSE.md",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/NTIA/scos-actions",

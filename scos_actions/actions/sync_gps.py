@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class SyncGps(Action):
-    """Query the GPS and syncronize time and location."""
+    """Query the GPS and synchronize time and location."""
 
     def __init__(self, gps, admin_only=True):
         super(SyncGps, self).__init__(admin_only=admin_only)

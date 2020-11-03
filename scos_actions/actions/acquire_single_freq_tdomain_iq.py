@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 class SingleFrequencyTimeDomainIqAcquisition(Action):
-    """Acquire IQ data at each of the requested frequecies.
+    """Acquire IQ data at each of the requested frequencies.
 
     :param parameters: The dictionary of parameters needed for the action and the radio.
 
