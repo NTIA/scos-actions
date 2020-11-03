@@ -117,7 +117,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             raise RuntimeError(msg)
 
     def acquire_data(self, measurement_params):
-        self.configure_sdr(measurement_params)
+        self.configure_sigan(measurement_params)
 
         # Use the radio's actual reported sample rate instead of requested rate
         sample_rate = self.radio.sample_rate
@@ -194,7 +194,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             attenuation=attenuation,
         )
 
-    def configure_sdr(self, measurement_params):
+    def configure_sigan(self, measurement_params):
         for key, value in measurement_params.items():
             if hasattr(self.radio, key):
                 setattr(self.radio, key, value)

@@ -187,7 +187,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
             )
 
     def acquire_data(self):
-        super().configure_sdr(self.parameters)
+        super().configure_sigan(self.parameters)
         msg = "Acquiring {} FFTs at {} MHz"
         if not "nffts" in self.parameters:
             raise Exception("nffts missing from measurement parameters")
