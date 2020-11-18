@@ -9,11 +9,11 @@ for more information about scos-sensor, especially the section about
 
 ## 2. Table of Contents
 
-- [Overview of Repo Structure](#overview-of-repo-structure)
-- [Running in scos-sensor](#running-in-scos-sensor)
-- [Development](#development)
-- [License](#license)
-- [Contact](#contact)
+- [Overview of Repo Structure](#3-overview-of-repo-structure)
+- [Running in scos-sensor](#4-running-in-scos-sensor)
+- [Development](#5-development)
+- [License](#6-license)
+- [Contact](#7-contact)
 
 ## 3. Overview of Repo Structure
 
