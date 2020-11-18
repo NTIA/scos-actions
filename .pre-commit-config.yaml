@@ -26,5 +26,5 @@ repos:
     rev: v0.9.0
     hooks:
       - id: markdownlint
-        args: [-s, .ml_style.rb, README.md, DEVELOPING.md, scos_actions/configs/README.md]
+        args: [-s, .ml_style.rb, README.md]
         exclude: GitHubRepoPublicReleaseApproval.md|LICENSE.md
