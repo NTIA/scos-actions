@@ -43,19 +43,14 @@ python>=3.6.
 
 1. Clone scos-sensor: git clone <https://github.com/NTIA/scos-sensor.git>
 1. Navigate to scos-sensor: `cd scos-sensor`
-1. If it does not exist, create env file while in the root scos-sensor directory:
-
-    ```bash
-    cp env.template ./env
-    ```
-
 1. In scos-sensor/src/requirements.txt, comment out the following line:
    `scos_usrp @ git+ https://github.com/NTIA/scos-usrp@master#egg=scos_usrp`
 1. Make sure scos_actions dependency is added to scos-sensor/src/requirements.txt. If
    you are using a different branch than master, change master in the following line to
    the branch you are using:
    `scos_actions @ git+https://github.com/NTIA/scos-actions@master#egg=scos_actions`
-1. `cp env.template ./env`
+1. If it does not exist, create env file while in the root scos-sensor directory:
+   `cp env.template ./env`
 1. In env file, change `BASE_IMAGE=ubuntu:18.04` (at the bottom of the file)
 1. Set `MOCK_RADIO` and `MOCK_RADIO_RANDOM` equal to 1 in docker-compose.yml
 1. Get environment variables: `source ./env`
