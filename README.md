@@ -199,8 +199,10 @@ using the following format:
 `<package_name> @ git+<link_to_github_repo>@<branch_name>#egg=<package_name>`. If
 specific drivers are required for your signal analyzer, you can attempt to link to them
 within the package or create a docker image with the necessary files. You can host the
-docker image as a GitHub package. Then, when running scos-sensor, set the environment
-variable `BASE_IMAGE=<image tag>`.
+docker image as a [GitHub package](
+    https://docs.github.com/en/free-pro-team@latest/packages/using-github-packages-with-your-projects-ecosystem/configuring-docker-for-use-with-github-packages
+). Then, when running scos-sensor, set the environment variable
+`BASE_IMAGE=<image tag>`.
 
 ### Adding Actions
 
