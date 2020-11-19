@@ -38,7 +38,7 @@ for more information about scos-sensor, especially the section about
 
 ## 4. Running in scos-sensor
 
-Requires pip>=18.1 (upgrade using python3 -m pip install --upgrade pip) and
+Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`) and
 python>=3.6.
 
 1. Clone scos-sensor: git clone <https://github.com/NTIA/scos-sensor.git>
@@ -167,7 +167,7 @@ another signal analyzer with a Python API.
   See [Adding Actions](#adding-actions) subsection below.
 - In the new repository, add a `discover/__init__.py` file. This should contain a
   dictionary called `actions` with a key of action name and a value of action object.
-  You can use the [init()`](scos_actions/discover/__init__.py) and/or the
+  You can use the [init()](scos_actions/discover/__init__.py) and/or the
   [load_from_yaml()](scos_actions/discover/yaml.py) methods provided in this repository
   to look for yaml files and initialize actions. These methods allow you to pass your
   new radio object to the action's constructor. You can use the existing action classes
