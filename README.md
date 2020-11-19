@@ -215,6 +215,7 @@ available.
 ```python
 from scos_actions.discover import init
 from scos_usrp.hardware import gps, radio
+
 actions = {
 
 "monitor_usrp": RadioMonitor(radio),
@@ -257,7 +258,7 @@ an acquisition for the LTE 700 C band downlink, so we'll call it `acquire_700c_d
 
 Next, we want to find the appropriate string key for the
 `SingleFrequencyFftAcquisition` class. Look in [actions/\_\_init\_\_.py](
-    scos_actions/actions\]/__init__.py) at the action_classes dictionary. There, we
+    scos_actions/actions/__init__.py) at the action_classes dictionary. There, we
 see:
 
 ```python
