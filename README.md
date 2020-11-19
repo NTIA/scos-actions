@@ -171,7 +171,7 @@ another signal analyzer with a Python API.
   [load_from_yaml()](scos_actions/discover/yaml.py) methods provided in this repository
   to look for yaml files and initialize actions. These methods allow you to pass your
   new radio object to the action's constructor. You can use the existing action classes
-  [defined in this repository](scos_actions\actions\__init__.py) or
+  [defined in this repository](scos_actions/actions/__init__.py) or
   [create custom actions](#writing-custom-actions). If the signal analyzer supports
   calibration, you should also add a `get_last_calibration_time()` method to
   `discover/__init__.py` to enable the status endpoint to report the last calibration
