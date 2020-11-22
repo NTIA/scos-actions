@@ -181,8 +181,6 @@ The file name can be anything. Files must end in .yml.
 The action initialization logic parses all yaml files in this directory and registers
 the requested actions in the API.
 
-Let's look at an example.
-
 #### Example
 
 Let's say we want to make an instance of the `SingleFrequencyFftAcquisition`.
@@ -266,13 +264,9 @@ single_frequency_fft:
   nffts: 300
 ```
 
-You're done.
-
 ### Writing Custom Actions
 
-"Actions" are one of the main concepts used by scos-sensor. At a high level, they are
-the things that the sensor owner wants the sensor to be able to *do*. At a lower level,
-they are simply Python classes with a special method `__call__`. Actions use [Django
+At a lower level, actions are simply Python classes with a special method `__call__`. Actions use [Django
 Signals](https://docs.djangoproject.com/en/3.1/topics/signals/) to provide data and
 results to scos-sensor.
 
