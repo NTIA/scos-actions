@@ -1,21 +1,26 @@
-# 1. Title: NTIA/ITS SCOS Actions Plugin
+NTIA/ITS SCOS Actions Plugin
+============================
 
-This repository contains common actions and interfaces to be re-used by scos-sensor
-plugins. See the [scos-sensor documentation](
-    https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/README.md)
-for more information about scos-sensor, especially the section about
-[Actions and Hardware Support](
-    https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/DEVELOPING.md#actions-and-hardware-support).
+This is the base repository for scos-sensor actions and hardware support. 
 
-## 2. Table of Contents
+An action is a function that the sensor owner implements and exposes to the scos-sensor API. There are several logical groupings of actions, such as those that create acquisitions, or admin-only actions that handle administrative tasks. Actions, however, can theoretically do anything a sensor owner can implement. Some less common (but perfectly acceptable) ideas for actions might be to rotate an antenna or start streaming data over a socket and only return when the recipient closes the connection. 
+If any Python package begins with "scos_", and contains a dictionary of actions at the Python path <package_name>.discover.actions, these actions will automatically be available for scheduling.
 
-- [Overview of Repo Structure](#3-overview-of-repo-structure)
-- [Running in scos-sensor](#4-running-in-scos-sensor)
-- [Development](#5-development)
-- [License](#6-license)
-- [Contact](#7-contact)
+This base repo contains the action classes that can be re-used with different parameters and different hardware. Only universal scos-sensor actions that apply to most RF sensor designs should be added to this repository. Custom actions for specific hardware should be added to plugins in repositories supporting that specific hardware, e.g., scos-usrp. New functionality could be added to the radio interface defined in this repository if it is something that can be supported by most signal analyzers.
 
-## 3. Overview of Repo Structure
+For more details, see the [scos-sensor documentation](https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/README.md), especially [Actions and Hardware Support](https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/DEVELOPING.md#actions-and-hardware-support).
+
+Table of Contents
+-----------------
+
+- [Overview of Repo Structure](#1-overview-of-repo-structure)
+- [Running in scos-sensor](#2-running-in-scos-sensor)
+- [Adding Actions](#3-adding-actions)
+- [Supporting a Different Signal Analyzer](#4-supporting-a-different-signal-analyzer)
+- [License](#5-license)
+- [Contact](#6-contact)
+
+## 1. Overview of Repo Structure
 
 - scos_actions/actions: This includes the base Action class, signals, and the following
   common action classes:
@@ -36,44 +41,11 @@ for more information about scos-sensor, especially the section about
   implementations of the radio interface for particular signal analyzers are provided
   in separate repositories like [scos-usrp](https://github.com/NTIA/scos-usrp).
 
-## 4. Running in scos-sensor
+## 2. Running in scos-sensor
 
-Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`) and
-python>=3.6.
+### Requirements
 
-1. Clone scos-sensor: git clone <https://github.com/NTIA/scos-sensor.git>
-1. Navigate to scos-sensor: `cd scos-sensor`
-1. In scos-sensor/src/requirements.txt, comment out the following line:
-   `scos_usrp @ git+ https://github.com/NTIA/scos-usrp@master#egg=scos_usrp`
-1. Make sure scos_actions dependency is added to scos-sensor/src/requirements.txt. If
-   you are using a different branch than master, change master in the following line to
-   the branch you are using:
-   `scos_actions @ git+https://github.com/NTIA/scos-actions@master#egg=scos_actions`
-1. If it does not exist, create env file while in the root scos-sensor directory:
-   `cp env.template ./env`
-1. In env file, change `BASE_IMAGE=ubuntu:18.04` (at the bottom of the file)
-1. Set `MOCK_RADIO` and `MOCK_RADIO_RANDOM` equal to 1 in docker-compose.yml
-1. Get environment variables: `source ./env`
-1. Build and start containers: `docker-compose up -d --build --force-recreate`
-
-If scos-actions is installed to scos-sensor as a plugin, the following three
-parameterized actions are offered for testing using a mock signal analyzer; their
-parameters are defined in scos_actions/configs/actions.
-
-- test_multi_frequency_iq_action
-- test_single_frequency_iq_action
-- test_single_frequency_m4s_action
-
-## 5. Development
-
-This repository is intended to be used by all scos-sensor plugins. Therefore, only
-universal actions that apply to most RF measurement systems should be added to
-scos-actions. Custom actions for specific hardware should be added to plugins in
-repositories supporting that specific hardware. New functionality could be added to the
-[radio interface defined in this repository](scos_actions/hardware/radio_iface.py) if
-it is something that can be supported by most signal analyzers.
-
-### Requirements and Configuration
+See scos-sensor requirements
 
 Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`) and
 python>=3.6.
@@ -89,7 +61,33 @@ python3 -m pip install --upgrade pip # upgrade to pip>=18.1
 python3 -m pip install -r requirements-dev.txt
 ```
 
+### Configuration
+
+The following are steps to setup scos-sensor with scos-action dependencies:
+1. Clone scos-sensor: git clone <https://github.com/NTIA/scos-sensor.git>
+1. Navigate to scos-sensor: `cd scos-sensor`
+1. In scos-sensor/src/requirements.txt, comment out the following line:
+   `scos_usrp @ git+ https://github.com/NTIA/scos-usrp@master#egg=scos_usrp`
+1. Make sure scos_actions dependency is added to scos-sensor/src/requirements.txt. If
+   you are using a different branch than master, change master in the following line to
+   the branch you are using:
+   `scos_actions @ git+https://github.com/NTIA/scos-actions@master#egg=scos_actions`
+1. If it does not exist, create env file while in the root scos-sensor directory:
+   `cp env.template ./env`
+1. In env file, change `BASE_IMAGE=ubuntu:18.04` (at the bottom of the file)
+1. Set `MOCK_RADIO` and `MOCK_RADIO_RANDOM` equal to 1 in docker-compose.yml
+1. Get environment variables: `source ./env`
+1. Build and start containers: `docker-compose up -d --build --force-recreate`
+
 ### Running Tests
+
+If scos-actions is installed to scos-sensor as a plugin, the following three
+parameterized actions are offered for testing using a mock signal analyzer; their
+parameters are defined in scos_actions/configs/actions.
+
+- test_multi_frequency_iq_action
+- test_single_frequency_iq_action
+- test_single_frequency_m4s_action
 
 Ideally, you should add a test that covers any new feature that you add. If you've done
 that, then running the included test suite is the easiest way to check that everything
@@ -141,70 +139,7 @@ markdownlint. Markdownlint will show an error message if it detects any style is
 markdown files. See .pre-commit-config.yaml for a list of pre-commit tools enabled for
 this repository.
 
-### Supporting a Different Signal Analyzer
-
-[scos_usrp](https://github.com/NTIA/scos-usrp) adds support for the Ettus B2xx line of
-software-defined radios to scos-sensor. Follow these instructions to add support for
-another signal analyzer with a Python API.
-
-- Create a new repository called scos-[signal analyzer name].
-- Create a new virtual environment and activate it:
-  `python3 -m venv ./venv && source venv/bin/activate`.
-  Upgrade pip: `python3 -m pip install --upgrade pip`.
-- In the new repository, add this scos-actions repository as a dependency and create a
-  class that inherits from the [RadioInterface](scos_actions/hardware/radio_iface.py)
-  abstract class. Add properties or class variables for the parameters needed to
-  configure the radio.
-- Create .yml files with the parameters needed to run the actions imported from
-  scos-actions using the new signal analyzer. Put them in the new repository in
-  `configs/actions`. This should contain the parameters needed by the action as well as
-  the radio settings based on which properties or class variables were implemented in
-  the radio class in the previous step. The measurement actions in scos-actions are
-  configured to check if any yaml parameters are available as attributes in the radio
-  object, and to set them to the given yaml value if available. For example, if the new
-  radio class has a bandwidth property, simply add a bandwidth parameter to the yaml
-  file. Alternatively, you can create custom actions that are unique to the hardware.
-  See [Adding Actions](#adding-actions) subsection below.
-- In the new repository, add a `discover/__init__.py` file. This should contain a
-  dictionary called `actions` with a key of action name and a value of action object.
-  You can use the [init()](scos_actions/discover/__init__.py) and/or the
-  [load_from_yaml()](scos_actions/discover/yaml.py) methods provided in this repository
-  to look for yaml files and initialize actions. These methods allow you to pass your
-  new radio object to the action's constructor. You can use the existing action classes
-  [defined in this repository](scos_actions/actions/__init__.py) or
-  [create custom actions](#writing-custom-actions). If the signal analyzer supports
-  calibration, you should also add a `get_last_calibration_time()` method to
-  `discover/__init__.py` to enable the status endpoint to report the last calibration
-  time.
-
-If your signal analyzer doesn't have a Python API, you'll need a Python wrapper that
-calls out to your signal analyzer's available API and reads the samples back into
-Python. Libraries such as [SWIG](http://www.swig.org/) can automatically generate
-Python wrappers for programs written in C/C++.
-
-The next step in supporting a different signal analyzer is to create a class that
-inherits from the [GPSInterface](scos_actions/hardware/gps_iface.py) abstract class.
-Then add the `sync_gps` and `monitor_radio` actions to your `actions` dictionary,
-passing the gps object to the `SyncGps` constructor, and the radio object to the
-`RadioMonitor` constructor. See the example in the [Adding Actions subsection](
-    #adding-actions) below.
-
-The final step would be to add a `setup.py` to allow for installation of the new
-repository as a Python package. You can use the [setup.py](setup.py) in this repository
-as a reference. You can find more information about Python packaging [here](
-    https://packaging.python.org/tutorials/packaging-projects/). Then add the new
-repository as a dependency to [scos-sensor requirements.txt](
-    https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/src/requirements.txt)
-using the following format:
-`<package_name> @ git+<link_to_github_repo>@<branch_name>#egg=<package_name>`. If
-specific drivers are required for your signal analyzer, you can attempt to link to them
-within the package or create a docker image with the necessary files. You can host the
-docker image as a [GitHub package](
-    https://docs.github.com/en/free-pro-team@latest/packages/using-github-packages-with-your-projects-ecosystem/configuring-docker-for-use-with-github-packages
-). Then, when running scos-sensor, set the environment variable
-`BASE_IMAGE=<image tag>`.
-
-### Adding Actions
+## 3. Adding Actions
 
 To expose a new action to the API, check out the available [action classes](
     scos_actions/actions/__init__.py). An *action* is a parameterized implementation of
@@ -234,7 +169,7 @@ where the yaml files are located.
 If no existing action class meets your needs, see [Writing Custom Actions](
     #writing-custom-actions).
 
-#### Creating a yaml config file for an action
+### Creating a yaml config file for an action
 
 Actions can be manually initialized in `discover/__init__.py`, but an easier method for
 non-developers and configuration-management software is to place a yaml file in the
@@ -248,7 +183,7 @@ the requested actions in the API.
 
 Let's look at an example.
 
-##### Example
+#### Example
 
 Let's say we want to make an instance of the `SingleFrequencyFftAcquisition`.
 
@@ -333,7 +268,7 @@ single_frequency_fft:
 
 You're done.
 
-#### Writing Custom Actions
+### Writing Custom Actions
 
 "Actions" are one of the main concepts used by scos-sensor. At a high level, they are
 the things that the sensor owner wants the sensor to be able to *do*. At a lower level,
@@ -368,7 +303,7 @@ offered:
 New signals can be added. However, corresponding signal handlers must be added to
 scos-sensor to receive the signals and process the results.
 
-##### Adding custom action to scos-actions
+### Adding custom action to scos-actions
 
 A custom action meant to be re-used by other plugins can live in scos-actions. It can
 be instantiated using a yaml file, or directly in the `actions` dictionary in the
@@ -378,7 +313,7 @@ Then it can be instantiated in that plugin’s actions dictionary in its discove
 or in a yaml file living in that plugin (as long as its discover module includes the
 required code to parse the yaml files).
 
-##### Adding system or hardware specific custom action
+### Adding system or hardware specific custom action
 
 In the repository that provides the plugin to support the hardware being used, add the
 action to the `actions` dictionary in the `discover/__init__.py` file. Optionally,
@@ -386,10 +321,73 @@ initialize the action using a yaml file by importing the yaml initialization cod
 scos-actions. For an example of this, see [Adding Actions subsection](#adding-actions)
 above.
 
-## 6. License
+## 4. Supporting a Different Signal Analyzer
+
+[scos_usrp](https://github.com/NTIA/scos-usrp) adds support for the Ettus B2xx line of
+software-defined radios to scos-sensor. Follow these instructions to add support for
+another signal analyzer with a Python API.
+
+- Create a new repository called scos-[signal analyzer name].
+- Create a new virtual environment and activate it:
+  `python3 -m venv ./venv && source venv/bin/activate`.
+  Upgrade pip: `python3 -m pip install --upgrade pip`.
+- In the new repository, add this scos-actions repository as a dependency and create a
+  class that inherits from the [RadioInterface](scos_actions/hardware/radio_iface.py)
+  abstract class. Add properties or class variables for the parameters needed to
+  configure the radio.
+- Create .yml files with the parameters needed to run the actions imported from
+  scos-actions using the new signal analyzer. Put them in the new repository in
+  `configs/actions`. This should contain the parameters needed by the action as well as
+  the radio settings based on which properties or class variables were implemented in
+  the radio class in the previous step. The measurement actions in scos-actions are
+  configured to check if any yaml parameters are available as attributes in the radio
+  object, and to set them to the given yaml value if available. For example, if the new
+  radio class has a bandwidth property, simply add a bandwidth parameter to the yaml
+  file. Alternatively, you can create custom actions that are unique to the hardware.
+  See [Adding Actions](#adding-actions) subsection below.
+- In the new repository, add a `discover/__init__.py` file. This should contain a
+  dictionary called `actions` with a key of action name and a value of action object.
+  You can use the [init()](scos_actions/discover/__init__.py) and/or the
+  [load_from_yaml()](scos_actions/discover/yaml.py) methods provided in this repository
+  to look for yaml files and initialize actions. These methods allow you to pass your
+  new radio object to the action's constructor. You can use the existing action classes
+  [defined in this repository](scos_actions/actions/__init__.py) or
+  [create custom actions](#writing-custom-actions). If the signal analyzer supports
+  calibration, you should also add a `get_last_calibration_time()` method to
+  `discover/__init__.py` to enable the status endpoint to report the last calibration
+  time.
+
+If your signal analyzer doesn't have a Python API, you'll need a Python wrapper that
+calls out to your signal analyzer's available API and reads the samples back into
+Python. Libraries such as [SWIG](http://www.swig.org/) can automatically generate
+Python wrappers for programs written in C/C++.
+
+The next step in supporting a different signal analyzer is to create a class that
+inherits from the [GPSInterface](scos_actions/hardware/gps_iface.py) abstract class.
+Then add the `sync_gps` and `monitor_radio` actions to your `actions` dictionary,
+passing the gps object to the `SyncGps` constructor, and the radio object to the
+`RadioMonitor` constructor. See the example in the [Adding Actions subsection](
+    #adding-actions) below.
+
+The final step would be to add a `setup.py` to allow for installation of the new
+repository as a Python package. You can use the [setup.py](setup.py) in this repository
+as a reference. You can find more information about Python packaging [here](
+    https://packaging.python.org/tutorials/packaging-projects/). Then add the new
+repository as a dependency to [scos-sensor requirements.txt](
+    https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/src/requirements.txt)
+using the following format:
+`<package_name> @ git+<link_to_github_repo>@<branch_name>#egg=<package_name>`. If
+specific drivers are required for your signal analyzer, you can attempt to link to them
+within the package or create a docker image with the necessary files. You can host the
+docker image as a [GitHub package](
+    https://docs.github.com/en/free-pro-team@latest/packages/using-github-packages-with-your-projects-ecosystem/configuring-docker-for-use-with-github-packages
+). Then, when running scos-sensor, set the environment variable
+`BASE_IMAGE=<image tag>`.
+
+## 5. License
 
 See [LICENSE](LICENSE.md).
 
-## 7. Contact
+## 6. Contact
 
 For technical questions about scos-actions, contact Justin Haze, jhaze@ntia.gov
