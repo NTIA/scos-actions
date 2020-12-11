@@ -48,9 +48,9 @@ python>=3.6.
 1. Navigate to scos-sensor: `cd scos-sensor`
 1. In scos-sensor/src/requirements.txt, comment out the following line:
    `scos_usrp @ git+ https://github.com/NTIA/scos-usrp@master#egg=scos_usrp`
-1. Make sure scos_actions dependency is added to scos-sensor/src/requirements.txt. If
-   you are using a different branch than master, change master in the following line to
-   the branch you are using:
+1. Make sure `scos_actions` dependency is added to `scos-sensor/src/requirements.txt`.
+   If you are using a different branch than master, change master in the following line
+   to the branch you are using:
    `scos_actions @ git+https://github.com/NTIA/scos-actions@master#egg=scos_actions`
 1. If it does not exist, create env file while in the root scos-sensor directory:
    `cp env.template ./env`
@@ -83,7 +83,7 @@ python>=3.6.
 
 It is highly recommended that you first initialize a virtual development environment
 using a tool such a `conda` or `venv`. The following commands create a virtual
-environment using venv and install the required dependencies for development and
+environment using `venv` and install the required dependencies for development and
 testing.
 
 ```bash
@@ -142,8 +142,8 @@ pre-commit run --all-files
 
 In addition to Black and isort, various other pre-commit tools are enabled including
 markdownlint. Markdownlint will show an error message if it detects any style issues in
-markdown files. See .pre-commit-config.yaml for a list of pre-commit tools enabled for
-this repository.
+markdown files. See [.pre-commit-config.yaml](.pre-commit-config.yaml) for a list of
+pre-commit tools enabled for this repository.
 
 ### Adding Actions
 
