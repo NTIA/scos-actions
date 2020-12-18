@@ -91,7 +91,7 @@ python3 -m pip install -r requirements-dev.txt
 
 ### Running Tests
 
-Ideally, you should add a test that covers any new feature that you add. If you've done
+Ideally, you should add a test to cover any new feature that you add. If you've done
 that, then running the included test suite is the easiest way to check that everything
 is working. In any case, all tests should be run after making any local modifications
 to ensure that you haven't caused a regression.
@@ -228,8 +228,8 @@ yaml_actions, yaml_test_actions = init(radio=radio, yaml_dir=ACTION_DEFINITIONS_
 actions.update(yaml_actions)
 ```
 
-Pass the `init` method the implementation of the radio interface and the directory
-where the yaml files are located.
+Pass the implementation of the radio interface and the directory where the yaml files
+are located to the `init` method.
 
 If no existing action class meets your needs, see [Writing Custom Actions](
     #writing-custom-actions).
