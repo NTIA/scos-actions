@@ -1,4 +1,4 @@
-# 1. Title: NTIA/ITS SCOS Actions Plugin
+# Title: NTIA/ITS SCOS Actions Plugin
 
 This repository contains common actions and interfaces to be re-used by scos-sensor
 plugins. See the [scos-sensor documentation](
@@ -7,15 +7,15 @@ for more information about scos-sensor, especially the section about
 [Actions and Hardware Support](
     https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/DEVELOPING.md#actions-and-hardware-support).
 
-## 2. Table of Contents
+## Table of Contents
 
-- [Overview of Repo Structure](#3-overview-of-repo-structure)
-- [Running in scos-sensor](#4-running-in-scos-sensor)
-- [Development](#5-development)
-- [License](#6-license)
-- [Contact](#7-contact)
+- [Overview of Repo Structure](#overview-of-repo-structure)
+- [Running in scos-sensor](#running-in-scos-sensor)
+- [Development](#development)
+- [License](#license)
+- [Contact](#contact)
 
-## 3. Overview of Repo Structure
+## Overview of Repo Structure
 
 - scos_actions/actions: This includes the base Action class, signals, and the following
   common action classes:
@@ -36,7 +36,7 @@ for more information about scos-sensor, especially the section about
   implementations of the radio interface for particular signal analyzers are provided
   in separate repositories like [scos-usrp](https://github.com/NTIA/scos-usrp).
 
-## 4. Running in scos-sensor
+## Running in scos-sensor
 
 Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`) and
 python>=3.6.
@@ -64,7 +64,7 @@ parameters are defined in scos_actions/configs/actions.
 - test_single_frequency_iq_action
 - test_single_frequency_m4s_action
 
-## 5. Development
+## Development
 
 This repository is intended to be used by all scos-sensor plugins. Therefore, only
 universal actions that apply to most RF measurement systems should be added to
@@ -386,10 +386,10 @@ initialize the action using a yaml file by importing the yaml initialization cod
 scos-actions. For an example of this, see [Adding Actions subsection](#adding-actions)
 above.
 
-## 6. License
+## License
 
 See [LICENSE](LICENSE.md).
 
-## 7. Contact
+## Contact
 
 For technical questions about scos-actions, contact Justin Haze, jhaze@ntia.gov
