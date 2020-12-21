@@ -5,7 +5,7 @@ plugins. See the [scos-sensor documentation](
     https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/README.md)
 for more information about scos-sensor, especially the section about
 [Actions and Hardware Support](
-    https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/DEVELOPING.md#actions-and-hardware-support).
+    https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/README.md#actions-and-hardware-support).
 
 ## Table of Contents
 
