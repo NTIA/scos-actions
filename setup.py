@@ -2,7 +2,7 @@ import os
 
 import setuptools
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding="utf8") as fh:
     long_description = fh.read()
 
 
@@ -18,14 +18,15 @@ setuptools.setup(
     version="0.0.0",
     author="The Institute for Telecommunication Sciences",
     # author_email="author@example.com",
-    description="Base actions library for scos-sensor",
+    description="Base actions and hardware support library for scos-sensor",
+    license="LICENSE.md",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/NTIA/scos_actions",
+    url="https://github.com/NTIA/scos-actions",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
-        # "License :: OSI Approved :: MIT License",
+        "License :: Public Domain",
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.6",

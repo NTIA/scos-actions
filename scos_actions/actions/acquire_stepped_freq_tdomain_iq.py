@@ -8,7 +8,7 @@
 # escaped to {{m \over n}}.
 #
 # To print out this docstring after parameterization, see
-# REPO_ROOT/scripts/print_action_docstring.py. You can then paste that into the
+# scos-sensor/scripts/print_action_docstring.py. You can then paste that into the
 # SCOS Markdown Editor (link below) to see the final rendering.
 #
 # Resources:
@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 
 class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisition):
-    """Acquire IQ data at each of the requested frequecies.
+    """Acquire IQ data at each of the requested frequencies.
 
     :param parameters: The dictionary of parameters needed for the action and the radio.
 
@@ -61,8 +61,8 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     parameters are required by the action:
 
         name: name of the action
-        fcs: an iterable of center frequencies in Hz
-        durations_ms: duration to acquire in ms, per center_frequency
+        frequency: an iterable of center frequencies in Hz
+        duration_ms: an iterable of measurement durations per center_frequency in ms
 
     For the parameters required by the radio, see the documentation for the radio being used.
 

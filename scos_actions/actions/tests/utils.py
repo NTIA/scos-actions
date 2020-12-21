@@ -11,7 +11,6 @@ SENSOR_DEFINITION = {
 
 def check_metadata_fields(metadata, entry_name, action_name, task_id, recording=None):
     assert sigmf_validate(metadata)
-    # FIXME: update schema so that this passes
     # schema_validate(sigmf_metadata, schema)
     assert "ntia-scos:action" in metadata["global"]
     assert metadata["global"]["ntia-scos:action"]["name"] == action_name

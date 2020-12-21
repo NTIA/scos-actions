@@ -8,7 +8,7 @@
 # escaped to {{m \over n}}.
 #
 # To print out this docstring after parameterization, see
-# REPO_ROOT/scripts/print_action_docstring.py. You can then paste that into the
+# scos-sensor/scripts/print_action_docstring.py. You can then paste that into the
 # SCOS Markdown Editor (link below) to see the final rendering.
 #
 # Resources:
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 class SingleFrequencyTimeDomainIqAcquisition(Action):
-    """Acquire IQ data at each of the requested frequecies.
+    """Acquire IQ data at each of the requested frequencies.
 
     :param parameters: The dictionary of parameters needed for the action and the radio.
 
@@ -117,7 +117,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             raise RuntimeError(msg)
 
     def acquire_data(self, measurement_params):
-        self.configure_sdr(measurement_params)
+        self.configure_sigan(measurement_params)
 
         # Use the radio's actual reported sample rate instead of requested rate
         sample_rate = self.radio.sample_rate
@@ -194,7 +194,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             attenuation=attenuation,
         )
 
-    def configure_sdr(self, measurement_params):
+    def configure_sigan(self, measurement_params):
         for key, value in measurement_params.items():
             if hasattr(self.radio, key):
                 setattr(self.radio, key, value)

@@ -12,7 +12,6 @@ repos:
     hooks:
       - id: seed-isort-config
         language_version: python3.6
-        #args: [--application-directories=./src, --settings-path=./src]
   - repo: https://github.com/pre-commit/mirrors-isort
     rev: v4.3.20
     hooks:
@@ -27,4 +26,5 @@ repos:
     rev: v0.9.0
     hooks:
       - id: markdownlint
-        args: [-s, .ml_style.rb, README.md, DEVELOPING.md, scos_actions/configs/README.md]
+        args: [-s, .ml_style.rb, README.md]
+        exclude: GitHubRepoPublicReleaseApproval.md|LICENSE.md
