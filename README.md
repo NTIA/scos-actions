@@ -1,4 +1,4 @@
-# Title: NTIA/ITS SCOS Actions Plugin
+# NTIA/ITS SCOS Actions Plugin
 
 This repository contains common actions and interfaces to be re-used by scos-sensor
 plugins. See the [scos-sensor README](
