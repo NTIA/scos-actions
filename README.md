@@ -4,21 +4,21 @@ This repository contains common actions and interfaces to be re-used by scos-sen
 plugins. See the [scos-sensor README](
 https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/README.md)
 for more information about scos-sensor, especially the [Architecture](
-https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/README.md#3-architecture
+https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/README.md#architecture
 ) and the [Actions and Hardware Support](
-https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/README.md#7-actions-and-hardware-support
+https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/README.md#actions-and-hardware-support
 ) sections which explain how scos-actions is used in the scos-sensor plugin
 architecture.
 
 ## Table of Contents
 
-- [Overview of Repo Structure](#1-overview-of-repo-structure)
-- [Running in scos-sensor](#2-running-in-scos-sensor)
-- [Development](#3-development)
-- [License](#4-license)
-- [Contact](#5-contact)
+- [Overview of Repo Structure](#overview-of-repo-structure)
+- [Running in scos-sensor](#running-in-scos-sensor)
+- [Development](#development)
+- [License](#license)
+- [Contact](#contact)
 
-## 1. Overview of Repo Structure
+## Overview of Repo Structure
 
 - scos_actions/actions: This includes the base Action class, signals, and the following
   common action classes:
@@ -39,7 +39,7 @@ architecture.
   implementations of the radio interface for particular signal analyzers are provided
   in separate repositories like [scos-usrp](https://github.com/NTIA/scos-usrp).
 
-## 2. Running in scos-sensor
+## Running in scos-sensor
 
 Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`) and
 python>=3.6.
@@ -67,7 +67,7 @@ parameters are defined in scos_actions/configs/actions.
 - test_single_frequency_iq_action
 - test_single_frequency_m4s_action
 
-## 3. Development
+## Development
 
 This repository is intended to be used by all scos-sensor plugins. Therefore, only
 universal actions that apply to most RF measurement systems should be added to
@@ -95,7 +95,7 @@ python3 -m pip install -r requirements-dev.txt
 
 ### Running Tests
 
-Ideally, you should add a test that covers any new feature that you add. If you've done
+Ideally, you should add a test to cover any new feature that you add. If you've done
 that, then running the included test suite is the easiest way to check that everything
 is working. In any case, all tests should be run after making any local modifications
 to ensure that you haven't caused a regression.
@@ -169,8 +169,8 @@ yaml_actions, yaml_test_actions = init(radio=radio, yaml_dir=ACTION_DEFINITIONS_
 actions.update(yaml_actions)
 ```
 
-Pass the `init` method the implementation of the radio interface and the directory
-where the yaml files are located.
+Pass the implementation of the radio interface and the directory where the yaml files
+are located to the `init` method.
 
 If no existing action class meets your needs, see [Writing Custom Actions](
     #writing-custom-actions).
@@ -391,10 +391,10 @@ https://docs.github.com/en/free-pro-team@latest/packages/using-github-packages-w
 ). Then, when running scos-sensor, set the environment variable
 `BASE_IMAGE=<image tag>`.
 
-## 4. License
+## License
 
 See [LICENSE](LICENSE.md).
 
-## 5. Contact
+## Contact
 
 For technical questions about scos-actions, contact Justin Haze, jhaze@ntia.gov
