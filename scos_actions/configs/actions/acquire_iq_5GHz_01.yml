@@ -1,0 +1,9 @@
+stepped_frequency_time_domain_iq:
+  fcs:
+    - 5800e6
+  gains:
+    - 60
+  sample_rates:
+    - 5e6
+  durations_ms:
+    - 2000
