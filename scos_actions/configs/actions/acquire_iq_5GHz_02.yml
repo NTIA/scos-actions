@@ -1,4 +1,5 @@
 stepped_frequency_time_domain_iq:
+  name: acquire_iq_5GHz_02
   fcs:
     - 5800e6
     - 5800e6
