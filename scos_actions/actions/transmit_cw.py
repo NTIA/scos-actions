@@ -63,8 +63,6 @@ class TransmitCW(Action):
             gain=gain,
             sample_rate=sample_rate,
             duration_ms=duration_ms,
-            seed=seed,
-            sampspersymbol=sampspersymbol,
             cw_frequency=cw_frequency
         )
         #self.sdr = sdr  # make instance variable to allow mocking
