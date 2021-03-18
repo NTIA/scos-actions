@@ -4,4 +4,4 @@ transmit_cw:
   cw_frequency: 500e3
   gain: 80
   sample_rate: 5e6
-  duration_ms: 10000
+  duration_ms: 30000
