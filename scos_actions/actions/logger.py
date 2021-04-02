@@ -10,7 +10,7 @@ LOGLVL_INFO = 20
 LOGLVL_ERROR = 40
 
 
-class Logger(Action):
+class Logger:
     """Log the message "running test {name}/{tid}".
 
     This is useful for testing and debugging.
@@ -28,5 +28,5 @@ class Logger(Action):
         msg = "running test {name}/{tid}"
         schedule_entry_name = schedule_entry_json["name"]
         logger.log(
-            level=self.loglvl, msg=msg.format(name=schedule_entry_name, tid=task_id)
+            level=LOGLVL_INFO, msg=msg.format(name=schedule_entry_name, tid=task_id)
         )
