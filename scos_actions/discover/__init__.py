@@ -1,6 +1,5 @@
 # from scos_actions.actions import action_classes
 from scos_actions.actions import action_classes
-from scos_actions.actions.logger import Logger
 from scos_actions.actions.monitor_radio import RadioMonitor
 from scos_actions.actions.sync_gps import SyncGps
 from scos_actions.discover.yaml import load_from_yaml
@@ -8,11 +7,11 @@ from scos_actions.hardware import gps, radio
 from scos_actions.settings import ACTION_DEFINITIONS_DIR
 
 actions = {
-    "logger": Logger(),
+    # "logger": Logger(),
 }
 test_actions = {
-    "test_sync_gps": SyncGps(gps),
-    "test_monitor_radio": RadioMonitor(radio),
+    "test_sync_gps": SyncGps(gps, admin_only=False),
+    "test_monitor_radio": RadioMonitor(radio, admin_only=False),
 }
 
 
