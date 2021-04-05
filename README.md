@@ -285,9 +285,7 @@ scos-sensor.
 
 Start by looking at the [Action base class](scos_actions/actions/interfaces/action.py).
 It includes some logic to parse a description and summary out of the action class's
-docstring, and a `__call__` method that must be overridden. If you pass
-`admin_only=True` to this base class, the API will not make it or any data it created
-available to non-admin users.
+docstring, and a `__call__` method that must be overridden.
 
 A new custom action can inherit from the existing action classes to reuse and build
 upon existing functionality. For example, the `SingleFrequencyFftAcquisition` and
