@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 class RadioMonitor(Action):
     """Monitor signal analyzer connection and restart container if unreachable."""
 
-    def __init__(self, radio, admin_only=True):
-        super(RadioMonitor, self).__init__(admin_only=admin_only)
+    def __init__(self, radio):
+        super(RadioMonitor, self).__init__()
 
         self.radio = radio
 

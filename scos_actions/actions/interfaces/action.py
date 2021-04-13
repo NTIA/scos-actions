@@ -20,9 +20,6 @@ class Action(ABC):
 
     """
 
-    def __init__(self, admin_only=False):
-        self.admin_only = admin_only
-
     @abstractmethod
     def __call__(self, schedule_entry_json, task_id, sensor_definition):
         pass
