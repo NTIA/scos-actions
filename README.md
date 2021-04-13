@@ -2,11 +2,11 @@
 
 This repository contains common actions and interfaces to be re-used by scos-sensor
 plugins. See the [scos-sensor README](
-https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/README.md)
+https://github.com/NTIA/scos-sensor/blob/master/README.md)
 for more information about scos-sensor, especially the [Architecture](
-https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/README.md#architecture
+https://github.com/NTIA/scos-sensor/blob/master/README.md#architecture
 ) and the [Actions and Hardware Support](
-https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/README.md#actions-and-hardware-support
+https://github.com/NTIA/scos-sensor/blob/master/README.md#actions-and-hardware-support
 ) sections which explain how scos-actions is used in the scos-sensor plugin
 architecture.
 
@@ -379,7 +379,7 @@ repository as a Python package. You can use the [setup.py](setup.py) in this rep
 as a reference. You can find more information about Python packaging [here](
 https://packaging.python.org/tutorials/packaging-projects/). Then add the new
 repository as a dependency to [scos-sensor requirements.txt](
-https://github.com/NTIA/scos-sensor/blob/SMBWTB475_refactor_radio_interface/src/requirements.txt)
+https://github.com/NTIA/scos-sensor/blob/master/src/requirements.txt)
 using the following format:
 `<package_name> @ git+<link_to_github_repo>@<branch_name>#egg=<package_name>`. If
 specific drivers are required for your signal analyzer, you can attempt to link to them
