@@ -55,7 +55,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
 
         name: name of the action
         frequency: center frequency in Hz
-        durations_ms: duration to acquire in ms
+        duration_ms: duration to acquire in ms
 
     For the parameters required by the radio, see the documentation for the radio being used.
 
