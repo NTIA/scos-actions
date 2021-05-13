@@ -1,6 +1,0 @@
-single_frequency_gps:
-  name: acquire_iq_700MHz_T-Mobile_UL_gps_low
-  frequency: 701.5e6
-  gain: 20
-  sample_rate: 15.36e6
-  duration_ms: 1000

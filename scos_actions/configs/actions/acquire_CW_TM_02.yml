@@ -1,10 +1,10 @@
 stepped_frequency_time_domain_iq:
-  name: acquire_CW_TM_01
+  name: acquire_CW_TM_02
   fcs:
-    - 5790e6
-    - 5790e6
-    - 5790e6
-    - 5790e6
+    - 5795e6
+    - 5795e6
+    - 5795e6
+    - 5795e6
   gains:
     - 40
     - 60

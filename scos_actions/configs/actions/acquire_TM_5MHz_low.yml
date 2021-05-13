@@ -1,6 +1,0 @@
-single_frequency_gps:
-  name: acquire_TM_5MHz_low
-  frequency: 5800e6
-  gain: 40
-  sample_rate: 5e6
-  duration_ms: 2000

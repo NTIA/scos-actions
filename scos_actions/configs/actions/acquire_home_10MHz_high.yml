@@ -1,6 +1,0 @@
-single_frequency_gps:
-  name: acquire_home_10MHz_high
-  frequency: 709e6
-  gain: 60
-  sample_rate: 10e6
-  duration_ms: 2000
