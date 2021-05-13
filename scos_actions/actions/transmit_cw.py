@@ -111,7 +111,7 @@ class TransmitCW(Action):
         # Drop ~10 ms of samples
         #nskip = int(0.01 * sample_rate)
         logger.debug("in acquire_data; radio struct: ".format(self.radio))
-        data = self.radio.transmit_cw(self.measurement_params.cw_frequency, self.measurement_params.duration_ms)
+        data = self.radio.transmit_cw(self.measurement_params.cw_frequency, self.measurement_params.duration_ms, self.measurement_params.gain)
         return data
 
     def build_sigmf_md(self, start_time, end_time, capture_time, schedule_entry_json, sensor, task_id, data):
