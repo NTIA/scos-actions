@@ -13,7 +13,8 @@ class MeasurementParams:
         num_ffts=None,
         seed=None, 
         sampspersymbol=None,
-        cw_frequency=None
+        cw_frequency=None,
+        subdev=None
     ):
         self.center_frequency = center_frequency
         self.gain = gain
@@ -24,6 +25,7 @@ class MeasurementParams:
         self.seed = seed
         self.sampspersymbol = sampspersymbol
         self.cw_frequency = cw_frequency
+        self.subdev = subdev
 
     def get_num_samples(self):
         return int(self.sample_rate * self.duration_ms * 1e-3)

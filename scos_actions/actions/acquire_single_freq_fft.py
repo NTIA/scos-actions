@@ -106,6 +106,8 @@ from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.measurement_params import MeasurementParams
 from scos_actions.actions.sigmf_builder import SigMFBuilder, Domain, MeasurementType
 
+from uhd.usrp import SubdevSpec
+
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +125,7 @@ class SingleFrequencyFftAcquisition(Action):
 
     """
 
-    def __init__(self, name, frequency, gain, sample_rate, fft_size, nffts, radio):
+    def __init__(self, name, frequency, gain, sample_rate, fft_size, nffts, subdev, radio):
         super(SingleFrequencyFftAcquisition, self).__init__()
 
         self.name = name
@@ -133,6 +135,7 @@ class SingleFrequencyFftAcquisition(Action):
             sample_rate=sample_rate,
             fft_size=fft_size,
             num_ffts=nffts,
+            subdev=subdev
         )
         self.radio = radio  # make instance variable to allow mocking
         self.enbw = None
@@ -179,12 +182,15 @@ class SingleFrequencyFftAcquisition(Action):
         sample_rate = self.measurement_params.sample_rate
         fft_size = self.measurement_params.fft_size
         logger.debug(msg.format(num_ffts, frequency / 1e6))
+        subdev = ""
+        if self.measurement_params.subdev == None:
+            subdev == "A:A"
 
         # Drop ~10 ms of samples
         nskip = int(0.01 * sample_rate)
 
         data = self.radio.acquire_time_domain_samples(
-            num_ffts * fft_size, num_samples_skip=nskip
+            num_ffts * fft_size, num_samples_skip=nskip, subdev
         )
         return data
 
