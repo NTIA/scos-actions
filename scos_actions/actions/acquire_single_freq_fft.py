@@ -182,7 +182,8 @@ class SingleFrequencyFftAcquisition(Action):
         sample_rate = self.measurement_params.sample_rate
         fft_size = self.measurement_params.fft_size
         logger.debug(msg.format(num_ffts, frequency / 1e6))
-        subdev = ""
+        
+        subdev = self.measurement_params.subdev
         if self.measurement_params.subdev == None:
             subdev == "A:A"
 
@@ -190,7 +191,7 @@ class SingleFrequencyFftAcquisition(Action):
         nskip = int(0.01 * sample_rate)
 
         data = self.radio.acquire_time_domain_samples(
-            num_ffts * fft_size, num_samples_skip=nskip, subdev
+            num_ffts * fft_size, num_samples_skip=nskip, subdev=subdev
         )
         return data
 
