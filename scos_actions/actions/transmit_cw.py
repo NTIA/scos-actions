@@ -54,7 +54,7 @@ class TransmitCW(Action):
     """
 
     ##  n, arg_start_time_goal, retries=5
-    def __init__(self, name, center_frequency, cw_frequency, gain, sample_rate, duration_ms, radio):
+    def __init__(self, name, center_frequency, cw_frequency, gain, sample_rate, duration_ms, subdev, radio):
         super(TransmitCW, self).__init__()
 
         self.name = name
@@ -63,6 +63,7 @@ class TransmitCW(Action):
             gain=gain,
             sample_rate=sample_rate,
             duration_ms=duration_ms,
+            subdev=subdev,
             cw_frequency=cw_frequency
         )
         #self.sdr = sdr  # make instance variable to allow mocking
@@ -111,7 +112,7 @@ class TransmitCW(Action):
         # Drop ~10 ms of samples
         #nskip = int(0.01 * sample_rate)
         logger.debug("in acquire_data; radio struct: ".format(self.radio))
-        data = self.radio.transmit_cw(self.measurement_params.cw_frequency, self.measurement_params.duration_ms, self.measurement_params.gain)
+        data = self.radio.transmit_cw(self.measurement_params.cw_frequency, self.measurement_params.duration_ms, self.measurement_params.gain, self.measurement_params.subdev)
         return data
 
     def build_sigmf_md(self, start_time, end_time, capture_time, schedule_entry_json, sensor, task_id, data):
