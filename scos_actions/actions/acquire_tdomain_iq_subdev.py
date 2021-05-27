@@ -146,8 +146,8 @@ class TimeDomainSubdev(Action):
 
         num_samples = measurement_params.get_num_samples()
 
-        subdev = self.measurement_params.subdev
-        #if self.measurement_params.subdev == None:
+        subdev = measurement_params.subdev
+        #if measurement_params.subdev == None:
         #    subdev == "A:A"
 
         # Drop ~10 ms of samples
