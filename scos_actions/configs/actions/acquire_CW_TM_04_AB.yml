@@ -1,10 +1,10 @@
 stepped_frequency_time_domain_subdev:
-  name: acquire_CW_TM_subdev_01
+  name: acquire_CW_TM_subdev_04
   fcs:
-    - 5800e6
-    - 5800e6
-    - 5800e6
-    - 5800e6
+    - 5805e6
+    - 5805e6
+    - 5805e6
+    - 5805e6
   gains:
     - 40
     - 60
