@@ -20,8 +20,3 @@ stepped_frequency_time_domain_iq:
     - 2000
     - 2000
     - 2000
-  subdev:
-    - A:A
-    - A:A
-    - A:A
-    - A:A

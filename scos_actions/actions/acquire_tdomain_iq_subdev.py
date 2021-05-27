@@ -17,18 +17,28 @@
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
 r"""Capture time-domain IQ samples at the following {num_center_frequencies} frequencies: {center_frequencies}.
+
 # {name}
+
 ## Radio setup and sample acquisition
+
 Each time this task runs, the following process is followed:
+
 {acquisition_plan}
+
 This will take a minimum of {min_duration_ms:.2f} ms, not including radio
 tuning, dropping samples after retunes, and data storage.
+
 ## Time-domain processing
+
 If specified, a voltage scaling factor is applied to the complex time-domain
 signals.
+
 ## Data Archive
+
 Each capture will be ${total_samples}\; \text{{samples}} \times 8\;
 \text{{bytes per sample}} = {filesize_mb:.2f}\; \text{{MB}}$ plus metadata.
+
 """
 
 import logging
@@ -45,29 +55,31 @@ from scos_actions.actions.measurement_params import MeasurementParams
 logger = logging.getLogger(__name__)
 
 
-class SteppedFrequencyTimeDomainIqAcquisition(Action):
+class TimeDomainSubdev(Action):
     """Acquire IQ data at each of the requested frequecies.
+
     :param name: the name of the action
     :param fcs: an iterable of center frequencies in Hz
     :param gains: requested gain in dB, per center_frequency
     :param sample_rates: iterable of sample_rates in Hz, per center_frequency
     :param durations_ms: duration to acquire in ms, per center_frequency
     :param radio: instance of RadioInterface
+
     """
 
-    def __init__(self, name, fcs, gains, sample_rates, durations_ms, radio):
-        super(SteppedFrequencyTimeDomainIqAcquisition, self).__init__()
+    def __init__(self, name, fcs, gains, sample_rates, durations_ms, subdev, radio):
+        super(TimeDomainSubdev, self).__init__()
 
         num_center_frequencies = len(fcs)
 
-        parameter_names = ("center_frequency", "gain", "sample_rate", "duration_ms")
+        parameter_names = ("center_frequency", "gain", "sample_rate", "duration_ms", "subdev")
         measurement_params_list = []
 
         # Sort combined parameter list by frequency
         def sortFrequency(zipped_params):
             return zipped_params[0]
 
-        sorted_params = list(zip_longest(fcs, gains, sample_rates, durations_ms))
+        sorted_params = list(zip_longest(fcs, gains, sample_rates, durations_ms, subdev))
         sorted_params.sort(key=sortFrequency)
 
         for params in sorted_params:
@@ -134,10 +146,14 @@ class SteppedFrequencyTimeDomainIqAcquisition(Action):
 
         num_samples = measurement_params.get_num_samples()
 
+        subdev = self.measurement_params.subdev
+        #if self.measurement_params.subdev == None:
+        #    subdev == "A:A"
+
         # Drop ~10 ms of samples
         nskip = int(0.01 * sample_rate)
         acq = self.radio.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip
+            num_samples, num_samples_skip=nskip, subdev=subdev
         ).astype(np.complex64)
 
         data = np.append(data, acq)

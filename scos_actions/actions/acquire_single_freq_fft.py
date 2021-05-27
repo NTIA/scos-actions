@@ -17,25 +17,18 @@
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
 r"""Apply m4s detector over {nffts} {fft_size}-pt FFTs at {center_frequency:.2f} MHz.
-
 # {name}
-
 ## Radio setup and sample acquisition
-
 This action first tunes the radio to {center_frequency:.2f} MHz and requests a sample
 rate of {sample_rate:.2f} Msps and {gain} dB of gain.
-
 It then begins acquiring, and discards an appropriate number of samples while
 the radio's IQ balance algorithm runs. Then, ${nffts} \times {fft_size}$
 samples are acquired gap-free.
-
 ## Time-domain processing
-
 First, the ${nffts} \times {fft_size}$ continuous samples are acquired from
 the radio. If specified, a voltage scaling factor is applied to the complex
 time-domain signals. Then, the data is reshaped into a ${nffts} \times
 {fft_size}$ matrix:
-
 $$
 \begin{{pmatrix}}
 a_{{1,1}}      & a_{{1,2}}     & \cdots  & a_{{1,fft\_size}}     \\\\
@@ -44,50 +37,35 @@ a_{{2,1}}      & a_{{2,2}}     & \cdots  & a_{{2,fft\_size}}     \\\\
 a_{{nffts,1}}  & a_{{nfts,2}}  & \cdots  & a_{{nfts,fft\_size}}  \\\\
 \end{{pmatrix}}
 $$
-
 where $a_{{i,j}}$ is a complex time-domain sample.
-
 At that point, a Flat Top window, defined as
-
 $$w(n) = &0.2156 - 0.4160 \cos{{(2 \pi n / M)}} + 0.2781 \cos{{(4 \pi n / M)}} -
          &0.0836 \cos{{(6 \pi n / M)}} + 0.0069 \cos{{(8 \pi n / M)}}$$
-
 where $M = {fft_size}$ is the number of points in the window, is applied to
 each row of the matrix.
-
 ## Frequency-domain processing
-
 After windowing, the data matrix is converted into the frequency domain using
 an FFT, doing the equivalent of the DFT defined as
-
 $$A_k = \sum_{{m=0}}^{{n-1}}
 a_m \exp\left\\{{-2\pi i{{mk \over n}}\right\\}} \qquad k = 0,\ldots,n-1$$
-
 The data matrix is then converted to pseudo-power by taking the square of the
 magnitude of each complex sample individually, allowing power statistics to be
 taken.
-
 ## Applying detector
-
 Next, the M4S (min, max, mean, median, and sample) detector is applied to the
 data matrix. The input to the detector is a matrix of size ${nffts} \times
 {fft_size}$, and the output matrix is size $5 \times {fft_size}$, with the
 first row representing the min of each _column_, the second row representing
 the _max_ of each column, and so "sample" detector simple chooses one of the
 {nffts} FFTs at random.
-
 ## Power conversion
-
 To finish the power conversion, the samples are divided by the characteristic
 impedance (50 ohms). The power is then referenced back to the RF power by
 dividing further by 2. The powers are normalized to the FFT bin width by
 dividing by the length of the FFT and converted to dBm. Finally, an FFT window
 correction factor is added to the powers given by
-
 $$ C_{{win}} = 20log \left( \frac{{1}}{{ mean \left( w(n) \right) }} \right)
-
 The resulting matrix is real-valued, 32-bit floats representing dBm.
-
 """
 
 import logging
@@ -106,15 +84,12 @@ from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.measurement_params import MeasurementParams
 from scos_actions.actions.sigmf_builder import SigMFBuilder, Domain, MeasurementType
 
-from uhd.usrp import SubdevSpec
-
 
 logger = logging.getLogger(__name__)
 
 
 class SingleFrequencyFftAcquisition(Action):
     """Perform m4s detection over requested number of single-frequency FFTs.
-
     :param name: the name of the action
     :param frequency: center frequency in Hz
     :param gain: requested gain in dB
@@ -122,10 +97,9 @@ class SingleFrequencyFftAcquisition(Action):
     :param fft_size: number of points in FFT (some 2^n)
     :param nffts: number of consecutive FFTs to pass to detector
     :param radio: instance of RadioInterface
-
     """
 
-    def __init__(self, name, frequency, gain, sample_rate, fft_size, nffts, subdev, radio):
+    def __init__(self, name, frequency, gain, sample_rate, fft_size, nffts, radio):
         super(SingleFrequencyFftAcquisition, self).__init__()
 
         self.name = name
@@ -135,7 +109,6 @@ class SingleFrequencyFftAcquisition(Action):
             sample_rate=sample_rate,
             fft_size=fft_size,
             num_ffts=nffts,
-            subdev=subdev
         )
         self.radio = radio  # make instance variable to allow mocking
         self.enbw = None
@@ -182,16 +155,12 @@ class SingleFrequencyFftAcquisition(Action):
         sample_rate = self.measurement_params.sample_rate
         fft_size = self.measurement_params.fft_size
         logger.debug(msg.format(num_ffts, frequency / 1e6))
-        
-        subdev = self.measurement_params.subdev
-        if self.measurement_params.subdev == None:
-            subdev == "A:A"
 
         # Drop ~10 ms of samples
         nskip = int(0.01 * sample_rate)
 
         data = self.radio.acquire_time_domain_samples(
-            num_ffts * fft_size, num_samples_skip=nskip, subdev=subdev
+            num_ffts * fft_size, num_samples_skip=nskip
         )
         return data
 

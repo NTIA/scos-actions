@@ -1,4 +1,4 @@
-stepped_frequency_time_domain_iq:
+stepped_frequency_time_domain_subdev:
   name: acquire_CW_TM_03
   fcs:
     - 5800e6
