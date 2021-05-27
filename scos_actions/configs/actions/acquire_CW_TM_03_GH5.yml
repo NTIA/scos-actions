@@ -1,5 +1,5 @@
 stepped_frequency_time_domain_subdev:
-  name: acquire_CW_TM_03
+  name: acquire_CW_TM_subdev_01
   fcs:
     - 5800e6
     - 5800e6
