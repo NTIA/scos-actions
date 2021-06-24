@@ -5,6 +5,7 @@ from .acquire_tdomain_iq_subdev import TimeDomainSubdev
 from .transmit_pn import TransmitPN
 from .transmit_cw import TransmitCW
 from .reconnect import Reconnect
+from .disconnect import Disconnect
 
 # Map a class name to an action class
 # The YAML loader can key an object with parameters on these class names
@@ -16,4 +17,5 @@ action_classes = {
     "transmit_pn": TransmitPN,
     "transmit_cw": TransmitCW,
     "reconnect": Reconnect,
+    "disconnect": Disconnect,
 }
