@@ -70,64 +70,35 @@ class Reconnect(Action):
     def __init__(self, name, fcs, gains, sample_rates, durations_ms, subdev, radio):
         super(Reconnect, self).__init__()
 
-        num_center_frequencies = len(fcs)
-
-        parameter_names = ("center_frequency", "gain", "sample_rate", "duration_ms", "subdev")
-        measurement_params_list = []
-
-        # Sort combined parameter list by frequency
-        def sortFrequency(zipped_params):
-            return zipped_params[0]
-
-        sorted_params = list(zip_longest(fcs, gains, sample_rates, durations_ms, subdev))
-        sorted_params.sort(key=sortFrequency)
-
-        for params in sorted_params:
-            if None in params:
-                param_name = parameter_names[params.index(None)]
-                err = "Wrong number of {}s, expected {}"
-                raise TypeError(err.format(param_name, num_center_frequencies))
-
-            measurement_params_list.append(
-                MeasurementParams(**dict(zip(parameter_names, params)))
-            )
-
         self.name = name
+        self.measurement_params = MeasurementParams()
         self.radio = radio  # make instance variable to allow mocking
-        self.num_center_frequencies = num_center_frequencies
-        self.measurement_params_list = measurement_params_list
+        self.enbw = None
 
     def __call__(self, schedule_entry_json, task_id, sensor_definition):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
 
-        for recording_id, measurement_params in enumerate(
-            self.measurement_params_list, start=1
-        ):
-            start_time = utils.get_datetime_str_now()
-            data = self.acquire_data(measurement_params)
-            end_time = utils.get_datetime_str_now()
+        # for recording_id, measurement_params in enumerate(
+        #     self.measurement_params_list, start=1
+        # ):
+        data = self.acquire_data(self.measurement_params)
 
-            sigmf_builder = self.build_sigmf_md(
-                measurement_params,
-                start_time,
-                end_time,
-                self.radio.capture_time,
-                schedule_entry_json,
-                sensor_definition,
-                task_id,
-                recording_id,
-            )
-            measurement_action_completed.send(
-                sender=self.__class__,
-                task_id=task_id,
-                data=data,
-                metadata=sigmf_builder.metadata,
-            )
+        sigmf_builder = self.build_sigmf_md(
+            schedule_entry_json,
+            sensor_definition,
+            task_id,
+        )
+        measurement_action_completed.send(
+            sender=self.__class__,
+            task_id=task_id,
+            data=data,
+            metadata=sigmf_builder.metadata,
+        )
 
-    @property
-    def is_multirecording(self):
-        return len(self.measurement_params_list) > 1
+    # @property
+    # def is_multirecording(self):
+    #     return len(self.measurement_params_list) > 1
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
@@ -136,17 +107,17 @@ class Reconnect(Action):
             raise RuntimeError(msg)
 
     def acquire_data(self, measurement_params):
-        self.configure_sdr(measurement_params)
+        #self.configure_sdr(measurement_params)
 
         # Use the radio's actual reported sample rate instead of requested rate
-        sample_rate = self.radio.sample_rate
+        #sample_rate = self.radio.sample_rate
 
         # Acquire data and build per-capture metadata
-        data = np.array([], dtype=np.complex64)
+        #data = np.array([], dtype=np.complex64)
 
-        num_samples = measurement_params.get_num_samples()
+        #num_samples = measurement_params.get_num_samples()
 
-        subdev = measurement_params.subdev
+        #subdev = measurement_params.subdev
         #if measurement_params.subdev == None:
         #    subdev == "A:A"
 
@@ -164,127 +135,122 @@ class Reconnect(Action):
 
     def build_sigmf_md(
         self,
-        measurement_params,
-        start_time,
-        end_time,
-        capture_time,
         schedule_entry_json,
         sensor,
         task_id,
-        recording_id,
     ):
-        frequency = self.radio.frequency
-        sample_rate = self.radio.sample_rate
+        # frequency = self.radio.frequency
+        # sample_rate = self.radio.sample_rate
         sigmf_builder = scos_actions_sigmf.SigMFBuilder()
 
-        sigmf_builder.set_last_calibration_time(self.radio.last_calibration_time)
+        #sigmf_builder.set_last_calibration_time(self.radio.last_calibration_time)
 
         sigmf_builder.set_action(
             self.name, self.description, self.description.splitlines()[0]
         )
-        sigmf_builder.set_capture(frequency, capture_time)
-        sigmf_builder.set_coordinate_system()
-        sigmf_builder.set_data_type(is_complex=True)
-        if self.is_multirecording:
-            measurement_type = scos_actions_sigmf.MeasurementType.SURVEY
-        else:
-            measurement_type = scos_actions_sigmf.MeasurementType.SINGLE_FREQUENCY
-        sigmf_builder.set_measurement(
-            start_time,
-            end_time,
-            domain=scos_actions_sigmf.Domain.TIME,
-            measurement_type=measurement_type,
-            frequency=frequency,
-        )
+        # sigmf_builder.set_capture(frequency, capture_time)
+        # sigmf_builder.set_coordinate_system()
+        # sigmf_builder.set_data_type(is_complex=True)
+        # if self.is_multirecording:
+        #     measurement_type = scos_actions_sigmf.MeasurementType.SURVEY
+        # else:
+        #     measurement_type = scos_actions_sigmf.MeasurementType.SINGLE_FREQUENCY
+        # sigmf_builder.set_measurement(
+        #     start_time,
+        #     end_time,
+        #     domain=scos_actions_sigmf.Domain.TIME,
+        #     measurement_type=measurement_type,
+        #     frequency=frequency,
+        # )
 
-        sigmf_builder.set_sample_rate(sample_rate)
+        # sigmf_builder.set_sample_rate(sample_rate)
         sigmf_builder.set_schedule(schedule_entry_json)
         sigmf_builder.set_sensor(sensor)
         sigmf_builder.set_task(task_id)
-        if self.is_multirecording:
-            sigmf_builder.set_recording(recording_id)
+        # if self.is_multirecording:
+        #     sigmf_builder.set_recording(recording_id)
 
-        num_samples = measurement_params.get_num_samples()
+        # num_samples = measurement_params.get_num_samples()
 
-        sigmf_builder.add_time_domain_detection(
-            start_index=0,
-            num_samples=num_samples,
-            detector="sample_iq",
-            units="volts",
-            reference="preselector input",
-        )
+        # sigmf_builder.add_time_domain_detection(
+        #     start_index=0,
+        #     num_samples=num_samples,
+        #     detector="sample_iq",
+        #     units="volts",
+        #     reference="preselector input",
+        # )
 
-        calibration_annotation_md = self.radio.create_calibration_annotation()
-        sigmf_builder.add_annotation(
-            start_index=0, length=num_samples, annotation_md=calibration_annotation_md,
-        )
+        # calibration_annotation_md = self.radio.create_calibration_annotation()
+        # sigmf_builder.add_annotation(
+        #     start_index=0, length=num_samples, annotation_md=calibration_annotation_md,
+        # )
 
-        overload = self.radio.overload
+        # overload = self.radio.overload
 
-        sigmf_builder.add_sensor_annotation(
-            start_index=0,
-            length=num_samples,
-            overload=overload,
-            gain=measurement_params.gain,
-        )
+        # sigmf_builder.add_sensor_annotation(
+        #     start_index=0,
+        #     length=num_samples,
+        #     overload=overload,
+        #     gain=measurement_params.gain,
+        # )
         return sigmf_builder
 
-    def configure_sdr(self, measurement_params):
-        self.radio.sample_rate = measurement_params.sample_rate
-        self.radio.frequency = measurement_params.center_frequency
-        self.radio.gain = measurement_params.gain
-        self.radio.configure(self.name)
+    # def configure_sdr(self, measurement_params):
+    #     self.radio.sample_rate = measurement_params.sample_rate
+    #     self.radio.frequency = measurement_params.center_frequency
+    #     self.radio.gain = measurement_params.gain
+    #     self.radio.configure(self.name)
 
     @property
     def description(self):
         """Parameterize and return the module-level docstring."""
 
-        acquisition_plan = ""
-        acq_plan_template = "1. Tune to {fc_MHz:.2f} MHz, "
-        acq_plan_template += "set gain to {gain} dB, "
-        acq_plan_template += "and acquire at {sample_rate_Msps:.2f} Msps "
-        acq_plan_template += "for {duration_ms} ms\n"
+        # acquisition_plan = ""
+        # acq_plan_template = "1. Tune to {fc_MHz:.2f} MHz, "
+        # acq_plan_template += "set gain to {gain} dB, "
+        # acq_plan_template += "and acquire at {sample_rate_Msps:.2f} Msps "
+        # acq_plan_template += "for {duration_ms} ms\n"
 
-        total_samples = 0
-        for measurement_params in self.measurement_params_list:
-            acq_plan_template.format(
-                **{
-                    "fc_MHz": measurement_params.center_frequency / 1e6,
-                    "gain": measurement_params.gain,
-                    "sample_rate_Msps": measurement_params.sample_rate / 1e6,
-                    "duration_ms": measurement_params.duration_ms,
-                }
-            )
-            total_samples += int(
-                measurement_params.duration_ms / 1e6 * measurement_params.sample_rate
-            )
+        # total_samples = 0
+        # for measurement_params in self.measurement_params_list:
+        #     acq_plan_template.format(
+        #         **{
+        #             "fc_MHz": measurement_params.center_frequency / 1e6,
+        #             "gain": measurement_params.gain,
+        #             "sample_rate_Msps": measurement_params.sample_rate / 1e6,
+        #             "duration_ms": measurement_params.duration_ms,
+        #         }
+        #     )
+        #     total_samples += int(
+        #         measurement_params.duration_ms / 1e6 * measurement_params.sample_rate
+        #     )
 
-        f_low = self.measurement_params_list[0].center_frequency
-        f_low_srate = self.measurement_params_list[0].sample_rate
-        f_low_edge = (f_low - f_low_srate / 2.0) / 1e6
+        # f_low = self.measurement_params_list[0].center_frequency
+        # f_low_srate = self.measurement_params_list[0].sample_rate
+        # f_low_edge = (f_low - f_low_srate / 2.0) / 1e6
 
-        f_high = self.measurement_params_list[-1].center_frequency
-        f_high_srate = self.measurement_params_list[-1].sample_rate
-        f_high_edge = (f_high - f_high_srate / 2.0) / 1e6
+        # f_high = self.measurement_params_list[-1].center_frequency
+        # f_high_srate = self.measurement_params_list[-1].sample_rate
+        # f_high_edge = (f_high - f_high_srate / 2.0) / 1e6
 
-        durations = [v.duration_ms for v in self.measurement_params_list]
-        min_duration_ms = np.sum(durations)
+        # durations = [v.duration_ms for v in self.measurement_params_list]
+        # min_duration_ms = np.sum(durations)
 
-        filesize_mb = total_samples * 8 / 1e6  # 8 bytes per complex64 sample
+        # filesize_mb = total_samples * 8 / 1e6  # 8 bytes per complex64 sample
 
         defs = {
             "name": self.name,
-            "num_center_frequencies": self.num_center_frequencies,
-            "center_frequencies": ", ".join(
-                [
-                    "{:.2f} MHz".format(param.center_frequency / 1e6)
-                    for param in self.measurement_params_list
-                ]
-            ),
-            "acquisition_plan": acquisition_plan,
-            "min_duration_ms": min_duration_ms,
-            "total_samples": total_samples,
-            "filesize_mb": filesize_mb,
+            # "num_center_frequencies": self.num_center_frequencies,
+            # "center_frequencies": ", ".join(
+            #     [
+            #         "{:.2f} MHz".format(param.center_frequency / 1e6)
+            #         for param in self.measurement_params_list
+            #     ]
+            # ),
+            # "acquisition_plan": acquisition_plan,
+            # "min_duration_ms": min_duration_ms,
+            # "total_samples": total_samples,
+            # "filesize_mb": filesize_mb,
         }
 
         # __doc__ refers to the module docstring at the top of the file
