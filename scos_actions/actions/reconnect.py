@@ -67,7 +67,7 @@ class Reconnect(Action):
 
     """
 
-    def __init__(self, name, fcs, gains, sample_rates, durations_ms, subdev, radio):
+    def __init__(self, name, radio):
         super(Reconnect, self).__init__()
 
         self.name = name

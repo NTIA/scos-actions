@@ -3,25 +3,15 @@ stepped_frequency_time_domain_subdev:
   fcs:
     - 5805e6
     - 5805e6
-    - 5805e6
-    - 5805e6
   gains:
-    - 40
     - 60
-    - 40
     - 60
   sample_rates:
     - 5e6
-    - 5e6
-    - 10e6
     - 10e6
   durations_ms:
-    - 2000
-    - 2000
-    - 2000
-    - 2000
+    - 1000
+    - 1000
   subdev:
-    - A:B
-    - A:B
     - A:B
     - A:B

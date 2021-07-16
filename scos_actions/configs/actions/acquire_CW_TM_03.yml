@@ -3,20 +3,12 @@ stepped_frequency_time_domain_iq:
   fcs:
     - 5800e6
     - 5800e6
-    - 5800e6
-    - 5800e6
   gains:
-    - 40
     - 60
-    - 40
     - 60
   sample_rates:
     - 5e6
-    - 5e6
-    - 10e6
     - 10e6
   durations_ms:
-    - 2000
-    - 2000
-    - 2000
-    - 2000
+    - 1000
+    - 1000
