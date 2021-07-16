@@ -53,12 +53,12 @@ class TransmitPN(Action):
 
     ## seed, sampspersymbol, duration
     ##  n, arg_start_time_goal, retries=5
-    def __init__(self, name, frequency, gain, sample_rate, duration_ms, seed, sampspersymbol, subdev, radio):
+    def __init__(self, name, center_frequency, gain, sample_rate, duration_ms, seed, sampspersymbol, subdev, radio):
         super(TransmitPN, self).__init__()
 
         self.name = name
         self.measurement_params = MeasurementParams(
-            center_frequency=frequency,
+            center_frequency=center_frequency,
             gain=gain,
             sample_rate=sample_rate,
             duration_ms=duration_ms,
