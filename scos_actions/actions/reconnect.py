@@ -240,17 +240,12 @@ class Reconnect(Action):
 
         defs = {
             "name": self.name,
-            # "num_center_frequencies": self.num_center_frequencies,
-            # "center_frequencies": ", ".join(
-            #     [
-            #         "{:.2f} MHz".format(param.center_frequency / 1e6)
-            #         for param in self.measurement_params_list
-            #     ]
-            # ),
-            # "acquisition_plan": acquisition_plan,
-            # "min_duration_ms": min_duration_ms,
-            # "total_samples": total_samples,
-            # "filesize_mb": filesize_mb,
+            "num_center_frequencies": 0,
+            "center_frequencies": "none", 
+            "acquisition_plan": "there isn't one",
+            "min_duration_ms": 10,
+            "total_samples": 0,
+            "filesize_mb": 0,
         }
 
         # __doc__ refers to the module docstring at the top of the file
