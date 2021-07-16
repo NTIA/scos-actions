@@ -71,7 +71,7 @@ class Reconnect(Action):
         super(Reconnect, self).__init__()
 
         self.name = name
-        self.measurement_params = MeasurementParams()
+        # self.measurement_params = MeasurementParams()
         self.radio = radio  # make instance variable to allow mocking
         self.enbw = None
 
@@ -82,7 +82,7 @@ class Reconnect(Action):
         # for recording_id, measurement_params in enumerate(
         #     self.measurement_params_list, start=1
         # ):
-        data = self.acquire_data(self.measurement_params)
+        data = self.acquire_data("dummy")
 
         sigmf_builder = self.build_sigmf_md(
             schedule_entry_json,
@@ -159,7 +159,7 @@ class Reconnect(Action):
         #     start_time,
         #     end_time,
         #     domain=scos_actions_sigmf.Domain.TIME,
-        #     measurement_type=measurement_type,
+        #     measurement_type=measurement_type,measurement_params
         #     frequency=frequency,
         # )
 
