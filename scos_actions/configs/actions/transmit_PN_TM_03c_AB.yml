@@ -1,5 +1,5 @@
 transmit_pn:
-  name: transmit_PN_TM_03c
+  name: transmit_PN_TM_03c_AB
   center_frequency: 5800e6
   gain: 90
   sample_rate: 5e6
