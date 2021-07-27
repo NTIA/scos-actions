@@ -1,0 +1,9 @@
+transmit_pn:
+  name: transmit_PN_home_03c
+  center_frequency: 730e6
+  gain: 60
+  sample_rate: 5e6
+  duration_ms: 30000
+  seed: [0, 0, 0, 0, 0, 0, 0, 0, 1]
+  sampspersymbol: 4
+  subdev: A:A
