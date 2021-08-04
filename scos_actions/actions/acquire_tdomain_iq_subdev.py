@@ -67,19 +67,19 @@ class TimeDomainSubdev(Action):
 
     """
 
-    def __init__(self, name, fcs, gains, sample_rates, durations_ms, subdev, radio):
+    def __init__(self, name, fcs, gains, sample_rates, durations_ms, subdev, gps_clock, radio):
         super(TimeDomainSubdev, self).__init__()
 
         num_center_frequencies = len(fcs)
 
-        parameter_names = ("center_frequency", "gain", "sample_rate", "duration_ms", "subdev")
+        parameter_names = ("center_frequency", "gain", "sample_rate", "duration_ms", "subdev", "gps_clock")
         measurement_params_list = []
 
         # Sort combined parameter list by frequency
         def sortFrequency(zipped_params):
             return zipped_params[0]
 
-        sorted_params = list(zip_longest(fcs, gains, sample_rates, durations_ms, subdev))
+        sorted_params = list(zip_longest(fcs, gains, sample_rates, durations_ms, subdev, gps_clock))
         sorted_params.sort(key=sortFrequency)
 
         for params in sorted_params:
@@ -147,13 +147,14 @@ class TimeDomainSubdev(Action):
         num_samples = measurement_params.get_num_samples()
 
         subdev = measurement_params.subdev
+        gps_clock = measurement_params.gps_clock
         #if measurement_params.subdev == None:
         #    subdev == "A:A"
 
         # Drop ~10 ms of samples
         nskip = int(0.01 * sample_rate)
         acq = self.radio.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip, subdev=subdev
+            num_samples, num_samples_skip=nskip, subdev=subdev, gps_clock=gps_clock
         ).astype(np.complex64)
 
         data = np.append(data, acq)

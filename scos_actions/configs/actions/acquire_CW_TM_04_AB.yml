@@ -15,3 +15,6 @@ stepped_frequency_time_domain_subdev:
   subdev:
     - A:B
     - A:B
+  gps_clock:
+    - True
+    - True

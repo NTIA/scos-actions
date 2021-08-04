@@ -1,8 +1,8 @@
 stepped_frequency_time_domain_subdev:
-  name: acquire_CW_TM_subdev_02
+  name: acquire_CW_TM_internal
   fcs:
-    - 5795e6
-    - 5795e6
+    - 5800e6
+    - 5800e6
   gains:
     - 60
     - 60
@@ -16,5 +16,5 @@ stepped_frequency_time_domain_subdev:
     - A:B
     - A:B
   gps_clock:
-    - True
-    - True
+    - False
+    - False
