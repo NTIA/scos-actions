@@ -14,7 +14,8 @@ class MeasurementParams:
         seed=None, 
         sampspersymbol=None,
         cw_frequency=None,
-        subdev=None
+        subdev=None,
+        gps_clock=None
     ):
         self.center_frequency = center_frequency
         self.gain = gain
@@ -26,6 +27,7 @@ class MeasurementParams:
         self.sampspersymbol = sampspersymbol
         self.cw_frequency = cw_frequency
         self.subdev = subdev
+        self.gps_clock = gps_clock
 
     def get_num_samples(self):
         return int(self.sample_rate * self.duration_ms * 1e-3)

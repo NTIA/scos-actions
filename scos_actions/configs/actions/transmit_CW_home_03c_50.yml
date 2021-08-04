@@ -6,3 +6,4 @@ transmit_cw:
   sample_rate: 5e6
   duration_ms: 30000
   subdev: A:A
+  gps_clock: False

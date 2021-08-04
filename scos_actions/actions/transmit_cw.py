@@ -16,7 +16,7 @@
 # - Markdown reference: https://commonmark.org/help/
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
-r"""Send PN iq, for {duration_ms}ms, at {center_frequency:.2f}MHz, {gain} dB.
+r"""Send CW iq, for {duration_ms}ms, at {center_frequency:.2f}MHz, {gain} dB.
 
 # {name}
 
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 
 class TransmitCW(Action):
-    """Transmit CW, defined by Hz, dB, samp_rate, and length of time. GPS clock used for start time.
+    """Transmit CW, defined by Hz, dB, samp_rate, and length of time. GPS clock may be used for start time.
 
     :param name: the name of the action
     :param center_frequency: center frequency in Hz
@@ -49,12 +49,13 @@ class TransmitCW(Action):
     :param gain: requested gain in dB
     :param sample_rate: requested sample_rate in Hz
     :param duration_ms: duration of the recording in ms
+    :param subdev: use A:A or A:B path on b210
 
 
     """
 
     ##  n, arg_start_time_goal, retries=5
-    def __init__(self, name, center_frequency, cw_frequency, gain, sample_rate, duration_ms, subdev, radio):
+    def __init__(self, name, center_frequency, cw_frequency, gain, sample_rate, duration_ms, subdev, gps_clock, radio):
         super(TransmitCW, self).__init__()
 
         self.name = name
@@ -64,7 +65,8 @@ class TransmitCW(Action):
             sample_rate=sample_rate,
             duration_ms=duration_ms,
             subdev=subdev,
-            cw_frequency=cw_frequency
+            cw_frequency=cw_frequency,
+            gps_clock=gps_clock,
         )
         #self.sdr = sdr  # make instance variable to allow mocking
         self.radio = radio
@@ -111,8 +113,12 @@ class TransmitCW(Action):
 
         # Drop ~10 ms of samples
         #nskip = int(0.01 * sample_rate)
-        logger.debug("in acquire_data; radio struct: ".format(self.radio))
-        data = self.radio.transmit_cw(self.measurement_params.cw_frequency, self.measurement_params.duration_ms, self.measurement_params.gain, self.measurement_params.subdev)
+        logger.debug("in acquire_data; radio struct: {}".format(self.radio))
+        if self.measurement_params.gps_clock == "True":
+            logger.debug("use gps clock? {}".format(self.measurement_params.gps_clock))
+            data = self.radio.transmit_cw_gps_clock(self.measurement_params.cw_frequency, self.measurement_params.duration_ms, self.measurement_params.gain, self.measurement_params.subdev)
+        else: ##self.measurement_params.gps_clock == "False":
+            data = self.radio.transmit_cw(self.measurement_params.cw_frequency, self.measurement_params.duration_ms, self.measurement_params.gain, self.measurement_params.subdev)    
         return data
 
     def build_sigmf_md(self, start_time, end_time, capture_time, schedule_entry_json, sensor, task_id, data):

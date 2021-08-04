@@ -1,8 +1,0 @@
-transmit_cw:
-  name: transmit_CW_TM_01a_AB
-  center_frequency: 5790e6
-  cw_frequency: 500e3
-  gain: 80
-  sample_rate: 5e6
-  duration_ms: 30000
-  subdev: A:B
