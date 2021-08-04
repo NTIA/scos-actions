@@ -114,7 +114,7 @@ class TransmitCW(Action):
         # Drop ~10 ms of samples
         #nskip = int(0.01 * sample_rate)
         logger.debug("in acquire_data; radio struct: {}".format(self.radio))
-        if self.measurement_params.gps_clock == "True":
+        if self.measurement_params.gps_clock == True:
             logger.debug("use gps clock? {}".format(self.measurement_params.gps_clock))
             data = self.radio.transmit_cw_gps_clock(self.measurement_params.cw_frequency, self.measurement_params.duration_ms, self.measurement_params.gain, self.measurement_params.subdev)
         else: ##self.measurement_params.gps_clock == "False":
