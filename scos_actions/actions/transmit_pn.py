@@ -53,7 +53,7 @@ class TransmitPN(Action):
 
     ## seed, sampspersymbol, duration
     ##  n, arg_start_time_goal, retries=5
-    def __init__(self, name, center_frequency, gain, sample_rate, duration_ms, seed, sampspersymbol, subdev, radio):
+    def __init__(self, name, center_frequency, gain, sample_rate, duration_ms, seed, sampspersymbol, subdev, gps_clock, radio):
         super(TransmitPN, self).__init__()
 
         self.name = name
@@ -65,6 +65,7 @@ class TransmitPN(Action):
             seed=seed,
             sampspersymbol=sampspersymbol,
             subdev=subdev,
+            gps_clock=gps_clock,
         )
         #self.sdr = sdr  # make instance variable to allow mocking
         self.radio = radio
@@ -112,7 +113,7 @@ class TransmitPN(Action):
         # Drop ~10 ms of samples
         #nskip = int(0.01 * sample_rate)
         logger.debug("in acquire_data; radio struct: ".format(self.radio))
-        data = self.radio.transmit_PN_v2(self.measurement_params.seed, self.measurement_params.sampspersymbol, self.measurement_params.duration_ms, self.measurement_params.gain, self.measurement_params.subdev)
+        data = self.radio.transmit_PN_v2(self.measurement_params.seed, self.measurement_params.sampspersymbol, self.measurement_params.duration_ms, self.measurement_params.gain, self.measurement_params.subdev, self.measurement_params.gps_clock)
 
         return data
 

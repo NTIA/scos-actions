@@ -1,9 +1,0 @@
-transmit_pn:
-  name: transmit_PN_TM_12bit_03c_AB
-  center_frequency: 5800e6
-  gain: 90
-  sample_rate: 5e6
-  duration_ms: 30000
-  seed: [0, 0, 0, 0, 0, 0, 0, 0, 1]
-  sampspersymbol: 12
-  subdev: A:B
