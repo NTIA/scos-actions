@@ -1,0 +1,20 @@
+stepped_frequency_time_domain_subdev:
+  name: acquire_TM_AB_GPS_5M
+  fcs:
+    - 5800e6
+    - 5800e6
+  gains:
+    - 60
+    - 60
+  sample_rates:
+    - 5e6
+    - 5e6
+  durations_ms:
+    - 1000
+    - 1000
+  subdev:
+    - A:B
+    - A:B
+  gps_clock:
+    - True
+    - True

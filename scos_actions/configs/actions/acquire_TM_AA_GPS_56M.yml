@@ -1,0 +1,20 @@
+stepped_frequency_time_domain_subdev:
+  name: acquire_TM_AA_GPS_56M
+  fcs:
+    - 5800e6
+    - 5800e6
+  gains:
+    - 60
+    - 60
+  sample_rates:
+    - 56e6
+    - 56e6
+  durations_ms:
+    - 1000
+    - 1000
+  subdev:
+    - A:A
+    - A:A
+  gps_clock:
+    - True
+    - True
