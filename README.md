@@ -93,6 +93,37 @@ python3 -m pip install --upgrade pip # upgrade to pip>=18.1
 python3 -m pip install -r requirements-dev.txt
 ```
 
+The requirements.txt file is intended for dependencies needed for installation into
+scos-sensor. It does not include dependencies already in scos-sensor.
+
+#### Using pip-tools
+
+Run the following the virtual environment to install pip-tools.
+
+```bash
+python -m pip install pip-tools
+```
+
+To update requirements.txt after modifying requirements.in:
+
+```bash
+pip-compile requirements.in
+```
+
+To update requirements-dev.txt after modifying requirements.in or requirements-dev.in:
+
+```bash
+pip-compile requirements-dev.in
+```
+
+Use pip-sync to match virtual environment to requirements-dev.txt:
+
+```bash
+pip-sync requirements.txt requirements-dev.txt
+```
+
+For more information about pip-tools, see <https://pip-tools.readthedocs.io/en/latest/#>
+
 ### Running Tests
 
 Ideally, you should add a test to cover any new feature that you add. If you've done
@@ -106,7 +137,8 @@ scos-actions uses [pytest](https://docs.pytest.org/en/stable/) for testing.
 in a virtual environment against all supported versions of Python. Running `pytest`
 directly is faster but running `tox` is a more thorough test.
 
-The following commands can be used to run tests.
+The following commands can be used to run tests. Note, for tox to run with all Python
+versions listed in tox.ini, all those versions must be installed on your system.
 
 ```bash
 pytest          # faster, but less thorough
