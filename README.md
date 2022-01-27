@@ -42,7 +42,7 @@ architecture.
 ## Running in scos-sensor
 
 Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`) and
-python>=3.6.
+python>=3.7.
 
 1. Clone scos-sensor: git clone <https://github.com/NTIA/scos-sensor.git>
 1. Navigate to scos-sensor: `cd scos-sensor`
@@ -79,7 +79,7 @@ it is something that can be supported by most signal analyzers.
 ### Requirements and Configuration
 
 Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`) and
-python>=3.6.
+python>=3.7.
 
 It is highly recommended that you first initialize a virtual development environment
 using a tool such a `conda` or `venv`. The following commands create a virtual
