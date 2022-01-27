@@ -83,7 +83,11 @@ class SigMFBuilder:
     def set_action(self, name, description, summary):
         self.sigmf_md.set_global_field(
             "ntia-scos:action",
-            {"name": name, "description": description, "summary": summary,},
+            {
+                "name": name,
+                "description": description,
+                "summary": summary,
+            },
         )
 
     def set_schedule(self, schedule_entry_json):
