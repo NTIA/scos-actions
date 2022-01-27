@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf8") as fh:
 
 
 repo_root = os.path.dirname(os.path.realpath(__file__))
-requirements_path = repo_root + "/requirements.txt"
+requirements_path = repo_root + "/requirements.in"
 install_requires = []  # Examples: ["gunicorn", "docutils>=0.3", "lxml==0.5a7"]
 if os.path.isfile(requirements_path):
     with open(requirements_path) as f:
