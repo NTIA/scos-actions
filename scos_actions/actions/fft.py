@@ -113,7 +113,7 @@ def get_fft_window_correction(window, correction_type="amplitude"):
     if correction_type == "amplitude":
         window_correction = 1 / np.mean(window)
     if correction_type == "energy":
-        window_correction = np.sqrt(1 / np.mean(window ** 2))
+        window_correction = np.sqrt(1 / np.mean(window**2))
 
     # Return the window correction factor
     return window_correction
