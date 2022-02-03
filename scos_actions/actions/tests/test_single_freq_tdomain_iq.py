@@ -46,20 +46,20 @@ def test_metadata_timedomain_iq_single_acquisition():
         ]:
             assert annotation["core:sample_count"] == len(_data.flatten())
         if annotation["ntia-core:annotation_type"] == "SensorAnnotation":
-            assert annotation["ntia-sensor:gain_setting_sigan"] == action.radio.gain
+            assert annotation["ntia-sensor:gain_setting_sigan"] == action.sigan.gain
 
 
 def test_required_components():
     action = actions["test_single_frequency_m4s_action"]
-    radio = action.radio
-    radio._is_available = False
+    sigan = action.sigan
+    sigan._is_available = False
     with pytest.raises(RuntimeError):
         action(SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1, SENSOR_DEFINITION)
-    radio._is_available = True
+    sigan._is_available = True
 
 
 def test_num_samples_skip():
     action = actions["test_single_frequency_iq_action"]
     assert action.description
     action(SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1, SENSOR_DEFINITION)
-    assert action.radio._num_samples_skip == action.parameters["nskip"]
+    assert action.sigan._num_samples_skip == action.parameters["nskip"]

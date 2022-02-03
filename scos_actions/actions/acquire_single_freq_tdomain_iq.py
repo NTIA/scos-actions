@@ -20,7 +20,7 @@ r"""Capture time-domain IQ samples at {center_frequency:.2f} MHz.
 
 # {name}
 
-## Radio setup and sample acquisition
+## Signal analyzer setup and sample acquisition
 
 Each time this task runs, the following process is followed:
 {acquisition_plan}
@@ -48,25 +48,26 @@ logger = logging.getLogger(__name__)
 class SingleFrequencyTimeDomainIqAcquisition(Action):
     """Acquire IQ data at each of the requested frequencies.
 
-    :param parameters: The dictionary of parameters needed for the action and the radio.
+    :param parameters: The dictionary of parameters needed for the action and the signal analyzer.
 
-    The action will set any matching attributes found in the radio object. The following
+    The action will set any matching attributes found in the signal analyzer object. The following
     parameters are required by the action:
 
         name: name of the action
         frequency: center frequency in Hz
         duration_ms: duration to acquire in ms
 
-    For the parameters required by the radio, see the documentation for the radio being used.
+    or the parameters required by the signal analyzer, see the documentation from the Python
+    package for the signal analyzer being used.
 
-    :param radio: instance of RadioInterface
+    :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, radio):
+    def __init__(self, parameters, sigan):
         super(SingleFrequencyTimeDomainIqAcquisition, self).__init__()
 
         self.parameters = parameters
-        self.radio = radio  # make instance variable to allow mocking
+        self.sigan = sigan  # make instance variable to allow mocking
 
     @property
     def name(self):
@@ -112,15 +113,15 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
-        if not self.radio.is_available:
+        if not self.sigan.is_available:
             msg = "acquisition failed: signal analyzer required but not available"
             raise RuntimeError(msg)
 
     def acquire_data(self, measurement_params):
         self.configure_sigan(measurement_params)
 
-        # Use the radio's actual reported sample rate instead of requested rate
-        sample_rate = self.radio.sample_rate
+        # Use the signal analyzer's actual reported sample rate instead of requested rate
+        sample_rate = self.sigan.sample_rate
 
         num_samples = int(sample_rate * measurement_params["duration_ms"] * 1e-3)
 
@@ -130,7 +131,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         logger.debug(
             f"acquiring {num_samples} samples and skipping the first {nskip if nskip else 0} samples"
         )
-        measurement_result = self.radio.acquire_time_domain_samples(
+        measurement_result = self.sigan.acquire_time_domain_samples(
             num_samples, num_samples_skip=nskip
         )
 
@@ -147,7 +148,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         is_complex=True,
     ):
         sample_rate = measurement_result["sample_rate"]
-        sigmf_builder.set_last_calibration_time(self.radio.last_calibration_time)
+        sigmf_builder.set_last_calibration_time(self.sigan.last_calibration_time)
         sigmf_builder.set_action(
             self.parameters["name"], self.description, self.description.splitlines()[0]
         )
@@ -198,10 +199,10 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
 
     def configure_sigan(self, measurement_params):
         for key, value in measurement_params.items():
-            if hasattr(self.radio, key):
-                setattr(self.radio, key, value)
+            if hasattr(self.sigan, key):
+                setattr(self.sigan, key, value)
             else:
-                logger.warning(f"radio does not have attribute {key}")
+                logger.warning(f"signal analyzer does not have attribute {key}")
 
     @property
     def description(self):
@@ -209,7 +210,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         center_frequency = self.parameters["frequency"] / 1e6
         duration_ms = self.parameters["duration_ms"]
         used_keys = ["frequency", "duration_ms", "name"]
-        acq_plan = f"The radio is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
+        acq_plan = f"The signal analyzer is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
         for name, value in self.parameters.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"

@@ -20,13 +20,13 @@ r"""Capture time-domain IQ samples at the following {num_center_frequencies} fre
 
 # {name}
 
-## Radio setup and sample acquisition
+## Signal Analyzer setup and sample acquisition
 
 Each time this task runs, the following process is followed:
 
 {acquisition_plan}
 
-This will take a minimum of {min_duration_ms:.2f} ms, not including radio
+This will take a minimum of {min_duration_ms:.2f} ms, not including signal analyzer
 tuning, dropping samples after retunes, and data storage.
 
 ## Time-domain processing
@@ -55,22 +55,23 @@ logger = logging.getLogger(__name__)
 class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     """Acquire IQ data at each of the requested frequencies.
 
-    :param parameters: The dictionary of parameters needed for the action and the radio.
+    :param parameters: The dictionary of parameters needed for the action and the signal analyzer.
 
-    The action will set any matching attributes found in the radio object. The following
+    The action will set any matching attributes found in the signal analyzer object. The following
     parameters are required by the action:
 
         name: name of the action
         frequency: an iterable of center frequencies in Hz
         duration_ms: an iterable of measurement durations per center_frequency in ms
 
-    For the parameters required by the radio, see the documentation for the radio being used.
+    For the parameters required by the signal analyzer, see the documentation from the Python
+    package for the signal analyzer being used.
 
-    :param radio: instance of RadioInterface
+    :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, radio):
-        super(SteppedFrequencyTimeDomainIqAcquisition, self).__init__(parameters, radio)
+    def __init__(self, parameters, sigan):
+        super(SteppedFrequencyTimeDomainIqAcquisition, self).__init__(parameters, sigan)
         self.sorted_measurement_parameters = []
         num_center_frequencies = len(self.parameters["frequency"])
 
@@ -90,7 +91,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             self.sorted_measurement_parameters.append(sorted_params)
         self.sorted_measurement_parameters.sort(key=lambda params: params["frequency"])
 
-        self.radio = radio  # make instance variable to allow mocking
+        self.sigan = sigan  # make instance variable to allow mocking
         self.num_center_frequencies = num_center_frequencies
 
     def __call__(self, schedule_entry_json, task_id, sensor_definition):
@@ -142,7 +143,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
 
         acquisition_plan = ""
         used_keys = ["frequency", "duration_ms", "name"]
-        acq_plan_template = "The radio is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
+        acq_plan_template = "The signal analyzer is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
         acq_plan_template += "{parameters}"
         acq_plan_template += "Then, acquire samples for {duration_ms} ms\n."
 

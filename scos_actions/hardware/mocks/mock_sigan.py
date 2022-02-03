@@ -15,7 +15,7 @@ MockTuneResult = namedtuple("MockTuneResult", tune_result_params)
 
 class MockSignalAnalyzer(SignalAnalyzerInterface):
     """
-    MockRadio is mock radio object for testing.
+    MockSignalAnalyzer is mock signal analyzer object for testing.
 
     The following parameters are required for measurements:
     sample_rate: requested sample rate in samples/second
