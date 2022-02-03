@@ -46,6 +46,7 @@ nodeenv==1.6.0
     # via pre-commit
 numpy==1.21.5
     # via
+    #   -r requirements-dev.in
     #   -r requirements.txt
     #   scipy
     #   sigmf
