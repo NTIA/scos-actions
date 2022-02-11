@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
+from scos_actions.hardware import preselector
+import logging
 
+logger = logging.getLogger(__name__)
 
 class Action(ABC):
     """The action base class.
@@ -19,6 +22,8 @@ class Action(ABC):
         added to the task result's detail field.
 
     """
+    PRESELECTOR_PATH_KEY = 'rf_path'
+
 
     @abstractmethod
     def __call__(self, schedule_entry_json, task_id, sensor_definition):
@@ -34,3 +39,19 @@ class Action(ABC):
     @property
     def description(self):
         return self.__doc__
+
+    def configure(self, measurement_params):
+        self.configure_sigan(measurement_params)
+        self.configure_preselector(measurement_params)
+
+    def configure_sigan(self, measurement_params):
+        for key, value in measurement_params.items():
+            if hasattr(self.radio, key):
+                setattr(self.radio, key, value)
+            else:
+                logger.warning(f"radio does not have attribute {key}")
+
+    def configure_preselector(self, measurement_params):
+        if self.PRESELECTOR_PATH_KEY in measurement_params:
+            path = measurement_params[self.PRESELECTOR_PATH_KEY]
+            preselector.set_rf_path(path)

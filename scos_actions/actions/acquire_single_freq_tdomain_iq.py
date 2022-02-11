@@ -32,12 +32,8 @@ signals.
 """
 
 import logging
-from itertools import zip_longest
-
 import numpy as np
-
 from scos_actions import utils
-from scos_actions.actions import sigmf_builder as scos_actions_sigmf
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
@@ -117,7 +113,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             raise RuntimeError(msg)
 
     def acquire_data(self, measurement_params):
-        self.configure_sigan(measurement_params)
+        self.configure(measurement_params)
 
         # Use the radio's actual reported sample rate instead of requested rate
         sample_rate = self.radio.sample_rate
@@ -193,13 +189,6 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             gain=gain,
             attenuation=attenuation,
         )
-
-    def configure_sigan(self, measurement_params):
-        for key, value in measurement_params.items():
-            if hasattr(self.radio, key):
-                setattr(self.radio, key, value)
-            else:
-                logger.warning(f"radio does not have attribute {key}")
 
     @property
     def description(self):
