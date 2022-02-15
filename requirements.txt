@@ -9,4 +9,4 @@ scipy==1.4.1
 SigMF @ git+https://github.com/NTIA/SigMF.git@multi-recording-archive#egg=SigMF-0.0.2beta
 six==1.15.0
 sqlparse==0.3.1
-Preselector @ git+https://github.com/NTIA/Preselector@refactor
+its-preselector @ git+https://github.com/NTIA/Preselector@refactor
