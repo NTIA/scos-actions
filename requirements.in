@@ -1,4 +1,3 @@
-# for use with scos-sensor
 django>=3.0, <4.0
 numpy>=1.0, <2.0
 python-dateutil>=2.0, < 3.0
