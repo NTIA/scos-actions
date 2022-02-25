@@ -20,7 +20,7 @@ r"""Apply m4s detector over {nffts} {fft_size}-pt FFTs at {center_frequency:.2f}
 
 # {name}
 
-## Radio setup and sample acquisition
+## Signal Analyzer setup and sample acquisition
 
 Each time this task runs, the following process is followed:
 {acquisition_plan}
@@ -28,7 +28,7 @@ Each time this task runs, the following process is followed:
 ## Time-domain processing
 
 First, the ${nffts} \times {fft_size}$ continuous samples are acquired from
-the radio. If specified, a voltage scaling factor is applied to the complex
+the signal analyzer. If specified, a voltage scaling factor is applied to the complex
 time-domain signals. Then, the data is reshaped into a ${nffts} \times
 {fft_size}$ matrix:
 
@@ -110,9 +110,9 @@ logger = logging.getLogger(__name__)
 class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     """Perform m4s detection over requested number of single-frequency FFTs.
 
-    :param parameters: The dictionary of parameters needed for the action and the radio.
+    :param parameters: The dictionary of parameters needed for the action and the signal analyzer.
 
-    The action will set any matching attributes found in the radio object. The following
+    The action will set any matching attributes found in the signal analyzer object. The following
     parameters are required by the action:
 
         name: name of the action
@@ -120,13 +120,14 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         fft_size: number of points in FFT (some 2^n)
         nffts: number of consecutive FFTs to pass to detector
 
-    For the parameters required by the radio, see the documentation for the radio being used.
+    or the parameters required by the signal analyzer, see the documentation from the Python
+    package for the signal analyzer being used.
 
-    :param radio: instance of RadioInterface
+    :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, radio):
-        super(SingleFrequencyFftAcquisition, self).__init__(parameters, radio)
+    def __init__(self, parameters, sigan):
+        super(SingleFrequencyFftAcquisition, self).__init__(parameters, sigan)
 
         self.enbw = None
 
@@ -202,7 +203,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         logger.debug(
             f"acquiring {num_ffts * fft_size} samples and skipping the first {nskip if nskip else 0} samples"
         )
-        measurement_result = self.radio.acquire_time_domain_samples(
+        measurement_result = self.sigan.acquire_time_domain_samples(
             num_ffts * fft_size, num_samples_skip=nskip
         )
         self.apply_m4s(measurement_result)
@@ -224,7 +225,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         nffts = self.parameters["nffts"]
         fft_size = self.parameters["fft_size"]
         used_keys = ["frequency", "nffts", "fft_size", "name"]
-        acq_plan = f"The radio is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
+        acq_plan = f"The signal analyzer is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
         for name, value in self.parameters.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"

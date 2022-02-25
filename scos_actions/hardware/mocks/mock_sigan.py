@@ -4,7 +4,7 @@ from collections import namedtuple
 
 import numpy as np
 
-from scos_actions.hardware.radio_iface import RadioInterface
+from scos_actions.hardware.sigan_iface import SignalAnalyzerInterface
 from scos_actions.utils import get_datetime_str_now
 
 logger = logging.getLogger(__name__)
@@ -13,9 +13,9 @@ tune_result_params = ["actual_dsp_freq", "actual_rf_freq"]
 MockTuneResult = namedtuple("MockTuneResult", tune_result_params)
 
 
-class MockRadio(RadioInterface):
+class MockSignalAnalyzer(SignalAnalyzerInterface):
     """
-    MockRadio is mock radio object for testing.
+    MockSignalAnalyzer is mock signal analyzer object for testing.
 
     The following parameters are required for measurements:
     sample_rate: requested sample rate in samples/second

@@ -1,12 +1,12 @@
 """
 This is a sample file showing how an action be created and called for debugging purposes
-using a mock radio.
+using a mock signal analyzer.
 """
 import json
 
 from scos_actions.actions.acquire_single_freq_fft import SingleFrequencyFftAcquisition
 from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.hardware import radio
+from scos_actions.hardware import sigan
 
 parameters = {
     "name": "test_single_frequency_m4s_action",
@@ -48,7 +48,7 @@ def callback(sender, **kwargs):
 
 measurement_action_completed.connect(callback)
 
-action = SingleFrequencyFftAcquisition(parameters=parameters, radio=radio)
+action = SingleFrequencyFftAcquisition(parameters=parameters, sigan=sigan)
 action(schedule_entry_json, 1, sensor)
 print("metadata:")
 print(json.dumps(_metadata, indent=4))

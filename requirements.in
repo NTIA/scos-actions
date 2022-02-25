@@ -1,0 +1,7 @@
+# for use with scos-sensor
+python-dateutil~=2.8.1
+ruamel.yaml~=0.16.10
+ruamel.yaml.clib~=0.2.0
+scipy~=1.7.3
+SigMF @ git+https://github.com/NTIA/SigMF.git@multi-recording-archive#egg=SigMF-0.0.2beta
+its-preselector @ git+https://github.com/NTIA/Preselector@master

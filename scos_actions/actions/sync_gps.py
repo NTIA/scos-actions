@@ -25,11 +25,15 @@ class SyncGps(Action):
         subprocess.check_output(date_cmd, shell=True)
         logger.info("Set system time to GPS time {}".format(dt.ctime()))
 
-        location = self.gps.get_lat_long()
+        location = self.gps.get_location()
         if location is None:
             raise RuntimeError("Unable to synchronize to GPS")
 
-        latitude, longitude = location
+        latitude, longitude, height = location
         location_action_completed.send(
-            self.__class__, latitude=latitude, longitude=longitude
+            self.__class__,
+            latitude=latitude,
+            longitude=longitude,
+            height=height,
+            gps=True,
         )

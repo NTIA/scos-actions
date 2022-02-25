@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class RadioInterface(ABC):
+class SignalAnalyzerInterface(ABC):
     @property
     @abstractmethod
     def is_available(self):
@@ -11,7 +11,7 @@ class RadioInterface(ABC):
     def acquire_time_domain_samples(
         self, num_samples, num_samples_skip=0, retries=5
     ) -> dict:
-        """ Acquires time domain IQ samples
+        """Acquires time domain IQ samples
         :type num_samples: integer
         :param num_samples: Number of samples to acquire
 
