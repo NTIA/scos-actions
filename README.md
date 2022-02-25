@@ -94,9 +94,6 @@ python3 -m pip install --upgrade pip # upgrade to pip>=18.1
 python3 -m pip install -r requirements-dev.txt
 ```
 
-The requirements.txt file is intended for dependencies needed for installation into
-scos-sensor. It does not include dependencies already in scos-sensor.
-
 #### Using pip-tools
 
 It is recommended to keep direct dependencies in a separate file. The direct
