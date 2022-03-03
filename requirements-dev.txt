@@ -14,8 +14,16 @@ attrs==21.4.0
     #   pytest
 black==19.10b0
     # via -r requirements-dev.in
+certifi==2021.10.8
+    # via
+    #   -r requirements.txt
+    #   requests
 cfgv==3.3.1
     # via pre-commit
+charset-normalizer==2.0.12
+    # via
+    #   -r requirements.txt
+    #   requests
 click==8.0.3
     # via black
 coverage==5.5
@@ -32,6 +40,10 @@ filelock==3.4.1
     #   virtualenv
 identify==2.4.4
     # via pre-commit
+idna==3.3
+    # via
+    #   -r requirements.txt
+    #   requests
 importlib-metadata==1.7.0
     # via
     #   click
@@ -42,6 +54,8 @@ importlib-metadata==1.7.0
     #   virtualenv
 iniconfig==1.1.1
     # via pytest
+its-preselector @ git+https://github.com/NTIA/Preselector@master
+    # via -r requirements.txt
 nodeenv==1.6.0
     # via pre-commit
 numpy==1.21.5
@@ -84,12 +98,16 @@ pyyaml==6.0
     # via pre-commit
 regex==2022.1.18
     # via black
-ruamel.yaml==0.16.13
-    # via -r requirements.txt
-ruamel.yaml.clib==0.2.6
+requests==2.27.1
     # via
     #   -r requirements.txt
-    #   ruamel.yaml
+    #   its-preselector
+ruamel-yaml==0.16.13
+    # via -r requirements.txt
+ruamel-yaml-clib==0.2.6
+    # via
+    #   -r requirements.txt
+    #   ruamel-yaml
 scipy==1.7.3
     # via -r requirements.txt
 sigmf @ git+https://github.com/NTIA/SigMF.git@multi-recording-archive
@@ -115,10 +133,13 @@ typed-ast==1.5.1
     # via black
 typing-extensions==4.0.1
     # via asgiref
+urllib3==1.26.8
+    # via
+    #   -r requirements.txt
+    #   requests
 virtualenv==20.13.0
     # via
     #   pre-commit
     #   tox
 zipp==3.6.0
     # via importlib-metadata
-
