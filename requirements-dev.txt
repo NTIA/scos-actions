@@ -54,7 +54,7 @@ importlib-metadata==1.7.0
     #   virtualenv
 iniconfig==1.1.1
     # via pytest
-its-preselector @ git+https://github.com/NTIA/Preselector@master
+its-preselector @ git+https://github.com/NTIA/Preselector@0.0.1
     # via -r requirements.txt
 nodeenv==1.6.0
     # via pre-commit

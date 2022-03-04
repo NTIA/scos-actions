@@ -100,9 +100,9 @@ from scos_actions.actions.fft import (
     get_fft_frequencies,
     get_frequency_domain_data,
 )
-from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.hardware import gps as mock_gps
 
 logger = logging.getLogger(__name__)
 
@@ -126,10 +126,8 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, sigan):
-        super(SingleFrequencyFftAcquisition, self).__init__(parameters, sigan)
-
-        self.enbw = None
+    def __init__(self, parameters, sigan, gps=mock_gps):
+        super().__init__(parameters, sigan, gps)
 
     def __call__(self, schedule_entry_json, task_id, sensor_definition):
         """This is the entrypoint function called by the scheduler."""

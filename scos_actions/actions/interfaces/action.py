@@ -1,8 +1,12 @@
-from abc import ABC, abstractmethod
-from scos_actions.hardware import preselector
 import logging
+from abc import ABC, abstractmethod
+
+from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware import preselector
+from scos_actions.hardware import sigan as mock_sigan
 
 logger = logging.getLogger(__name__)
+
 
 class Action(ABC):
     """The action base class.
@@ -22,11 +26,15 @@ class Action(ABC):
         added to the task result's detail field.
 
     """
-    PRESELECTOR_PATH_KEY = 'rf_path'
+    PRESELECTOR_PATH_KEY='rf_path'
 
+    def __init__(self, parameters={}, sigan=mock_sigan, gps=mock_gps):
+        self.parameters = parameters
+        self.sigan = sigan
+        self.gps = gps
 
     @abstractmethod
-    def __call__(self, schedule_entry_json, task_id, sensor_definition):
+    def __call__(self, schedule_entry_json, sensor_definition):
         pass
 
     @property
@@ -46,8 +54,8 @@ class Action(ABC):
 
     def configure_sigan(self, measurement_params):
         for key, value in measurement_params.items():
-            if hasattr(self.radio, key):
-                setattr(self.radio, key, value)
+            if hasattr(self.sigan, key):
+                setattr(self.sigan, key, value)
             else:
                 logger.warning(f"radio does not have attribute {key}")
 

@@ -32,11 +32,14 @@ signals.
 """
 
 import logging
+
 import numpy as np
+
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.hardware import gps as mock_gps
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +62,9 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
     :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, sigan):
-        super(SingleFrequencyTimeDomainIqAcquisition, self).__init__()
+    def __init__(self, parameters, sigan, gps = mock_gps):
+        super().__init__(parameters=parameters, sigan=sigan, gps=gps)
 
-        self.parameters = parameters
-        self.sigan = sigan  # make instance variable to allow mocking
 
     @property
     def name(self):

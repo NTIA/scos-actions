@@ -5,6 +5,7 @@ import subprocess
 
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import location_action_completed
+from scos_actions.hardware import sigan as mock_sigan
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +13,8 @@ logger = logging.getLogger(__name__)
 class SyncGps(Action):
     """Query the GPS and synchronize time and location."""
 
-    def __init__(self, gps):
-        super(SyncGps, self).__init__()
-
-        self.gps = gps
+    def __init__(self,gps, parameters={}, sigan=mock_sigan):
+        super().__init__(parameters=parameters, sigan=sigan, gps=gps)
 
     def __call__(self, schedule_entry_json, task_id, sensor_definition):
         logger.debug("Syncing to GPS")
