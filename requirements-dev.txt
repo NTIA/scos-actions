@@ -14,19 +14,19 @@ black==22.1.0
     # via -r requirements-dev.in
 cfgv==3.3.1
     # via pre-commit
-click==8.0.3
+click==8.0.4
     # via black
 distlib==0.3.4
     # via virtualenv
 django==3.2.12
     # via -r requirements.txt
-filelock==3.4.1
+filelock==3.6.0
     # via
     #   tox
     #   virtualenv
-identify==2.4.4
+identify==2.4.11
     # via pre-commit
-importlib-metadata==1.7.0
+importlib-metadata==4.11.2
     # via
     #   click
     #   pluggy
@@ -51,11 +51,11 @@ packaging==21.3
     #   tox
 pathspec==0.9.0
     # via black
-platformdirs==2.4.0
+platformdirs==2.5.1
     # via
     #   black
     #   virtualenv
-pluggy==0.13.1
+pluggy==1.0.0
     # via
     #   pytest
     #   tox
@@ -65,7 +65,7 @@ py==1.11.0
     # via
     #   pytest
     #   tox
-pyparsing==3.0.6
+pyparsing==3.0.7
     # via packaging
 pytest==7.0.1
     # via -r requirements-dev.in
@@ -77,7 +77,7 @@ pytz==2021.3
     #   django
 pyyaml==6.0
     # via pre-commit
-ruamel-yaml==0.16.13
+ruamel-yaml==0.17.21
     # via -r requirements.txt
 ruamel-yaml-clib==0.2.6
     # via
@@ -106,18 +106,19 @@ tomli==2.0.1
     # via
     #   black
     #   pytest
-tox==3.15.2
+tox==3.24.5
     # via -r requirements-dev.in
-typed-ast==1.5.1
+typed-ast==1.5.2
     # via black
 typing-extensions==4.1.1
     # via
     #   -r requirements.txt
     #   asgiref
     #   black
-virtualenv==20.13.0
+    #   importlib-metadata
+virtualenv==20.13.3
     # via
     #   pre-commit
     #   tox
-zipp==3.6.0
+zipp==3.7.0
     # via importlib-metadata
