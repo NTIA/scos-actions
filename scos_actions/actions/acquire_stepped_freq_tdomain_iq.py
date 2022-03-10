@@ -92,7 +92,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         self.sigan = sigan  # make instance variable to allow mocking
         self.num_center_frequencies = num_center_frequencies
 
-    def __call__(self, schedule_entry_json, task_id, sensor_definition):
+    def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
 
@@ -107,7 +107,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             self.set_base_sigmf_global(
                 sigmf_builder,
                 schedule_entry_json,
-                sensor_definition,
+                self.sensor_definition,
                 measurement_result,
                 task_id,
                 recording_id,

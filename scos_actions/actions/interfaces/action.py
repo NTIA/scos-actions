@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import preselector
 from scos_actions.hardware import sigan as mock_sigan
+from scos_actions.capabilities import capabilities
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +33,10 @@ class Action(ABC):
         self.parameters = parameters
         self.sigan = sigan
         self.gps = gps
+        self.sensor_definition = capabilities['sensor']
 
     @abstractmethod
-    def __call__(self, schedule_entry_json, task_id, sensor_definition):
+    def __call__(self, schedule_entry_json, task_id):
         pass
 
     @property

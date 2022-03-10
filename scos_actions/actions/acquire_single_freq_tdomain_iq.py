@@ -70,7 +70,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
     def name(self):
         return self.parameters["name"]
 
-    def __call__(self, schedule_entry_json, task_id, sensor_definition):
+    def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
         start_time = utils.get_datetime_str_now()
@@ -81,7 +81,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         self.set_base_sigmf_global(
             sigmf_builder,
             schedule_entry_json,
-            sensor_definition,
+            self.sensor_definition,
             measurement_result,
             task_id,
         )
