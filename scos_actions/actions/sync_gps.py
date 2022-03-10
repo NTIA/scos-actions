@@ -16,7 +16,7 @@ class SyncGps(Action):
     def __init__(self,gps, parameters={}, sigan=mock_sigan):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
 
-    def __call__(self, schedule_entry_json, task_id, sensor_definition):
+    def __call__(self, schedule_entry_json, task_id):
         logger.debug("Syncing to GPS")
 
         dt = self.gps.get_gps_time()
