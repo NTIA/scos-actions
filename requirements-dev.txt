@@ -4,47 +4,29 @@
 #
 #    pip-compile requirements-dev.in
 #
-appdirs==1.4.4
-    # via black
-asgiref==3.4.1
-    # via django
-attrs==21.4.0
-    # via
-    #   black
-    #   pytest
-black==19.10b0
-    # via -r requirements-dev.in
-certifi==2021.10.8
+asgiref==3.5.0
     # via
     #   -r requirements.txt
-    #   requests
+    #   django
+attrs==21.4.0
+    # via pytest
+black==22.1.0
+    # via -r requirements-dev.in
 cfgv==3.3.1
     # via pre-commit
-charset-normalizer==2.0.12
-    # via
-    #   -r requirements.txt
-    #   requests
-click==8.0.3
+click==8.0.4
     # via black
-coverage==5.5
-    # via
-    #   -r requirements-dev.in
-    #   pytest-cov
 distlib==0.3.4
     # via virtualenv
-django==3.1.14
-    # via -r requirements-dev.in
-filelock==3.4.1
+django==3.2.12
+    # via -r requirements.txt
+filelock==3.6.0
     # via
     #   tox
     #   virtualenv
-identify==2.4.4
+identify==2.4.11
     # via pre-commit
-idna==3.3
-    # via
-    #   -r requirements.txt
-    #   requests
-importlib-metadata==1.7.0
+importlib-metadata==4.11.2
     # via
     #   click
     #   pluggy
@@ -54,13 +36,12 @@ importlib-metadata==1.7.0
     #   virtualenv
 iniconfig==1.1.1
     # via pytest
-its-preselector @ git+https://github.com/NTIA/Preselector@0.0.1
-    # via -r requirements.txt
+mypy-extensions==0.4.3
+    # via black
 nodeenv==1.6.0
     # via pre-commit
 numpy==1.21.5
     # via
-    #   -r requirements-dev.in
     #   -r requirements.txt
     #   scipy
     #   sigmf
@@ -70,9 +51,11 @@ packaging==21.3
     #   tox
 pathspec==0.9.0
     # via black
-platformdirs==2.4.0
-    # via virtualenv
-pluggy==0.13.1
+platformdirs==2.5.1
+    # via
+    #   black
+    #   virtualenv
+pluggy==1.0.0
     # via
     #   pytest
     #   tox
@@ -82,27 +65,19 @@ py==1.11.0
     # via
     #   pytest
     #   tox
-pyparsing==3.0.6
+pyparsing==3.0.7
     # via packaging
-pytest==6.2.5
-    # via
-    #   -r requirements-dev.in
-    #   pytest-cov
-pytest-cov==2.10.1
+pytest==7.0.1
     # via -r requirements-dev.in
 python-dateutil==2.8.2
     # via -r requirements.txt
 pytz==2021.3
-    # via django
-pyyaml==6.0
-    # via pre-commit
-regex==2022.1.18
-    # via black
-requests==2.27.1
     # via
     #   -r requirements.txt
-    #   its-preselector
-ruamel-yaml==0.16.13
+    #   django
+pyyaml==6.0
+    # via pre-commit
+ruamel-yaml==0.17.21
     # via -r requirements.txt
 ruamel-yaml-clib==0.2.6
     # via
@@ -120,26 +95,30 @@ six==1.16.0
     #   tox
     #   virtualenv
 sqlparse==0.4.2
-    # via django
-toml==0.10.2
-    # via
-    #   black
-    #   pre-commit
-    #   pytest
-    #   tox
-tox==3.15.2
-    # via -r requirements-dev.in
-typed-ast==1.5.1
-    # via black
-typing-extensions==4.0.1
-    # via asgiref
-urllib3==1.26.8
     # via
     #   -r requirements.txt
-    #   requests
-virtualenv==20.13.0
+    #   django
+toml==0.10.2
     # via
     #   pre-commit
     #   tox
-zipp==3.6.0
+tomli==2.0.1
+    # via
+    #   black
+    #   pytest
+tox==3.24.5
+    # via -r requirements-dev.in
+typed-ast==1.5.2
+    # via black
+typing-extensions==4.1.1
+    # via
+    #   -r requirements.txt
+    #   asgiref
+    #   black
+    #   importlib-metadata
+virtualenv==20.13.3
+    # via
+    #   pre-commit
+    #   tox
+zipp==3.7.0
     # via importlib-metadata
