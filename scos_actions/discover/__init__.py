@@ -18,7 +18,7 @@ def init(action_classes=action_classes, sigan=mock_sigan, gps=mock_gps, yaml_dir
     yaml_actions = {}
     yaml_test_actions = {}
     for key, value in load_from_yaml(
-        action_classes, sigan = sigan,gps = mock_gps, yaml_dir=yaml_dir
+            action_classes, sigan=sigan, gps=gps, yaml_dir=yaml_dir
     ).items():
         if key.startswith("test_"):
             yaml_test_actions[key] = value

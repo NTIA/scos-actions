@@ -33,8 +33,8 @@ class Action(ABC):
         self.sigan = sigan
         self.gps = gps
 
-    @abstractmethod
-    def __call__(self, schedule_entry_json, sensor_definition):
+    @abstractmetho
+    def __call__(self, schedule_entry_json, task_id, sensor_definition):
         pass
 
     @property
