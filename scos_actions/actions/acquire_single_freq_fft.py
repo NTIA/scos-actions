@@ -140,6 +140,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         sigmf_builder = SigMFBuilder()
         self.set_base_sigmf_global(
             sigmf_builder,
+            schedule_entry_json,
             self.sensor_definition,
             measurement_result,
             task_id,

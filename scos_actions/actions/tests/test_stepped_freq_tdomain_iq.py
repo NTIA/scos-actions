@@ -33,7 +33,7 @@ def test_metadata_timedomain_iq_multiple_acquisition():
     measurement_action_completed.connect(callback)
     action = actions["test_multi_frequency_iq_action"]
     assert action.description
-    action(SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1, SENSOR_DEFINITION)
+    action(SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1)
     for i in range(_count):
         assert _datas[i].any()
         assert _metadatas[i]
@@ -45,5 +45,5 @@ def test_metadata_timedomain_iq_multiple_acquisition():
 def test_num_samples_skip():
     action = actions["test_multi_frequency_iq_action"]
     assert action.description
-    action(SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1, SENSOR_DEFINITION)
+    action(SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1)
     assert action.sigan._num_samples_skip == action.parameters["nskip"][-1]
