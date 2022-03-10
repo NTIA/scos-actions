@@ -11,8 +11,16 @@ if not settings.configured:
     PRESELECTOR_MODULE = 'its_preselector.web_relay_preselector'
     PRESELECTOR_CLASS = 'WebRelayPreselector'
 else:
-    PRESELECTOR_CONFIG_FILE = settings.PRESELECTOR_CONFIG
     SENSOR_DEFINITION_FILE = settings.SENSOR_DEFINITION_FILE
     FQDN = settings.FQDN
-    PRESELECTOR_MODULE = settings.PRESELECTOR_MODULE
-    PRESELECTOR_CLASS = settings.PRESELECTOR_CLASS
+    if settings.PRESELECTOR_CONFIG:
+        PRESELECTOR_CONFIG_FILE = settings.PRESELECTOR_CONFIG
+    else:
+        PRESELECTOR_CONFIG_FILE = None
+        
+    if settings.PRESELECTOR_MODULE and settings.PRESELECTOR_CLASS:
+        PRESELECTOR_MODULE = settings.PRESELECTOR_MODULE
+        PRESELECTOR_CLASS = settings.PRESELECTOR_CLASS
+    else:
+        PRESELECTOR_MODULE = 'its_preselector.web_relay_preselector'
+        PRESELECTOR_CLASS = 'WebRelayPreselector'

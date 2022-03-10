@@ -12,7 +12,6 @@ from scos_actions.settings import PRESELECTOR_MODULE
 def load_preselector(preselector_config_file):
     if preselector_config_file is None:
         preselector_config = {}
-
     else:
         preselector_config = utils.load_from_json(preselector_config_file)
 
