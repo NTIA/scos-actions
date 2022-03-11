@@ -23,6 +23,6 @@ def test_detector():
 
     location_action_completed.connect(callback)
     action = test_actions["test_sync_gps"]
-    action(SYNC_GPS, 1, SENSOR_DEFINITION)
+    action(SYNC_GPS, 1)
     assert _latitude
     assert _longitude

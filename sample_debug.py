@@ -49,7 +49,7 @@ def callback(sender, **kwargs):
 measurement_action_completed.connect(callback)
 
 action = SingleFrequencyFftAcquisition(parameters=parameters, sigan=sigan)
-action(schedule_entry_json, 1, sensor)
+action(schedule_entry_json, 1)
 print("metadata:")
 print(json.dumps(_metadata, indent=4))
 print("finished")
