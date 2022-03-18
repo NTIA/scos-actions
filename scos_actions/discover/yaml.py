@@ -8,7 +8,7 @@ from scos_actions.settings import ACTION_DEFINITIONS_DIR
 logger = logging.getLogger(__name__)
 
 
-def load_from_yaml(action_classes, radio, yaml_dir=ACTION_DEFINITIONS_DIR):
+def load_from_yaml(action_classes, sigan, yaml_dir=ACTION_DEFINITIONS_DIR):
     """Load any YAML files in yaml_dir."""
     parsed_actions = {}
     yaml = YAML(typ="safe")
@@ -17,7 +17,7 @@ def load_from_yaml(action_classes, radio, yaml_dir=ACTION_DEFINITIONS_DIR):
         definition = yaml.load(yaml_file)
         for class_name, parameters in definition.items():
             try:
-                action = action_classes[class_name](parameters=parameters, radio=radio)
+                action = action_classes[class_name](parameters=parameters, sigan=sigan)
                 parsed_actions[action.name] = action
             except KeyError as exc:
                 err = "Nonexistent action class name {!r} referenced in {!r}"

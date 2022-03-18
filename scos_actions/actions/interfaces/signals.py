@@ -6,4 +6,4 @@ measurement_action_completed = django.dispatch.Signal(
 location_action_completed = django.dispatch.Signal(
     providing_args=["latitude", "longitude"]
 )
-monitor_action_completed = django.dispatch.Signal(providing_args=["radio_healthy"])
+monitor_action_completed = django.dispatch.Signal(providing_args=["sigan_healthy"])

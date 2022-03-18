@@ -1,0 +1,6 @@
+django>=3.0, <4.0
+numpy>=1.0, <2.0
+python-dateutil>=2.0, < 3.0
+ruamel.yaml>=0.1, <1.0
+scipy>=1.0, <2.0
+SigMF @ git+https://github.com/NTIA/SigMF.git@multi-recording-archive
