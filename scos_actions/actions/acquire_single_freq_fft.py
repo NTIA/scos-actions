@@ -100,9 +100,9 @@ from scos_actions.actions.fft import (
     get_fft_frequencies,
     get_frequency_domain_data,
 )
-from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.hardware import gps as mock_gps
 
 logger = logging.getLogger(__name__)
 
@@ -126,12 +126,10 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, sigan):
-        super(SingleFrequencyFftAcquisition, self).__init__(parameters, sigan)
+    def __init__(self, parameters, sigan, gps=mock_gps):
+        super().__init__(parameters, sigan, gps)
 
-        self.enbw = None
-
-    def __call__(self, schedule_entry_json, task_id, sensor_definition):
+    def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
 
         self.test_required_components()
@@ -143,7 +141,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         self.set_base_sigmf_global(
             sigmf_builder,
             schedule_entry_json,
-            sensor_definition,
+            self.sensor_definition,
             measurement_result,
             task_id,
             is_complex=False,
@@ -188,7 +186,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
             )
 
     def acquire_data(self):
-        super().configure_sigan(self.parameters)
+        self.configure(self.parameters)
         msg = "Acquiring {} FFTs at {} MHz"
         if not "nffts" in self.parameters:
             raise Exception("nffts missing from measurement parameters")

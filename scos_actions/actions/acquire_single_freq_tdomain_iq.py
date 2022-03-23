@@ -32,15 +32,14 @@ signals.
 """
 
 import logging
-from itertools import zip_longest
 
 import numpy as np
 
 from scos_actions import utils
-from scos_actions.actions import sigmf_builder as scos_actions_sigmf
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.hardware import gps as mock_gps
 
 logger = logging.getLogger(__name__)
 
@@ -63,17 +62,15 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
     :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, sigan):
-        super(SingleFrequencyTimeDomainIqAcquisition, self).__init__()
+    def __init__(self, parameters, sigan, gps = mock_gps):
+        super().__init__(parameters=parameters, sigan=sigan, gps=gps)
 
-        self.parameters = parameters
-        self.sigan = sigan  # make instance variable to allow mocking
 
     @property
     def name(self):
         return self.parameters["name"]
 
-    def __call__(self, schedule_entry_json, task_id, sensor_definition):
+    def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
         start_time = utils.get_datetime_str_now()
@@ -84,7 +81,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         self.set_base_sigmf_global(
             sigmf_builder,
             schedule_entry_json,
-            sensor_definition,
+            self.sensor_definition,
             measurement_result,
             task_id,
         )
@@ -118,7 +115,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             raise RuntimeError(msg)
 
     def acquire_data(self, measurement_params):
-        self.configure_sigan(measurement_params)
+        self.configure(measurement_params)
 
         # Use the signal analyzer's actual reported sample rate instead of requested rate
         sample_rate = self.sigan.sample_rate
@@ -196,13 +193,6 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             gain=gain,
             attenuation=attenuation,
         )
-
-    def configure_sigan(self, measurement_params):
-        for key, value in measurement_params.items():
-            if hasattr(self.sigan, key):
-                setattr(self.sigan, key, value)
-            else:
-                logger.warning(f"signal analyzer does not have attribute {key}")
 
     @property
     def description(self):

@@ -1,4 +1,5 @@
 from sigmf.validate import validate as sigmf_validate
+from scos_actions.capabilities import capabilities
 
 SENSOR_DEFINITION = {
     "id": "",

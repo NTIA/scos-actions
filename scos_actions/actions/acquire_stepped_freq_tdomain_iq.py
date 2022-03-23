@@ -36,18 +36,16 @@ signals.
 """
 
 import logging
-from itertools import zip_longest
 
 import numpy as np
 
 from scos_actions import utils
-from scos_actions.actions import sigmf_builder as scos_actions_sigmf
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     SingleFrequencyTimeDomainIqAcquisition,
 )
-from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.hardware import gps as mock_gps
 
 logger = logging.getLogger(__name__)
 
@@ -70,10 +68,10 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, sigan):
-        super(SteppedFrequencyTimeDomainIqAcquisition, self).__init__(parameters, sigan)
+    def __init__(self, parameters, sigan, gps=mock_gps):
+        super().__init__(parameters=parameters, sigan=sigan, gps=gps)
         self.sorted_measurement_parameters = []
-        num_center_frequencies = len(self.parameters["frequency"])
+        num_center_frequencies = len(parameters["frequency"])
 
         # convert dictionary of lists from yaml file to list of dictionaries
         longest_length = 0
@@ -94,7 +92,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         self.sigan = sigan  # make instance variable to allow mocking
         self.num_center_frequencies = num_center_frequencies
 
-    def __call__(self, schedule_entry_json, task_id, sensor_definition):
+    def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
 
@@ -109,7 +107,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             self.set_base_sigmf_global(
                 sigmf_builder,
                 schedule_entry_json,
-                sensor_definition,
+                self.sensor_definition,
                 measurement_result,
                 task_id,
                 recording_id,
