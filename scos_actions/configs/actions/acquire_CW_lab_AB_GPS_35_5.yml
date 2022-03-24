@@ -1,5 +1,5 @@
 stepped_frequency_time_domain_subdev:
-  name: acquire_CW_TM_AB_GPS
+  name: acquire_CW_lab_AB_GPS_35_5
   fcs:
     - 3480e6
     - 3480e6
