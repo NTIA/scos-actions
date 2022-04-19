@@ -1,6 +1,6 @@
 import datetime
 
-from scos_usrp.hardware.calibration import Calibration
+from scos_actions.actions.calibration import Calibration
 
 
 def easy_gain(sample_rate, frequency, gain):
