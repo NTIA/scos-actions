@@ -1,7 +1,8 @@
 import copy
 from abc import ABC, abstractmethod
-from scos_actions.actions import sensor_calibration
-from scos_actions.actions import sigan_calibration
+from scos_actions.settings import sensor_calibration
+from scos_actions.settings import sigan_calibration
+
 
 class SignalAnalyzerInterface(ABC):
 
@@ -25,7 +26,6 @@ class SignalAnalyzerInterface(ABC):
         }
         self.sensor_calibration_data = copy.deepcopy(self.DEFAULT_SENSOR_CALIBRATION)
         self.sigan_calibration_data = copy.deepcopy(self.DEFAULT_SIGAN_CALIBRATION)
-
 
     @property
     @abstractmethod

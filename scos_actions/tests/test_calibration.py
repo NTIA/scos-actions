@@ -7,8 +7,8 @@ from copy import deepcopy
 
 import pytest
 
-from scos_actions.actions import calibration
-from scos_actions.actions.tests.resources.utils import easy_gain, is_close
+from scos_actions.settings import calibration
+from scos_actions.tests.resources.utils import easy_gain, is_close
 
 
 class TestCalibrationFile:
