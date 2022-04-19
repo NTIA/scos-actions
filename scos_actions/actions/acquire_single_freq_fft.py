@@ -111,7 +111,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     """Perform m4s detection over requested number of single-frequency FFTs.
 
     :param parameters: The dictionary of parameters needed for the action and the signal analyzer.
-
+n
     The action will set any matching attributes found in the signal analyzer object. The following
     parameters are required by the action:
 
