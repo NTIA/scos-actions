@@ -71,10 +71,10 @@ class SignalAnalyzerInterface(ABC):
         self.sensor_calibration_data = self.DEFAULT_SENSOR_CALIBRATION.copy()
         if sensor_calibration is not None:
             self.sensor_calibration_data.update(
-                self.sensor_calibration.get_calibration_dict(
+                    sensor_calibration.get_calibration_dict(
                     sample_rate=self.sample_rate,
                     lo_frequency=self.frequency,
-                    gain=self.gain,
+                    setting_value=self.gain,
                 )
             )
 
@@ -82,10 +82,10 @@ class SignalAnalyzerInterface(ABC):
         self.sigan_calibration_data = self.DEFAULT_SIGAN_CALIBRATION.copy()
         if sigan_calibration is not None:
             self.sigan_calibration_data.update(
-                self.sigan_calibration.get_calibration_dict(
+                    sigan_calibration.get_calibration_dict(
                     sample_rate=self.sample_rate,
                     lo_frequency=self.frequency,
-                    gain=self.gain,
+                    setting_value=self.gain,
                 )
             )
 
