@@ -26,6 +26,7 @@ class SignalAnalyzerInterface(ABC):
         self.sensor_calibration_data = copy.deepcopy(self.DEFAULT_SENSOR_CALIBRATION)
         self.sigan_calibration_data = copy.deepcopy(self.DEFAULT_SIGAN_CALIBRATION)
 
+
     @property
     @abstractmethod
     def is_available(self):
@@ -79,7 +80,7 @@ class SignalAnalyzerInterface(ABC):
 
         # Try and get the sigan calibration data
         self.sigan_calibration_data = self.DEFAULT_SIGAN_CALIBRATION.copy()
-        if self.sigan_calibration is not None:
+        if sigan_calibration is not None:
             self.sigan_calibration_data.update(
                 self.sigan_calibration.get_calibration_dict(
                     sample_rate=self.sample_rate,
