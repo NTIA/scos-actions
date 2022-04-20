@@ -96,7 +96,7 @@ from scos_actions import utils
 from scos_actions.actions.acquire_single_freq_fft import (
     SingleFrequencyFftAcquisition
 )
-from scos_actions.settings import calibration
+from scos_actions.settings import sensor_calibration
 
 
 logger = logging.getLogger(__name__)
@@ -137,10 +137,7 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         frequencies = self.parameters['frequency']
         keys = copy.deepcopy(self.parameters.keys())
         for i in range(len(frequencies)):
-            iteration_params = {}
-            for key in keys:
-                if key != 'name':
-                    iteration_params[key] = self.parameters[key][i]
+            iteration_params = utils.get_parameters(i,self.parameters)
             self.calibrate(iteration_params)
 
         end_time = utils.get_datetime_str_now()
@@ -152,12 +149,12 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         super().configure_sigan(params)
         super().configure_preselector(NOISE_DIODE_ON)
         logger.info('acquiring m4')
-        measurement_result = super().acquire_data(params)
+        measurement_result = super().acquire_data(params, apply_gain=False)
         mean_on_power_dbm = measurement_result['data'][2]
         logger.info('Setting noise diode off')
         self.configure_preselector(NOISE_DIODE_OFF)
         logger.info('Acquiring noise off M4')
-        measurement_result = super().acquire_data(params)
+        measurement_result = super().acquire_data(params, apply_gain=False)
         mean_off_power_dbm =  measurement_result['data'][2]
         mean_on_watts = dbm_to_watts(mean_on_power_dbm)
         mean_off_watts = dbm_to_watts(mean_off_power_dbm)
@@ -168,8 +165,7 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw)
         logger.debug('Noise Figure:' + noise_figure)
         logger.debug('Gain: ' + gain)
-        update_calibration(noise_figure, gain, params)
-
+        self.sigan.update_calibration(params)
 
     def get_enr(self):
         return self.preselector.cal_sources[0].enr

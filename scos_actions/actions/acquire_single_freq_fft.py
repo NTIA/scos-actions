@@ -134,7 +134,7 @@ n
 
         self.test_required_components()
         start_time = utils.get_datetime_str_now()
-        measurement_result = self.acquire_data(self.parameters)
+        measurement_result = self.acquire_data(self.parameters, apply_gain=True)
         end_time = utils.get_datetime_str_now()
 
         sigmf_builder = SigMFBuilder()
@@ -185,7 +185,7 @@ n
                 frequency_step=frequencies[1] - frequencies[0],
             )
 
-    def acquire_data(self, params):
+    def acquire_data(self, params, apply_gain=True):
         self.configure(params)
         msg = "Acquiring {} FFTs at {} MHz"
         if not "nffts" in self.parameters:
@@ -202,7 +202,7 @@ n
             f"acquiring {num_ffts * fft_size} samples and skipping the first {nskip if nskip else 0} samples"
         )
         measurement_result = self.sigan.acquire_time_domain_samples(
-            num_ffts * fft_size, num_samples_skip=nskip
+            num_ffts * fft_size, num_samples_skip=nskip, gain_adjust=apply_gain
         )
         self.apply_m4s(measurement_result)
         return measurement_result

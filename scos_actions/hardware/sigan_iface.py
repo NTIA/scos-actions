@@ -121,3 +121,8 @@ class SignalAnalyzerInterface(ABC):
                     self.sensor_calibration_data["gain_preselector"]
                     + self.sigan_calibration_data["1db_compression_sigan"]
             )
+
+    @abstractmethod
+    def update_calibration(self, params):
+        raise Exception("Calibration update has not been implemented")
+    
