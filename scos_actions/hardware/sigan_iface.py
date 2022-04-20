@@ -2,6 +2,7 @@ import copy
 from abc import ABC, abstractmethod
 from scos_actions.settings import sensor_calibration
 from scos_actions.settings import sigan_calibration
+from scos_actions import utils
 
 
 class SignalAnalyzerInterface(ABC):
@@ -26,6 +27,13 @@ class SignalAnalyzerInterface(ABC):
         }
         self.sensor_calibration_data = copy.deepcopy(self.DEFAULT_SENSOR_CALIBRATION)
         self.sigan_calibration_data = copy.deepcopy(self.DEFAULT_SIGAN_CALIBRATION)
+
+    @property
+    def last_calibration_time(self):
+        """Returns the last calibration time from calibration data."""
+        return utils.convert_string_to_millisecond_iso_format(
+                sensor_calibration.calibration_datetime
+        )
 
     @property
     @abstractmethod
@@ -64,7 +72,7 @@ class SignalAnalyzerInterface(ABC):
     def healthy(self):
         pass
 
-    def recompute_calibration_data(self):
+    def recompute_calibration_data(self, setting_value):
         """Set the calibration data based on the currently tuning"""
 
         # Try and get the sensor calibration data
@@ -74,7 +82,7 @@ class SignalAnalyzerInterface(ABC):
                     sensor_calibration.get_calibration_dict(
                     sample_rate=self.sample_rate,
                     lo_frequency=self.frequency,
-                    setting_value=self.gain,
+                    setting_value=setting_value,
                 )
             )
 
