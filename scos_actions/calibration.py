@@ -8,11 +8,13 @@ logger = logging.getLogger(__name__)
 class Calibration(object):
     def __init__(
         self,
+        setting,
         calibration_datetime,
         calibration_data,
         clock_rate_lookup_by_sample_rate,
         calibration_frequency_divisions=None,
     ):
+        self.setting = setting
         self.calibration_datetime = calibration_datetime
         self.calibration_data = calibration_data
         self.clock_rate_lookup_by_sample_rate = clock_rate_lookup_by_sample_rate
@@ -222,7 +224,7 @@ def load_from_json(fname):
     assert "calibration_frequency_divisions" in calibration
     assert "calibration_data" in calibration
     assert "clock_rate_lookup_by_sample_rate" in calibration
-
+    assert "setting" in calibration
     # Load all the calibration data
     calibration_data = {}
     for sample_rate_row in calibration["calibration_data"]["sample_rates"]:
@@ -242,6 +244,7 @@ def load_from_json(fname):
 
     # Create and return the Calibration object
     return Calibration(
+        calibration['setting'],
         calibration["calibration_datetime"],
         calibration_data,
         calibration["clock_rate_lookup_by_sample_rate"],

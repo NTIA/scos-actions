@@ -73,6 +73,7 @@ def create_dummy_calibration(empty_cal=False):
         }
 
     return Calibration(
+        'gain',
         calibration_datetime,
         calibration_data,
         calibration_sample_clock_rate_lookup,

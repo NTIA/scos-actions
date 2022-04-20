@@ -128,7 +128,7 @@ class TestCalibrationFile:
 
         # Start with blank cal data dicts
         cal_data = {}
-
+        cal_data['setting'] = 'gain'
         # Add the simple stuff to new cal format
         cal_data["calibration_datetime"] = "{}Z".format(
             datetime.datetime.utcnow().isoformat()
