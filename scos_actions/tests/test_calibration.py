@@ -7,7 +7,7 @@ from copy import deepcopy
 
 import pytest
 
-from scos_actions.settings import calibration
+from scos_actions import calibration
 from scos_actions.tests.resources.utils import easy_gain, is_close
 
 
@@ -23,7 +23,7 @@ class TestCalibrationFile:
         """Check if a set of points was already tested"""
         for pt in self.pytest_points:
             duplicate_f = f == pt["frequency"]
-            duplicate_g = g == pt["gain"]
+            duplicate_g = g == pt["setting_value"]
             duplicate_sr = sr == pt["sample_rate"]
             if duplicate_f and duplicate_g and duplicate_sr:
                 return True
@@ -63,7 +63,7 @@ class TestCalibrationFile:
             {
                 "sample_rate": int(sr),
                 "frequency": f,
-                "gain": g,
+                "setting_value": g,
                 "gain_sigan": calc_gain_sigan,
                 "test": reason,
             }
@@ -165,10 +165,10 @@ class TestCalibrationFile:
                 cal_data_f = {}
                 cal_data_f["frequency"] = frequencies[i]
                 cal_data_f["calibration_data"] = {}
-                cal_data_f["calibration_data"]["gains"] = []
+                cal_data_f["calibration_data"]["setting_values"] = []
                 for j in range(len(gains)):
                     cal_data_g = {}
-                    cal_data_g["gain"] = gains[j]
+                    cal_data_g["setting_value"] = gains[j]
 
                     # Create the scale factor that ensures easy interpolation
                     gain_sigan = easy_gain(
@@ -184,7 +184,7 @@ class TestCalibrationFile:
 
                     # Add the generated dicts to the parent lists
                     cal_data_g["calibration_data"] = deepcopy(cal_data_point)
-                    cal_data_f["calibration_data"]["gains"].append(deepcopy(cal_data_g))
+                    cal_data_f["calibration_data"]["setting_values"].append(deepcopy(cal_data_g))
                 cal_data_sr["calibration_data"]["frequencies"].append(
                     deepcopy(cal_data_f)
                 )
