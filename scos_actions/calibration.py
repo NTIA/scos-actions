@@ -1,5 +1,6 @@
 import json
 import logging
+from scos_actions.settings import SENSOR_CALIBRATION_FILE
 
 logger = logging.getLogger(__name__)
 
@@ -181,6 +182,30 @@ class Calibration(object):
         z_y2 = self.interpolate_1d(x, x1, x2, z12, z22)
         return self.interpolate_1d(y, y1, y2, z_y1, z_y2)
 
+    def update(self, sample_rate, lo_frequency, setting_value, gain, noise_figure):
+        sample_rates = self.calibration_data['sample_rates']
+        updated = False
+        for sr_cal in sample_rates:
+            if sr_cal['sample_rate'] == sample_rate:
+                cal_data = sr_cal['calibration_data']
+                frequencies = cal_data['frequencies']
+                for freq_cal in frequencies:
+                    if freq_cal['frequency'] == lo_frequency:
+                        cal_data = freq_cal['calibration_data']
+                        setting_values = freq_cal['setting_values']
+                        for setting_cal in setting_values:
+                            if setting_cal['setting_value'] == setting_value:
+                                updated = True
+                                cal = setting_cal['calibration_data']
+                                cal['gain_sensor'] = gain
+                                cal['noise_figure_sensor'] = noise_figure
+        if not updated:
+             raise Exception('Sensor calibration file does not contain parameters to update.')
+
+        else:
+            with open(SENSOR_CALIBRATION_FILE, 'w') as outfile:
+                json.dump(json_string, outfile)
+
 
 def freq_to_compare(f):
     """Allow a frequency of type [float] to be compared with =="""
@@ -222,3 +247,6 @@ def load_from_json(fname):
         calibration["clock_rate_lookup_by_sample_rate"],
         calibration["calibration_frequency_divisions"],
     )
+
+
+
