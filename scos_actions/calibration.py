@@ -1,6 +1,6 @@
 import json
 import logging
-from scos_actions.settings import SENSOR_CALIBRATION_FILE
+
 
 logger = logging.getLogger(__name__)
 
