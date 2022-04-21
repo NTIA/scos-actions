@@ -93,6 +93,7 @@ from scos_actions.signal_processing.utils import get_enbw
 from scos_actions.signal_processing.calibration import y_factor
 from scos_actions.signal_processing.utils import dbm_to_watts
 from scos_actions import utils
+from scos_actions.hardware import gps as mock_gps
 from scos_actions.actions.acquire_single_freq_fft import (
     SingleFrequencyFftAcquisition
 )
@@ -125,9 +126,8 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
     :param radio: instance of RadioInterface
     """
 
-
-    def __init__(self, parameters, radio):
-        super(YFactorCalibration, self).__init__(parameters, radio)
+    def __init__(self, parameters, sigan, gps=mock_gps):
+        super().__init__(parameters, sigan, gps)
 
 
     def __call__(self, schedule_entry_json, task_id):
