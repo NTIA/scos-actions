@@ -167,7 +167,7 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw)
         logger.debug('Noise Figure:' + str(noise_figure))
         logger.debug('Gain: ' + str(gain))
-        self.sigan.update_calibration(params)
+        self.sigan.update_calibration(params, gain, noise_figure)
 
     def get_enr(self):
         #todo rectify sigmf vs sensor def formats and deal with multiple cal sources
