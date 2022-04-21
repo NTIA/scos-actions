@@ -102,8 +102,8 @@ from scos_actions.actions.acquire_single_freq_fft import (
 logger = logging.getLogger(__name__)
 
 RF_PATH = 'rf_path'
-NOISE_DIODE_ON = {RF_PATH, 'noise_diode_on'}
-NOISE_DIODE_OFF = {RF_PATH, 'noise_diode_off'}
+NOISE_DIODE_ON = {RF_PATH: 'noise_diode_on'}
+NOISE_DIODE_OFF = {RF_PATH: 'noise_diode_off'}
 SAMPLE_RATE = 'sample_rate'
 FFT_SIZE = 'fft_size'
 

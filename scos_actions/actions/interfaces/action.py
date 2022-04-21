@@ -62,6 +62,6 @@ class Action(ABC):
                 logger.warning(f"radio does not have attribute {key}")
 
     def configure_preselector(self, measurement_params):
-        for key, value in measurement_params.items():
-            if key == self.PRESELECTOR_PATH_KEY:
-                preselector.set_rf_path(value)
+        if self.PRESELECTOR_PATH_KEY in measurement_params:
+            path = measurement_params[self.PRESELECTOR_PATH_KEY]
+            preselector.set_rf_path(path)
