@@ -97,7 +97,7 @@ from scos_actions.hardware import gps as mock_gps
 from scos_actions.actions.acquire_single_freq_fft import (
     SingleFrequencyFftAcquisition
 )
-
+from scos_actions.hardware import preselector
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +170,7 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         self.sigan.update_calibration(params)
 
     def get_enr(self):
-        return self.preselector.cal_sources[0].enr
+        return preselector.cal_sources[0].enr
 
     @property
     def description(self):
