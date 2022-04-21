@@ -97,7 +97,7 @@ from scos_actions.hardware import gps as mock_gps
 from scos_actions.actions.acquire_single_freq_fft import (
     SingleFrequencyFftAcquisition
 )
-from scos_actions.settings import sensor_calibration
+
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +108,7 @@ SAMPLE_RATE = 'sample_rate'
 FFT_SIZE = 'fft_size'
 
 logger = logging.getLogger(__name__)
+
 
 class YFactorCalibration(SingleFrequencyFftAcquisition):
     """Perform stepped y-factor calibrations.
@@ -136,7 +137,6 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         self.test_required_components()
         start_time = utils.get_datetime_str_now()
         frequencies = self.parameters['frequency']
-        keys = copy.deepcopy(self.parameters.keys())
         for i in range(len(frequencies)):
             iteration_params = utils.get_parameters(i, self.parameters)
             self.calibrate(iteration_params)
