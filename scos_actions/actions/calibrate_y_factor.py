@@ -160,8 +160,8 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         mean_off_power_dbm = measurement_result['data'][2]
         mean_on_watts = dbm_to_watts(mean_on_power_dbm)
         mean_off_watts = dbm_to_watts(mean_off_power_dbm)
-        window = windows.flattop(self.parameters[self.FFT_SIZE])
-        enbw = get_enbw(window, self.parameters[self.SAMPLE_RATE])
+        window = windows.flattop(self.parameters[FFT_SIZE])
+        enbw = get_enbw(window, self.parameters[SAMPLE_RATE])
         enr = self.get_enr()
         logger.debug('ENR: ' + enr)
         noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw)
