@@ -32,7 +32,7 @@ def get_sensor_calibration(sensor_cal_file):
     return sensor_cal
 
 
-
+logger.info('Initializing scos-actions settings')
 CONFIG_DIR = path.join(
     path.dirname(path.abspath(__file__)), "configs"
 )
@@ -50,6 +50,7 @@ if not settings.configured or not hasattr(settings, "SENSOR_CALIBRATION_FILE"):
     SENSOR_CALIBRATION_FILE = path.join(CONFIG_DIR, "sensor_calibration.json.example")
 else:
     SENSOR_CALIBRATION_FILE = settings.SENSOR_CALIBRATION_FILE
+logger.info('SCOS_ACTIONS: SENSOR_CALIBRATION_FILE: '  + SENSOR_CALIBRATION_FILE)
 
 if not settings.configured:
     PRESELECTOR_CONFIG_FILE = None

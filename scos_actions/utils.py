@@ -37,7 +37,7 @@ def load_from_json(fname):
 
 def get_parameters(i, parameters):
     iteration_params = {}
-    for key in keys:
+    for key in parameters:
         if key != 'name':
             iteration_params[key] = parameters[key][i]
     return iteration_params
