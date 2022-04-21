@@ -99,7 +99,6 @@ from scos_actions.actions.acquire_single_freq_fft import (
 )
 from scos_actions.settings import sensor_calibration
 
-
 logger = logging.getLogger(__name__)
 
 RF_PATH = 'rf_path'
@@ -107,6 +106,8 @@ NOISE_DIODE_ON = {RF_PATH, 'noise_diode_on'}
 NOISE_DIODE_OFF = {RF_PATH, 'noise_diode_off'}
 SAMPLE_RATE = 'sample_rate'
 FFT_SIZE = 'fft_size'
+
+logger = logging.getLogger(__name__)
 
 class YFactorCalibration(SingleFrequencyFftAcquisition):
     """Perform stepped y-factor calibrations.
@@ -127,8 +128,8 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
     """
 
     def __init__(self, parameters, sigan, gps=mock_gps):
+        logger.debug('Initializing calibration action')
         super().__init__(parameters, sigan, gps)
-
 
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
@@ -137,12 +138,10 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         frequencies = self.parameters['frequency']
         keys = copy.deepcopy(self.parameters.keys())
         for i in range(len(frequencies)):
-            iteration_params = utils.get_parameters(i,self.parameters)
+            iteration_params = utils.get_parameters(i, self.parameters)
             self.calibrate(iteration_params)
 
         end_time = utils.get_datetime_str_now()
-
-
 
     def calibrate(self, params):
         logger.info('Setting noise diode on')
@@ -155,11 +154,11 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         self.configure_preselector(NOISE_DIODE_OFF)
         logger.info('Acquiring noise off M4')
         measurement_result = super().acquire_data(params, apply_gain=False)
-        mean_off_power_dbm =  measurement_result['data'][2]
+        mean_off_power_dbm = measurement_result['data'][2]
         mean_on_watts = dbm_to_watts(mean_on_power_dbm)
         mean_off_watts = dbm_to_watts(mean_off_power_dbm)
         window = windows.flattop(self.parameters[self.FFT_SIZE])
-        enbw = get_enbw(window,self.parameters[self.SAMPLE_RATE])
+        enbw = get_enbw(window, self.parameters[self.SAMPLE_RATE])
         enr = self.get_enr()
         logger.debug('ENR: ' + enr)
         noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw)
@@ -169,7 +168,6 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
 
     def get_enr(self):
         return self.preselector.cal_sources[0].enr
-
 
     @property
     def description(self):
