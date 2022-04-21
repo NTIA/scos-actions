@@ -170,7 +170,9 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         self.sigan.update_calibration(params)
 
     def get_enr(self):
-        return preselector.cal_sources[0].enr
+        #todo rectify sigmf vs sensor def formats and deal with multiple cal sources
+        return 14.6
+        #return preselector.cal_sources[0].enr
 
     @property
     def description(self):
