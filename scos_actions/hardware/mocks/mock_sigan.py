@@ -137,3 +137,6 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     @property
     def healthy(self):
         return self._healthy
+
+    def update_calibration(self, params):
+        pass
