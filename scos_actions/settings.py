@@ -43,11 +43,11 @@ ACTION_DEFINITIONS_DIR = path.join(
 
 # set sigan_calibration file and sensor_calibration_file
 if not settings.configured or not hasattr(settings, "SIGAN_CALIBRATION_FILE"):
-    SIGAN_CALIBRATION_FILE = path.join(CONFIG_DIR, "sigan_calibration.json.example")
+    SIGAN_CALIBRATION_FILE = path.join(CONFIG_DIR, "sigan_calibration.json")
 else:
     SIGAN_CALIBRATION_FILE = settings.SIGAN_CALIBRATION_FILE
 if not settings.configured or not hasattr(settings, "SENSOR_CALIBRATION_FILE"):
-    SENSOR_CALIBRATION_FILE = path.join(CONFIG_DIR, "sensor_calibration.json.example")
+    SENSOR_CALIBRATION_FILE = path.join(CONFIG_DIR, "sensor_calibration.json")
 else:
     SENSOR_CALIBRATION_FILE = settings.SENSOR_CALIBRATION_FILE
 logger.info('SCOS_ACTIONS: SENSOR_CALIBRATION_FILE: '  + SENSOR_CALIBRATION_FILE)
