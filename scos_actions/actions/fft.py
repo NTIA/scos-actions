@@ -45,7 +45,7 @@ def get_frequency_domain_data(time_data, sample_rate, fft_size):
     enbw /= fft_size
     # Resize time data for FFTs
     num_ffts = int(len(time_data) / fft_size)
-    time_data.resize((num_ffts, fft_size))
+    time_data = np.resize(time_data, (num_ffts, fft_size))
     # Apply the FFT window
     data = time_data * fft_window
     # Take and shift the fft (center frequency)
