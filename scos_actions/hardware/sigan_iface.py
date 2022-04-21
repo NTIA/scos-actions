@@ -64,11 +64,6 @@ class SignalAnalyzerInterface(ABC):
 
     @property
     @abstractmethod
-    def last_calibration_time(self):
-        pass
-
-    @property
-    @abstractmethod
     def healthy(self):
         pass
 
