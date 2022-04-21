@@ -87,7 +87,6 @@ The resulting matrix is real-valued, 32-bit floats representing dBm.
 """
 
 import logging
-
 from scos_actions import utils
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     SingleFrequencyTimeDomainIqAcquisition,

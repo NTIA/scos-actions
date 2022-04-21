@@ -1,3 +1,5 @@
+import numpy as np
+
 def dbm_to_watts(input):
     # Convert an array of values from dBm to Watts
     #return 10 ** ((np.array(input) - 30) / 10)
