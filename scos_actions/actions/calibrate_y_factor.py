@@ -171,7 +171,9 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
 
     def get_enr(self):
         #todo rectify sigmf vs sensor def formats and deal with multiple cal sources
-        return 14.53
+        enr_dB = 14.53
+        linear_enr = 10 ** (enr_dB/10.0)
+        return linear_enr
         #return preselector.cal_sources[0].enr
 
     @property
