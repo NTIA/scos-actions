@@ -137,9 +137,12 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         self.test_required_components()
         start_time = utils.get_datetime_str_now()
         frequencies = self.parameters['frequency']
-        for i in range(len(frequencies)):
-            iteration_params = utils.get_parameters(i, self.parameters)
-            self.calibrate(iteration_params)
+        if isinstance(frequencies, list):
+            for i in range(len(frequencies)):
+                iteration_params = utils.get_parameters(i, self.parameters)
+                self.calibrate(iteration_params)
+        elif isinstance(frequencies, float):
+            self.calibrate(self.parameters)
 
         end_time = utils.get_datetime_str_now()
 
