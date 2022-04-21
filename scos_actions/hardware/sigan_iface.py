@@ -88,7 +88,7 @@ class SignalAnalyzerInterface(ABC):
                     sigan_calibration.get_calibration_dict(
                     sample_rate=self.sample_rate,
                     lo_frequency=self.frequency,
-                    setting_value=self.gain,
+                    setting_value=setting_value,
                 )
             )
 
