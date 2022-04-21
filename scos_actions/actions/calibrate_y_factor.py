@@ -163,10 +163,10 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         window = windows.flattop(self.parameters[FFT_SIZE])
         enbw = get_enbw(window, self.parameters[SAMPLE_RATE])
         enr = self.get_enr()
-        logger.debug('ENR: ' + enr)
+        logger.debug('ENR: ' + str(enr))
         noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw)
-        logger.debug('Noise Figure:' + noise_figure)
-        logger.debug('Gain: ' + gain)
+        logger.debug('Noise Figure:' + str(noise_figure))
+        logger.debug('Gain: ' + str(gain))
         self.sigan.update_calibration(params)
 
     def get_enr(self):
