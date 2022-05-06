@@ -1,7 +1,7 @@
 from os import path
 from django.conf import settings
 from scos_actions import calibration
-from scos_actions.tests.resources.utils import create_dummy_calibration
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,6 @@ def get_sigan_calibration(sigan_cal_file):
         logger.error("Unable to load sigan calibration data, reverting to none")
         logger.exception(err)
         sigan_cal = None
-        sigan_cal = create_dummy_calibration()
 
     return sigan_cal
 
@@ -28,7 +27,7 @@ def get_sensor_calibration(sensor_cal_file):
             "Unable to load sensor calibration data, reverting to none"
         )
         logger.exception(err)
-        sensor_cal = create_dummy_calibration()
+        sensor_cal = None
     return sensor_cal
 
 
@@ -43,14 +42,16 @@ ACTION_DEFINITIONS_DIR = path.join(
 
 # set sigan_calibration file and sensor_calibration_file
 if not settings.configured or not hasattr(settings, "SIGAN_CALIBRATION_FILE"):
-    SIGAN_CALIBRATION_FILE = path.join(CONFIG_DIR, "sigan_calibration.json")
+    SIGAN_CALIBRATION_FILE = None
+    sigan_calibration = None
 else:
     SIGAN_CALIBRATION_FILE = settings.SIGAN_CALIBRATION_FILE
 if not settings.configured or not hasattr(settings, "SENSOR_CALIBRATION_FILE"):
-    SENSOR_CALIBRATION_FILE = path.join(CONFIG_DIR, "sensor_calibration.json")
+    SENSOR_CALIBRATION_FILE = None
+    sensor_calibration = None
 else:
     SENSOR_CALIBRATION_FILE = settings.SENSOR_CALIBRATION_FILE
-logger.info('SCOS_ACTIONS: SENSOR_CALIBRATION_FILE: '  + SENSOR_CALIBRATION_FILE)
+    logger.info('SCOS_ACTIONS: SENSOR_CALIBRATION_FILE: '  + SENSOR_CALIBRATION_FILE)
 
 if not settings.configured:
     PRESELECTOR_CONFIG_FILE = None
