@@ -2,6 +2,8 @@ import json
 import logging
 from datetime import datetime
 
+from dateutil import parser
+
 logger = logging.getLogger(__name__)
 
 
@@ -14,7 +16,7 @@ def convert_datetime_to_millisecond_iso_format(timestamp):
 
 
 def parse_datetime_iso_format_str(d):
-    return datetime.fromisoformat(d)
+    return parser.isoparse(d)
 
 
 def convert_string_to_millisecond_iso_format(timestamp):
