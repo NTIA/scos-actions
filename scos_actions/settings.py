@@ -58,7 +58,6 @@ if not settings.configured:
     FQDN = None
     PRESELECTOR_MODULE = 'its_preselector.web_relay_preselector'
     PRESELECTOR_CLASS = 'WebRelayPreselector'
-    logger.info('Creating dummy calibrations')
 else:
     MOCK_SIGAN = settings.MOCK_SIGAN
     RUNNING_TESTS = settings.RUNNING_TESTS
@@ -75,8 +74,8 @@ else:
     else:
         PRESELECTOR_MODULE = 'its_preselector.web_relay_preselector'
         PRESELECTOR_CLASS = 'WebRelayPreselector'
-logger.info('Loading sensor cal file: ' + SENSOR_CALIBRATION_FILE)
-sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
-logger.info('Loading sigan cal file: ' + SIGAN_CALIBRATION_FILE)
-sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
-logger.info("last sensor cal: " + sensor_calibration.calibration_datetime)
+    logger.info('Loading sensor cal file: ' + SENSOR_CALIBRATION_FILE)
+    sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
+    logger.info('Loading sigan cal file: ' + SIGAN_CALIBRATION_FILE)
+    sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
+    logger.info("last sensor cal: " + sensor_calibration.calibration_datetime)
