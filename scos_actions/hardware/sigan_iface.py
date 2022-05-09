@@ -84,29 +84,5 @@ class SignalAnalyzerInterface(ABC):
                     sigan_calibration.get_calibration_dict(cal_args)
             )
 
-        # Catch any defaulting calibration values for the sigan
-        if self.sigan_calibration_data["gain_sigan"] is None:
-            self.sigan_calibration_data["gain_sigan"] = self.gain
-        if self.sigan_calibration_data["enbw_sigan"] is None:
-            self.sigan_calibration_data["enbw_sigan"] = self.sample_rate
-
-        # Catch any defaulting calibration values for the sensor
-        if self.sensor_calibration_data["gain_sensor"] is None:
-            self.sensor_calibration_data["gain_sensor"] = self.sigan_calibration_data[
-                "gain_sigan"
-            ]
-        if self.sensor_calibration_data["enbw_sensor"] is None:
-            self.sensor_calibration_data["enbw_sensor"] = self.sigan_calibration_data[
-                "enbw_sigan"
-            ]
-        if self.sensor_calibration_data["noise_figure_sensor"] is None:
-            self.sensor_calibration_data[
-                "noise_figure_sensor"
-            ] = self.sigan_calibration_data["noise_figure_sigan"]
-        if self.sensor_calibration_data["1db_compression_sensor"] is None:
-            self.sensor_calibration_data["1db_compression_sensor"] = (
-                    self.sensor_calibration_data["gain_preselector"]
-                    + self.sigan_calibration_data["1db_compression_sigan"]
-            )
 
     

@@ -43,7 +43,7 @@ class Calibration(object):
         for i in range(len(args)):
             setting_value = args[i]
             setting = self.calibration_parameters[i]
-            logger.debug('looking up calibration for {} at {}'.format(setting, setting_value))
+            logger.info('looking up calibration for {} at {}'.format(setting, setting_value))
             cal_data = filter_by_parameter(cal_data, setting, setting_value)
 
         return cal_data
@@ -117,7 +117,12 @@ def convert_keys(dictionary):
 
 def filter_by_parameter( calibrations, parameter, value):
         if not value in calibrations:
+            cal_settings = ''
+            for key in calibrations.keys():
+                cal_settings = cal_settings + ',' + str(key)
+            logger.info('Cals performed at : ' + cal_settings)
             raise Exception('No calibration was performed with {} at {}'.format(parameter, value))
+
         else:
             return calibrations[value]
 
