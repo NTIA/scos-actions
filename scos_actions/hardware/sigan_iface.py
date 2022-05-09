@@ -67,29 +67,21 @@ class SignalAnalyzerInterface(ABC):
     def healthy(self):
         pass
 
-    def recompute_calibration_data(self, setting_value):
+    def recompute_calibration_data(self, cal_args):
         """Set the calibration data based on the currently tuning"""
 
         # Try and get the sensor calibration data
         self.sensor_calibration_data = self.DEFAULT_SENSOR_CALIBRATION.copy()
         if sensor_calibration is not None:
             self.sensor_calibration_data.update(
-                    sensor_calibration.get_calibration_dict(
-                    sample_rate=self.sample_rate,
-                    lo_frequency=self.frequency,
-                    setting_value=setting_value,
-                )
+                    sensor_calibration.get_calibration_dict(cal_args)
             )
 
         # Try and get the sigan calibration data
         self.sigan_calibration_data = self.DEFAULT_SIGAN_CALIBRATION.copy()
         if sigan_calibration is not None:
             self.sigan_calibration_data.update(
-                    sigan_calibration.get_calibration_dict(
-                    sample_rate=self.sample_rate,
-                    lo_frequency=self.frequency,
-                    setting_value=setting_value,
-                )
+                    sigan_calibration.get_calibration_dict(cal_args)
             )
 
         # Catch any defaulting calibration values for the sigan
