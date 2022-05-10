@@ -96,6 +96,7 @@ from scos_actions import utils
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.settings import sensor_calibration
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
+from scos_actions.capabilities import capabilities
 from scos_actions.actions.acquire_single_freq_fft import (
     SingleFrequencyFftAcquisition
 )
@@ -170,6 +171,7 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         logger.info('Noise Figure:' + str(noise_figure))
         logger.info('Gain: ' + str(gain))
         sensor_calibration.update(params,utils.get_datetime_str_now(), gain, noise_figure, SENSOR_CALIBRATION_FILE)
+        return 'Noise Figure:{}, Gain:{}'.format(noise_figure, gain)
 
     def get_enr(self):
         #todo rectify sigmf vs sensor def formats and deal with multiple cal sources
