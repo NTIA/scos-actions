@@ -101,6 +101,7 @@ from scos_actions.actions.acquire_single_freq_fft import (
     SingleFrequencyFftAcquisition
 )
 from scos_actions.hardware import preselector
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -140,14 +141,19 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         self.test_required_components()
         start_time = utils.get_datetime_str_now()
         frequencies = self.parameters['frequency']
+        detail = ''
         if isinstance(frequencies, list):
             for i in range(len(frequencies)):
                 iteration_params = utils.get_parameters(i, self.parameters)
-                self.calibrate(iteration_params)
+                if i == 0:
+                    detail += self.calibrate(iteration_params)
+                else:
+                    detail += os.linesep + self.calibrate(iteration_params)
         elif isinstance(frequencies, float):
-            self.calibrate(self.parameters)
+            detail = self.calibrate(self.parameters)
 
         end_time = utils.get_datetime_str_now()
+        return detail
 
     def calibrate(self, params):
         logger.info('Setting noise diode on')
