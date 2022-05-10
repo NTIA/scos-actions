@@ -48,12 +48,12 @@ class Calibration(object):
 
     def update(self, params, calibration_datetime, gain, noise_figure, file_path):
         cal_data = self.calibration_data
-        self.calibration_datetime = calibration_datetime
         for parameter in self.calibration_parameters:
             if parameter in params:
                 value = params[parameter]
                 logger.debug('Updating calibration at {} = {}'.format(parameter, value))
                 cal_data = cal_data[value]
+        cal_data['calibration_datetime'] = calibration_datetime
         if 'gain_sensor' in cal_data:
             cal_data['gain_sensor'] = gain
         else:
