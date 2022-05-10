@@ -38,8 +38,6 @@ class Calibration(object):
 
         # Check if the sample rate was calibrated
         cal_data = self.calibration_data
-        settings_used =[]
-        next_setting_levels=[]
         for i in range(len(args)):
             setting_value = args[i]
             setting = self.calibration_parameters[i]

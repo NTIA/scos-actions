@@ -133,6 +133,7 @@ n
 
         self.test_required_components()
         start_time = utils.get_datetime_str_now()
+        self.configure((self.parameters))
         measurement_result = self.acquire_data(self.parameters, apply_gain=True)
         end_time = utils.get_datetime_str_now()
 
@@ -185,7 +186,6 @@ n
             )
 
     def acquire_data(self, params, apply_gain=True):
-        self.configure(params)
         msg = "Acquiring {} FFTs at {} MHz"
         if not "nffts" in self.parameters:
             raise Exception("nffts missing from measurement parameters")
