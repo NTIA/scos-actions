@@ -52,42 +52,13 @@ $$w(n) = &0.2156 - 0.4160 \cos{{(2 \pi n / M)}} + 0.2781 \cos{{(4 \pi n / M)}} -
 where $M = {fft_size}$ is the number of points in the window, is applied to
 each row of the matrix.
 
-## Frequency-domain processing
 
-After windowing, the data matrix is converted into the frequency domain using
-an FFT, doing the equivalent of the DFT defined as
-
-$$A_k = \sum_{{m=0}}^{{n-1}}
-a_m \exp\left\\{{-2\pi i{{mk \over n}}\right\\}} \qquad k = 0,\ldots,n-1$$
-
-The data matrix is then converted to pseudo-power by taking the square of the
-magnitude of each complex sample individually, allowing power statistics to be
-taken.
-
-## Applying detector
-
-Next, the M4S (min, max, mean, median, and sample) detector is applied to the
-data matrix. The input to the detector is a matrix of size ${nffts} \times
-{fft_size}$, and the output matrix is size $5 \times {fft_size}$, with the
-first row representing the min of each _column_, the second row representing
-the _max_ of each column, and so "sample" detector simple chooses one of the
-{nffts} FFTs at random.
-
-## Power conversion
-
-To finish the power conversion, the samples are divided by the characteristic
-impedance (50 ohms). The power is then referenced back to the RF power by
-dividing further by 2. The powers are normalized to the FFT bin width by
-dividing by the length of the FFT and converted to dBm. Finally, an FFT window
-correction factor is added to the powers given by
-
-$$ C_{{win}} = 20log \left( \frac{{1}}{{ mean \left( w(n) \right) }} \right)
-
-The resulting matrix is real-valued, 32-bit floats representing dBm.
 
 """
 import copy
 import logging
+import time
+
 from scipy.signal import windows
 from scos_actions.signal_processing.utils import get_enbw
 from scos_actions.signal_processing.calibration import y_factor
@@ -115,7 +86,7 @@ logger = logging.getLogger(__name__)
 
 
 class YFactorCalibration(SingleFrequencyFftAcquisition):
-    """Perform stepped y-factor calibrations.
+    """Perform a single or stepped y-factor calibration.
 
     :param parameters: The dictionary of parameters needed for the action and the radio.
 
@@ -126,6 +97,7 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         frequency: center frequency in Hz
         fft_size: number of points in FFT (some 2^n)
         nffts: number of consecutive FFTs to pass to detector
+
 
     For the parameters required by the radio, see the documentation for the radio being used.
 
@@ -157,18 +129,23 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
 
     def calibrate(self, params):
         logger.info('Setting noise diode on')
-        super().configure_sigan(params)
         super().configure_preselector(NOISE_DIODE_ON)
+        time.sleep(.25)
+        super().configure_sigan(params)
         logger.info('acquiring m4')
-        measurement_result = super().acquire_data(params, apply_gain=False)
-        mean_on_power_dbm = measurement_result['data'][2]
+        noise_on_measurement_result = super().acquire_data(params, apply_gain=False)
+        mean_on_power_dbm = noise_on_measurement_result['data'][2]
         logger.info('Setting noise diode off')
         self.configure_preselector(NOISE_DIODE_OFF)
+        time.sleep(.25)
         logger.info('Acquiring noise off M4')
         measurement_result = super().acquire_data(params, apply_gain=False)
         mean_off_power_dbm = measurement_result['data'][2]
         mean_on_watts = dbm_to_watts(mean_on_power_dbm)
         mean_off_watts = dbm_to_watts(mean_off_power_dbm)
+        import numpy as np
+        logger.info('Mean on dBm: ' + str(np.mean(mean_on_power_dbm)))
+        logger.info('Mean off dBm:' + str(np.mean(mean_off_power_dbm)))
         window = windows.flattop(self.parameters[FFT_SIZE])
         enbw = get_enbw(window, self.parameters[SAMPLE_RATE])
         enr = self.get_enr()

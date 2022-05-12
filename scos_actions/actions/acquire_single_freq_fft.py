@@ -186,17 +186,16 @@ n
             )
 
     def acquire_data(self, params, apply_gain=True):
-        msg = "Acquiring {} FFTs at {} MHz"
-        if not "nffts" in self.parameters:
+        if not "nffts" in params:
             raise Exception("nffts missing from measurement parameters")
-        num_ffts = self.parameters["nffts"]
-        if not "fft_size" in self.parameters:
+        num_ffts = params["nffts"]
+        if not "fft_size" in params:
             raise Exception("fft_size missing from measurement parameters")
-        fft_size = self.parameters["fft_size"]
+        fft_size = params["fft_size"]
 
         nskip = None
-        if "nskip" in self.parameters:
-            nskip = self.parameters["nskip"]
+        if "nskip" in params:
+            nskip = params["nskip"]
         logger.debug(
             f"acquiring {num_ffts * fft_size} samples and skipping the first {nskip if nskip else 0} samples"
         )
