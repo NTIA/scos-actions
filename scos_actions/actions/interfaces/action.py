@@ -64,4 +64,4 @@ class Action(ABC):
     def configure_preselector(self, measurement_params):
         if self.PRESELECTOR_PATH_KEY in measurement_params:
             path = measurement_params[self.PRESELECTOR_PATH_KEY]
-            preselector.set_rf_path(path)
+            preselector.set_state(path)
