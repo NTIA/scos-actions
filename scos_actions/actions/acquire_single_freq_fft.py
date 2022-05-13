@@ -202,6 +202,7 @@ n
         measurement_result = self.sigan.acquire_time_domain_samples(
             num_ffts * fft_size, num_samples_skip=nskip, gain_adjust=apply_gain
         )
+
         self.apply_m4s(measurement_result)
         return measurement_result
 
