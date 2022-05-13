@@ -133,7 +133,7 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         time.sleep(.25)
         super().configure_sigan(params)
         logger.info('Ref_level: ' + str(self.sigan.reference_level))
-        logger.info('Attenuation:' + str(self.sigan.aggenuation))
+        logger.info('Attenuation:' + str(self.sigan.attenuation))
         logger.info('acquiring m4')
         noise_on_measurement_result = super().acquire_data(params, apply_gain=False)
         mean_on_power_dbm = noise_on_measurement_result['data'][2]
