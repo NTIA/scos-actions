@@ -151,7 +151,7 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         window = windows.flattop(self.parameters[FFT_SIZE])
         enbw = get_enbw(window, self.parameters[SAMPLE_RATE])
         noise_floor = 1.38e-23 * 300 * enbw
-        logger.info('Noise floor: ' + noise_floor)
+        logger.info('Noise floor: ' + str(noise_floor))
         enr = self.get_enr()
         logger.info('ENR: ' + str(enr))
         noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw)
