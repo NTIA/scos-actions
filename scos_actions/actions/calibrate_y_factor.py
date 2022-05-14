@@ -131,9 +131,9 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         logger.info('Setting noise diode on')
         super().configure_preselector(NOISE_DIODE_ON)
         time.sleep(.25)
-        logger.info('Before configure, Preamp = ' + self.sigan.preamp_enable)
+        logger.info('Before configure, Preamp = ' + str(self.sigan.preamp_enable))
         super().configure_sigan(params)
-        logger.info('Preamp = ' + self.sigan.preamp_enable)
+        logger.info('Preamp = ' + str(self.sigan.preamp_enable))
         self.sigan.preamp_enable = True
         logger.info('Ref_level: ' + str(self.sigan.reference_level))
         logger.info('Attenuation:' + str(self.sigan.attenuation))
