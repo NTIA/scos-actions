@@ -112,11 +112,11 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
         start_time = utils.get_datetime_str_now()
-        frequencies = self.parameters['frequency']
+        frequencies = self.parameter_map['frequency']
         detail = ''
         if isinstance(frequencies, list):
             for i in range(len(frequencies)):
-                iteration_params = utils.get_parameters(i, self.parameters)
+                iteration_params = utils.get_parameters(i, self.parameter_map)
                 if i == 0:
                     detail += self.calibrate(iteration_params)
                 else:
