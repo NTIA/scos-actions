@@ -75,6 +75,14 @@ class Action(ABC):
             path = measurement_params[self.PRESELECTOR_PATH_KEY]
             preselector.set_state(path)
 
+    @property
+    def name(self):
+        return self.name
+
+    @name.setter
+    def name(self, name: str):
+        self.name = name
+
     def find_name(self):
         if isinstance(self.parameters, list):
             for param in self.parameters:
