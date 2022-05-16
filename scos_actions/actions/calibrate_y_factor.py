@@ -151,8 +151,8 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         import numpy as np
         logger.info('Mean on dBm: ' + str(np.mean(mean_on_power_dbm)))
         logger.info('Mean off dBm:' + str(np.mean(mean_off_power_dbm)))
-        window = windows.flattop(self.parameters[FFT_SIZE])
-        enbw = get_enbw(window, self.parameters[SAMPLE_RATE])
+        window = windows.flattop(self.parameter_map[FFT_SIZE])
+        enbw = get_enbw(window, self.parameter_map[SAMPLE_RATE])
         noise_floor = 1.38e-23 * 300 * enbw
         logger.info('Noise floor: ' + str(noise_floor))
         enr = self.get_enr()
@@ -172,12 +172,12 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
 
     @property
     def description(self):
-        center_frequency = self.parameters["frequency"] / 1e6
-        nffts = self.parameters["nffts"]
-        fft_size = self.parameters["fft_size"]
+        center_frequency = self.parameter_map["frequency"] / 1e6
+        nffts = self.parameter_map["nffts"]
+        fft_size = self.parameter_map["fft_size"]
         used_keys = ["frequency", "nffts", "fft_size", "name"]
         acq_plan = f"The radio is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
-        for name, value in self.parameters.items():
+        for name, value in self.parameter_map.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
         acq_plan += (

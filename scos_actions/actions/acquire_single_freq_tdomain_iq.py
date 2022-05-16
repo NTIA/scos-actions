@@ -193,11 +193,11 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
     @property
     def description(self):
         """Parameterize and return the module-level docstring."""
-        center_frequency = self.parameters["frequency"] / 1e6
-        duration_ms = self.parameters["duration_ms"]
+        center_frequency = self.parameter_map["frequency"] / 1e6
+        duration_ms = self.parameter_map["duration_ms"]
         used_keys = ["frequency", "duration_ms", "name"]
         acq_plan = f"The signal analyzer is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
-        for name, value in self.parameters.items():
+        for name, value in self.parameter_map.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
         acq_plan += f"\nThen, acquire samples for {duration_ms} ms\n."

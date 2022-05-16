@@ -165,15 +165,15 @@ n
 
     def add_fft_annotations(self, sigmf_builder, measurement_result):
         frequencies = get_fft_frequencies(
-            self.parameters["fft_size"],
+            self.parameter_map["fft_size"],
             measurement_result["sample_rate"],
             measurement_result["frequency"],
         ).tolist()
 
         for i, detector in enumerate(M4sDetector):
             sigmf_builder.add_frequency_domain_detection(
-                start_index=(i * self.parameters["fft_size"]),
-                fft_size=self.parameters["fft_size"],
+                start_index=(i * self.parameter_map["fft_size"]),
+                fft_size=self.parameter_map["fft_size"],
                 enbw=self.enbw,
                 detector="fft_" + detector.name + "_power",
                 num_ffts=self.parameters["nffts"],
