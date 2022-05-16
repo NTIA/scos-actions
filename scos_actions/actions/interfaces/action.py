@@ -1,3 +1,4 @@
+import copy
 import logging
 from abc import ABC, abstractmethod
 
@@ -34,7 +35,7 @@ class Action(ABC):
         self.sigan = sigan
         self.gps = gps
         self.sensor_definition = capabilities['sensor']
-        self._name = self.find_name()
+        self.parameter_map = self.get_parameter_map()
 
     @abstractmethod
     def __call__(self, schedule_entry_json, task_id):
@@ -77,13 +78,14 @@ class Action(ABC):
 
     @property
     def name(self):
-        return self._name
+        return self.parameter_map['name']
 
-    def find_name(self):
+    def get_parameter_map(self):
         if isinstance(self.parameters, list):
+            key_map = {}
             for param in self.parameters:
-                if 'name' in param:
-                    return param['name']
+                for key, value in param.items():
+                    key_map[key] = value
+            return key_map
         elif isinstance(self.parameters, dict):
-            return self.parameters['name']
-
+           return copy.deepcopy(self.parameters)
