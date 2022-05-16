@@ -34,6 +34,7 @@ class Action(ABC):
         self.sigan = sigan
         self.gps = gps
         self.sensor_definition = capabilities['sensor']
+        self.name = self.find_name()
 
     @abstractmethod
     def __call__(self, schedule_entry_json, task_id):
@@ -73,3 +74,12 @@ class Action(ABC):
         if self.PRESELECTOR_PATH_KEY in measurement_params:
             path = measurement_params[self.PRESELECTOR_PATH_KEY]
             preselector.set_state(path)
+
+    def find_name(self):
+        if isinstance(self.parameters, list):
+            for param in self.parameters:
+                if 'name' in param:
+                    return param['name']
+        elif isinstance(self.parameters, dict):
+            return self.parameters['name']
+
