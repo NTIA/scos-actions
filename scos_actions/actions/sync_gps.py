@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class SyncGps(Action):
     """Query the GPS and synchronize time and location."""
 
-    def __init__(self,gps, parameters={}, sigan=mock_sigan):
+    def __init__(self,gps, parameters={'name': 'SyncGps'}, sigan=mock_sigan):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
 
     def __call__(self, schedule_entry_json, task_id):
