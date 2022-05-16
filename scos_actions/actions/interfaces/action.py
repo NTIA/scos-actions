@@ -55,7 +55,15 @@ class Action(ABC):
         self.configure_preselector(measurement_params)
 
     def configure_sigan(self, measurement_params):
-        for key, value in measurement_params.items():
+        if isinstance(measurement_params, list):
+            for item in measurement_params:
+                self.configure_sigan_with_dictionary(item)
+
+        elif isinstance(measurement_params, dict):
+            self.configure_sigan_with_dictionary(measurement_params)
+
+    def configure_sigan_with_dictionary(self, dictionary):
+        for key, value in dictionary.items():
             if hasattr(self.sigan, key):
                 setattr(self.sigan, key, value)
             else:
