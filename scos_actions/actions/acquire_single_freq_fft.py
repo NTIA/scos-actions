@@ -203,11 +203,10 @@ n
             num_ffts * fft_size, num_samples_skip=nskip, gain_adjust=apply_gain
         )
 
-        self.apply_m4s(measurement_result)
+        self.apply_m4s(fft_size, measurement_result)
         return measurement_result
 
-    def apply_m4s(self, measurement_result):
-        fft_size = self.parameters["fft_size"]
+    def apply_m4s(self, fft_size,  measurement_result):
         complex_fft, self.enbw = get_frequency_domain_data(
             measurement_result["data"], measurement_result["sample_rate"], fft_size
         )
