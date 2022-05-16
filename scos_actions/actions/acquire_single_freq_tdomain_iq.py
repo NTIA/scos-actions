@@ -66,10 +66,6 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
 
 
-    @property
-    def name(self):
-        return self.name
-
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
