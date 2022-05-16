@@ -79,10 +79,6 @@ class Action(ABC):
     def name(self):
         return self._name
 
-    @name.setter
-    def name(self, name: str):
-        self._name = name
-
     def find_name(self):
         if isinstance(self.parameters, list):
             for param in self.parameters:
