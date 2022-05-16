@@ -34,7 +34,7 @@ class Action(ABC):
         self.sigan = sigan
         self.gps = gps
         self.sensor_definition = capabilities['sensor']
-        self.name = self.find_name()
+        self._name = self.find_name()
 
     @abstractmethod
     def __call__(self, schedule_entry_json, task_id):
@@ -77,11 +77,11 @@ class Action(ABC):
 
     @property
     def name(self):
-        return self.name
+        return self._name
 
     @name.setter
     def name(self, name: str):
-        self.name = name
+        self._name = name
 
     def find_name(self):
         if isinstance(self.parameters, list):
