@@ -35,7 +35,7 @@ class Action(ABC):
         self.sigan = sigan
         self.gps = gps
         self.sensor_definition = capabilities['sensor']
-        self.parameter_map = self.get_parameter_map()
+        self.parameter_map = self.get_parameter_map(self.parameters)
 
     @abstractmethod
     def __call__(self, schedule_entry_json, task_id):
@@ -80,12 +80,12 @@ class Action(ABC):
     def name(self):
         return self.parameter_map['name']
 
-    def get_parameter_map(self):
-        if isinstance(self.parameters, list):
+    def get_parameter_map(self, params):
+        if isinstance(params, list):
             key_map = {}
-            for param in self.parameters:
+            for param in params:
                 for key, value in param.items():
                     key_map[key] = value
             return key_map
-        elif isinstance(self.parameters, dict):
-           return copy.deepcopy(self.parameters)
+        elif isinstance(params, dict):
+           return copy.deepcopy(params)

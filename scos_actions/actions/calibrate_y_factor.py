@@ -134,25 +134,26 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         logger.info('Before configure, Preamp = ' + str(self.sigan.preamp_enable))
         self.sigan.preamp_enable = True
         super().configure_sigan(params)
+        param_map = self.get_parameter_map(params)
         logger.info('Preamp = ' + str(self.sigan.preamp_enable))
         logger.info('Ref_level: ' + str(self.sigan.reference_level))
         logger.info('Attenuation:' + str(self.sigan.attenuation))
         logger.info('acquiring m4')
-        noise_on_measurement_result = super().acquire_data(params, apply_gain=False)
+        noise_on_measurement_result = super().acquire_data(param_map, apply_gain=False)
         mean_on_power_dbm = noise_on_measurement_result['data'][2]
         logger.info('Setting noise diode off')
         self.configure_preselector(NOISE_DIODE_OFF)
         time.sleep(.25)
         logger.info('Acquiring noise off M4')
-        measurement_result = super().acquire_data(params, apply_gain=False)
+        measurement_result = super().acquire_data(param_map, apply_gain=False)
         mean_off_power_dbm = measurement_result['data'][2]
         mean_on_watts = dbm_to_watts(mean_on_power_dbm)
         mean_off_watts = dbm_to_watts(mean_off_power_dbm)
         import numpy as np
         logger.info('Mean on dBm: ' + str(np.mean(mean_on_power_dbm)))
         logger.info('Mean off dBm:' + str(np.mean(mean_off_power_dbm)))
-        window = windows.flattop(self.parameter_map[FFT_SIZE])
-        enbw = get_enbw(window, self.parameter_map[SAMPLE_RATE])
+        window = windows.flattop(param_map[FFT_SIZE])
+        enbw = get_enbw(window, param_map[SAMPLE_RATE])
         noise_floor = 1.38e-23 * 300 * enbw
         logger.info('Noise floor: ' + str(noise_floor))
         enr = self.get_enr()
