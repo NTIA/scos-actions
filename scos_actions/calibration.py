@@ -46,7 +46,7 @@ class Calibration(object):
 
         return cal_data
 
-    def update(self, params, calibration_datetime, gain, noise_figure, file_path):
+    def update(self, params, calibration_datetime, gain, noise_figure, temp, file_path):
         cal_data = self.calibration_data
         for parameter in self.calibration_parameters:
             if parameter in params:
@@ -62,6 +62,7 @@ class Calibration(object):
             cal_data['noise_figure_sensor'] = noise_figure
         else:
             raise Exception('Not enough parameters specified to update sensor noise figure')
+        cal_data['temperature'] = temp
         dict = {'calibration_datetime': str(self.calibration_datetime),
                 'calibration_parameters': self.calibration_parameters,
                 'clock_rate_lookup_by_sample_rate':  self.clock_rate_lookup_by_sample_rate,

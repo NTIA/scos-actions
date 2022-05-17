@@ -162,7 +162,7 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw, T_room=temperature)
         logger.info('Noise Figure:' + str(noise_figure))
         logger.info('Gain: ' + str(gain))
-        sensor_calibration.update(param_map, utils.get_datetime_str_now(), gain, noise_figure, SENSOR_CALIBRATION_FILE)
+        sensor_calibration.update(param_map, utils.get_datetime_str_now(), gain, noise_figure, temperature, SENSOR_CALIBRATION_FILE)
         return 'Noise Figure:{}, Gain:{}'.format(noise_figure, gain)
 
     def get_enr(self):
