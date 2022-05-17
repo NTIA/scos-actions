@@ -206,6 +206,7 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
     def get_temperature(self):
         kelvin_temp = 290.0
         temp = preselector.get_sensor_value(1)
+        logger.info('Temp: ' + str(temp))
         if temp is None:
             logger.warning('Temperature is None. Using 290. instead.')
         else:
