@@ -211,5 +211,5 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
             logger.warning('Temperature is None. Using 290. instead.')
         else:
             kelvin_temp = (5.0 * (float(temp) - 32)) / 9.0
-            logger.info('Temperature: ' + kelvin_temp)
+            logger.info('Temperature: ' + str(kelvin_temp))
         return kelvin_temp
