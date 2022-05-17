@@ -67,7 +67,7 @@ from scos_actions import utils
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.settings import sensor_calibration
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
-from scos_actions.capabilities import capabilities
+from scos_actions.hardware import preselector
 from scos_actions.actions.acquire_single_freq_fft import (
     SingleFrequencyFftAcquisition
 )
@@ -158,18 +158,24 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         logger.info('Noise floor: ' + str(noise_floor))
         enr = self.get_enr()
         logger.info('ENR: ' + str(enr))
-        noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw)
+        temperature = self.get_temperature()
+        noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw, T_room=temperature)
         logger.info('Noise Figure:' + str(noise_figure))
         logger.info('Gain: ' + str(gain))
-        sensor_calibration.update(param_map,utils.get_datetime_str_now(), gain, noise_figure, SENSOR_CALIBRATION_FILE)
+        sensor_calibration.update(param_map, utils.get_datetime_str_now(), gain, noise_figure, SENSOR_CALIBRATION_FILE)
         return 'Noise Figure:{}, Gain:{}'.format(noise_figure, gain)
 
     def get_enr(self):
-        #todo rectify sigmf vs sensor def formats and deal with multiple cal sources
-        enr_dB = 14.53
-        linear_enr = 10 ** (enr_dB/10.0)
-        return linear_enr
-        #return preselector.cal_sources[0].enr
+        # todo deal with multiple cal sources
+        if len(preselector.cal_sources) == 0:
+            raise Exception('No calibrations sources defined in preselector.')
+        elif len(preselector.cal_sources) > 1:
+            raise Exception('Preselector contains multiple calibration sources.')
+        else:
+            enr_dB = preselector.cal_sources[0].enr
+            # enr_dB = 14.53
+            linear_enr = 10 ** (enr_dB / 10.0)
+            return linear_enr
 
     @property
     def description(self):
@@ -195,3 +201,14 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
 
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**definitions)
+
+    # todo support multiple temperature sensors
+    def get_temperature(self):
+        kelvin_temp = 290.0
+        temp = preselector.get_sensor_value(1)
+        if temp is None:
+            logger.warning('Temperature is None. Using 290. instead.')
+        else:
+            kelvin_temp = (5.0 * (float(temp) - 32)) / 9.0
+            logger.info('Temperature: ' + kelvin_temp)
+        return kelvin_temp

@@ -14,7 +14,7 @@ django==3.2.12
     # via -r requirements.in
 idna==3.3
     # via requests
-its-preselector @ git+https://github.com/NTIA/Preselector@master
+its-preselector @ git+https://github.com/NTIA/Preselector@scos-sensor
     # via -r requirements.in
 numpy==1.21.5
     # via
