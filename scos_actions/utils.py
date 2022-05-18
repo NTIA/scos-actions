@@ -43,4 +43,5 @@ def get_parameters(i, parameters):
     return iteration_params
 
 def list_to_string(a_list):
-    return ','.join(a_list)
+    string_list = [str(i) for i in a_list ]
+    return ','.join(string_list)
