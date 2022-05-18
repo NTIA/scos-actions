@@ -41,3 +41,6 @@ def get_parameters(i, parameters):
         if key != 'name':
             iteration_params[key] = parameters[key][i]
     return iteration_params
+
+def list_to_string(a_list):
+    return ','.join(a_list)

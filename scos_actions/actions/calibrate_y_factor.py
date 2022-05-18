@@ -17,7 +17,7 @@
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
 r"""Perform a Y-Factor Calibration.
-Apply m4s detector over {nffts} {fft_size}-pt FFTs at {center_frequency:.2f} MHz.
+Apply m4s detector over {nffts} {fft_size}-pt FFTs at {frequencies} MHz.
 
 # {name}
 
@@ -179,26 +179,23 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
 
     @property
     def description(self):
-        center_frequency = self.parameter_map["frequency"] / 1e6
-        nffts = self.parameter_map["nffts"]
-        fft_size = self.parameter_map["fft_size"]
-        used_keys = ["frequency", "nffts", "fft_size", "name"]
-        acq_plan = f"The radio is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
-        for name, value in self.parameter_map.items():
-            if name not in used_keys:
-                acq_plan += f"{name} = {value}\n"
-        acq_plan += (
-            f"\nThen, ${nffts} \times {fft_size}$ samples are acquired gap-free."
-        )
 
+        if(isinstance(self.parameter_map['frequency'], float)):
+            frequencies = self.parameter_map["frequency"] / 1e6
+            nffts = self.parameter_map["nffts"]
+            fft_size = self.parameter_map["fft_size"]
+        else:
+            frequencies = utils.list_to_string(self.parameter_map['frequency'])
+            nffts = utils.list_to_string(self.parameter_map["nffts"])
+            fft_size = utils.list_to_string(self.parameter_map["fft_size"])
+        acq_plan = f"Performs a y-factor calibration at frequencies: {frequencies}, nffts:{nffts}, fft_size: {fft_size}\n"
         definitions = {
             "name": self.name,
-            "center_frequency": center_frequency,
+            "frequencies": frequencies,
             "acquisition_plan": acq_plan,
             "fft_size": fft_size,
             "nffts": nffts,
         }
-
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**definitions)
 
