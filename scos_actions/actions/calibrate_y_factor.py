@@ -128,40 +128,41 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         return detail
 
     def calibrate(self, params):
-        logger.info('Setting noise diode on')
+        logger.debug('Setting noise diode on')
         super().configure_preselector(NOISE_DIODE_ON)
         time.sleep(.25)
-        logger.info('Before configure, Preamp = ' + str(self.sigan.preamp_enable))
+        logger.debug('Before configure, Preamp = ' + str(self.sigan.preamp_enable))
         self.sigan.preamp_enable = True
         super().configure_sigan(params)
         param_map = self.get_parameter_map(params)
-        logger.info('Preamp = ' + str(self.sigan.preamp_enable))
-        logger.info('Ref_level: ' + str(self.sigan.reference_level))
-        logger.info('Attenuation:' + str(self.sigan.attenuation))
-        logger.info('acquiring m4')
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('Preamp = ' + str(self.sigan.preamp_enable))
+            logger.debug('Ref_level: ' + str(self.sigan.reference_level))
+            logger.debug('Attenuation:' + str(self.sigan.attenuation))
+        logger.debug('acquiring m4')
         noise_on_measurement_result = super().acquire_data(param_map, apply_gain=False)
         mean_on_power_dbm = noise_on_measurement_result['data'][2]
-        logger.info('Setting noise diode off')
+        logger.debug('Setting noise diode off')
         self.configure_preselector(NOISE_DIODE_OFF)
         time.sleep(.25)
-        logger.info('Acquiring noise off M4')
+        logger.debug('Acquiring noise off M4')
         measurement_result = super().acquire_data(param_map, apply_gain=False)
         mean_off_power_dbm = measurement_result['data'][2]
         mean_on_watts = dbm_to_watts(mean_on_power_dbm)
         mean_off_watts = dbm_to_watts(mean_off_power_dbm)
         import numpy as np
-        logger.info('Mean on dBm: ' + str(np.mean(mean_on_power_dbm)))
-        logger.info('Mean off dBm:' + str(np.mean(mean_off_power_dbm)))
+        logger.debug('Mean on dBm: ' + str(np.mean(mean_on_power_dbm)))
+        logger.debug('Mean off dBm:' + str(np.mean(mean_off_power_dbm)))
         window = windows.flattop(param_map[FFT_SIZE])
         enbw = get_enbw(window, param_map[SAMPLE_RATE])
         noise_floor = 1.38e-23 * 300 * enbw
         logger.info('Noise floor: ' + str(noise_floor))
         enr = self.get_enr()
-        logger.info('ENR: ' + str(enr))
+        logger.debug('ENR: ' + str(enr))
         temperature = self.get_temperature()
         noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw, T_room=temperature)
-        logger.info('Noise Figure:' + str(noise_figure))
-        logger.info('Gain: ' + str(gain))
+        logger.debug('Noise Figure:' + str(noise_figure))
+        logger.debug('Gain: ' + str(gain))
         sensor_calibration.update(param_map, utils.get_datetime_str_now(), gain, noise_figure, temperature, SENSOR_CALIBRATION_FILE)
         return 'Noise Figure:{}, Gain:{}'.format(noise_figure, gain)
 
@@ -203,10 +204,10 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
     def get_temperature(self):
         kelvin_temp = 290.0
         temp = preselector.get_sensor_value(1)
-        logger.info('Temp: ' + str(temp))
+        logger.debug('Temp: ' + str(temp))
         if temp is None:
             logger.warning('Temperature is None. Using 290. instead.')
         else:
             kelvin_temp = ((5.0 * (float(temp) - 32)) / 9.0 ) + 273.15
-            logger.info('Temperature: ' + str(kelvin_temp))
+            logger.debug('Temperature: ' + str(kelvin_temp))
         return kelvin_temp

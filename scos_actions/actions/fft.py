@@ -35,7 +35,7 @@ def m4s_detector(array):
 
 
 def get_frequency_domain_data(time_data, sample_rate, fft_size):
-    logger.info('Converting {} samples at {} to freq domain with fft_size {}'.format(len(time_data), sample_rate, fft_size))
+    logger.debug('Converting {} samples at {} to freq domain with fft_size {}'.format(len(time_data), sample_rate, fft_size))
     # Get the fft window and its amplitude/energy correction factors
     fft_window = get_fft_window("Flat Top", fft_size)
     fft_window_acf = get_fft_window_correction(fft_window, "amplitude")
