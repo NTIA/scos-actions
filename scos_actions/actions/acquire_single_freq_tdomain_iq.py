@@ -114,7 +114,6 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             measurement_result, self.is_complex
         )
         self.sigmf_builder.add_sigmf_capture(self.sigmf_builder, measurement_result)
-        self.sigmf_builder.add_base_sigmf_annotations(self.sigmf_builder, measurement_result)
         for decorator in self.decorators.values():
             decorator.decorate(self.sigan.sigan_calibration_data, self.sigan.sensor_calibration_data,
                                measurement_result)
