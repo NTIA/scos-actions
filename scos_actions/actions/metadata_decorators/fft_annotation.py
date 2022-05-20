@@ -14,7 +14,7 @@ class FftAnnotation(Metadata):
             "ntia-algorithm:window": measurement_result['window'],
             "ntia-algorithm:equivalent_noise_bandwidth": measurement_result['enbw'],
             "ntia-algorithm:detector": self.detector,
-            "ntia-algorithm:number_of_ffts": measurement_result['num_ffts'],
+            "ntia-algorithm:number_of_ffts": measurement_result['nffts'],
             "ntia-algorithm:units": 'dBm',
             "ntia-algorithm:reference": '"preselector input"',
             "ntia-algorithm:frequency_start": measurement_result['frequency_start'],
