@@ -14,4 +14,4 @@ class TimeDomainAnnotationDecorator(MetadataDecorator):
             "ntia-algorithm:units": "volts",
             "ntia-algorithm:reference": "preslector input",
         }
-        self.add_annotation(self.start, self.length, time_domain_detection_md)
+        self.sigmf_builder.add_annotation(self.start, self.length, time_domain_detection_md)
