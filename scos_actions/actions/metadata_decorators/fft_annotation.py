@@ -1,13 +1,13 @@
-from scos_actions.actions.metadata_decorators.metadata_decorator import MetadataDecorator
+from scos_actions.actions.metadata_decorators.metadata_decorator import Metadata
 from scos_actions.actions.sigmf_builder import SigMFBuilder
 
-class FftAnnotationDecorator(MetadataDecorator):
+class FftAnnotation(Metadata):
 
     def __init__(self,detector, sigmf_builder: SigMFBuilder, start, length):
         super().__init__(sigmf_builder, start, length)
         self.detector = detector
 
-    def decorate(self, sigan_cal, sensor_cal, measurement_result):
+    def create_metadata(self, sigan_cal, sensor_cal, measurement_result):
         metadata = {
             "ntia-core:annotation_type": "FrequencyDomainDetection",
             "ntia-algorithm:number_of_samples_in_fft": measurement_result['fft_size'],

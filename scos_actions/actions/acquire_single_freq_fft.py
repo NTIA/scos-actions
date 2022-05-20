@@ -101,7 +101,7 @@ from scos_actions.actions.fft import (
 )
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
-from scos_actions.actions.metadata_decorators.fft_annotation_decorator import FftAnnotationDecorator
+from scos_actions.actions.metadata_decorators.fft_annotation import FftAnnotation
 from scos_actions.hardware import gps as mock_gps
 
 logger = logging.getLogger(__name__)
@@ -222,5 +222,5 @@ n
         super().add_metadata_decorators(measurement_result)
         self.decorators.pop('TimeDomainAnnotationDecorator', '')
         for i, detector in enumerate(M4sDetector):
-            fft_annotation = FftAnnotationDecorator("fft_" + detector.name + "_power",self.sigmf_builder,i * self.parameter_map["fft_size"],self.parameter_map["fft_size"] )
+            fft_annotation = FftAnnotation("fft_" + detector.name + "_power", self.sigmf_builder, i * self.parameter_map["fft_size"], self.parameter_map["fft_size"])
             self.decorators[type(fft_annotation).__name__ + '_' + "fft_" + detector.name + "_power"] = fft_annotation

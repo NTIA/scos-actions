@@ -1,12 +1,12 @@
-from scos_actions.actions.metadata_decorators.metadata_decorator import MetadataDecorator
+from scos_actions.actions.metadata_decorators.metadata_decorator import Metadata
 from scos_actions.actions.sigmf_builder import SigMFBuilder
 
-class SensorAnnotationDecorator(MetadataDecorator):
+class SensorAnnotation(Metadata):
 
     def __init__(self, sigmf_builder: SigMFBuilder, start, length):
         super().__init__(sigmf_builder)
 
-    def decorate(self, sigan_cal, sensor_cal, measurement_result):
+    def create_metadata(self, sigan_cal, sensor_cal, measurement_result):
         metadata = {"ntia-core:annotation_type": "SensorAnnotation"}
         if 'overload' in measurement_result:
             metadata["ntia-sensor:overload"] = measurement_result['overload']

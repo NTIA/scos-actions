@@ -1,13 +1,13 @@
-from scos_actions.actions.metadata_decorators.metadata_decorator import MetadataDecorator
+from scos_actions.actions.metadata_decorators.metadata_decorator import Metadata
 from scos_actions.actions.sigmf_builder import SigMFBuilder
 
 
-class CalibrationAnnotationDecorator(MetadataDecorator):
+class CalibrationAnnotation(Metadata):
 
     def __init__(self, sigmf_builder: SigMFBuilder, start, length):
         super().__init__(sigmf_builder, start, length)
 
-    def decorate(self, sigan_cal, sensor_cal, measurement_result):
+    def create_metadata(self, sigan_cal, sensor_cal, measurement_result):
         annotation = self.create_calibration_annotation(sigan_cal, sensor_cal)
         self.sigmf_builder.add_annotation(self.start, self.length, annotation)
 
@@ -33,7 +33,10 @@ class CalibrationAnnotationDecorator(MetadataDecorator):
             "ntia-sensor:1db_compression_point_sensor": sensor_cal[
                 "1db_compression_sensor"
             ],
-            "ntia-sensor:enbw_sensor": sensor_cal["enbw_sensor"],
-            "ntia-sensor:temperature": sensor_cal["temperature"]
+            "ntia-sensor:enbw_sensor": sensor_cal["enbw_sensor"]
+
         }
+        if 'temparature' in sensor_cal:
+            annotation_md["ntia-sensor:temperature"] =  sensor_cal["temperature"]
+
         return annotation_md
