@@ -150,6 +150,8 @@ n
         measurement_result['frequency_stop'] = frequencies[-1],
         measurement_result['frequency_step'] = frequencies[1] - frequencies[0]
         measurement_result['window'] = 'flattop'
+        measurement_result['frequency_low'] = self.parameter_map['frequency']
+        measurement_result['frequency_high'] = self.parameter_map['frequency']
         measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
         measurement_result['description'] = self.description
         measurement_result['name'] = self.parameter_map['name']
