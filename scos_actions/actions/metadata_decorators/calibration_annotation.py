@@ -36,7 +36,7 @@ class CalibrationAnnotation(Metadata):
             "ntia-sensor:enbw_sensor": sensor_cal["enbw_sensor"]
 
         }
-        if 'temparature' in sensor_cal:
+        if 'temperature' in sensor_cal:
             annotation_md["ntia-sensor:temperature"] =  sensor_cal["temperature"]
 
         return annotation_md
