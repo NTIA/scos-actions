@@ -164,7 +164,7 @@ class SigMFBuilder:
         sample_rate = measurement_result["sample_rate"]
         sigmf_builder.set_last_calibration_time(measurement_result['calibration_datetime'])
         sigmf_builder.set_action(
-            self.parameters["name"], self.description, self.description.splitlines()[0]
+            measurement_result["name"], self.description, self.description.splitlines()[0]
         )
         sigmf_builder.set_coordinate_system()
         sigmf_builder.set_data_type(is_complex=is_complex)
