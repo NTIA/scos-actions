@@ -165,8 +165,9 @@ class SigMFBuilder:
         if 'calibration_datetime' in measurement_result:
             sigmf_builder.set_last_calibration_time(measurement_result['calibration_datetime'])
 
+        description = measurement_result['description']
         sigmf_builder.set_action(
-            measurement_result["name"], self.description, self.description.splitlines()[0]
+            measurement_result["name"], description, description.splitlines()[0]
         )
         sigmf_builder.set_coordinate_system()
         sigmf_builder.set_data_type(is_complex=is_complex)

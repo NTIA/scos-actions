@@ -150,6 +150,8 @@ n
         measurement_result['frequency_stop'] = frequencies[-1],
         measurement_result['frequency_step'] = frequencies[1] - frequencies[0]
         measurement_result['window'] = 'flattop'
+        measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
+        measurement_result['description'] = self.description
         self.add_metadata_decorators(measurement_result)
         self.create_metadata(schedule_entry_json, measurement_result)
         measurement_action_completed.send(
