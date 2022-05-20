@@ -36,3 +36,10 @@ class SyncGps(Action):
             height=height,
             gps=True,
         )
+
+    def add_metadata_decorators(self, measurement_result):
+        pass
+
+
+    def create_metadata(self, schedule_entry, measurement_result):
+        pass

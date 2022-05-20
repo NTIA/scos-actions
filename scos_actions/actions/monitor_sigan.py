@@ -31,3 +31,10 @@ class MonitorSignalAnalyzer(Action):
         else:
             logger.warning("signal analyzer unhealthy")
             monitor_action_completed.send(sender=self.__class__, sigan_healthy=False)
+
+    def add_metadata_decorators(self, measurement_result):
+        pass
+
+
+    def create_metadata(self, schedule_entry, measurement_result):
+        pass
