@@ -162,7 +162,9 @@ class SigMFBuilder:
             is_complex=True,
     ):
         sample_rate = measurement_result["sample_rate"]
-        sigmf_builder.set_last_calibration_time(measurement_result['calibration_datetime'])
+        if 'calibration_datetime' in measurement_result:
+            sigmf_builder.set_last_calibration_time(measurement_result['calibration_datetime'])
+
         sigmf_builder.set_action(
             measurement_result["name"], self.description, self.description.splitlines()[0]
         )
