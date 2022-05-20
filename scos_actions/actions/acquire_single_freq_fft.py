@@ -157,6 +157,8 @@ n
         measurement_result['name'] = self.parameter_map['name']
         measurement_result['task_id'] = task_id
         measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
+        measurement_result['fft_size'] = self.parameter_map['fft_size']
+        measurement_result['num_ffts'] = self.parameter_map['num_ffts']
         self.add_metadata_decorators(measurement_result)
         self.create_metadata(schedule_entry_json, measurement_result)
         measurement_action_completed.send(
