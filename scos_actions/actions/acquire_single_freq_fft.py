@@ -101,6 +101,7 @@ from scos_actions.actions.fft import (
 )
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.actions.metadata_decorators.fft_annotation_decorator import FftAnnotationDecorator
 from scos_actions.hardware import gps as mock_gps
 
 logger = logging.getLogger(__name__)
@@ -127,6 +128,7 @@ n
 
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters, sigan, gps)
+        self.is_complex = False
 
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
@@ -135,55 +137,28 @@ n
         start_time = utils.get_datetime_str_now()
         self.configure((self.parameters))
         measurement_result = self.acquire_data(self.parameters, apply_gain=True)
-        end_time = utils.get_datetime_str_now()
-
-        sigmf_builder = SigMFBuilder()
-        self.set_base_sigmf_global(
-            sigmf_builder,
-            schedule_entry_json,
-            self.sensor_definition,
-            measurement_result,
-            task_id,
-            is_complex=False,
-        )
-        sigmf_builder.set_measurement(
-            start_time,
-            end_time,
-            domain=Domain.FREQUENCY,
-            measurement_type=MeasurementType.SINGLE_FREQUENCY,
-            frequency=measurement_result["frequency"],
-        )
-        self.add_sigmf_capture(sigmf_builder, measurement_result)
-        self.add_base_sigmf_annotations(sigmf_builder, measurement_result)
-        self.add_fft_annotations(sigmf_builder, measurement_result)
-        measurement_action_completed.send(
-            sender=self.__class__,
-            task_id=task_id,
-            data=measurement_result["data"],
-            metadata=sigmf_builder.metadata,
-        )
-
-    def add_fft_annotations(self, sigmf_builder, measurement_result):
+        measurement_result['start_time'] = start_time
+        measurement_result['end_time'] = utils.get_datetime_str_now()
+        measurement_result['enbw'] = self.enbw
         frequencies = get_fft_frequencies(
             self.parameter_map["fft_size"],
             measurement_result["sample_rate"],
             measurement_result["frequency"],
         ).tolist()
+        measurement_result['frequency_start'] = frequencies[0]
+        measurement_result['frequency_stop'] = frequencies[-1],
+        measurement_result['frequency_step'] = frequencies[1] - frequencies[0]
+        measurement_result['window'] = 'flattop'
+        self.add_metadata_decorators(measurement_result)
+        self.create_metadata(schedule_entry_json, measurement_result)
+        measurement_action_completed.send(
+            sender=self.__class__,
+            task_id=task_id,
+            data=measurement_result["data"],
+            metadata=self.sigmf_builder.metadata,
+        )
 
-        for i, detector in enumerate(M4sDetector):
-            sigmf_builder.add_frequency_domain_detection(
-                start_index=(i * self.parameter_map["fft_size"]),
-                fft_size=self.parameter_map["fft_size"],
-                enbw=self.enbw,
-                detector="fft_" + detector.name + "_power",
-                num_ffts=self.parameters["nffts"],
-                window="flattop",
-                units="dBm",
-                reference="preselector input",
-                frequency_start=frequencies[0],
-                frequency_stop=frequencies[-1],
-                frequency_step=frequencies[1] - frequencies[0],
-            )
+
 
     def acquire_data(self, params, apply_gain=True):
         if not "nffts" in params:
@@ -239,3 +214,10 @@ n
 
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**definitions)
+
+    def add_metadata_decorators(self, measurement_result):
+        super().add_metadata_decorators(measurement_result)
+        self.decorators.pop('TimeDomainAnnotationDecorator', '')
+        for i, detector in enumerate(M4sDetector):
+            fft_annotation = FftAnnotationDecorator("fft_" + detector.name + "_power",self.sigmf_builder,i * self.parameter_map["fft_size"],self.parameter_map["fft_size"] )
+            self.decorators[type(fft_annotation).__name__ + '_' + "fft_" + detector.name + "_power"] = fft_annotation

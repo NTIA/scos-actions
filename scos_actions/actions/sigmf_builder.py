@@ -135,36 +135,47 @@ class SigMFBuilder:
         }
         self.add_annotation(start_index, fft_size, metadata)
 
-    def add_time_domain_detection(
-        self, start_index, num_samples, detector, units, reference
-    ):
-        time_domain_detection_md = {
-            "ntia-core:annotation_type": "TimeDomainDetection",
-            "ntia-algorithm:detector": detector,
-            "ntia-algorithm:number_of_samples": num_samples,
-            "ntia-algorithm:units": units,
-            "ntia-algorithm:reference": reference,
-        }
-        self.add_annotation(start_index, num_samples, time_domain_detection_md)
+
 
     def add_annotation(self, start_index, length, annotation_md):
         self.sigmf_md.add_annotation(
             start_index=start_index, length=length, metadata=annotation_md
         )
 
-    def add_sensor_annotation(
-        self, start_index, length, overload=None, gain=None, attenuation=None
-    ):
-        metadata = {"ntia-core:annotation_type": "SensorAnnotation"}
-        if overload is not None:
-            metadata["ntia-sensor:overload"] = overload
-        if gain is not None:
-            metadata["ntia-sensor:gain_setting_sigan"] = gain
-        if attenuation is not None:
-            metadata["ntia-sensor:attenuation_setting_sigan"] = attenuation
-        self.add_annotation(start_index, length, metadata)
+
 
     def set_last_calibration_time(self, last_cal_time):
         self.sigmf_md.set_global_field(
             "ntia-sensor:calibration_datetime", last_cal_time
+        )
+
+    def add_to_global(self, key, value):
+        self.sigmf_md.set_global_field(key, value)
+
+    def set_base_sigmf_global(
+            self,
+            sigmf_builder,
+            schedule_entry_json,
+            sensor_def,
+            measurement_result,
+            recording_id=None,
+            is_complex=True,
+    ):
+        sample_rate = measurement_result["sample_rate"]
+        sigmf_builder.set_last_calibration_time(self.sigan.last_calibration_time)
+        sigmf_builder.set_action(
+            self.parameters["name"], self.description, self.description.splitlines()[0]
+        )
+        sigmf_builder.set_coordinate_system()
+        sigmf_builder.set_data_type(is_complex=is_complex)
+        sigmf_builder.set_sample_rate(sample_rate)
+        sigmf_builder.set_schedule(schedule_entry_json)
+        sigmf_builder.set_sensor(sensor_def)
+        sigmf_builder.set_task(measurement_result['task_id'])
+        if recording_id:
+            sigmf_builder.set_recording(recording_id)
+
+    def add_sigmf_capture(self, sigmf_builder, measurement_result):
+        sigmf_builder.set_capture(
+            measurement_result["frequency"], measurement_result["capture_time"]
         )

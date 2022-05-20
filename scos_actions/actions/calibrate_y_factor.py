@@ -159,11 +159,11 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         logger.info('Noise floor: ' + str(noise_floor))
         enr = self.get_enr()
         logger.debug('ENR: ' + str(enr))
-        temperature = self.get_temperature()
-        noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw, T_room=temperature)
+        temp_k, temp_c, temp_f = self.get_temperature()
+        noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw, T_room=temp_k)
         logger.debug('Noise Figure:' + str(noise_figure))
         logger.debug('Gain: ' + str(gain))
-        sensor_calibration.update(param_map, utils.get_datetime_str_now(), gain, noise_figure, temperature, SENSOR_CALIBRATION_FILE)
+        sensor_calibration.update(param_map, utils.get_datetime_str_now(), gain, noise_figure, temp_c, SENSOR_CALIBRATION_FILE)
         return 'Noise Figure:{}, Gain:{}'.format(noise_figure, gain)
 
     def get_enr(self):
@@ -208,6 +208,8 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         if temp is None:
             logger.warning('Temperature is None. Using 290. instead.')
         else:
-            kelvin_temp = ((5.0 * (float(temp) - 32)) / 9.0 ) + 273.15
+            fahrenheit = float(temp)
+            celsius_temp =  ((5.0 * (fahrenheit - 32)) / 9.0 )
+            kelvin_temp = celsius_temp + 273.15
             logger.debug('Temperature: ' + str(kelvin_temp))
-        return kelvin_temp
+        return kelvin_temp, celsius_temp, fahrenheit

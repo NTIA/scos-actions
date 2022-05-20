@@ -6,6 +6,7 @@ from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import preselector
 from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.capabilities import capabilities
+from scos_actions.actions.sigmf_builder import SigMFBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,8 @@ class Action(ABC):
         self.gps = gps
         self.sensor_definition = capabilities['sensor']
         self.parameter_map = self.get_parameter_map(self.parameters)
+        self.decorators = {}
+        self.sigmf_builder = SigMFBuilder()
 
     @abstractmethod
     def __call__(self, schedule_entry_json, task_id):
@@ -89,3 +92,11 @@ class Action(ABC):
             return key_map
         elif isinstance(params, dict):
            return copy.deepcopy(params)
+
+    @abstractmethod
+    def add_metadata_decorators(self, measurement_result):
+        pass
+
+    @abstractmethod
+    def create_metadata(self, schedule_entry, measurement_result):
+        pass

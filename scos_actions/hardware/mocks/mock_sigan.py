@@ -112,7 +112,8 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
                 return {
                     "data": data,
                     "overload": self._overload,
-                    "frequency": self._frequency,
+                    "frequency_low": self._frequency,
+                    "frequency_high": self._frequency,
                     "gain": self._gain,
                     "sample_rate": self._sample_rate,
                     "capture_time": self._capture_time,

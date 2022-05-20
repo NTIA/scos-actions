@@ -40,6 +40,10 @@ from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.hardware import gps as mock_gps
+from scos_actions.actions.metadata_decorators.time_domain_annotation_decorator import TimeDomainAnnotationDecorator
+from scos_actions.actions.metadata_decorators.calibration_annotation_decorator import CalibrationAnnotationDecorator
+from scos_actions.actions.metadata_decorators.measurement_global_deocorator import MeasurementDecorator
+from scos_actions.actions.metadata_decorators.sensor_annotation_decorator import SensorAnnotationDecorator
 
 logger = logging.getLogger(__name__)
 
@@ -62,47 +66,55 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
     :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, sigan, gps = mock_gps):
+    def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
-
+        self.is_complex = True
 
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
         start_time = utils.get_datetime_str_now()
         measurement_result = self.acquire_data(self.parameters)
+        measurement_result['start_time'] = start_time
         end_time = utils.get_datetime_str_now()
-        received_samples = len(measurement_result["data"])
-        sigmf_builder = SigMFBuilder()
-        self.set_base_sigmf_global(
-            sigmf_builder,
-            schedule_entry_json,
-            self.sensor_definition,
-            measurement_result,
-            task_id,
-        )
-        sigmf_builder.set_measurement(
-            start_time,
-            end_time,
-            domain=Domain.TIME,
-            measurement_type=MeasurementType.SINGLE_FREQUENCY,
-            frequency=measurement_result["frequency"],
-        )
-        self.add_sigmf_capture(sigmf_builder, measurement_result)
-        self.add_base_sigmf_annotations(sigmf_builder, measurement_result)
-        sigmf_builder.add_time_domain_detection(
-            start_index=0,
-            num_samples=received_samples,
-            detector="sample_iq",
-            units="volts",
-            reference="preselector input",
-        )
+        measurement_result['end_time'] = end_time
+        measurement_result['domain'] = Domain.Time.value
+        measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
+        measurement_result['task_id'] = task_id
+        measurement_result['frequency_low'] = self.parameter_map['frequency']
+        measurement_result['frequency_high'] = self.parameter_map['frequency']
+        self.add_metadata_decorators(measurement_result)
+        self.create_metadata(schedule_entry_json, measurement_result)
         measurement_action_completed.send(
             sender=self.__class__,
             task_id=task_id,
             data=measurement_result["data"].astype(np.complex64),
-            metadata=sigmf_builder.metadata,
+            metadata=self.sigmf_builder.metadata,
         )
+
+    def add_metadata_decorators(self, measurement_result):
+        received_samples = len(measurement_result["data"].flatten())
+        time_domain_decorator = TimeDomainAnnotationDecorator(self.sigmf_builder, 0, received_samples)
+        self.decorators[type(time_domain_decorator).__name__] = time_domain_decorator
+        calibration_annotation_decorator = CalibrationAnnotationDecorator(self.sigmf_builder, 0, received_samples)
+        self.decorators[type(calibration_annotation_decorator).__name__] = calibration_annotation_decorator
+        measurement_decorator = MeasurementDecorator(self.sigmf_builder)
+        self.decorators[type(measurement_decorator).__name__] = measurement_decorator
+        sensor_annotation = SensorAnnotationDecorator(self.sigmf_builder, 0, received_samples)
+        self.decorators[type(sensor_annotation).__name__] = sensor_annotation
+
+    def create_metadata(self, schedule_entry, measurement_result):
+        self.sigmf_builder.set_base_sigmf_global(
+            self.sigmf_builder,
+            schedule_entry,
+            self.sensor_definition,
+            measurement_result, self.is_complex
+        )
+        self.sigmf_builder.add_sigmf_capture(self.sigmf_builder, measurement_result)
+        self.sigmf_builder.add_base_sigmf_annotations(self.sigmf_builder, measurement_result)
+        for decorator in self.decorators.values():
+            decorator.decorate(self.sigan.sigan_calibration_data, self.sigan.sensor_calibration_data,
+                               measurement_result)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
@@ -130,65 +142,6 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
 
         return measurement_result
 
-    def set_base_sigmf_global(
-        self,
-        sigmf_builder,
-        schedule_entry_json,
-        sensor_def,
-        measurement_result,
-        task_id,
-        recording_id=None,
-        is_complex=True,
-    ):
-        sample_rate = measurement_result["sample_rate"]
-        sigmf_builder.set_last_calibration_time(self.sigan.last_calibration_time)
-        sigmf_builder.set_action(
-            self.parameters["name"], self.description, self.description.splitlines()[0]
-        )
-        sigmf_builder.set_coordinate_system()
-        sigmf_builder.set_data_type(is_complex=is_complex)
-        sigmf_builder.set_sample_rate(sample_rate)
-        sigmf_builder.set_schedule(schedule_entry_json)
-        sigmf_builder.set_sensor(sensor_def)
-        sigmf_builder.set_task(task_id)
-        if recording_id:
-            sigmf_builder.set_recording(recording_id)
-
-    def add_sigmf_capture(self, sigmf_builder, measurement_result):
-        sigmf_builder.set_capture(
-            measurement_result["frequency"], measurement_result["capture_time"]
-        )
-
-    def add_base_sigmf_annotations(
-        self,
-        sigmf_builder,
-        measurement_result,
-    ):
-        received_samples = len(measurement_result["data"].flatten())
-
-        sigmf_builder.add_annotation(
-            start_index=0,
-            length=received_samples,
-            annotation_md=measurement_result["calibration_annotation"],
-        )
-
-        gain = measurement_result["gain"] if "gain" in measurement_result else None
-        attenuation = (
-            measurement_result["attenuation"]
-            if "attenuation" in measurement_result
-            else None
-        )
-        overload = (
-            measurement_result["overload"] if "overload" in measurement_result else None
-        )
-
-        sigmf_builder.add_sensor_annotation(
-            start_index=0,
-            length=received_samples,
-            overload=overload,
-            gain=gain,
-            attenuation=attenuation,
-        )
 
     @property
     def description(self):

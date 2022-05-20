@@ -102,32 +102,17 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             start_time = utils.get_datetime_str_now()
             measurement_result = super().acquire_data(measurement_params)
             end_time = utils.get_datetime_str_now()
-            received_samples = len(measurement_result["data"])
-            sigmf_builder = SigMFBuilder()
-            self.set_base_sigmf_global(
-                sigmf_builder,
-                schedule_entry_json,
-                self.sensor_definition,
-                measurement_result,
-                task_id,
-                recording_id,
-            )
-            sigmf_builder.set_measurement(
-                start_time,
-                end_time,
-                domain=Domain.TIME,
-                measurement_type=MeasurementType.SINGLE_FREQUENCY,
-                frequency=measurement_result["frequency"],
-            )
-            self.add_sigmf_capture(sigmf_builder, measurement_result)
-            self.add_base_sigmf_annotations(sigmf_builder, measurement_result)
-            sigmf_builder.add_time_domain_detection(
-                start_index=0,
-                num_samples=received_samples,
-                detector="sample_iq",
-                units="volts",
-                reference="preselector input",
-            )
+            measurement_result['start_time'] = start_time
+            measurement_result['end_time'] = end_time
+            measurement_result['domain'] = Domain.Time.value
+            measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
+            measurement_result['task_id'] = task_id
+            measurement_result['frequency_low'] = self.parameter_map['frequency']
+            measurement_result['frequency_high'] = self.parameter_map['frequency']
+
+            self.sigmf_builder = SigMFBuilder()
+            self.add_metadata_decorators(measurement_result)
+            self.create_metadata(schedule_entry_json,measurement_result)
             measurement_action_completed.send(
                 sender=self.__class__,
                 task_id=task_id,
