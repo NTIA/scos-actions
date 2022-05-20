@@ -4,7 +4,7 @@ from scos_actions.actions.sigmf_builder import SigMFBuilder
 class SensorAnnotation(Metadata):
 
     def __init__(self, sigmf_builder: SigMFBuilder, start, length):
-        super().__init__(sigmf_builder)
+        super().__init__(sigmf_builder, start, length)
 
     def create_metadata(self, sigan_cal, sensor_cal, measurement_result):
         metadata = {"ntia-core:annotation_type": "SensorAnnotation"}
