@@ -16,6 +16,6 @@ class MeasurementMetadata(Metadata):
                 "domain": measurement_result['domain'],
                 "measurement_type":measurement_result['measurement_type'],
                 "frequency_tuned_low": measurement_result['frequency_low'],
-                "frequency_tuned_high": measurement_result['frequency_hight']
+                "frequency_tuned_high": measurement_result['frequency_high']
             },
         )
