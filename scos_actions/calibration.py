@@ -43,6 +43,8 @@ class Calibration(object):
             setting = self.calibration_parameters[i]
             logger.debug('looking up calibration for {} at {}'.format(setting, setting_value))
             cal_data = filter_by_parameter(cal_data, setting, setting_value)
+            if 'calibration_datetime' not in cal_data:
+                cal_data['calibration_datetime'] = self.calibration_datetime
 
         return cal_data
 
