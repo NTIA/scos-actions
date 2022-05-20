@@ -58,10 +58,6 @@ class SignalAnalyzerInterface(ABC):
         """
         pass
 
-    @abstractmethod
-    def create_calibration_annotation(self):
-        pass
-
     @property
     @abstractmethod
     def healthy(self):
