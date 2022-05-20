@@ -145,6 +145,7 @@ n
             measurement_result["sample_rate"],
             measurement_result["frequency"],
         ).tolist()
+        measurement_result['domain'] = Domain.FREQUENCY.value
         measurement_result['frequency_start'] = frequencies[0]
         measurement_result['frequency_stop'] = frequencies[-1],
         measurement_result['frequency_step'] = frequencies[1] - frequencies[0]

@@ -78,7 +78,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         measurement_result['start_time'] = start_time
         end_time = utils.get_datetime_str_now()
         measurement_result['end_time'] = end_time
-        measurement_result['domain'] = Domain.Time.value
+        measurement_result['domain'] = Domain.TIME.value
         measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result['task_id'] = task_id
         measurement_result['frequency_low'] = self.parameter_map['frequency']
