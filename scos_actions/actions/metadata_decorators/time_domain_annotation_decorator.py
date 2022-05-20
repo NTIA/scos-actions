@@ -6,7 +6,7 @@ class TimeDomainAnnotationDecorator(MetadataDecorator):
     def __init__(self, sigmf_builder:SigMFBuilder, start, length):
         super().__init__(sigmf_builder, start, length)
 
-    def decorate(self, sigmf_builder, sigan_cal, sensor_cal, measurement_result):
+    def decorate(self, sigan_cal, sensor_cal, measurement_result):
         time_domain_detection_md = {
             "ntia-core:annotation_type": "TimeDomainDetection",
             "ntia-algorithm:detector": "sample_iq",

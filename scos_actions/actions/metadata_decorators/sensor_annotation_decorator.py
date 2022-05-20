@@ -6,7 +6,7 @@ class SensorAnnotationDecorator(MetadataDecorator):
     def __init__(self, sigmf_builder: SigMFBuilder, start, length):
         super().__init__(sigmf_builder)
 
-    def decorate(self, sigmf_builder, sigan_cal, sensor_cal, measurement_result):
+    def decorate(self, sigan_cal, sensor_cal, measurement_result):
         metadata = {"ntia-core:annotation_type": "SensorAnnotation"}
         if 'overload' in measurement_result:
             metadata["ntia-sensor:overload"] = measurement_result['overload']
@@ -14,6 +14,6 @@ class SensorAnnotationDecorator(MetadataDecorator):
             metadata["ntia-sensor:gain_setting_sigan"] = measurement_result['gain']
         if 'attenuation' is not None:
             metadata["ntia-sensor:attenuation_setting_sigan"] = measurement_result['attenuation']
-        sigmf_builder.add_annotation(self.start, self.length, metadata)
+        self.sigmf_builder.add_annotation(self.start, self.length, metadata)
 
 

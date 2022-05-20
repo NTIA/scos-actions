@@ -115,8 +115,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         )
         self.sigmf_builder.add_sigmf_capture(self.sigmf_builder, measurement_result)
         for decorator in self.decorators.values():
-            decorator.decorate(self.sigan.sigan_calibration_data, self.sigan.sensor_calibration_data,
-                               measurement_result)
+            decorator.decorate(self.sigan.sigan_calibration_data, self.sigan.sensor_calibration_data,measurement_result)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""

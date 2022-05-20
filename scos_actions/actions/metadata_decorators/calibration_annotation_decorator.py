@@ -7,9 +7,9 @@ class CalibrationAnnotationDecorator(MetadataDecorator):
     def __init__(self, sigmf_builder: SigMFBuilder, start, length):
         super().__init__(sigmf_builder, start, length)
 
-    def decorate(self, sigmf_builder, sigan_cal, sensor_cal, measurement_result):
+    def decorate(self, sigan_cal, sensor_cal, measurement_result):
         annotation = self.create_calibration_annotation(sigan_cal, sensor_cal)
-        sigmf_builder.add_annotation(self.start, self.length, annotation)
+        self.sigmf_builder.add_annotation(self.start, self.length, annotation)
 
     def create_calibration_annotation(self, sigan_cal, sensor_cal):
         """Create the SigMF calibration annotation."""

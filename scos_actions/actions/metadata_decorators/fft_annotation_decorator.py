@@ -7,7 +7,7 @@ class FftAnnotationDecorator(MetadataDecorator):
         super().__init__(sigmf_builder, start, length)
         self.detector = detector
 
-    def decorate(self, sigmf_builder, sigan_cal, sensor_cal, measurement_result):
+    def decorate(self, sigan_cal, sensor_cal, measurement_result):
         metadata = {
             "ntia-core:annotation_type": "FrequencyDomainDetection",
             "ntia-algorithm:number_of_samples_in_fft": measurement_result['fft_size'],
@@ -21,4 +21,4 @@ class FftAnnotationDecorator(MetadataDecorator):
             "ntia-algorithm:frequency_stop": measurement_result['frequency_stop'],
             "ntia-algorithm:frequency_step": measurement_result['frequency_step'],
         }
-        sigmf_builder.add_annotation(self.start, measurement_result['fft_size'], metadata)
+        self.sigmf_builder.add_annotation(self.start, measurement_result['fft_size'], metadata)
