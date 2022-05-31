@@ -107,8 +107,10 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             measurement_result['domain'] = Domain.Time.value
             measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
             measurement_result['task_id'] = task_id
-            measurement_result['frequency_low'] = self.parameter_map['frequency']
-            measurement_result['frequency_high'] = self.parameter_map['frequency']
+            measurement_result['frequency_low'] = measurement_params['frequency']
+            measurement_result['frequency_high'] = measurement_params['frequency']
+            measurement_result['description'] = self.description
+            measurement_result['name'] = self.parameter_map['name']
 
             self.sigmf_builder = SigMFBuilder()
             self.add_metadata_decorators(measurement_result)
