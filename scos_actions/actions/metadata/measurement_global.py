@@ -1,4 +1,4 @@
-from scos_actions.actions.metadata_decorators.metadata_decorator import Metadata
+from scos_actions.actions.metadata.metadata_decorator import Metadata
 from scos_actions.actions.sigmf_builder import SigMFBuilder
 
 

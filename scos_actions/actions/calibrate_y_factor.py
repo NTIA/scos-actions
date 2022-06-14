@@ -17,7 +17,10 @@
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
 r"""Perform a Y-Factor Calibration.
-Apply m4s detector over {nffts} {fft_size}-pt FFTs at {frequencies} MHz.
+Supports calibration of gain and noise figure for one or more channels.
+For each center frequency, sets the preselector to the noise diode path, turns noise diode on, performs and M4 measurmenet,
+turns the noise diode off and performs another M4 measurements. Uses the mean power on and mean power off data to compute the noise figure and gain.
+For each M4 measurement, it applies an m4s detector over {nffts} {fft_size}-pt FFTs at {frequencies} MHz.
 
 # {name}
 
@@ -51,7 +54,6 @@ $$w(n) = &0.2156 - 0.4160 \cos{{(2 \pi n / M)}} + 0.2781 \cos{{(4 \pi n / M)}} -
 
 where $M = {fft_size}$ is the number of points in the window, is applied to
 each row of the matrix.
-
 
 
 """
@@ -156,7 +158,7 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
         window = windows.flattop(param_map[FFT_SIZE])
         enbw = get_enbw(window, param_map[SAMPLE_RATE])
         noise_floor = 1.38e-23 * 300 * enbw
-        logger.info('Noise floor: ' + str(noise_floor))
+        logger.debug('Noise floor: ' + str(noise_floor))
         enr = self.get_enr()
         logger.debug('ENR: ' + str(enr))
         temp_k, temp_c, temp_f = self.get_temperature()

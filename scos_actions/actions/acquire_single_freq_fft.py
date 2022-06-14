@@ -101,7 +101,7 @@ from scos_actions.actions.fft import (
 )
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
-from scos_actions.actions.metadata_decorators.fft_annotation import FftAnnotation
+from scos_actions.actions.metadata.fft_annotation import FftAnnotation
 from scos_actions.hardware import gps as mock_gps
 
 logger = logging.getLogger(__name__)
