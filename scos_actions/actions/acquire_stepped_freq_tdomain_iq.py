@@ -104,22 +104,23 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             end_time = utils.get_datetime_str_now()
             measurement_result['start_time'] = start_time
             measurement_result['end_time'] = end_time
-            measurement_result['domain'] = Domain.Time.value
+            measurement_result['domain'] = Domain.TIME.value
             measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
             measurement_result['task_id'] = task_id
+            measurement_result['frequency'] = measurement_params['frequency']
             measurement_result['frequency_low'] = measurement_params['frequency']
             measurement_result['frequency_high'] = measurement_params['frequency']
             measurement_result['description'] = self.description
             measurement_result['name'] = self.parameter_map['name']
 
             self.sigmf_builder = SigMFBuilder()
-            self.add_metadata_decorators(measurement_result)
-            self.create_metadata(schedule_entry_json,measurement_result)
+            self.add_metadata_generators(measurement_result)
+            self.create_metadata(schedule_entry_json,measurement_result, recording_id)
             measurement_action_completed.send(
                 sender=self.__class__,
                 task_id=task_id,
                 data=measurement_result["data"],
-                metadata=sigmf_builder.metadata,
+                metadata=self.sigmf_builder.metadata,
             )
 
     @property

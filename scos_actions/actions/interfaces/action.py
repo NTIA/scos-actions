@@ -37,7 +37,7 @@ class Action(ABC):
         self.gps = gps
         self.sensor_definition = capabilities['sensor']
         self.parameter_map = self.get_parameter_map(self.parameters)
-        self.decorators = {}
+        self.metadata_generators = {}
         self.sigmf_builder = SigMFBuilder()
 
     @abstractmethod
@@ -94,7 +94,7 @@ class Action(ABC):
            return copy.deepcopy(params)
 
     @abstractmethod
-    def add_metadata_decorators(self, measurement_result):
+    def add_metadata_generators(self, measurement_result):
         pass
 
     @abstractmethod

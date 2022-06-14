@@ -37,7 +37,7 @@ class SyncGps(Action):
             gps=True,
         )
 
-    def add_metadata_decorators(self, measurement_result):
+    def add_metadata_generators(self, measurement_result):
         pass
 
 

@@ -1,4 +1,4 @@
-from scos_actions.actions.metadata.metadata_decorator import Metadata
+from scos_actions.actions.metadata.metadata import Metadata
 from scos_actions.actions.sigmf_builder import SigMFBuilder
 
 class SensorAnnotation(Metadata):
@@ -12,7 +12,7 @@ class SensorAnnotation(Metadata):
             metadata["ntia-sensor:overload"] = measurement_result['overload']
         if 'gain' in measurement_result:
             metadata["ntia-sensor:gain_setting_sigan"] = measurement_result['gain']
-        if 'attenuation' is not None:
+        if 'attenuation' in measurement_result:
             metadata["ntia-sensor:attenuation_setting_sigan"] = measurement_result['attenuation']
         self.sigmf_builder.add_annotation(self.start, self.length, metadata)
 

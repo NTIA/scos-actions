@@ -6,12 +6,14 @@ import random
 from copy import deepcopy
 
 import pytest
+import pytz
 
 from scos_actions import calibration
 from scos_actions.calibration import Calibration
 from scos_actions.tests.resources.utils import easy_gain, is_close
 from scos_actions import utils
 import os
+from pytz import timezone
 
 
 class TestCalibrationFile:
@@ -268,14 +270,24 @@ class TestCalibrationFile:
         cal = Calibration(calibration_datetime, calibration_params, calibration_data, clock_rate_lookup_by_sample_rate)
         action_params = {'sample_rate': 100.0, 'frequency': 200.0}
         update_time = utils.get_datetime_str_now()
-        cal.update(action_params, update_time, 30.0, 5.0, 'test_calibration.json')
+        cal.update(action_params, update_time  , 30.0, 5.0,21, 'test_calibration.json')
         cal_from_file = calibration.load_from_json('test_calibration.json')
         os.remove('test_calibration.json')
-        assert cal.calibration_datetime == update_time
+        local = timezone('US/Mountain')
+        local_cal_time = local.localize(cal.calibration_datetime)
+        file_utc_time = local_cal_time.astimezone(pytz.UTC)
+        file_utc_time.isoformat(timespec="milliseconds")
+        cal_time = datetime.datetime.strptime(update_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+        cal_time_utc = pytz.UTC.localize(cal_time)
+        assert file_utc_time.year == cal_time_utc.year
+        assert file_utc_time.month == cal_time_utc.month
+        assert file_utc_time.day == cal_time_utc.day
+        assert file_utc_time.hour == cal_time_utc.hour
+        assert file_utc_time.minute == cal_time_utc.minute
         assert cal.calibration_data[100.0][200.0]['gain_sensor'] == 30.0
         assert cal.calibration_data[100.0][200.0]['noise_figure_sensor'] == 5.0
         assert cal_from_file.calibration_data[100.0][200.0]['gain_sensor'] == 30.0
         assert cal_from_file.calibration_data[100.0][200.0]['noise_figure_sensor'] == 5.0
-        assert cal_from_file.calibration_datetime == update_time
+ 
 
 

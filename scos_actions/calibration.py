@@ -81,7 +81,6 @@ def get_comparable_value(f):
 def load_from_json(fname):
     with open(fname) as file:
         calibration = json.load(file)
-
     # Check that the required fields are in the dict
     assert "calibration_datetime" in calibration
     assert "calibration_data" in calibration

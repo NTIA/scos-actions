@@ -154,7 +154,6 @@ class SigMFBuilder:
 
     def set_base_sigmf_global(
             self,
-            sigmf_builder,
             schedule_entry_json,
             sensor_def,
             measurement_result,
@@ -163,20 +162,20 @@ class SigMFBuilder:
     ):
         sample_rate = measurement_result["sample_rate"]
         if 'calibration_datetime' in measurement_result:
-            sigmf_builder.set_last_calibration_time(measurement_result['calibration_datetime'])
+            self.set_last_calibration_time(measurement_result['calibration_datetime'])
 
         description = measurement_result['description']
-        sigmf_builder.set_action(
+        self.set_action(
             measurement_result["name"], description, description.splitlines()[0]
         )
-        sigmf_builder.set_coordinate_system()
-        sigmf_builder.set_data_type(is_complex=is_complex)
-        sigmf_builder.set_sample_rate(sample_rate)
-        sigmf_builder.set_schedule(schedule_entry_json)
-        sigmf_builder.set_sensor(sensor_def)
-        sigmf_builder.set_task(measurement_result['task_id'])
+        self.set_coordinate_system()
+        self.set_data_type(is_complex=is_complex)
+        self.set_sample_rate(sample_rate)
+        self.set_schedule(schedule_entry_json)
+        self.set_sensor(sensor_def)
+        self.set_task(measurement_result['task_id'])
         if recording_id:
-            sigmf_builder.set_recording(recording_id)
+            self.set_recording(recording_id)
 
     def add_sigmf_capture(self, sigmf_builder, measurement_result):
         sigmf_builder.set_capture(

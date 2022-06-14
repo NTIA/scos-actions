@@ -110,7 +110,7 @@ logger = logging.getLogger(__name__)
 class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     """Perform m4s detection over requested number of single-frequency FFTs.
 
-    :param parameters: The dictionary of parameters needed for the action and the signal analyzer.
+    :param parameters: The dictionary of parameters needed for the action and the signal analyzer.d
 n
     The action will set any matching attributes found in the signal analyzer object. The following
     parameters are required by the action:
@@ -143,7 +143,7 @@ n
         frequencies = get_fft_frequencies(
             self.parameter_map["fft_size"],
             measurement_result["sample_rate"],
-            measurement_result["frequency"],
+            measurement_result["frequency_low"],
         ).tolist()
         measurement_result['domain'] = Domain.FREQUENCY.value
         measurement_result['frequency_start'] = frequencies[0]
@@ -152,6 +152,7 @@ n
         measurement_result['window'] = 'flattop'
         measurement_result['frequency_low'] = self.parameter_map['frequency']
         measurement_result['frequency_high'] = self.parameter_map['frequency']
+        measurement_result['frequency'] = self.parameter_map['frequency']
         measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
         measurement_result['description'] = self.description
         measurement_result['name'] = self.parameter_map['name']
@@ -159,7 +160,7 @@ n
         measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result['fft_size'] = self.parameter_map['fft_size']
         measurement_result['nffts'] = self.parameter_map['nffts']
-        self.add_metadata_decorators(measurement_result)
+        self.add_metadata_generators(measurement_result)
         self.create_metadata(schedule_entry_json, measurement_result)
         measurement_action_completed.send(
             sender=self.__class__,
@@ -225,9 +226,9 @@ n
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**definitions)
 
-    def add_metadata_decorators(self, measurement_result):
-        super().add_metadata_decorators(measurement_result)
-        self.decorators.pop('TimeDomainAnnotationDecorator', '')
+    def add_metadata_generators(self, measurement_result):
+        super().add_metadata_generators(measurement_result)
+        self.metadata_generators.pop('TimeDomainAnnotation', '')
         for i, detector in enumerate(M4sDetector):
             fft_annotation = FftAnnotation("fft_" + detector.name + "_power", self.sigmf_builder, i * self.parameter_map["fft_size"], self.parameter_map["fft_size"])
-            self.decorators[type(fft_annotation).__name__ + '_' + "fft_" + detector.name + "_power"] = fft_annotation
+            self.metadata_generators[type(fft_annotation).__name__ + '_' + "fft_" + detector.name + "_power"] = fft_annotation

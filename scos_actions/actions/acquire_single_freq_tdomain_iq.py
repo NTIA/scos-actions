@@ -81,12 +81,13 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         measurement_result['domain'] = Domain.TIME.value
         measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result['task_id'] = task_id
+        measurement_result['frequency'] = self.parameter_map['frequency']
         measurement_result['frequency_low'] = self.parameter_map['frequency']
         measurement_result['frequency_high'] = self.parameter_map['frequency']
         measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
         measurement_result['description'] = self.description
         measurement_result['name'] = self.parameter_map['name']
-        self.add_metadata_decorators(measurement_result)
+        self.add_metadata_generators(measurement_result)
         self.create_metadata(schedule_entry_json, measurement_result)
         measurement_action_completed.send(
             sender=self.__class__,
@@ -95,27 +96,26 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             metadata=self.sigmf_builder.metadata,
         )
 
-    def add_metadata_decorators(self, measurement_result):
+    def add_metadata_generators(self, measurement_result):
         received_samples = len(measurement_result["data"].flatten())
-        time_domain_decorator = TimeDomainAnnotation(self.sigmf_builder, 0, received_samples)
-        self.decorators[type(time_domain_decorator).__name__] = time_domain_decorator
-        calibration_annotation_decorator = CalibrationAnnotation(self.sigmf_builder, 0, received_samples)
-        self.decorators[type(calibration_annotation_decorator).__name__] = calibration_annotation_decorator
-        measurement_decorator = MeasurementMetadata(self.sigmf_builder)
-        self.decorators[type(measurement_decorator).__name__] = measurement_decorator
+        time_domain_annotation = TimeDomainAnnotation(self.sigmf_builder, 0, received_samples)
+        self.metadata_generators[type(time_domain_annotation).__name__] = time_domain_annotation
+        calibration_annotation = CalibrationAnnotation(self.sigmf_builder, 0, received_samples)
+        self.metadata_generators[type(calibration_annotation).__name__] = calibration_annotation
+        measurement_metadata = MeasurementMetadata(self.sigmf_builder)
+        self.metadata_generators[type(measurement_metadata).__name__] = measurement_metadata
         sensor_annotation = SensorAnnotation(self.sigmf_builder, 0, received_samples)
-        self.decorators[type(sensor_annotation).__name__] = sensor_annotation
+        self.metadata_generators[type(sensor_annotation).__name__] = sensor_annotation
 
-    def create_metadata(self, schedule_entry, measurement_result):
+    def create_metadata(self, schedule_entry, measurement_result, recording=None):
         self.sigmf_builder.set_base_sigmf_global(
-            self.sigmf_builder,
             schedule_entry,
             self.sensor_definition,
-            measurement_result, self.is_complex
+            measurement_result, recording, self.is_complex
         )
         self.sigmf_builder.add_sigmf_capture(self.sigmf_builder, measurement_result)
-        for decorator in self.decorators.values():
-            decorator.create_metadata(self.sigan.sigan_calibration_data, self.sigan.sensor_calibration_data, measurement_result)
+        for metadata_creator in self.metadata_generators.values():
+            metadata_creator.create_metadata(self.sigan.sigan_calibration_data, self.sigan.sensor_calibration_data, measurement_result)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""

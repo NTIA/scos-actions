@@ -1,4 +1,4 @@
-from scos_actions.actions.metadata.metadata_decorator import Metadata
+from scos_actions.actions.metadata.metadata import Metadata
 from scos_actions.actions.sigmf_builder import SigMFBuilder
 
 class FftAnnotation(Metadata):
