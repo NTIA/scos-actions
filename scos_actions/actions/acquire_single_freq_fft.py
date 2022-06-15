@@ -110,8 +110,8 @@ logger = logging.getLogger(__name__)
 class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     """Perform m4s detection over requested number of single-frequency FFTs.
 
-    :param parameters: The dictionary of parameters needed for the action and the signal analyzer.d
-n
+    :param parameters: The dictionary of parameters needed for the action and the signal analyzer.
+
     The action will set any matching attributes found in the signal analyzer object. The following
     parameters are required by the action:
 
@@ -143,7 +143,7 @@ n
         frequencies = get_fft_frequencies(
             self.parameter_map["fft_size"],
             measurement_result["sample_rate"],
-            measurement_result["frequency_low"],
+            self.parameter_map["frequency"],
         ).tolist()
         measurement_result['domain'] = Domain.FREQUENCY.value
         measurement_result['frequency_start'] = frequencies[0]
