@@ -48,7 +48,7 @@ importlib-metadata==4.11.2
     #   virtualenv
 iniconfig==1.1.1
     # via pytest
-its-preselector @ git+https://github.com/NTIA/Preselector@scos-sensor
+its-preselector @ git+https://github.com/NTIA/Preselector@1.0.0
     # via -r requirements.txt
 mypy-extensions==0.4.3
     # via black
