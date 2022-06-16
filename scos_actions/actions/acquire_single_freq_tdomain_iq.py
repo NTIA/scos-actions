@@ -77,16 +77,13 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         measurement_result = self.acquire_data(self.parameters)
         measurement_result['start_time'] = start_time
         end_time = utils.get_datetime_str_now()
+        measurement_result.update(self.parameter_map)
         measurement_result['end_time'] = end_time
         measurement_result['domain'] = Domain.TIME.value
         measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result['task_id'] = task_id
-        measurement_result['frequency'] = self.parameter_map['frequency']
-        measurement_result['frequency_low'] = self.parameter_map['frequency']
-        measurement_result['frequency_high'] = self.parameter_map['frequency']
         measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
         measurement_result['description'] = self.description
-        measurement_result['name'] = self.parameter_map['name']
         self.add_metadata_generators(measurement_result)
         self.create_metadata(schedule_entry_json, measurement_result)
         measurement_action_completed.send(

@@ -145,21 +145,15 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
             measurement_result["sample_rate"],
             self.parameter_map["frequency"],
         ).tolist()
+        measurement_result.update(self.parameter_map)
         measurement_result['domain'] = Domain.FREQUENCY.value
         measurement_result['frequency_start'] = frequencies[0]
         measurement_result['frequency_stop'] = frequencies[-1],
         measurement_result['frequency_step'] = frequencies[1] - frequencies[0]
         measurement_result['window'] = 'flattop'
-        measurement_result['frequency_low'] = self.parameter_map['frequency']
-        measurement_result['frequency_high'] = self.parameter_map['frequency']
-        measurement_result['frequency'] = self.parameter_map['frequency']
         measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
-        measurement_result['description'] = self.description
-        measurement_result['name'] = self.parameter_map['name']
         measurement_result['task_id'] = task_id
         measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
-        measurement_result['fft_size'] = self.parameter_map['fft_size']
-        measurement_result['nffts'] = self.parameter_map['nffts']
         self.add_metadata_generators(measurement_result)
         self.create_metadata(schedule_entry_json, measurement_result)
         measurement_action_completed.send(
