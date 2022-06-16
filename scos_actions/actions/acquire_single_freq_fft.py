@@ -149,7 +149,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         measurement_result['description'] = self.description
         measurement_result['domain'] = Domain.FREQUENCY.value
         measurement_result['frequency_start'] = frequencies[0]
-        measurement_result['frequency_stop'] = frequencies[-1],
+        measurement_result['frequency_stop'] = frequencies[-1]
         measurement_result['frequency_step'] = frequencies[1] - frequencies[0]
         measurement_result['window'] = 'flattop'
         measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
