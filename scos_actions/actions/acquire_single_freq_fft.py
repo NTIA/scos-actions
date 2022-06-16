@@ -146,6 +146,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
             self.parameter_map["frequency"],
         ).tolist()
         measurement_result.update(self.parameter_map)
+        measurement_result['description'] = self.description
         measurement_result['domain'] = Domain.FREQUENCY.value
         measurement_result['frequency_start'] = frequencies[0]
         measurement_result['frequency_stop'] = frequencies[-1],
