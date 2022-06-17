@@ -2,6 +2,7 @@
 from scos_actions.actions import action_classes
 from scos_actions.actions.monitor_sigan import MonitorSignalAnalyzer
 from scos_actions.actions.sync_gps import SyncGps
+from scos_actions.actions.logger import Logger
 from scos_actions.discover.yaml import load_from_yaml
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import sigan as mock_sigan
@@ -11,6 +12,7 @@ actions = {}
 test_actions = {
     "test_sync_gps": SyncGps(gps=mock_gps),
     "test_monitor_sigan": MonitorSignalAnalyzer(sigan=mock_sigan),
+    "logger": Logger()
 }
 
 

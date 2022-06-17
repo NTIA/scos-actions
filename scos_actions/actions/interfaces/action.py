@@ -111,7 +111,7 @@ class Action(ABC):
         measurement_result = self.execute(schedule_entry, task_id)
         self.add_metadata_generators(measurement_result)
         self.create_metadata(schedule_entry, measurement_result)
-        self.send_signals()
+        self.send_signals(measurement_result)
 
     @abstractmethod
     def test_required_components(self):
