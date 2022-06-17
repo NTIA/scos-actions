@@ -135,7 +135,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
 
         self.test_required_components()
         start_time = utils.get_datetime_str_now()
-        self.configure((self.parameters))
+        self.configure(self.parameters)
         measurement_result = self.acquire_data(self.parameters, apply_gain=True)
         measurement_result['start_time'] = start_time
         measurement_result['end_time'] = utils.get_datetime_str_now()
