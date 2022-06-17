@@ -70,9 +70,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
         self.is_complex = True
 
-    def __call__(self, schedule_entry_json, task_id):
-        """This is the entrypoint function called by the scheduler."""
-        self.test_required_components()
+    def execute(self, schedule_entry, task_id):
         start_time = utils.get_datetime_str_now()
         measurement_result = self.acquire_data(self.parameters)
         measurement_result['start_time'] = start_time
@@ -84,14 +82,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         measurement_result['task_id'] = task_id
         measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
         measurement_result['description'] = self.description
-        self.add_metadata_generators(measurement_result)
-        self.create_metadata(schedule_entry_json, measurement_result)
-        measurement_action_completed.send(
-            sender=self.__class__,
-            task_id=task_id,
-            data=measurement_result["data"].astype(np.complex64),
-            metadata=self.sigmf_builder.metadata,
-        )
+        return measurement_result
 
     def add_metadata_generators(self, measurement_result):
         received_samples = len(measurement_result["data"].flatten())
@@ -112,7 +103,8 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         )
         self.sigmf_builder.add_sigmf_capture(self.sigmf_builder, measurement_result)
         for metadata_creator in self.metadata_generators.values():
-            metadata_creator.create_metadata(self.sigan.sigan_calibration_data, self.sigan.sensor_calibration_data, measurement_result)
+            metadata_creator.create_metadata(self.sigan.sigan_calibration_data, self.sigan.sensor_calibration_data,
+                                             measurement_result)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
@@ -121,7 +113,6 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             raise RuntimeError(msg)
 
     def acquire_data(self, measurement_params):
-        self.configure(measurement_params)
 
         # Use the signal analyzer's actual reported sample rate instead of requested rate
         sample_rate = self.sigan.sample_rate
@@ -139,7 +130,6 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         )
 
         return measurement_result
-
 
     @property
     def description(self):
@@ -161,3 +151,11 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
 
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**defs)
+
+    def send_signals(self, measurement_result):
+        measurement_action_completed.send(
+            sender=self.__class__,
+            task_id=measurement_result['task_id'],
+            data=measurement_result["data"].astype(np.complex64),
+            metadata=self.sigmf_builder.metadata,
+        )

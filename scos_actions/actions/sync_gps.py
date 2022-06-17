@@ -16,7 +16,7 @@ class SyncGps(Action):
     def __init__(self,gps, parameters={'name': 'SyncGps'}, sigan=mock_sigan):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
 
-    def __call__(self, schedule_entry_json, task_id):
+    def execute(self, schedule_entry, task_id):
         logger.debug("Syncing to GPS")
 
         dt = self.gps.get_gps_time()
@@ -29,11 +29,16 @@ class SyncGps(Action):
             raise RuntimeError("Unable to synchronize to GPS")
 
         latitude, longitude, height = location
+        measurement_result = {'latitude':latitude, 'longitude': longitude, 'height': height}
+        return measurement_result
+
+
+    def send_signals(self, measurement_result):
         location_action_completed.send(
             self.__class__,
-            latitude=latitude,
-            longitude=longitude,
-            height=height,
+            latitude=measurement_result['latitude'],
+            longitude=measurement_result['longitude'],
+            height=measurement_result['height'],
             gps=True,
         )
 
@@ -42,4 +47,7 @@ class SyncGps(Action):
 
 
     def create_metadata(self, schedule_entry, measurement_result):
+        pass
+
+    def test_required_components(self):
         pass

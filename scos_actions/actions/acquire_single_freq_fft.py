@@ -130,12 +130,8 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         super().__init__(parameters, sigan, gps)
         self.is_complex = False
 
-    def __call__(self, schedule_entry_json, task_id):
-        """This is the entrypoint function called by the scheduler."""
-
-        self.test_required_components()
+    def execute(self, schedule_entry, task_id):
         start_time = utils.get_datetime_str_now()
-        self.configure(self.parameters)
         measurement_result = self.acquire_data(self.parameters, apply_gain=True)
         measurement_result['start_time'] = start_time
         measurement_result['end_time'] = utils.get_datetime_str_now()
@@ -155,16 +151,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
         measurement_result['task_id'] = task_id
         measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
-        self.add_metadata_generators(measurement_result)
-        self.create_metadata(schedule_entry_json, measurement_result)
-        measurement_action_completed.send(
-            sender=self.__class__,
-            task_id=task_id,
-            data=measurement_result["data"],
-            metadata=self.sigmf_builder.metadata,
-        )
-
-
+        return measurement_result
 
     def acquire_data(self, params, apply_gain=True):
         if not "nffts" in params:
@@ -187,7 +174,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         self.apply_m4s(fft_size, measurement_result)
         return measurement_result
 
-    def apply_m4s(self, fft_size,  measurement_result):
+    def apply_m4s(self, fft_size, measurement_result):
         complex_fft, self.enbw = get_frequency_domain_data(
             measurement_result["data"], measurement_result["sample_rate"], fft_size
         )
@@ -225,5 +212,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         super().add_metadata_generators(measurement_result)
         self.metadata_generators.pop('TimeDomainAnnotation', '')
         for i, detector in enumerate(M4sDetector):
-            fft_annotation = FftAnnotation("fft_" + detector.name + "_power", self.sigmf_builder, i * self.parameter_map["fft_size"], self.parameter_map["fft_size"])
-            self.metadata_generators[type(fft_annotation).__name__ + '_' + "fft_" + detector.name + "_power"] = fft_annotation
+            fft_annotation = FftAnnotation("fft_" + detector.name + "_power", self.sigmf_builder,
+                                           i * self.parameter_map["fft_size"], self.parameter_map["fft_size"])
+            self.metadata_generators[
+                type(fft_annotation).__name__ + '_' + "fft_" + detector.name + "_power"] = fft_annotation

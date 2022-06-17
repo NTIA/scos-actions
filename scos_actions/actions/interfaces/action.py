@@ -100,3 +100,24 @@ class Action(ABC):
     @abstractmethod
     def create_metadata(self, schedule_entry, measurement_result):
         pass
+
+    @abstractmethod
+    def execute(self, schedule_entry, task_id):
+        pass
+
+    def __call__(self, schedule_entry, task_id):
+        self.test_required_components()
+        self.configure(self.parameters)
+        measurement_result = self.execute(schedule_entry, task_id)
+        self.add_metadata_generators(measurement_result)
+        self.create_metadata(schedule_entry, measurement_result)
+        self.send_signals()
+
+    @abstractmethod
+    def test_required_components(self):
+        pass
+
+    @abstractmethod
+    def send_signals(self, measurement_result):
+        pass
+
