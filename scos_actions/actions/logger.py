@@ -31,6 +31,9 @@ class Logger(Action):
             level=self.loglvl, msg=msg.format(name=schedule_entry_name, tid=task_id)
         )
 
+    def execute(self, schedule_entry, task_id):
+        pass
+
     def add_metadata_generators(self, measurement_result):
         pass
 
