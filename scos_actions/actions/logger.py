@@ -21,9 +21,10 @@ class Logger(Action):
     """
 
     def __init__(self, loglvl=LOGLVL_INFO):
+
         self.loglvl = loglvl
 
-    def execute(self, schedule_entry, task_id):
+    def __call__(self, schedule_entry, task_id):
         msg = "running test {name}/{tid}"
         schedule_entry_name = schedule_entry["name"]
         logger.log(
