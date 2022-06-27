@@ -12,7 +12,7 @@ actions = {"logger": Logger()}
 test_actions = {
     "test_sync_gps": SyncGps(gps=mock_gps),
     "test_monitor_sigan": MonitorSignalAnalyzer(sigan=mock_sigan),
-
+    "logger": Logger()
 }
 
 
