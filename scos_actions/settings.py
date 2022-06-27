@@ -1,4 +1,5 @@
 from os import path
+import os
 from django.conf import settings
 from scos_actions import calibration
 
@@ -43,13 +44,13 @@ ACTION_DEFINITIONS_DIR = path.join(
 # set sigan_calibration file and sensor_calibration_file
 if not settings.configured or not hasattr(settings, "SIGAN_CALIBRATION_FILE"):
     logger.warning("Using default sigan cal file.")
-    SIGAN_CALIBRATION_FILE = 'configs/sigan_calibration_example.json'
+    SIGAN_CALIBRATION_FILE = path.join(CONFIG_DIR, 'sigan_calibration_example.json')
     sigan_calibration = None
 else:
     SIGAN_CALIBRATION_FILE = settings.SIGAN_CALIBRATION_FILE
 if not settings.configured or not hasattr(settings, "SENSOR_CALIBRATION_FILE"):
     logger.warning('Using default sensor cal file.')
-    SENSOR_CALIBRATION_FILE = 'configs/sensor_calibration_example.json'
+    SENSOR_CALIBRATION_FILE = path.join(CONFIG_DIR, 'sensor_calibration_example.json')
     sensor_calibration = None
 else:
     SENSOR_CALIBRATION_FILE = settings.SENSOR_CALIBRATION_FILE

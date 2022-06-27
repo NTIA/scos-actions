@@ -31,5 +31,5 @@ setuptools.setup(
     ],
     python_requires=">=3.7",
     install_requires=install_requires,
-    package_data={"scos_actions": ["configs/actions/*.yml"]},
+    package_data={"scos_actions": ["configs/actions/*.yml", "configs/*.json"]},
 )

@@ -12,6 +12,8 @@ from scos_actions import calibration
 from scos_actions.calibration import Calibration
 from scos_actions.tests.resources.utils import easy_gain, is_close
 from scos_actions import utils
+from scos_actions.settings import SENSOR_CALIBRATION_FILE
+from scos_actions.settings import SIGAN_CALIBRATION_FILE
 import os
 from pytz import timezone
 
@@ -288,6 +290,12 @@ class TestCalibrationFile:
         assert cal.calibration_data[100.0][200.0]['noise_figure_sensor'] == 5.0
         assert cal_from_file.calibration_data[100.0][200.0]['gain_sensor'] == 30.0
         assert cal_from_file.calibration_data[100.0][200.0]['noise_figure_sensor'] == 5.0
+
+    def test_default_sensor_cal_location(self):
+        assert SENSOR_CALIBRATION_FILE == 'configs/sensor_calibration_example.json'
+
+    def test_default_sigan_cal_location(self):
+        assert SIGAN_CALIBRATION_FILE == 'configs/sigan_calibration_example.json'
  
 
 
