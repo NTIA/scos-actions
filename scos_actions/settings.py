@@ -75,8 +75,14 @@ else:
     else:
         PRESELECTOR_MODULE = 'its_preselector.web_relay_preselector'
         PRESELECTOR_CLASS = 'WebRelayPreselector'
-    logger.info('Loading sensor cal file: ' + SENSOR_CALIBRATION_FILE)
-    sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
-    logger.info('Loading sigan cal file: ' + SIGAN_CALIBRATION_FILE)
-    sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
-    logger.info("last sensor cal: " + sensor_calibration.calibration_datetime)
+
+    if SENSOR_CALIBRATION_FILE and SIGAN_CALIBRATION_FILE:
+        logger.info('Loading sensor cal file: ' + SENSOR_CALIBRATION_FILE)
+        sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
+        logger.info('Loading sigan cal file: ' + SIGAN_CALIBRATION_FILE)
+        sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
+        logger.info("last sensor cal: " + sensor_calibration.calibration_datetime)
+    else:
+        logger.warning("Loading default calibration file")
+        sensor_calibration = get_sensor_calibration('configs/sensor_calibration_example.json')
+        sigan_calibration = get_sigan_calibration('configs/sigan_calibration_example.json')
