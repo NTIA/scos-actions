@@ -42,12 +42,14 @@ ACTION_DEFINITIONS_DIR = path.join(
 
 # set sigan_calibration file and sensor_calibration_file
 if not settings.configured or not hasattr(settings, "SIGAN_CALIBRATION_FILE"):
-    SIGAN_CALIBRATION_FILE = None
+    logger.warning("Using default sigan cal file.")
+    SIGAN_CALIBRATION_FILE = 'configs/sigan_calibration_example.json'
     sigan_calibration = None
 else:
     SIGAN_CALIBRATION_FILE = settings.SIGAN_CALIBRATION_FILE
 if not settings.configured or not hasattr(settings, "SENSOR_CALIBRATION_FILE"):
-    SENSOR_CALIBRATION_FILE = None
+    logger.warning('Using default sensor cal file.')
+    SENSOR_CALIBRATION_FILE = 'configs/sensor_calibration_example.json'
     sensor_calibration = None
 else:
     SENSOR_CALIBRATION_FILE = settings.SENSOR_CALIBRATION_FILE
@@ -76,13 +78,9 @@ else:
         PRESELECTOR_MODULE = 'its_preselector.web_relay_preselector'
         PRESELECTOR_CLASS = 'WebRelayPreselector'
 
-    if SENSOR_CALIBRATION_FILE and SIGAN_CALIBRATION_FILE:
-        logger.info('Loading sensor cal file: ' + SENSOR_CALIBRATION_FILE)
-        sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
-        logger.info('Loading sigan cal file: ' + SIGAN_CALIBRATION_FILE)
-        sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
-        logger.info("last sensor cal: " + sensor_calibration.calibration_datetime)
-    else:
-        logger.warning("Loading default calibration file")
-        sensor_calibration = get_sensor_calibration('configs/sensor_calibration_example.json')
-        sigan_calibration = get_sigan_calibration('configs/sigan_calibration_example.json')
+
+logger.info('Loading sensor cal file: ' + SENSOR_CALIBRATION_FILE)
+sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
+logger.info('Loading sigan cal file: ' + SIGAN_CALIBRATION_FILE)
+sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
+logger.info("last sensor cal: " + sensor_calibration.calibration_datetime)
