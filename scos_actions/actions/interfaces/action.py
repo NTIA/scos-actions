@@ -40,9 +40,7 @@ class Action(ABC):
         self.metadata_generators = {}
         self.sigmf_builder = SigMFBuilder()
 
-    @abstractmethod
-    def __call__(self, schedule_entry_json, task_id):
-        pass
+
 
     @property
     def summary(self):
@@ -111,6 +109,7 @@ class Action(ABC):
         measurement_result = self.execute(schedule_entry, task_id)
         self.add_metadata_generators(measurement_result)
         self.create_metadata(schedule_entry, measurement_result)
+        logger.info("Action send signals")
         self.send_signals(measurement_result)
 
     @abstractmethod
