@@ -208,6 +208,7 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
                 type(fft_annotation).__name__ + '_' + "fft_" + detector.name + "_power"] = fft_annotation
 
     def send_signals(self, measurement_result):
+        logger.info("M4 sending measurement complete")
         measurement_action_completed.send(
             sender=self.__class__,
             task_id=measurement_result['task_id'],
