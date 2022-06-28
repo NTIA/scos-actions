@@ -132,7 +132,18 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
 
     def execute(self, schedule_entry, task_id):
         start_time = utils.get_datetime_str_now()
-        measurement_result = self.acquire_data(self.parameters, apply_gain=True)
+        nskip = None
+        if "nskip" in self.parameter_map:
+            nskip = self.parameter_map["nskip"]
+        if not "nffts" in self.parameter_map:
+            raise Exception("nffts missing from measurement parameters")
+        num_ffts = self.parameter_map["nffts"]
+        if not "fft_size" in self.parameter_map:
+            raise Exception("fft_size missing from measurement parameters")
+        fft_size = self.parameter_map["fft_size"]
+        num_samples =  num_ffts * fft_size
+        measurement_result = self.acquire_data(num_samples, nskip)
+        self.apply_m4s(fft_size, measurement_result)
         measurement_result['start_time'] = start_time
         measurement_result['end_time'] = utils.get_datetime_str_now()
         measurement_result['enbw'] = self.enbw
@@ -151,27 +162,6 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
         measurement_result['task_id'] = task_id
         measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
-        return measurement_result
-
-    def acquire_data(self, params, apply_gain=True):
-        if not "nffts" in params:
-            raise Exception("nffts missing from measurement parameters")
-        num_ffts = params["nffts"]
-        if not "fft_size" in params:
-            raise Exception("fft_size missing from measurement parameters")
-        fft_size = params["fft_size"]
-
-        nskip = None
-        if "nskip" in params:
-            nskip = params["nskip"]
-        logger.debug(
-            f"acquiring {num_ffts * fft_size} samples and skipping the first {nskip if nskip else 0} samples"
-        )
-        measurement_result = self.sigan.acquire_time_domain_samples(
-            num_ffts * fft_size, num_samples_skip=nskip, gain_adjust=apply_gain
-        )
-
-        self.apply_m4s(fft_size, measurement_result)
         return measurement_result
 
     def apply_m4s(self, fft_size, measurement_result):
@@ -216,3 +206,11 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
                                            i * self.parameter_map["fft_size"], self.parameter_map["fft_size"])
             self.metadata_generators[
                 type(fft_annotation).__name__ + '_' + "fft_" + detector.name + "_power"] = fft_annotation
+
+    def send_signals(self, measurement_result):
+        measurement_action_completed.send(
+            sender=self.__class__,
+            task_id=measurement_result['task_id'],
+            data=measurement_result["data"],
+            metadata=self.sigmf_builder.metadata,
+        )

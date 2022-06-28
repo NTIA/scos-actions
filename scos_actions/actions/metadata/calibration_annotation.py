@@ -15,8 +15,6 @@ class CalibrationAnnotation(Metadata):
         """Create the SigMF calibration annotation."""
         annotation_md = {
             "ntia-core:annotation_type": "CalibrationAnnotation",
-            "core:sample_start": self.start,
-            "core:sample_count": self.length,
             "ntia-sensor:gain_sigan": sigan_cal["gain_sigan"],
             "ntia-sensor:gain_sensor": sensor_cal['gain_sensor'],
             "ntia-sensor:noise_figure_sigan": sigan_cal[

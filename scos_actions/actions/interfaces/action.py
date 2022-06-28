@@ -31,7 +31,7 @@ class Action(ABC):
     """
     PRESELECTOR_PATH_KEY='rf_path'
 
-    def __init__(self, parameters={}, sigan=mock_sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan=mock_sigan, gps=mock_gps):
         self.parameters = parameters
         self.sigan = sigan
         self.gps = gps

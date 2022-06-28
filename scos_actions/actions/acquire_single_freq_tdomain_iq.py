@@ -72,7 +72,13 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
 
     def execute(self, schedule_entry, task_id):
         start_time = utils.get_datetime_str_now()
-        measurement_result = self.acquire_data(self.parameters)
+        nskip = None
+        if "nskip" in self.parameter_map:
+            nskip = self.parameter_map["nskip"]
+        # Use the signal analyzer's actual reported sample rate instead of requested rate
+        sample_rate = self.sigan.sample_rate
+        num_samples = int(sample_rate * self.parameter_map["durastion_ms"] * 1e-3)
+        measurement_result = self.acquire_data(num_samples, nskip)
         measurement_result['start_time'] = start_time
         end_time = utils.get_datetime_str_now()
         measurement_result.update(self.parameter_map)
@@ -112,16 +118,8 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
             msg = "acquisition failed: signal analyzer required but not available"
             raise RuntimeError(msg)
 
-    def acquire_data(self, measurement_params):
+    def acquire_data(self, num_samples, num_skip):
 
-        # Use the signal analyzer's actual reported sample rate instead of requested rate
-        sample_rate = self.sigan.sample_rate
-
-        num_samples = int(sample_rate * measurement_params["duration_ms"] * 1e-3)
-
-        nskip = None
-        if "nskip" in measurement_params:
-            nskip = measurement_params["nskip"]
         logger.debug(
             f"acquiring {num_samples} samples and skipping the first {nskip if nskip else 0} samples"
         )
