@@ -151,6 +151,7 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         return __doc__.format(**defs)
 
     def send_signals(self, measurement_result):
+        logger.info("IQ sending signals")
         measurement_action_completed.send(
             sender=self.__class__,
             task_id=measurement_result['task_id'],
