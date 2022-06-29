@@ -100,7 +100,15 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             self.sorted_measurement_parameters, start=1
         ):
             start_time = utils.get_datetime_str_now()
-            measurement_result = super().acquire_data(measurement_params)
+            self.configure(measurement_params)
+            sample_rate = self.sigan.sample_rate
+            num_samples = int(sample_rate * measurement_params["durastion_ms"] * 1e-3)
+            nskip = None
+            if "nskip" in measurement_params:
+                nskip = measurement_params["nskip"]
+            else:
+                raise Exception("nskip is missing from the measurement parameters.")
+            measurement_result = super().acquire_data(num_samples, nskip)
             measurement_result.update(measurement_params)
             end_time = utils.get_datetime_str_now()
             measurement_result['start_time'] = start_time
