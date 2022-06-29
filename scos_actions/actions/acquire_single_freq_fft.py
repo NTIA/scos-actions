@@ -135,13 +135,15 @@ class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
         nskip = None
         if "nskip" in self.parameter_map:
             nskip = self.parameter_map["nskip"]
+        else:
+            raise Exception("nskip missing from measurement parameters")
         if not "nffts" in self.parameter_map:
             raise Exception("nffts missing from measurement parameters")
         num_ffts = self.parameter_map["nffts"]
         if not "fft_size" in self.parameter_map:
             raise Exception("fft_size missing from measurement parameters")
         fft_size = self.parameter_map["fft_size"]
-        num_samples =  num_ffts * fft_size
+        num_samples = num_ffts * fft_size
         measurement_result = self.acquire_data(num_samples, nskip)
         self.apply_m4s(fft_size, measurement_result)
         measurement_result['start_time'] = start_time
