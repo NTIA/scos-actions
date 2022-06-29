@@ -102,7 +102,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             start_time = utils.get_datetime_str_now()
             self.configure(measurement_params)
             sample_rate = self.sigan.sample_rate
-            num_samples = int(sample_rate * measurement_params["durastion_ms"] * 1e-3)
+            num_samples = int(sample_rate * measurement_params["duration_ms"] * 1e-3)
             nskip = None
             if "nskip" in measurement_params:
                 nskip = measurement_params["nskip"]
