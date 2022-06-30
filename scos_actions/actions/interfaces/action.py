@@ -6,6 +6,7 @@ from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.capabilities import capabilities
 from scos_actions.actions.sigmf_builder import SigMFBuilder
+from scos_actions.hardware import preselector
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,29 @@ class Action(ABC):
         self.metadata_generators = {}
         self.sigmf_builder = SigMFBuilder()
 
+    def configure(self, measurement_params):
+        self.configure_sigan(measurement_params)
+        self.configure_preselector(measurement_params)
 
+    def configure_sigan(self, measurement_params):
+        if isinstance(measurement_params, list):
+            for item in measurement_params:
+                self.configure_sigan_with_dictionary(item)
+
+        elif isinstance(measurement_params, dict):
+            self.configure_sigan_with_dictionary(measurement_params)
+
+    def configure_sigan_with_dictionary(self, dictionary):
+        for key, value in dictionary.items():
+            if hasattr(self.sigan, key):
+                setattr(self.sigan, key, value)
+            else:
+                logger.warning(f"radio does not have attribute {key}")
+
+    def configure_preselector(self, measurement_params):
+        if self.PRESELECTOR_PATH_KEY in measurement_params:
+            path = measurement_params[self.PRESELECTOR_PATH_KEY]
+            preselector.set_state(path)
 
     @property
     def summary(self):

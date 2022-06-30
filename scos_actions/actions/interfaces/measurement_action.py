@@ -7,7 +7,7 @@ from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.metadata.annotations.calibration_annotation import CalibrationAnnotation
 from scos_actions.actions.metadata.measurement_global import MeasurementMetadata
 from scos_actions.actions.metadata.annotations.sensor_annotation import SensorAnnotation
-from scos_actions.hardware import preselector
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,29 +59,7 @@ class MeasurementAction(Action):
             msg = "acquisition failed: signal analyzer required but not available"
             raise RuntimeError(msg)
 
-    def configure(self, measurement_params):
-        self.configure_sigan(measurement_params)
-        self.configure_preselector(measurement_params)
 
-    def configure_sigan(self, measurement_params):
-        if isinstance(measurement_params, list):
-            for item in measurement_params:
-                self.configure_sigan_with_dictionary(item)
-
-        elif isinstance(measurement_params, dict):
-            self.configure_sigan_with_dictionary(measurement_params)
-
-    def configure_sigan_with_dictionary(self, dictionary):
-        for key, value in dictionary.items():
-            if hasattr(self.sigan, key):
-                setattr(self.sigan, key, value)
-            else:
-                logger.warning(f"radio does not have attribute {key}")
-
-    def configure_preselector(self, measurement_params):
-        if self.PRESELECTOR_PATH_KEY in measurement_params:
-            path = measurement_params[self.PRESELECTOR_PATH_KEY]
-            preselector.set_state(path)
 
     def send_signals(self, task_id, measurement_data):
         measurement_action_completed.send(
