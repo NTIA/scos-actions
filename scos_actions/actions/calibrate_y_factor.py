@@ -221,15 +221,12 @@ class YFactorCalibration(Action):
             logger.debug('Temperature: ' + str(kelvin_temp))
         return kelvin_temp, celsius_temp, fahrenheit
 
-    def send_signals(self, measurement_result):
-        pass
+    def test_required_components(self):
+        """Fail acquisition if a required component is not available."""
+        if not self.sigan.is_available:
+            msg = "acquisition failed: signal analyzer required but not available"
+            raise RuntimeError(msg)
 
-    # todo revisit including sensor info at time of calibration
-    def add_metadata_generators(self, measurement_result):
-        pass
 
-    def create_metadata(self, schedule_entry, measurement_result, recording=None):
-        pass
 
-    def execute(self, schedule_entry, task_id):
-        pass
+
