@@ -2,7 +2,7 @@ import os
 from enum import Enum
 import logging
 import numpy as np
-from scipy.signal import windows
+from scipy.signal import get_window
 
 logger = logging.getLogger(__name__)
 
@@ -83,25 +83,39 @@ def convert_watts_to_dbm(power_fft):
     return power_fft_dbm
 
 
-def get_fft_window(window_type, window_length):
-    # Generate the window with the right number of points
-    window = None
-    if window_type == "Bartlett":
-        window = windows.bartlett(window_length)
-    if window_type == "Blackman":
-        window = windows.blackman(window_length)
-    if window_type == "Blackman Harris":
-        window = windows.blackmanharris(window_length)
-    if window_type == "Flat Top":
-        window = windows.flattop(window_length)
-    if window_type == "Hamming":
-        window = windows.hamming(window_length)
-    if window_type == "Hanning":
-        window = windows.hann(window_length)
+def get_fft_window(window_type: str, window_length: int) -> np.ndarray:
+    """
+    Generate a periodic window of the specified length.
 
-    # If no window matched, use a rectangular window
-    if window is None:
-        window = np.ones(window_length)
+    Supported values for window_type: boxcar, triang, blackman, hamming,
+    hann (also "Hanning" supported for backwards compatibility),
+    bartlett, flattop, parzen, bohman, blackmanharris, nuttall, barthann,
+    cosine, exponential, tukey, and taylor.
+
+    If an invalid window type is specified, a boxcar (rectangular)
+    window will be used instead.
+
+    :param window_type: A string supported by scipy.signal.get_window.
+        Only windows which do not require additional parameters are
+        supported.
+    :param window_length: The number of samples in the window.
+    :returns: An array of window samples, of length window_length and
+        type window_type.
+    """
+    # String formatting for backwards-compatibility
+    window_type = window_type.lower().strip().replace(' ', '')
+
+    # Catch Hanning window for backwards-compatibility
+    if window_type == 'hanning':
+        window_type = 'hann'
+
+    # Get window samples
+    try:
+        window = get_window(window_type, window_length)
+    except ValueError:
+        logger.debug('Error generating FFT window. Attempting to'
+                     + ' use a rectangular window...')
+        window = get_window('boxcar', window_length)
 
     # Return the window
     return window
