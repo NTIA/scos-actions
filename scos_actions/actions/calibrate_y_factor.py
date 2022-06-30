@@ -159,7 +159,7 @@ class YFactorCalibration(Action):
         time.sleep(.25)
         logger.debug('Acquiring noise off M4')
         noise_off_measurement_result = self.sigan.acquire_time_domain_samples(num_samples, num_samples_skip=nskip)
-        mean_off_watts = get_mean_detector_watts(fft_size, noise_off_measurement_result)
+        mean_off_watts = get_mean_detector_watts(fft_size, noise_off_measurement_result, fft_window, fft_window_acf)
         enbw = get_enbw(params['sample_rate'],fft_size, fft_window_enbw)
         noise_floor = 1.38e-23 * 300 * enbw
         logger.debug('Noise floor: ' + str(noise_floor))
