@@ -2,6 +2,7 @@ import os
 from enum import Enum
 import logging
 import numpy as np
+from numpy.typing import NDArray
 from scipy.signal import get_window
 
 logger = logging.getLogger(__name__)
@@ -97,7 +98,7 @@ def get_fft_window(window_type: str, window_length: int) -> np.ndarray:
 
     :param window_type: A string supported by scipy.signal.get_window.
         Only windows which do not require additional parameters are
-        supported.
+        supported. Whitespace and capitalization are ignored.
     :param window_length: The number of samples in the window.
     :returns: An array of window samples, of length window_length and
         type window_type.
@@ -121,17 +122,27 @@ def get_fft_window(window_type: str, window_length: int) -> np.ndarray:
     return window
 
 
-def get_fft_window_correction(window, correction_type="amplitude"):
-    # Calculate the requested correction factor
-    window_correction = 1  # Assume no correction
-    if correction_type == "amplitude":
-        window_correction = 1 / np.mean(window)
-    if correction_type == "energy":
-        window_correction = np.sqrt(1 / np.mean(window ** 2))
+def get_fft_window_correction(window: NDArray,
+                              correction_type: str = "amplitude") -> float:
+    """
+    Get the amplitude or energy correction factor for a window.
 
-    # Return the window correction factor
+    :param window: The array of window samples.
+    :param correction_type: Which correction factor to return.
+        Must be one of 'amplitude' or 'energy'.
+
+    :returns: The specified window correction factor.
+    :raises ValueError: If the correction type is neither 'energy'
+        nor 'amplitude'.
+    """
+    if correction_type == 'amplitude':
+        window_correction = 1. / np.mean(window)
+    elif correction_type == 'energy':
+        window_correction = np.sqrt(1. / np.mean(window ** 2))
+    else:
+        raise ValueError(f"Invalid window correction type: {correction_type}")
+
     return window_correction
-
 
 def get_fft_frequencies(fft_size, sample_rate, center_frequency):
     time_step = 1 / sample_rate
