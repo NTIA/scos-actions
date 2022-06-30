@@ -88,10 +88,10 @@ def get_fft_window(window_type: str, window_length: int) -> np.ndarray:
     """
     Generate a periodic window of the specified length.
 
-    Supported values for window_type: boxcar, triang, blackman, hamming,
-    hann (also "Hanning" supported for backwards compatibility),
-    bartlett, flattop, parzen, bohman, blackmanharris, nuttall, barthann,
-    cosine, exponential, tukey, and taylor.
+    Supported values for window_type: boxcar, triang, blackman,
+    hamming, hann (also "Hanning" supported for backwards
+    compatibility), bartlett, flattop, parzen, bohman, blackmanharris,
+    nuttall, barthann, cosine, exponential, tukey, and taylor.
 
     If an invalid window type is specified, a boxcar (rectangular)
     window will be used instead.
@@ -130,7 +130,6 @@ def get_fft_window_correction(window: NDArray,
     :param window: The array of window samples.
     :param correction_type: Which correction factor to return.
         Must be one of 'amplitude' or 'energy'.
-
     :returns: The specified window correction factor.
     :raises ValueError: If the correction type is neither 'energy'
         nor 'amplitude'.
@@ -144,8 +143,25 @@ def get_fft_window_correction(window: NDArray,
 
     return window_correction
 
-def get_fft_frequencies(fft_size, sample_rate, center_frequency):
-    time_step = 1 / sample_rate
+
+def get_fft_frequencies(fft_size: int, sample_rate: float,
+                        center_frequency: float) -> NDArray:
+    """
+    Get the frequency axis for an FFT.
+
+    The units of sample_rate and center_frequency should be the same:
+    if both are given in Hz, the returned frequency values will be in
+    Hz. If both are in MHz, the returned frequency values will be in
+    MHz. It is recommended to keep them both in Hz.
+
+    :param fft_size: The length, in samples, of the FFT (N_Bins).
+    :param sample_rate: The sample rate for the transformed time domain
+        samples, in Hz.
+    :param center_frequency: The center frequency, in Hz.
+    :returns: An array of values representing the frequency axis of the
+        FFT.
+    """
+    time_step = 1. / sample_rate
     frequencies = np.fft.fftfreq(fft_size, time_step)
     frequencies = np.fft.fftshift(frequencies) + center_frequency
     return frequencies
