@@ -34,7 +34,6 @@ signals.
 import logging
 
 from scos_actions import utils
-from scos_actions.actions.action_utils import get_num_samples_and_fft_size
 from scos_actions.actions.action_utils import get_num_skip
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType
