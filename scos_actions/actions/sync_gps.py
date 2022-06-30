@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 class SyncGps(Action):
     """Query the GPS and synchronize time and location."""
 
-    def __init__(self,gps, parameters={'name': 'SyncGps'}, sigan=mock_sigan):
+    def __init__(self,gps, parameters={}, sigan=mock_sigan):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
 
-    def execute(self, schedule_entry, task_id):
+    def __call__(self, schedule_entry_json, task_id):
         logger.debug("Syncing to GPS")
 
         dt = self.gps.get_gps_time()
@@ -29,25 +29,10 @@ class SyncGps(Action):
             raise RuntimeError("Unable to synchronize to GPS")
 
         latitude, longitude, height = location
-        measurement_result = {'latitude':latitude, 'longitude': longitude, 'height': height}
-        return measurement_result
-
-
-    def send_signals(self, measurement_result):
         location_action_completed.send(
             self.__class__,
-            latitude=measurement_result['latitude'],
-            longitude=measurement_result['longitude'],
-            height=measurement_result['height'],
+            latitude=latitude,
+            longitude=longitude,
+            height=height,
             gps=True,
         )
-
-    def add_metadata_generators(self, measurement_result):
-        pass
-
-
-    def create_metadata(self, schedule_entry, measurement_result):
-        pass
-
-    def test_required_components(self):
-        pass

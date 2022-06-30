@@ -3,7 +3,6 @@ import logging
 from abc import ABC, abstractmethod
 
 from scos_actions.hardware import gps as mock_gps
-from scos_actions.hardware import preselector
 from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.capabilities import capabilities
 from scos_actions.actions.sigmf_builder import SigMFBuilder
@@ -53,29 +52,6 @@ class Action(ABC):
     def description(self):
         return self.__doc__
 
-    def configure(self, measurement_params):
-        self.configure_sigan(measurement_params)
-        self.configure_preselector(measurement_params)
-
-    def configure_sigan(self, measurement_params):
-        if isinstance(measurement_params, list):
-            for item in measurement_params:
-                self.configure_sigan_with_dictionary(item)
-
-        elif isinstance(measurement_params, dict):
-            self.configure_sigan_with_dictionary(measurement_params)
-
-    def configure_sigan_with_dictionary(self, dictionary):
-        for key, value in dictionary.items():
-            if hasattr(self.sigan, key):
-                setattr(self.sigan, key, value)
-            else:
-                logger.warning(f"radio does not have attribute {key}")
-
-    def configure_preselector(self, measurement_params):
-        if self.PRESELECTOR_PATH_KEY in measurement_params:
-            path = measurement_params[self.PRESELECTOR_PATH_KEY]
-            preselector.set_state(path)
 
     @property
     def name(self):
@@ -91,32 +67,10 @@ class Action(ABC):
         elif isinstance(params, dict):
            return copy.deepcopy(params)
 
-    @abstractmethod
-    def add_metadata_generators(self, measurement_result):
-        pass
 
     @abstractmethod
-    def create_metadata(self, schedule_entry, measurement_result):
-        pass
-
-    @abstractmethod
-    def execute(self, schedule_entry, task_id):
-        pass
-
     def __call__(self, schedule_entry, task_id):
-        self.test_required_components()
-        self.configure(self.parameters)
-        measurement_result = self.execute(schedule_entry, task_id)
-        self.add_metadata_generators(measurement_result)
-        self.create_metadata(schedule_entry, measurement_result)
-        logger.info("Action send signals")
-        self.send_signals(measurement_result)
-
-    @abstractmethod
-    def test_required_components(self):
         pass
 
-    @abstractmethod
-    def send_signals(self, measurement_result):
-        pass
+
 

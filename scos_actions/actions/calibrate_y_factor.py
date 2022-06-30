@@ -57,21 +57,27 @@ each row of the matrix.
 
 
 """
-import copy
+
 import logging
 import time
 
 from scipy.signal import windows
-from scos_actions.signal_processing.utils import get_enbw
+#from scos_actions.signal_processing.utils import get_enbw
 from scos_actions.signal_processing.calibration import y_factor
-from scos_actions.signal_processing.utils import dbm_to_watts
 from scos_actions import utils
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.settings import sensor_calibration
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
-from scos_actions.hardware import preselector
-from scos_actions.actions.acquire_single_freq_fft import (
-    SingleFrequencyFftAcquisition
+from scos_actions.actions.interfaces.action import Action
+from scos_actions.actions.action_utils import (
+    get_num_samples_and_fft_size,
+    get_num_skip
+)
+from scos_actions.actions.fft import (
+    get_fft_window,
+    get_fft_window_correction_factors,
+    get_mean_detector_watts,
+    get_enbw
 )
 from scos_actions.hardware import preselector
 import os
@@ -87,7 +93,7 @@ FFT_SIZE = 'fft_size'
 logger = logging.getLogger(__name__)
 
 
-class YFactorCalibration(SingleFrequencyFftAcquisition):
+class YFactorCalibration(Action):
     """Perform a single or stepped y-factor calibration.
 
     :param parameters: The dictionary of parameters needed for the action and the radio.
@@ -142,21 +148,19 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
             logger.debug('Ref_level: ' + str(self.sigan.reference_level))
             logger.debug('Attenuation:' + str(self.sigan.attenuation))
         logger.debug('acquiring m4')
-        noise_on_measurement_result = super().acquire_data(param_map, apply_gain=False)
-        mean_on_power_dbm = noise_on_measurement_result['data'][2]
+        nskip = get_num_skip(param_map)
+        num_samples, fft_size = get_num_samples_and_fft_size(param_map)
+        noise_on_measurement_result = self.sigan.acquire_time_domain_samples(num_samples, num_samples_skip=nskip)
+        fft_window = get_fft_window("Flat Top", fft_size)
+        fft_window_acf, fft_window_ecf, fft_window_enbw = get_fft_window_correction_factors(fft_window)
+        mean_on_watts = get_mean_detector_watts(fft_size, noise_on_measurement_result,fft_window,fft_window_acf)
         logger.debug('Setting noise diode off')
         self.configure_preselector(NOISE_DIODE_OFF)
         time.sleep(.25)
         logger.debug('Acquiring noise off M4')
-        measurement_result = super().acquire_data(param_map, apply_gain=False)
-        mean_off_power_dbm = measurement_result['data'][2]
-        mean_on_watts = dbm_to_watts(mean_on_power_dbm)
-        mean_off_watts = dbm_to_watts(mean_off_power_dbm)
-        import numpy as np
-        logger.debug('Mean on dBm: ' + str(np.mean(mean_on_power_dbm)))
-        logger.debug('Mean off dBm:' + str(np.mean(mean_off_power_dbm)))
-        window = windows.flattop(param_map[FFT_SIZE])
-        enbw = get_enbw(window, param_map[SAMPLE_RATE])
+        noise_off_measurement_result = self.sigan.acquire_time_domain_samples(num_samples, num_samples_skip=nskip)
+        mean_off_watts = get_mean_detector_watts(fft_size, noise_off_measurement_result)
+        enbw = get_enbw(params['sample_rate'],fft_size, fft_window_enbw)
         noise_floor = 1.38e-23 * 300 * enbw
         logger.debug('Noise floor: ' + str(noise_floor))
         enr = self.get_enr()
@@ -216,3 +220,16 @@ class YFactorCalibration(SingleFrequencyFftAcquisition):
             kelvin_temp = celsius_temp + 273.15
             logger.debug('Temperature: ' + str(kelvin_temp))
         return kelvin_temp, celsius_temp, fahrenheit
+
+    def send_signals(self, measurement_result):
+        pass
+
+    # todo revisit including sensor info at time of calibration
+    def add_metadata_generators(self, measurement_result):
+        pass
+
+    def create_metadata(self, schedule_entry, measurement_result, recording=None):
+        pass
+
+    def execute(self, schedule_entry, task_id):
+        pass

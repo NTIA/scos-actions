@@ -33,22 +33,20 @@ signals.
 
 import logging
 
-import numpy as np
-
 from scos_actions import utils
-from scos_actions.actions.interfaces.action import Action
-from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.actions.action_utils import get_num_samples_and_fft_size
+from scos_actions.actions.action_utils import get_num_skip
+from scos_actions.actions.interfaces.measurement_action import MeasurementAction
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType
 from scos_actions.hardware import gps as mock_gps
-from scos_actions.actions.metadata.time_domain_annotation import TimeDomainAnnotation
-from scos_actions.actions.metadata.calibration_annotation import CalibrationAnnotation
-from scos_actions.actions.metadata.measurement_global import MeasurementMetadata
-from scos_actions.actions.metadata.sensor_annotation import SensorAnnotation
+from scos_actions.actions.metadata.annotations.time_domain_annotation import TimeDomainAnnotation
+from numpy import complex64
+
 
 logger = logging.getLogger(__name__)
 
 
-class SingleFrequencyTimeDomainIqAcquisition(Action):
+class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     """Acquire IQ data at each of the requested frequencies.
 
     :param parameters: The dictionary of parameters needed for the action and the signal analyzer.
@@ -72,14 +70,10 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
 
     def execute(self, schedule_entry, task_id):
         start_time = utils.get_datetime_str_now()
-        nskip = None
-        if "nskip" in self.parameter_map:
-            nskip = self.parameter_map["nskip"]
-        else:
-            raise Exception("nskip is missing from the measurement parameters.")
+        nskip = get_num_skip(self.parameter_map)
         # Use the signal analyzer's actual reported sample rate instead of requested rate
         sample_rate = self.sigan.sample_rate
-        num_samples = int(sample_rate * self.parameter_map["durastion_ms"] * 1e-3)
+        num_samples = int(sample_rate * self.parameter_map["duration_ms"] * 1e-3)
         measurement_result = self.acquire_data(num_samples, nskip)
         measurement_result['start_time'] = start_time
         end_time = utils.get_datetime_str_now()
@@ -93,43 +87,10 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         return measurement_result
 
     def add_metadata_generators(self, measurement_result):
-        received_samples = len(measurement_result["data"].flatten())
-        time_domain_annotation = TimeDomainAnnotation(self.sigmf_builder, 0, received_samples)
+        super().add_metadata_generators(measurement_result)
+        time_domain_annotation = TimeDomainAnnotation(self.sigmf_builder, 0, self.received_samples)
         self.metadata_generators[type(time_domain_annotation).__name__] = time_domain_annotation
-        calibration_annotation = CalibrationAnnotation(self.sigmf_builder, 0, received_samples)
-        self.metadata_generators[type(calibration_annotation).__name__] = calibration_annotation
-        measurement_metadata = MeasurementMetadata(self.sigmf_builder)
-        self.metadata_generators[type(measurement_metadata).__name__] = measurement_metadata
-        sensor_annotation = SensorAnnotation(self.sigmf_builder, 0, received_samples)
-        self.metadata_generators[type(sensor_annotation).__name__] = sensor_annotation
 
-    def create_metadata(self, schedule_entry, measurement_result, recording=None):
-        self.sigmf_builder.set_base_sigmf_global(
-            schedule_entry,
-            self.sensor_definition,
-            measurement_result, recording, self.is_complex
-        )
-        self.sigmf_builder.add_sigmf_capture(self.sigmf_builder, measurement_result)
-        for metadata_creator in self.metadata_generators.values():
-            metadata_creator.create_metadata(self.sigan.sigan_calibration_data, self.sigan.sensor_calibration_data,
-                                             measurement_result)
-
-    def test_required_components(self):
-        """Fail acquisition if a required component is not available."""
-        if not self.sigan.is_available:
-            msg = "acquisition failed: signal analyzer required but not available"
-            raise RuntimeError(msg)
-
-    def acquire_data(self, num_samples, nskip):
-
-        logger.debug(
-            f"acquiring {num_samples} samples and skipping the first {nskip if nskip else 0} samples"
-        )
-        measurement_result = self.sigan.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip
-        )
-
-        return measurement_result
 
     @property
     def description(self):
@@ -152,11 +113,5 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**defs)
 
-    def send_signals(self, measurement_result):
-        logger.info("IQ sending signals")
-        measurement_action_completed.send(
-            sender=self.__class__,
-            task_id=measurement_result['task_id'],
-            data=measurement_result["data"].astype(np.complex64),
-            metadata=self.sigmf_builder.metadata,
-        )
+    def transform_data(self, measurement_result):
+        return measurement_result['data'].astype(complex64)

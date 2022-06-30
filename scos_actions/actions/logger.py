@@ -31,17 +31,3 @@ class Logger(Action):
             level=self.loglvl, msg=msg.format(name=schedule_entry_name, tid=task_id)
         )
 
-    def execute(self, schedule_entry, task_id):
-        pass
-
-    def add_metadata_generators(self, measurement_result):
-        pass
-
-    def create_metadata(self, schedule_entry, measurement_result):
-        pass
-
-    def send_signals(self, measurement_result):
-        pass
-
-    def test_required_components(self):
-        pass
