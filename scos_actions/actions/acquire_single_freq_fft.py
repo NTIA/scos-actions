@@ -8,15 +8,16 @@
 # escaped to {{m \over n}}.
 #
 # To print out this docstring after parameterization, see
-# scos-sensor/scripts/print_action_docstring.py. You can then paste that into the
-# SCOS Markdown Editor (link below) to see the final rendering.
+# scos-sensor/scripts/print_action_docstring.py. You can then paste that into
+# the SCOS Markdown Editor (link below) to see the final rendering.
 #
 # Resources:
 # - MathJax reference: https://math.meta.stackexchange.com/q/5020
 # - Markdown reference: https://commonmark.org/help/
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
-r"""Apply m4s detector over {nffts} {fft_size}-pt FFTs at {center_frequency:.2f} MHz.
+r"""
+Apply M4S detector to {nffts} {fft_size}-pt FFTs at {center_frequency:.2f} MHz.
 
 # {name}
 
@@ -28,8 +29,8 @@ Each time this task runs, the following process is followed:
 ## Time-domain processing
 
 First, the ${nffts} \times {fft_size}$ continuous samples are acquired from
-the signal analyzer. If specified, a voltage scaling factor is applied to the complex
-time-domain signals. Then, the data is reshaped into a ${nffts} \times
+the signal analyzer. If specified, a voltage scaling factor is applied to the
+complex time-domain signals. Then, the data is reshaped into a ${nffts} \times
 {fft_size}$ matrix:
 
 $$
@@ -45,8 +46,8 @@ where $a_{{i,j}}$ is a complex time-domain sample.
 
 At that point, a Flat Top window, defined as
 
-$$w(n) = &0.2156 - 0.4160 \cos{{(2 \pi n / M)}} + 0.2781 \cos{{(4 \pi n / M)}} -
-         &0.0836 \cos{{(6 \pi n / M)}} + 0.0069 \cos{{(8 \pi n / M)}}$$
+$$w(n) = &0.2156 - 0.4160 \cos{{(2 \pi n / M)}} + 0.2781 \cos{{(4 \pi n / M)}}
+        - &0.0836 \cos{{(6 \pi n / M)}} + 0.0069 \cos{{(8 \pi n / M)}}$$
 
 where $M = {fft_size}$ is the number of points in the window, is applied to
 each row of the matrix.
@@ -90,22 +91,22 @@ import logging
 from numpy import log10
 from numpy.typing import NDArray
 from scos_actions import utils
-from scos_actions.actions.interfaces.measurement_action import MeasurementAction
+from scos_actions.actions.interfaces.measurement_action import (
+    MeasurementAction
+)
 from scos_actions.actions.fft import (
-    M4sDetector,
-    get_fft,
-    apply_detector,
-    get_fft_frequencies,
-    get_fft_window,
-    get_fft_window_correction,
-    get_fft_enbw
+    M4sDetector, get_fft, apply_detector, get_fft_frequencies, get_fft_window,
+    get_fft_window_correction, get_fft_enbw
 )
 from scos_actions.actions.power_analysis import (
-    convert_volts_to_watts,
-    convert_watts_to_dBm
+    convert_volts_to_watts, convert_watts_to_dBm
 )
-from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
-from scos_actions.actions.metadata.annotations.fft_annotation import FftAnnotation
+from scos_actions.actions.sigmf_builder import (
+    Domain, MeasurementType, SigMFBuilder
+)
+from scos_actions.actions.metadata.annotations.fft_annotation import (
+    FftAnnotation
+)
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.actions.action_utils import get_param
 logger = logging.getLogger(__name__)
@@ -115,16 +116,17 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     """
     Perform M4S detection over requested number of single-frequency FFTs.
 
-    The action will set any matching attributes found in the signal analyzer object. The following
-    parameters are required by the action:
+    The action will set any matching attributes found in the signal
+    analyzer object. The following parameters are required by the action:
 
         name: name of the action
         frequency: center frequency in Hz
         fft_size: number of points in FFT (some 2^n)
         nffts: number of consecutive FFTs to pass to detector
 
-    or the parameters required by the signal analyzer, see the documentation from the Python
-    package for the signal analyzer being used.
+    or the parameters required by the signal analyzer, see the
+    documentation from the Python package for the signal analyzer being
+    used.
 
     :param parameters: The dictionary of parameters needed for the
         action and the signal analyzer.
@@ -138,7 +140,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         self.fft_size = get_param('fft_size', self.parameter_map)
         self.nffts = get_param('nffts', self.parameter_map)
         self.nskip = get_param('nskip', self.parameter_map)
-        self.frequency = get_param('frequency', self.parameter_map)
+        self.frequency_Hz = get_param('frequency', self.parameter_map)
         # FFT setup
         self.fft_detector = M4sDetector
         self.fft_window_type = 'flattop'
@@ -152,16 +154,17 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         start_time = utils.get_datetime_str_now()
         measurement_result = self.acquire_data(self.num_samples, self.nskip)
         # Actual sample rate may differ from configured value
-        sample_rate = measurement_result['sample_rate']
+        sample_rate_Hz = measurement_result['sample_rate']
         m4s_result = self.apply_m4s(measurement_result)
 
         # Save measurement results
         measurement_result['data'] = m4s_result
         measurement_result['start_time'] = start_time
         measurement_result['end_time'] = utils.get_datetime_str_now()
-        measurement_result['enbw'] = get_fft_enbw(self.fft_window, sample_rate)
-        frequencies = get_fft_frequencies(self.fft_size, sample_rate,
-                                          self.frequency)
+        measurement_result['enbw'] = get_fft_enbw(self.fft_window,
+                                                  sample_rate_Hz)
+        frequencies = get_fft_frequencies(self.fft_size, sample_rate_Hz,
+                                          self.frequency_Hz)
         measurement_result.update(self.parameter_map)
         measurement_result['description'] = self.description
         measurement_result['domain'] = Domain.FREQUENCY.value
@@ -169,9 +172,11 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         measurement_result['frequency_stop'] = frequencies[-1]
         measurement_result['frequency_step'] = frequencies[1] - frequencies[0]
         measurement_result['window'] = self.fft_window_type
-        measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
+        measurement_result['calibration_datetime'] = \
+            self.sigan.sensor_calibration_data['calibration_datetime']
         measurement_result['task_id'] = task_id
-        measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
+        measurement_result['measurement_type'] = \
+            MeasurementType.SINGLE_FREQUENCY.value
         measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
         measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
         return measurement_result
@@ -188,10 +193,10 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
 
     @property
     def description(self):
-        center_frequency = self.parameters["frequency"] / 1e6
+        frequency_MHz = self.frequency_Hz / 1e6
         used_keys = ["frequency", "nffts", "fft_size", "name"]
-        acq_plan = f"The signal analyzer is tuned to {center_frequency:.2f} " \
-                   f"MHz and the following parameters are set:\n"
+        acq_plan = f"The signal analyzer is tuned to {frequency_MHz:.2f} MHz" \
+                   f" and the following parameters are set:\n"
         for name, value in self.parameters.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
@@ -200,7 +205,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
 
         definitions = {
             "name": self.name,
-            "center_frequency": center_frequency,
+            "center_frequency": frequency_MHz,
             "acquisition_plan": acq_plan,
             "fft_size": self.fft_size,
             "nffts": self.nffts,
@@ -212,9 +217,8 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
         for i, detector in enumerate(self.fft_detector):
-            fft_annotation = FftAnnotation(detector.value,
-                                           i * self.parameter_map['fft_size'],
-                                           self.parameter_map['fft_size'])
+            fft_annotation = FftAnnotation(detector.value, i * self.fft_size,
+                                           self.fft_size)
             sigmf_builder.add_metadata_generator(type(fft_annotation).__name__
                                                  + '_' + detector.value,
                                                  fft_annotation)
