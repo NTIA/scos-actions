@@ -1,19 +1,19 @@
-def get_num_samples_and_fft_size(params: dict) -> tuple:
-    num_ffts, fft_size, num_samples = None, None, None
-    if "nffts" not in params:
-        raise Exception("nffts missing from measurement parameters")
-    num_ffts = params["nffts"]
-    if "fft_size" not in params:
-        raise Exception("fft_size missing from measurement parameters")
-    fft_size = params["fft_size"]
-    num_samples = num_ffts * fft_size
-    return num_samples, fft_size
+class ParameterException(Exception):
+    """Basic exception handling for missing parameters."""
+    def __init__(self, param):
+        super().__init__(f'{param} missing from measurement parameters.')
 
 
-def get_num_skip(params):
-    nskip = None
-    if "nskip" in params:
-        nskip = params["nskip"]
-    else:
-        raise Exception("nskip missing from measurement parameters")
-    return nskip
+def get_param(p: str, params: dict):
+    """
+    Get a parameter by key from a parameter dictionary.
+
+    :param p: The parameter name (key).
+    :param params: The parameter dictionary.
+    :returns: The specified parameter (value).
+    :raises ParameterException: If p is not a key in params.
+    """
+    if p not in params:
+        raise ParameterException(p)
+    return params[p]
+

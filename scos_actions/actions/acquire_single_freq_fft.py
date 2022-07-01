@@ -107,9 +107,7 @@ from scos_actions.actions.power_analysis import (
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.actions.metadata.annotations.fft_annotation import FftAnnotation
 from scos_actions.hardware import gps as mock_gps
-from scos_actions.actions.action_utils import get_num_samples_and_fft_size
-from scos_actions.actions.action_utils import get_num_skip
-
+from scos_actions.actions.action_utils import get_param
 logger = logging.getLogger(__name__)
 
 
@@ -136,22 +134,25 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters, sigan, gps)
         self.is_complex = False
+        # Pull parameters from action config
+        self.fft_size = get_param('fft_size', self.parameter_map)
+        self.nffts = get_param('nffts', self.parameter_map)
+        self.nskip = get_param('nskip', self.parameter_map)
+        self.frequency = get_param('frequency', self.parameter_map)
+        # FFT setup
         self.fft_detector = M4sDetector
         self.fft_window_type = 'flattop'
-        self.num_samples, self.fft_size = get_num_samples_and_fft_size(self.parameter_map)
-        self.nffts = self.parameter_map['nffts']
-        self.nskip = get_num_skip(self.parameter_map)
+        self.num_samples = self.fft_size * self.nffts
         self.fft_window = get_fft_window(self.fft_window_type, self.fft_size)
         self.fft_window_acf = get_fft_window_correction(self.fft_window,
                                                         'amplitude')
 
     def execute(self, schedule_entry, task_id) -> dict:
+        # Acquire IQ data and generate M4S result
         start_time = utils.get_datetime_str_now()
-        # Acquire IQ data
         measurement_result = self.acquire_data(self.num_samples, self.nskip)
+        # Actual sample rate may differ from configured value
         sample_rate = measurement_result['sample_rate']
-
-        # Get M4S result, and apply power scaling
         m4s_result = self.apply_m4s(measurement_result)
 
         # Save measurement results
@@ -160,7 +161,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         measurement_result['end_time'] = utils.get_datetime_str_now()
         measurement_result['enbw'] = get_fft_enbw(self.fft_window, sample_rate)
         frequencies = get_fft_frequencies(self.fft_size, sample_rate,
-                                          self.parameter_map["frequency"])
+                                          self.frequency)
         measurement_result.update(self.parameter_map)
         measurement_result['description'] = self.description
         measurement_result['domain'] = Domain.FREQUENCY.value
