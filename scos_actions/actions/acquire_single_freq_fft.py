@@ -124,13 +124,13 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         fft_size: number of points in FFT (some 2^n)
         nffts: number of consecutive FFTs to pass to detector
 
-    or the parameters required by the signal analyzer, see the
+    For the parameters required by the signal analyzer, see the
     documentation from the Python package for the signal analyzer being
     used.
 
     :param parameters: The dictionary of parameters needed for the
         action and the signal analyzer.
-    :param sigan: Instance of SignalAnalyzerInterface
+    :param sigan: Instance of SignalAnalyzerInterface.
     """
 
     def __init__(self, parameters, sigan, gps=mock_gps):
