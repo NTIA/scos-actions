@@ -88,6 +88,7 @@ The resulting matrix is real-valued, 32-bit floats representing dBm.
 
 import logging
 from numpy import log10
+from numpy.typing import NDArray
 from scos_actions import utils
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.actions.fft import (
@@ -103,7 +104,7 @@ from scos_actions.actions.power_analysis import (
     convert_volts_to_watts,
     convert_watts_to_dBm
 )
-from scos_actions.actions.sigmf_builder import Domain, MeasurementType
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.actions.metadata.annotations.fft_annotation import FftAnnotation
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.actions.action_utils import get_num_samples_and_fft_size
@@ -135,36 +136,30 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters, sigan, gps)
         self.is_complex = False
+        self.fft_detector = M4sDetector
+        self.fft_window_type = 'flattop'
+        self.num_samples, self.fft_size = get_num_samples_and_fft_size(self.parameter_map)
+        self.nffts = self.parameter_map['nffts']
+        self.nskip = get_num_skip(self.parameter_map)
+        self.fft_window = get_fft_window(self.fft_window_type, self.fft_size)
+        self.fft_window_acf = get_fft_window_correction(self.fft_window,
+                                                        'amplitude')
 
-    def execute(self, schedule_entry, task_id):
+    def execute(self, schedule_entry, task_id) -> dict:
         start_time = utils.get_datetime_str_now()
-        nskip = get_num_skip(self.parameter_map)
-        num_samples, fft_size = get_num_samples_and_fft_size(self.parameter_map)
-
-        # Acquire IQ samples
-        measurement_result = self.acquire_data(num_samples, nskip)
-
-        # FFT setup
-        window_type = 'flattop'
+        # Acquire IQ data
+        measurement_result = self.acquire_data(self.num_samples, self.nskip)
         sample_rate = measurement_result['sample_rate']
-        fft_window = get_fft_window(window_type, fft_size)
-        fft_window_acf = get_fft_window_correction(fft_window, 'amplitude')
 
         # Get M4S result, and apply power scaling
-        complex_fft = get_fft(measurement_result['data'], fft_size, fft_window,
-                              self.parameter_map['nffts'])
-        power_fft = convert_volts_to_watts(complex_fft)
-        m4s_result = apply_detector(power_fft)
-        m4s_result = convert_watts_to_dBm(m4s_result)
-        m4s_result -= 3  # Baseband/RF power conversion
-        m4s_result += 10 * log10(fft_window_acf)  # Window amplitude correction
+        m4s_result = self.apply_m4s(measurement_result)
 
         # Save measurement results
         measurement_result['data'] = m4s_result
         measurement_result['start_time'] = start_time
         measurement_result['end_time'] = utils.get_datetime_str_now()
-        measurement_result['enbw'] = get_fft_enbw(fft_window, sample_rate)
-        frequencies = get_fft_frequencies(fft_size, sample_rate,
+        measurement_result['enbw'] = get_fft_enbw(self.fft_window, sample_rate)
+        frequencies = get_fft_frequencies(self.fft_size, sample_rate,
                                           self.parameter_map["frequency"])
         measurement_result.update(self.parameter_map)
         measurement_result['description'] = self.description
@@ -172,41 +167,54 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         measurement_result['frequency_start'] = frequencies[0]
         measurement_result['frequency_stop'] = frequencies[-1]
         measurement_result['frequency_step'] = frequencies[1] - frequencies[0]
-        measurement_result['window'] = window_type
+        measurement_result['window'] = self.fft_window_type
         measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
         measurement_result['task_id'] = task_id
         measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
+        measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
+        measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
         return measurement_result
+
+    def apply_m4s(self, measurement_result: dict) -> NDArray:
+        complex_fft = get_fft(measurement_result['data'], self.fft_size,
+                              self.fft_window, self.parameter_map['nffts'])
+        power_fft = convert_volts_to_watts(complex_fft)
+        m4s_result = apply_detector(power_fft)
+        m4s_result = convert_watts_to_dBm(m4s_result)
+        m4s_result -= 3  # Baseband/RF power conversion
+        m4s_result += 10 * log10(self.fft_window_acf)  # Window correction
+        return m4s_result
 
     @property
     def description(self):
         center_frequency = self.parameters["frequency"] / 1e6
-        nffts = self.parameters["nffts"]
-        fft_size = self.parameters["fft_size"]
         used_keys = ["frequency", "nffts", "fft_size", "name"]
-        acq_plan = f"The signal analyzer is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
+        acq_plan = f"The signal analyzer is tuned to {center_frequency:.2f} " \
+                   f"MHz and the following parameters are set:\n"
         for name, value in self.parameters.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
-        acq_plan += (
-            f"\nThen, ${nffts} \times {fft_size}$ samples are acquired gap-free."
-        )
+        acq_plan += f"\nThen, ${self.nffts} \times {self.fft_size}$ samples " \
+                    "are acquired gap-free."
 
         definitions = {
             "name": self.name,
             "center_frequency": center_frequency,
             "acquisition_plan": acq_plan,
-            "fft_size": fft_size,
-            "nffts": nffts,
+            "fft_size": self.fft_size,
+            "nffts": self.nffts,
         }
 
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**definitions)
 
-    def add_metadata_generators(self, measurement_result):
-        super().add_metadata_generators(measurement_result)
-        for i, detector in enumerate(M4sDetector):
-            fft_annotation = FftAnnotation("fft_" + detector.name + "_power", self.sigmf_builder,
-                                           i * self.parameter_map["fft_size"], self.parameter_map["fft_size"])
-            self.metadata_generators[
-                type(fft_annotation).__name__ + '_' + "fft_" + detector.name + "_power"] = fft_annotation
+    def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
+        sigmf_builder = super().get_sigmf_builder(measurement_result)
+        for i, detector in enumerate(self.fft_detector):
+            fft_annotation = FftAnnotation(detector.value,
+                                           i * self.parameter_map['fft_size'],
+                                           self.parameter_map['fft_size'])
+            sigmf_builder.add_metadata_generator(type(fft_annotation).__name__
+                                                 + '_' + detector.value,
+                                                 fft_annotation)
+        return sigmf_builder
