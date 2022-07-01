@@ -185,7 +185,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         complex_fft = get_fft(measurement_result['data'], self.fft_size,
                               self.fft_window, self.nffts)
         power_fft = convert_volts_to_watts(complex_fft)
-        m4s_result = apply_detector(power_fft)
+        m4s_result = apply_detector(power_fft, self.fft_detector)
         m4s_result = convert_watts_to_dBm(m4s_result)
         m4s_result -= 3  # Baseband/RF power conversion
         m4s_result += 10 * log10(self.fft_window_acf)  # Window correction
