@@ -141,11 +141,16 @@ class YFactorCalibration(Action):
         return detail
 
     def calibrate(self, params):
+        # Set noise diode on
         logger.debug('Setting noise diode on')
         super().configure_preselector(NOISE_DIODE_ON)
         time.sleep(.25)
+
+        # Debugging
         logger.debug('Before configuring, sigan preamp enable = '
                      + str(self.sigan.preamp_enable))
+
+        # Configure signal analyzer
         self.sigan.preamp_enable = True
         super().configure_sigan(params)
         param_map = self.get_parameter_map(params)
@@ -162,12 +167,12 @@ class YFactorCalibration(Action):
         sample_rate = noise_on_measurement_result['sample_rate']
         mean_on_watts = self.apply_mean_fft(noise_on_measurement_result)
 
-        # NEW FFT IMPLEMENTATION DOES NOT INCLUDE AMPLITUDE CORRECTION FACTOR
-        # should it?
-
+        # Set noise diode off
         logger.debug('Setting noise diode off')
         self.configure_preselector(NOISE_DIODE_OFF)
         time.sleep(.25)
+
+        # Get noise diode off mean FFT result
         logger.debug('Acquiring noise off mean FFT')
         noise_off_measurement_result = self.sigan.acquire_time_domain_samples(
             self.num_samples, num_samples_skip=self.nskip, gain_adjust=False
