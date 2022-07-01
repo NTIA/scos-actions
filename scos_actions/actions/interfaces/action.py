@@ -37,8 +37,6 @@ class Action(ABC):
         self.gps = gps
         self.sensor_definition = capabilities['sensor']
         self.parameter_map = self.get_parameter_map(self.parameters)
-        self.metadata_generators = {}
-        self.sigmf_builder = SigMFBuilder()
 
     def configure(self, measurement_params):
         self.configure_sigan(measurement_params)

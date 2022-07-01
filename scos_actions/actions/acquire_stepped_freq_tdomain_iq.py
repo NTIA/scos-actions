@@ -118,15 +118,15 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             measurement_result['task_id'] = task_id
             measurement_result['description'] = self.description
             measurement_result['name'] = self.parameter_map['name']
-
-            self.sigmf_builder = SigMFBuilder()
-            self.add_metadata_generators(measurement_result)
-            self.create_metadata(schedule_entry_json,measurement_result, recording_id)
+            measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
+            measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
+            sigmf_builder = self.get_sigmf_builder(measurement_result)
+            self.create_metadata(sigmf_builder, schedule_entry_json,measurement_result, recording_id)
             measurement_action_completed.send(
                 sender=self.__class__,
                 task_id=task_id,
                 data=measurement_result["data"],
-                metadata=self.sigmf_builder.metadata,
+                metadata=sigmf_builder.metadata,
             )
 
     @property

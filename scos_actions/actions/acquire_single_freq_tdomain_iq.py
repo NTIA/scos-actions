@@ -36,11 +36,10 @@ import logging
 from scos_actions import utils
 from scos_actions.actions.action_utils import get_num_skip
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.actions.sigmf_builder import Domain, MeasurementType
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.actions.metadata.annotations.time_domain_annotation import TimeDomainAnnotation
 from numpy import complex64
-
 
 logger = logging.getLogger(__name__)
 
@@ -83,13 +82,15 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         measurement_result['task_id'] = task_id
         measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
         measurement_result['description'] = self.description
+        measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
+        measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
         return measurement_result
 
-    def add_metadata_generators(self, measurement_result):
-        super().add_metadata_generators(measurement_result)
-        time_domain_annotation = TimeDomainAnnotation(self.sigmf_builder, 0, self.received_samples)
-        self.metadata_generators[type(time_domain_annotation).__name__] = time_domain_annotation
-
+    def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
+        sigmf_builder = super().get_sigmf_builder(measurement_result)
+        time_domain_annotation = TimeDomainAnnotation( 0, self.received_samples)
+        sigmf_builder.add_metadata_generator(type(time_domain_annotation).__name__, time_domain_annotation)
+        return sigmf_builder
 
     @property
     def description(self):

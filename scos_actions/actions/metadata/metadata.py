@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from scos_actions.actions.sigmf_builder import SigMFBuilder
 
+
 class Metadata(ABC):
 
-    def __init__(self, sigmf_builder:SigMFBuilder, start=None, length=None):
-        self.sigmf_builder = sigmf_builder
+    def __init__(self, start=None, count=None, recording=None):
         self.start = start
-        self.length = length
+        self.count = count
+        self.recording = recording
 
     @abstractmethod
-    def create_metadata(self, sigan_cal: dict, sensor_cal: dict, measurement_result: dict):
+    def create_metadata(self, sigmf_builder: SigMFBuilder, measurement_result: dict):
         pass

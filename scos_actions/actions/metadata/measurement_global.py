@@ -4,10 +4,10 @@ from scos_actions.actions.sigmf_builder import SigMFBuilder
 
 class MeasurementMetadata(Metadata):
 
-    def __init__(self, sigmf_builder: SigMFBuilder):
-        super().__init__(sigmf_builder)
+    def __init__(self):
+       pass
 
-    def create_metadata(self, sigan_cal, sensor_cal, measurement_result):
+    def create_metadata(self,  sigmf_builder: SigMFBuilder, measurement_result: dict):
 
         if 'frequency_low' in measurement_result:
             freq_low = measurement_result['frequency_low']
@@ -18,7 +18,7 @@ class MeasurementMetadata(Metadata):
         if 'frequency_high' in measurement_result:
             freq_high = measurement_result['frequency_high']
 
-        self.sigmf_builder.add_to_global(
+        sigmf_builder.add_to_global(
             "ntia-core:measurement",
             {
                 "time_start": measurement_result['start_time'],

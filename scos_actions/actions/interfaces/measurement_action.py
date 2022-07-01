@@ -7,7 +7,7 @@ from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.metadata.annotations.calibration_annotation import CalibrationAnnotation
 from scos_actions.actions.metadata.measurement_global import MeasurementMetadata
 from scos_actions.actions.metadata.annotations.sensor_annotation import SensorAnnotation
-
+from scos_actions.actions.sigmf_builder import SigMFBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -28,30 +28,31 @@ class MeasurementAction(Action):
         self.test_required_components()
         self.configure(self.parameters)
         measurement_result = self.execute(schedule_entry, task_id)
-        self.add_metadata_generators(measurement_result)
-        self.create_metadata(schedule_entry, measurement_result)
+        sigmf_builder = self.get_sigmf_builder(measurement_result)
+        self.create_metadata(sigmf_builder, schedule_entry, measurement_result)
         data = self.transform_data(measurement_result)
-        self.send_signals(task_id, data)
+        self.send_signals(task_id, sigmf_builder.metadata, data)
 
-    def add_metadata_generators(self, measurement_result):
+    def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
+        sigmf_builder = SigMFBuilder()
         self.received_samples = len(measurement_result["data"].flatten())
-        calibration_annotation = CalibrationAnnotation(self.sigmf_builder, 0, self.received_samples)
-        self.metadata_generators[type(calibration_annotation).__name__] = calibration_annotation
-        measurement_metadata = MeasurementMetadata(self.sigmf_builder)
-        self.metadata_generators[type(measurement_metadata).__name__] = measurement_metadata
-        sensor_annotation = SensorAnnotation(self.sigmf_builder, 0, self.received_samples)
-        self.metadata_generators[type(sensor_annotation).__name__] = sensor_annotation
+        calibration_annotation = CalibrationAnnotation( 0, self.received_samples)
+        sigmf_builder.add_metadata_generator(type(calibration_annotation).__name__, calibration_annotation)
+        measurement_metadata = MeasurementMetadata()
+        sigmf_builder.add_metadata_generator(type(measurement_metadata).__name__, measurement_metadata)
+        sensor_annotation = SensorAnnotation( 0, self.received_samples)
+        sigmf_builder.add_metadata_generator(type(sensor_annotation).__name__, sensor_annotation)
+        return sigmf_builder
 
-    def create_metadata(self, schedule_entry, measurement_result, recording=None):
-        self.sigmf_builder.set_base_sigmf_global(
+    def create_metadata(self, sigmf_builder, schedule_entry, measurement_result, recording=None):
+
+        sigmf_builder.set_base_sigmf_global(
             schedule_entry,
             self.sensor_definition,
             measurement_result, recording, self.is_complex
         )
-        self.sigmf_builder.add_sigmf_capture(self.sigmf_builder, measurement_result)
-        for metadata_creator in self.metadata_generators.values():
-            metadata_creator.create_metadata(self.sigan.sigan_calibration_data, self.sigan.sensor_calibration_data,
-                                             measurement_result)
+        sigmf_builder.add_sigmf_capture(sigmf_builder, measurement_result)
+        sigmf_builder.build( measurement_result)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
@@ -59,14 +60,12 @@ class MeasurementAction(Action):
             msg = "acquisition failed: signal analyzer required but not available"
             raise RuntimeError(msg)
 
-
-
-    def send_signals(self, task_id, measurement_data):
+    def send_signals(self, task_id, metadata, measurement_data):
         measurement_action_completed.send(
             sender=self.__class__,
             task_id=task_id,
             data=measurement_data,
-            metadata=self.sigmf_builder.metadata,
+            metadata=metadata,
         )
 
     def acquire_data(self, num_samples, nskip):
