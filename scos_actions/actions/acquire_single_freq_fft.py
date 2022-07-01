@@ -87,15 +87,21 @@ The resulting matrix is real-valued, 32-bit floats representing dBm.
 """
 
 import logging
+from numpy import log10
 from scos_actions import utils
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.actions.fft import (
     M4sDetector,
+    get_fft,
+    apply_detector,
     get_fft_frequencies,
-    get_m4s_dbm,
     get_fft_window,
-    get_fft_window_correction_factors,
-    get_enbw
+    get_fft_window_correction,
+    get_fft_enbw
+)
+from scos_actions.actions.power_analysis import (
+    convert_volts_to_watts,
+    convert_watts_to_dBm
 )
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType
 from scos_actions.actions.metadata.annotations.fft_annotation import FftAnnotation
@@ -107,9 +113,8 @@ logger = logging.getLogger(__name__)
 
 
 class SingleFrequencyFftAcquisition(MeasurementAction):
-    """Perform m4s detection over requested number of single-frequency FFTs.
-
-    :param parameters: The dictionary of parameters needed for the action and the signal analyzer.
+    """
+    Perform M4S detection over requested number of single-frequency FFTs.
 
     The action will set any matching attributes found in the signal analyzer object. The following
     parameters are required by the action:
@@ -122,7 +127,9 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     or the parameters required by the signal analyzer, see the documentation from the Python
     package for the signal analyzer being used.
 
-    :param sigan: instance of SignalAnalyzerInterface
+    :param parameters: The dictionary of parameters needed for the
+        action and the signal analyzer.
+    :param sigan: Instance of SignalAnalyzerInterface
     """
 
     def __init__(self, parameters, sigan, gps=mock_gps):
@@ -133,32 +140,43 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         start_time = utils.get_datetime_str_now()
         nskip = get_num_skip(self.parameter_map)
         num_samples, fft_size = get_num_samples_and_fft_size(self.parameter_map)
+
+        # Acquire IQ samples
         measurement_result = self.acquire_data(num_samples, nskip)
-        fft_window = get_fft_window("Flat Top", fft_size)
-        fft_window_acf, fft_window_ecf, fft_window_enbw = get_fft_window_correction_factors(fft_window)
-        enbw = get_enbw(measurement_result["sample_rate"], fft_size,fft_window_enbw)
-        measurement_result['data'] = get_m4s_dbm(fft_size, measurement_result,fft_window, fft_window_acf)
+
+        # FFT setup
+        window_type = 'flattop'
+        sample_rate = measurement_result['sample_rate']
+        fft_window = get_fft_window(window_type, fft_size)
+        fft_window_acf = get_fft_window_correction(fft_window, 'amplitude')
+
+        # Get M4S result, and apply power scaling
+        complex_fft = get_fft(measurement_result['data'], fft_size, fft_window,
+                              self.parameter_map['nffts'])
+        power_fft = convert_volts_to_watts(complex_fft)
+        m4s_result = apply_detector(power_fft)
+        m4s_result = convert_watts_to_dBm(m4s_result)
+        m4s_result -= 3  # Baseband/RF power conversion
+        m4s_result += 10 * log10(fft_window_acf)  # Window amplitude correction
+
+        # Save measurement results
+        measurement_result['data'] = m4s_result
         measurement_result['start_time'] = start_time
         measurement_result['end_time'] = utils.get_datetime_str_now()
-        measurement_result['enbw'] = enbw
-        frequencies = get_fft_frequencies(
-            self.parameter_map["fft_size"],
-            measurement_result["sample_rate"],
-            self.parameter_map["frequency"],
-        ).tolist()
+        measurement_result['enbw'] = get_fft_enbw(fft_window, sample_rate)
+        frequencies = get_fft_frequencies(fft_size, sample_rate,
+                                          self.parameter_map["frequency"])
         measurement_result.update(self.parameter_map)
         measurement_result['description'] = self.description
         measurement_result['domain'] = Domain.FREQUENCY.value
         measurement_result['frequency_start'] = frequencies[0]
         measurement_result['frequency_stop'] = frequencies[-1]
         measurement_result['frequency_step'] = frequencies[1] - frequencies[0]
-        measurement_result['window'] = 'flattop'
+        measurement_result['window'] = window_type
         measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
         measurement_result['task_id'] = task_id
         measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
         return measurement_result
-
-
 
     @property
     def description(self):
