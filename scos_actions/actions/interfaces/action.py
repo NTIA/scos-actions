@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.capabilities import capabilities
-from scos_actions.actions.sigmf_builder import SigMFBuilder
 from scos_actions.hardware import preselector
 
 logger = logging.getLogger(__name__)
@@ -29,7 +28,7 @@ class Action(ABC):
         added to the task result's detail field.
 
     """
-    PRESELECTOR_PATH_KEY='rf_path'
+    PRESELECTOR_PATH_KEY = 'rf_path'
 
     def __init__(self, parameters, sigan=mock_sigan, gps=mock_gps):
         self.parameters = parameters
@@ -73,7 +72,6 @@ class Action(ABC):
     def description(self):
         return self.__doc__
 
-
     @property
     def name(self):
         return self.parameter_map['name']
@@ -86,8 +84,7 @@ class Action(ABC):
                     key_map[key] = value
             return key_map
         elif isinstance(params, dict):
-           return copy.deepcopy(params)
-
+            return copy.deepcopy(params)
 
     @abstractmethod
     def __call__(self, schedule_entry, task_id):
