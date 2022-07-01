@@ -97,7 +97,7 @@ from scos_actions.actions.fft import (
     get_fft_window_correction_factors,
     get_enbw
 )
-from scos_actions.actions.sigmf_builder import Domain, MeasurementType
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.actions.metadata.annotations.fft_annotation import FftAnnotation
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.actions.action_utils import get_num_samples_and_fft_size
@@ -156,6 +156,8 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
         measurement_result['task_id'] = task_id
         measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
+        measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
+        measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
         return measurement_result
 
 
@@ -185,10 +187,11 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**definitions)
 
-    def add_metadata_generators(self, measurement_result):
-        super().add_metadata_generators(measurement_result)
+    def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
+        sigmf_builder = super().get_sigmf_builder(measurement_result)
         for i, detector in enumerate(M4sDetector):
-            fft_annotation = FftAnnotation("fft_" + detector.name + "_power", self.sigmf_builder,
+            fft_annotation = FftAnnotation("fft_" + detector.name + "_power",
                                            i * self.parameter_map["fft_size"], self.parameter_map["fft_size"])
-            self.metadata_generators[
-                type(fft_annotation).__name__ + '_' + "fft_" + detector.name + "_power"] = fft_annotation
+            sigmf_builder.add_metadata_generator(
+                type(fft_annotation).__name__ + '_' + "fft_" + detector.name + "_power", fft_annotation)
+        return sigmf_builder

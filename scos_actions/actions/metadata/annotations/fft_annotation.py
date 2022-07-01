@@ -3,11 +3,11 @@ from scos_actions.actions.sigmf_builder import SigMFBuilder
 
 class FftAnnotation(Metadata):
 
-    def __init__(self,detector, sigmf_builder: SigMFBuilder, start, length):
-        super().__init__(sigmf_builder, start, length)
+    def __init__(self,detector, start, count):
+        super().__init__(start, count)
         self.detector = detector
 
-    def create_metadata(self, sigan_cal, sensor_cal, measurement_result):
+    def create_metadata(self, sigmf_builder: SigMFBuilder, measurement_result):
         metadata = {
             "ntia-core:annotation_type": "FrequencyDomainDetection",
             "ntia-algorithm:number_of_samples_in_fft": measurement_result['fft_size'],
@@ -21,4 +21,4 @@ class FftAnnotation(Metadata):
             "ntia-algorithm:frequency_stop": measurement_result['frequency_stop'],
             "ntia-algorithm:frequency_step": measurement_result['frequency_step'],
         }
-        self.sigmf_builder.add_annotation(self.start, measurement_result['fft_size'], metadata)
+        sigmf_builder.add_annotation(self.start, measurement_result['fft_size'], metadata)

@@ -38,6 +38,11 @@ class SigMFBuilder:
     def __init__(self):
         self.sigmf_md = SigMFFile()
         self.sigmf_md.set_global_info(GLOBAL_INFO.copy())
+        self.metadata_generators = {}
+
+    def reset(self):
+        self.sigmf_md = SigMFFile()
+        self.sigmf_md.set_global_info(GLOBAL_INFO.copy())
 
     @property
     def metadata(self):
@@ -60,7 +65,7 @@ class SigMFBuilder:
         self.sigmf_md.set_global_field("ntia-scos:recording", recording_id)
 
     def set_measurement(
-        self, start_time, end_time, domain, measurement_type, frequency
+            self, start_time, end_time, domain, measurement_type, frequency
     ):
         self.sigmf_md.set_global_field(
             "ntia-core:measurement",
@@ -107,18 +112,18 @@ class SigMFBuilder:
         self.sigmf_md.add_capture(start_index=0, metadata=capture_md)
 
     def add_frequency_domain_detection(
-        self,
-        start_index,
-        fft_size,
-        enbw,
-        detector,
-        num_ffts,
-        window,
-        units,
-        reference,
-        frequency_start,
-        frequency_stop,
-        frequency_step,
+            self,
+            start_index,
+            fft_size,
+            enbw,
+            detector,
+            num_ffts,
+            window,
+            units,
+            reference,
+            frequency_start,
+            frequency_stop,
+            frequency_step,
     ):
         metadata = {
             "ntia-core:annotation_type": "FrequencyDomainDetection",
@@ -135,14 +140,10 @@ class SigMFBuilder:
         }
         self.add_annotation(start_index, fft_size, metadata)
 
-
-
     def add_annotation(self, start_index, length, annotation_md):
         self.sigmf_md.add_annotation(
             start_index=start_index, length=length, metadata=annotation_md
         )
-
-
 
     def set_last_calibration_time(self, last_cal_time):
         self.sigmf_md.set_global_field(
@@ -181,3 +182,13 @@ class SigMFBuilder:
         sigmf_builder.set_capture(
             measurement_result["frequency"], measurement_result["capture_time"]
         )
+
+    def add_metadata_generator(self, key, generator):
+        self.metadata_generators[key] = generator
+
+    def remove_metadata_generator(self, key):
+        self.metadata_generators.pop(key, '')
+
+    def build(self, measurement_result):
+        for metadata_creator in self.metadata_generators.values():
+            metadata_creator.create_metadata(self, measurement_result)

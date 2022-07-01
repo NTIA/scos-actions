@@ -4,12 +4,14 @@ from scos_actions.actions.sigmf_builder import SigMFBuilder
 
 class CalibrationAnnotation(Metadata):
 
-    def __init__(self, sigmf_builder: SigMFBuilder, start, length):
-        super().__init__(sigmf_builder, start, length)
+    def __init__(self, start, count):
+        super().__init__(start, count)
 
-    def create_metadata(self, sigan_cal, sensor_cal, measurement_result):
+    def create_metadata(self, sigmf_builder:SigMFBuilder, measurement_result: dict):
+        sigan_cal = measurement_result['sigan_cal']
+        sensor_cal = measurement_result['sensor_cal']
         annotation = self.create_calibration_annotation(sigan_cal, sensor_cal)
-        self.sigmf_builder.add_annotation(self.start, self.length, annotation)
+        sigmf_builder.add_annotation(self.start, self.count, annotation)
 
     def create_calibration_annotation(self, sigan_cal, sensor_cal):
         """Create the SigMF calibration annotation."""
