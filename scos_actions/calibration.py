@@ -1,6 +1,6 @@
 import json
 import logging
-
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class Calibration(object):
             values = values[args[i]]
         return values
 
-    def get_calibration_dict(self,args):
+    def get_calibration_dict(self, args):
         """Find the calibration points closest to the specified args (gain, attenuation,ref_level...)."""
 
         # Check if the sample rate was calibrated
@@ -67,10 +67,11 @@ class Calibration(object):
         cal_data['temperature'] = temp
         dict = {'calibration_datetime': str(self.calibration_datetime),
                 'calibration_parameters': self.calibration_parameters,
-                'clock_rate_lookup_by_sample_rate':  self.clock_rate_lookup_by_sample_rate,
+                'clock_rate_lookup_by_sample_rate': self.clock_rate_lookup_by_sample_rate,
                 'calibration_data': self.calibration_data}
         with open(file_path, 'w') as outfile:
             outfile.write(json.dumps(dict))
+
 
 def get_comparable_value(f):
     """Allow a frequency of type [float] to be compared with =="""
@@ -95,10 +96,8 @@ def load_from_json(fname):
     )
 
 
-
 def convert_keys(dictionary):
-
-    if  isinstance(dictionary, dict):
+    if isinstance(dictionary, dict):
         keys = list(dictionary.keys())
         for key in keys:
             vals = dictionary[key]
@@ -115,15 +114,31 @@ def convert_keys(dictionary):
     else:
         return dictionary
 
-def filter_by_parameter( calibrations, parameter, value):
-        if not value in calibrations:
-            cal_settings = ''
-            for key in calibrations.keys():
-                cal_settings = cal_settings + ',' + str(key)
-            raise Exception('No calibration was performed with {} at {}'.format(parameter, value))
 
-        else:
-            return calibrations[value]
+def filter_by_parameter(calibrations, parameter, value):
+    filtered_data = None
+    if value not in calibrations:
+        filtered_data = check_floor_of_parameter(calibrations, parameter, value)
+        if filtered_data is None:
+            filtered_data = check_ceiling_of_parameter(calibrations, parameter, value)
+            if filtered_data is None:
+                raise Exception('No calibration was performed with {} at {}'.format(parameter, value))
+    else:
+        filtered_data = calibrations[value]
+
+    return filtered_data
+
+def check_floor_of_parameter(calibrations, parameter, value):
+    value = math.floor(value)
+    if value in calibrations:
+        return calibrations[value]
+    else:
+        return None
 
 
-
+def check_ceiling_of_parameter(calibrations, parameter, value):
+    value = math.ceil(value)
+    if value in calibrations:
+        return calibrations[value]
+    else:
+        return None
