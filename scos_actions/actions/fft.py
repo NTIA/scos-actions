@@ -18,7 +18,7 @@ def create_fft_detector(name: str, detectors: list) -> EnumMeta:
     possible detector types to include are min, max, mean, median, and
     sample.
 
-    The returned enumeration can be passed to apply_detector.
+    The returned enumeration can be passed to apply_fft_detector.
 
     :param name: The name of the returned detector enumeration.
     :param detectors: A list of strings specifying the detectors. Valid
@@ -41,12 +41,14 @@ def create_fft_detector(name: str, detectors: list) -> EnumMeta:
     return Enum(name, tuple(_args))
 
 
-# Included as default for apply_detector
-M4sDetector = create_fft_detector('M4sDetector',
-                                  ['min', 'max', 'mean', 'median', 'sample'])
+# Included as default for apply_fft_detector
+FftM4sDetector = create_fft_detector('FftM4sDetector', ['min', 'max', 'mean',
+                                                        'median', 'sample'])
 
 
-def apply_detector(data: NDArray, detector: EnumMeta = M4sDetector) -> NDArray:
+def apply_fft_detector(data: NDArray,
+                       detector: EnumMeta = FftM4sDetector,
+                       dtype: type = np.float32) -> NDArray:
     """
     Apply statistical detectors to a 2D array of FFT results.
 
@@ -69,6 +71,8 @@ def apply_detector(data: NDArray, detector: EnumMeta = M4sDetector) -> NDArray:
     :param detector: A detector enumeration containing any combination
         of 'min', 'max', 'mean', 'median', and 'sample'. Also see the
         create_fft_detector documentation.
+    :param dtype: Data type of values within the returned array.
+        Defaults to numpy.float32.
     :returns: A (M x N_Bins) array containing the selected detector
         results as np.float32, where M is the number of detectors
         selected and N_Bins is the second dimension of the input array.
@@ -91,7 +95,8 @@ def apply_detector(data: NDArray, detector: EnumMeta = M4sDetector) -> NDArray:
     if 'sample' in detectors:
         rng = np.random.default_rng()
         result.append(data[rng.integers(0, data.shape[0], 1)][0])
-    return np.array(result, dtype=np.float32)
+        del rng
+    return np.array(result, dtype=dtype)
 
 
 def get_fft(time_data: NDArray, fft_size: int, fft_window: NDArray,

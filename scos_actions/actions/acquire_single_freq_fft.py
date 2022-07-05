@@ -95,8 +95,8 @@ from scos_actions.actions.interfaces.measurement_action import (
     MeasurementAction
 )
 from scos_actions.actions.fft import (
-    M4sDetector, get_fft, apply_detector, get_fft_frequencies, get_fft_window,
-    get_fft_window_correction, get_fft_enbw
+    FftM4sDetector, get_fft, apply_fft_detector, get_fft_frequencies,
+    get_fft_window, get_fft_window_correction, get_fft_enbw
 )
 from scos_actions.actions.power_analysis import (
     convert_volts_to_watts, convert_watts_to_dBm
@@ -142,7 +142,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         self.nskip = get_param('nskip', self.parameter_map)
         self.frequency_Hz = get_param('frequency', self.parameter_map)
         # FFT setup
-        self.fft_detector = M4sDetector
+        self.fft_detector = FftM4sDetector
         self.fft_window_type = 'flattop'
         self.num_samples = self.fft_size * self.nffts
         self.fft_window = get_fft_window(self.fft_window_type, self.fft_size)
@@ -185,7 +185,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         complex_fft = get_fft(measurement_result['data'], self.fft_size,
                               self.fft_window, self.nffts)
         power_fft = convert_volts_to_watts(complex_fft)
-        m4s_result = apply_detector(power_fft, self.fft_detector)
+        m4s_result = apply_fft_detector(power_fft, self.fft_detector)
         m4s_result = convert_watts_to_dBm(m4s_result)
         m4s_result -= 3  # Baseband/RF power conversion
         m4s_result += 10 * log10(self.fft_window_acf)  # Window correction
