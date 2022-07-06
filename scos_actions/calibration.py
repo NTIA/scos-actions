@@ -139,6 +139,7 @@ def check_floor_of_parameter(calibrations, parameter, value):
 
 def check_ceiling_of_parameter(calibrations, parameter, value):
     value = math.ceil(value)
+    logger.debug('Checking ceiling at: ' + str(value))
     if value in calibrations:
         return calibrations[value]
     else:
