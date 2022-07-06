@@ -8,8 +8,8 @@
 # escaped to {{m \over n}}.
 #
 # To print out this docstring after parameterization, see
-# scos-sensor/scripts/print_action_docstring.py. You can then paste that into the
-# SCOS Markdown Editor (link below) to see the final rendering.
+# scos-sensor/scripts/print_action_docstring.py. You can then paste that into
+# the SCOS Markdown Editor (link below) to see the final rendering.
 #
 # Resources:
 # - MathJax reference: https://math.meta.stackexchange.com/q/5020
@@ -32,34 +32,42 @@ signals.
 """
 
 import logging
-
-from scos_actions import utils
-from scos_actions.actions.action_utils import get_num_skip
-from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
-from scos_actions.hardware import gps as mock_gps
-from scos_actions.actions.metadata.annotations.time_domain_annotation import TimeDomainAnnotation
 from numpy import complex64
+from scos_actions import utils
+from scos_actions.actions.action_utils import get_param
+from scos_actions.actions.interfaces.measurement_action import (
+    MeasurementAction
+)
+from scos_actions.actions.sigmf_builder import (
+    Domain, MeasurementType, SigMFBuilder
+)
+from scos_actions.hardware import gps as mock_gps
+from scos_actions.actions.metadata.annotations.time_domain_annotation import (
+    TimeDomainAnnotation
+)
 
 logger = logging.getLogger(__name__)
 
 
 class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
-    """Acquire IQ data at each of the requested frequencies.
+    """
+    Acquire IQ data at each of the requested frequencies.
 
-    :param parameters: The dictionary of parameters needed for the action and the signal analyzer.
-
-    The action will set any matching attributes found in the signal analyzer object. The following
-    parameters are required by the action:
+    The action will set any matching attributes found in the
+    signal analyzer object. The following parameters are
+    required by the action:
 
         name: name of the action
         frequency: center frequency in Hz
         duration_ms: duration to acquire in ms
 
-    or the parameters required by the signal analyzer, see the documentation from the Python
-    package for the signal analyzer being used.
+    For the parameters required by the signal analyzer, see the
+    documentation from the Python package for the signal analyzer
+    being used.
 
-    :param sigan: instance of SignalAnalyzerInterface
+    :param parameters: The dictionary of parameters needed for
+    the action and the signal analyzer.
+    :param sigan: instance of SignalAnalyzerInterface.
     """
 
     def __init__(self, parameters, sigan, gps=mock_gps):
@@ -68,28 +76,34 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
 
     def execute(self, schedule_entry, task_id):
         start_time = utils.get_datetime_str_now()
-        nskip = get_num_skip(self.parameter_map)
-        # Use the signal analyzer's actual reported sample rate instead of requested rate
+        nskip = get_param('nskip', self.parameter_map)
+        duration_ms = get_param('duration_ms', self.parameter_map)
+        # Use the sigan's actual reported instead of requested sample rate
         sample_rate = self.sigan.sample_rate
-        num_samples = int(sample_rate * self.parameter_map["duration_ms"] * 1e-3)
+        num_samples = int(sample_rate * duration_ms * 1e-3)
         measurement_result = self.acquire_data(num_samples, nskip)
         measurement_result['start_time'] = start_time
         end_time = utils.get_datetime_str_now()
         measurement_result.update(self.parameter_map)
         measurement_result['end_time'] = end_time
         measurement_result['domain'] = Domain.TIME.value
-        measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
+        measurement_result['measurement_type'] = \
+            MeasurementType.SINGLE_FREQUENCY.value
         measurement_result['task_id'] = task_id
-        measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
+        measurement_result['calibration_datetime'] = \
+            self.sigan.sensor_calibration_data['calibration_datetime']
         measurement_result['description'] = self.description
         measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
         measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
         return measurement_result
 
-    def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
+    def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
-        time_domain_annotation = TimeDomainAnnotation( 0, self.received_samples)
-        sigmf_builder.add_metadata_generator(type(time_domain_annotation).__name__, time_domain_annotation)
+        time_domain_annotation = TimeDomainAnnotation(0, self.received_samples)
+        sigmf_builder.add_metadata_generator(
+            type(time_domain_annotation).__name__,
+            time_domain_annotation
+        )
         return sigmf_builder
 
     @property
@@ -98,7 +112,8 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         center_frequency = self.parameter_map["frequency"] / 1e6
         duration_ms = self.parameter_map["duration_ms"]
         used_keys = ["frequency", "duration_ms", "name"]
-        acq_plan = f"The signal analyzer is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
+        acq_plan = f"The signal analyzer is tuned to {center_frequency:.2f} " \
+                   + "MHz and the following parameters are set:\n"
         for name, value in self.parameter_map.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
