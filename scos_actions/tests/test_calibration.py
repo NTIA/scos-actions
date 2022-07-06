@@ -303,8 +303,8 @@ class TestCalibrationFile:
         assert filtered_data is not None
 
     def test_filter_by_parameter_ceil(self):
-        calibrations = {200.0: {'some_cal_data'}, 300.0: {'more cal data'}}
-        filtered_data = calibration.filter_by_parameter(calibrations, '', 199.99999999)
+        calibrations = {700.5e6: {'some_cal_data'}, 300.0: {'more cal data'}}
+        filtered_data = calibration.filter_by_parameter(calibrations, '', 700499999.999)
         assert filtered_data is not None
 
 

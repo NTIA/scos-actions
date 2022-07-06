@@ -1,9 +1,10 @@
 from scos_actions.actions.metadata.metadata import Metadata
 from scos_actions.actions.sigmf_builder import SigMFBuilder
 
-class FftAnnotation(Metadata):
 
-    def __init__(self,detector, start, count):
+class FrequencyDomainDetectionAnnotation(Metadata):
+
+    def __init__(self, detector, start, count):
         super().__init__(start, count)
         self.detector = detector
 

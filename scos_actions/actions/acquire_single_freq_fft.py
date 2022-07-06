@@ -98,7 +98,7 @@ from scos_actions.actions.fft import (
     get_enbw
 )
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
-from scos_actions.actions.metadata.annotations.fft_annotation import FftAnnotation
+from scos_actions.actions.metadata.annotations.fft_annotation import FrequencyDomainDetectionAnnotation
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.actions.action_utils import get_num_samples_and_fft_size
 from scos_actions.actions.action_utils import get_num_skip
@@ -190,8 +190,8 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
         for i, detector in enumerate(M4sDetector):
-            fft_annotation = FftAnnotation("fft_" + detector.name + "_power",
-                                           i * self.parameter_map["fft_size"], self.parameter_map["fft_size"])
+            fft_annotation = FrequencyDomainDetectionAnnotation("fft_" + detector.name + "_power",
+                                                                i * self.parameter_map["fft_size"], self.parameter_map["fft_size"])
             sigmf_builder.add_metadata_generator(
                 type(fft_annotation).__name__ + '_' + "fft_" + detector.name + "_power", fft_annotation)
         return sigmf_builder
