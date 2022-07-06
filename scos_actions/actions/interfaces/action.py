@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.capabilities import capabilities
-from scos_actions.actions.sigmf_builder import SigMFBuilder
 from scos_actions.hardware import preselector
 
 logger = logging.getLogger(__name__)
