@@ -73,15 +73,17 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
         self.is_complex = True
+        # Pull parameters from action config
+        self.nskip = get_param('nskip', self.parameter_map)
+        self.duration_ms = get_param('duration_ms', self.parameter_map)
+        self.frequency_Hz = get_param('frequency', self.parameter_map)
 
     def execute(self, schedule_entry, task_id):
         start_time = utils.get_datetime_str_now()
-        nskip = get_param('nskip', self.parameter_map)
-        duration_ms = get_param('duration_ms', self.parameter_map)
         # Use the sigan's actual reported instead of requested sample rate
         sample_rate = self.sigan.sample_rate
-        num_samples = int(sample_rate * duration_ms * 1e-3)
-        measurement_result = self.acquire_data(num_samples, nskip)
+        num_samples = int(sample_rate * self.duration_ms * 1e-3)
+        measurement_result = self.acquire_data(num_samples, self.nskip)
         measurement_result['start_time'] = start_time
         end_time = utils.get_datetime_str_now()
         measurement_result.update(self.parameter_map)
@@ -109,19 +111,18 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     @property
     def description(self):
         """Parameterize and return the module-level docstring."""
-        center_frequency = self.parameter_map["frequency"] / 1e6
-        duration_ms = self.parameter_map["duration_ms"]
+        frequency_MHz = self.frequency_Hz / 1e6
         used_keys = ["frequency", "duration_ms", "name"]
-        acq_plan = f"The signal analyzer is tuned to {center_frequency:.2f} " \
+        acq_plan = f"The signal analyzer is tuned to {frequency_MHz:.2f} " \
                    + "MHz and the following parameters are set:\n"
         for name, value in self.parameter_map.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
-        acq_plan += f"\nThen, acquire samples for {duration_ms} ms\n."
+        acq_plan += f"\nThen, acquire samples for {self.duration_ms} ms\n."
 
         defs = {
             "name": self.name,
-            "center_frequency": center_frequency,
+            "center_frequency": frequency_MHz,
             "acquisition_plan": acq_plan,
         }
 
