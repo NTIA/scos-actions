@@ -82,8 +82,6 @@ from scos_actions.actions.fft import (
 from scos_actions.hardware import preselector
 import os
 
-logger = logging.getLogger(__name__)
-
 RF_PATH = 'rf_path'
 NOISE_DIODE_ON = {RF_PATH: 'noise_diode_on'}
 NOISE_DIODE_OFF = {RF_PATH: 'noise_diode_off'}
@@ -210,10 +208,12 @@ class YFactorCalibration(Action):
     # todo support multiple temperature sensors
     def get_temperature(self):
         kelvin_temp = 290.0
+        celsius_temp = kelvin_temp - 273.15
+        fahrenheit = (celsius_temp * 9. / 5.) + 32
         temp = preselector.get_sensor_value(1)
         logger.debug('Temp: ' + str(temp))
         if temp is None:
-            logger.warning('Temperature is None. Using 290. instead.')
+            logger.warning('Temperature is None. Using 290 K instead.')
         else:
             fahrenheit = float(temp)
             celsius_temp = ((5.0 * (fahrenheit - 32)) / 9.0)
