@@ -1,5 +1,4 @@
 from os import path
-import os
 from django.conf import settings
 from scos_actions import calibration
 
