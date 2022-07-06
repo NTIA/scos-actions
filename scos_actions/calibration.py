@@ -130,6 +130,7 @@ def filter_by_parameter(calibrations, parameter, value):
 
 def check_floor_of_parameter(calibrations, parameter, value):
     value = math.floor(value)
+    logger.debug("Checking floor value of: " + str(value))
     if value in calibrations:
         return calibrations[value]
     else:
