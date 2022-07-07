@@ -250,7 +250,7 @@ class YFactorCalibration(Action):
     @property
     def description(self):
 
-        if isinstance(self.parameter_map['frequency'], float):
+        if isinstance(get_param(FREQUENCY, self.parameter_map), float):
             frequencies = get_param(FREQUENCY, self.parameter_map) / 1e6
             nffts = get_param(NUM_FFTS, self.parameter_map)
             fft_size = get_param(FFT_SIZE, self.parameter_map)

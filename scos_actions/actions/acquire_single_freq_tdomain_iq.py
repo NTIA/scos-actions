@@ -48,6 +48,12 @@ from scos_actions.actions.metadata.annotations.time_domain_annotation import (
 
 logger = logging.getLogger(__name__)
 
+# Define parameter keys
+FREQUENCY = 'frequency'
+SAMPLE_RATE = 'sample_rate'
+DURATION_MS = 'duration_ms'
+NUM_SKIP = 'nskip'
+
 
 class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     """
@@ -73,9 +79,9 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
         # Pull parameters from action config
-        self.nskip = get_param('nskip', self.parameter_map)
-        self.duration_ms = get_param('duration_ms', self.parameter_map)
-        self.frequency_Hz = get_param('frequency', self.parameter_map)
+        self.nskip = get_param(NUM_SKIP, self.parameter_map)
+        self.duration_ms = get_param(DURATION_MS, self.parameter_map)
+        self.frequency_Hz = get_param(FREQUENCY, self.parameter_map)
 
     def execute(self, schedule_entry, task_id):
         start_time = utils.get_datetime_str_now()
@@ -111,7 +117,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     def description(self):
         """Parameterize and return the module-level docstring."""
         frequency_MHz = self.frequency_Hz / 1e6
-        used_keys = ["frequency", "duration_ms", "name"]
+        used_keys = [FREQUENCY, DURATION_MS, "name"]
         acq_plan = f"The signal analyzer is tuned to {frequency_MHz:.2f} " \
                    + "MHz and the following parameters are set:\n"
         for name, value in self.parameter_map.items():
