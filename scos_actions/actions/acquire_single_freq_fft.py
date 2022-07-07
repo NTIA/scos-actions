@@ -239,3 +239,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
                                                  + '_' + detector.value,
                                                  fft_annotation)
         return sigmf_builder
+
+    def is_complex(self) -> bool:
+        return False

@@ -131,3 +131,6 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
 
     def transform_data(self, measurement_result):
         return measurement_result['data'].astype(complex64)
+
+    def is_complex(self) -> bool:
+        return True
