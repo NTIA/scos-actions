@@ -19,14 +19,14 @@
 r"""Perform a Y-Factor Calibration.
 Supports calibration of gain and noise figure for one or more channels.
 For each center frequency, sets the preselector to the noise diode path, turns
-noise diode on, performs and M4 measurement, turns the noise diode off and
-performs another M4 measurements. Uses the mean power on and mean power off
-data to compute the noise figure and gain. For each M4 measurement, it applies
-an M4S detector over {nffts} {fft_size}-pt FFTs at {frequencies} MHz.
+noise diode on, performs a mean FFT measurement, turns the noise diode off and
+performs another mean FFT measurement. The mean power on and mean power off
+data are used to compute the noise figure and gain. For each measurement, the
+mean detector is applied over {nffts} {fft_size}-pt FFTs at {frequencies} MHz.
 
 # {name}
 
-## Radio setup and sample acquisition
+## Signal analyzer setup and sample acquisition
 
 Each time this task runs, the following process is followed:
 {acquisition_plan}
@@ -34,8 +34,8 @@ Each time this task runs, the following process is followed:
 ## Time-domain processing
 
 First, the ${nffts} \times {fft_size}$ continuous samples are acquired from
-the radio. If specified, a voltage scaling factor is applied to the complex
-time-domain signals. Then, the data is reshaped into a ${nffts} \times
+the signal analyzer. If specified, a voltage scaling factor is applied to the
+complex time-domain signals. Then, the data is reshaped into a ${nffts} \times
 {fft_size}$ matrix:
 
 $$
@@ -56,6 +56,14 @@ $$w(n) = &0.2156 - 0.4160 \cos{{(2 \pi n / M)}} + 0.2781 \cos{{(4 \pi n / M)}}
 
 where $M = {fft_size}$ is the number of points in the window, is applied to
 each row of the matrix.
+
+## Frequency-domain processing
+
+### To-do: add details of FFT processing
+
+## Y-Factor Method
+
+### To-do: add details of Y-Factor method
 """
 
 import logging
