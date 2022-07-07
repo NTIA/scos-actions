@@ -102,9 +102,10 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         ):
             start_time = utils.get_datetime_str_now()
             self.configure(measurement_params)
+            duration_ms = get_param('duration_ms', measurement_params)
+            nskip = get_param('nskip', measurement_params)
             sample_rate = self.sigan.sample_rate
-            num_samples = int(sample_rate * measurement_params["duration_ms"] * 1e-3)
-            nskip = get_param('nskip', self.parameter_map)
+            num_samples = int(sample_rate * duration_ms * 1e-3)
             measurement_result = super().acquire_data(num_samples, nskip)
             measurement_result.update(measurement_params)
             end_time = utils.get_datetime_str_now()
@@ -118,7 +119,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
             measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
             sigmf_builder = self.get_sigmf_builder(measurement_result)
-            self.create_metadata(sigmf_builder, schedule_entry_json,measurement_result, recording_id)
+            self.create_metadata(sigmf_builder, schedule_entry_json, measurement_result, recording_id)
             measurement_action_completed.send(
                 sender=self.__class__,
                 task_id=task_id,
