@@ -1,5 +1,4 @@
 from enum import Enum
-
 from sigmf import SigMFFile
 
 GLOBAL_INFO = {

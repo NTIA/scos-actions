@@ -21,7 +21,6 @@ class Logger(Action):
     """
 
     def __init__(self, loglvl=LOGLVL_INFO):
-
         self.loglvl = loglvl
 
     def __call__(self, schedule_entry, task_id):
@@ -30,4 +29,3 @@ class Logger(Action):
         logger.log(
             level=self.loglvl, msg=msg.format(name=schedule_entry_name, tid=task_id)
         )
-

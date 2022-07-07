@@ -144,7 +144,6 @@ class YFactorCalibration(Action):
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
-        start_time = utils.get_datetime_str_now()
         frequencies = self.parameter_map['frequency']
         detail = ''
         if isinstance(frequencies, list):
@@ -157,7 +156,6 @@ class YFactorCalibration(Action):
         elif isinstance(frequencies, float):
             detail = self.calibrate(self.parameters)
 
-        end_time = utils.get_datetime_str_now()
         return detail
 
     def calibrate(self, params):

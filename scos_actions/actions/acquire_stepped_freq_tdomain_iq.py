@@ -45,7 +45,7 @@ from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     SingleFrequencyTimeDomainIqAcquisition,
 )
 from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType
 from scos_actions.hardware import gps as mock_gps
 
 logger = logging.getLogger(__name__)
@@ -58,20 +58,24 @@ NUM_SKIP = 'nskip'
 
 
 class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisition):
-    """Acquire IQ data at each of the requested frequencies.
+    """
+    Acquire IQ data at each of the requested frequencies.
 
-    :param parameters: The dictionary of parameters needed for the action and the signal analyzer.
+    The action will set any matching attributes found in the
+    signal analyzer object. The following parameters are required
+    by the action:
 
-    The action will set any matching attributes found in the signal analyzer object. The following
-    parameters are required by the action:
+        name: The name of the action.
+        frequency: An iterable of center frequencies, in Hz.
+        duration_ms: An iterable of measurement durations, per
+            center_frequency, in ms
 
-        name: name of the action
-        frequency: an iterable of center frequencies in Hz
-        duration_ms: an iterable of measurement durations per center_frequency in ms
+    For the parameters required by the signal analyzer, see the
+    documentation from the Python package for the signal analyzer
+    being used.
 
-    For the parameters required by the signal analyzer, see the documentation from the Python
-    package for the signal analyzer being used.
-
+    :param parameters: The dictionary of parameters needed for
+        the action and the signal analyzer.
     :param sigan: instance of SignalAnalyzerInterface
     """
 
@@ -94,7 +98,9 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                     continue
                 sorted_params[key] = parameters[key][i]
             self.sorted_measurement_parameters.append(sorted_params)
-        self.sorted_measurement_parameters.sort(key=lambda params: params[FREQUENCY])
+        self.sorted_measurement_parameters.sort(
+            key=lambda params: params[FREQUENCY]
+        )
 
         self.sigan = sigan  # make instance variable to allow mocking
         self.num_center_frequencies = num_center_frequencies
@@ -125,7 +131,8 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
             measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
             sigmf_builder = self.get_sigmf_builder(measurement_result)
-            self.create_metadata(sigmf_builder, schedule_entry_json, measurement_result, recording_id)
+            self.create_metadata(sigmf_builder, schedule_entry_json,
+                                 measurement_result, recording_id)
             measurement_action_completed.send(
                 sender=self.__class__,
                 task_id=task_id,
@@ -139,9 +146,10 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
 
         acquisition_plan = ""
         used_keys = [FREQUENCY, DURATION_MS, "name"]
-        acq_plan_template = "The signal analyzer is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
-        acq_plan_template += "{parameters}"
-        acq_plan_template += "Then, acquire samples for {duration_ms} ms\n."
+        acq_plan_template = "The signal analyzer is tuned to " \
+                            + "{center_frequency:.2f} MHz and the following " \
+                            + "parameters are set:\n{parameters} Then, " \
+                            + "acquire samples for {duration_ms} ms.\n"
 
         for measurement_params in self.sorted_measurement_parameters:
             parameters = ""

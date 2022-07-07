@@ -4,9 +4,6 @@ from .acquire_stepped_freq_tdomain_iq import SteppedFrequencyTimeDomainIqAcquisi
 from .calibrate_y_factor import YFactorCalibration
 
 
-
-
-
 # Map a class name to an action class
 # The YAML loader can key an object with parameters on these class names
 action_classes = {
@@ -15,6 +12,3 @@ action_classes = {
     "single_frequency_time_domain_iq": SingleFrequencyTimeDomainIqAcquisition,
     "y_factor_cal": YFactorCalibration
 }
-
-
-
