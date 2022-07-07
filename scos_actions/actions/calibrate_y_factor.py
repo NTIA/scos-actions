@@ -69,6 +69,7 @@ each row of the matrix.
 import logging
 import os
 import time
+import numpy as np
 from numpy.typing import NDArray
 from scipy.constants import Boltzmann
 
@@ -100,8 +101,13 @@ logger = logging.getLogger(__name__)
 RF_PATH = 'rf_path'
 NOISE_DIODE_ON = {RF_PATH: 'noise_diode_on'}
 NOISE_DIODE_OFF = {RF_PATH: 'noise_diode_off'}
+
+# Define parameter keys
+FREQUENCY = 'frequency'
 SAMPLE_RATE = 'sample_rate'
 FFT_SIZE = 'fft_size'
+NUM_FFTS = 'nffts'
+NUM_SKIP = 'nskip'
 
 
 class YFactorCalibration(Action):
@@ -130,15 +136,9 @@ class YFactorCalibration(Action):
     def __init__(self, parameters, sigan, gps=mock_gps):
         logger.debug('Initializing calibration action')
         super().__init__(parameters, sigan, gps)
-        # Pull parameters from action config
-        self.fft_size = get_param('fft_size', self.parameter_map)
-        self.nffts = get_param('nffts', self.parameter_map)
-        self.nskip = get_param('nskip', self.parameter_map)
         # FFT setup
         self.fft_detector = create_fft_detector('FftMeanDetector', ['mean'])
         self.fft_window_type = 'flattop'
-        self.fft_window = get_fft_window(self.fft_window_type, self.fft_size)
-        self.num_samples = self.fft_size * self.nffts
 
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
@@ -177,14 +177,22 @@ class YFactorCalibration(Action):
             logger.debug('Preamp = ' + str(self.sigan.preamp_enable))
             logger.debug('Ref_level: ' + str(self.sigan.reference_level))
             logger.debug('Attenuation:' + str(self.sigan.attenuation))
+        # Get parameters from action config
+        fft_size = get_param(FFT_SIZE, param_map)
+        nffts = get_param(NUM_FFTS, param_map)
+        nskip = get_param(NUM_SKIP, param_map)
+        fft_window = get_fft_window(self.fft_window_type, fft_size)
+        num_samples = fft_size * nffts
+
         logger.debug('acquiring mean FFT')
 
         # Get noise diode on mean FFT result
         noise_on_measurement_result = self.sigan.acquire_time_domain_samples(
-            self.num_samples, num_samples_skip=self.nskip, gain_adjust=False
+            num_samples, num_samples_skip=nskip, gain_adjust=False
         )
         sample_rate = noise_on_measurement_result['sample_rate']
-        mean_on_watts = self.apply_mean_fft(noise_on_measurement_result)
+        mean_on_watts = self.apply_mean_fft(noise_on_measurement_result,
+                                            fft_size, fft_window, nffts)
 
         # Set noise diode off
         logger.debug('Setting noise diode off')
@@ -194,12 +202,13 @@ class YFactorCalibration(Action):
         # Get noise diode off mean FFT result
         logger.debug('Acquiring noise off mean FFT')
         noise_off_measurement_result = self.sigan.acquire_time_domain_samples(
-            self.num_samples, num_samples_skip=self.nskip, gain_adjust=False
+            num_samples, num_samples_skip=nskip, gain_adjust=False
         )
-        mean_off_watts = self.apply_mean_fft(noise_off_measurement_result)
+        mean_off_watts = self.apply_mean_fft(noise_off_measurement_result,
+                                             fft_size, fft_window, nffts)
 
         # Y-Factor
-        enbw = get_fft_enbw(self.fft_window, sample_rate)
+        enbw = get_fft_enbw(fft_window, sample_rate)
         enr = self.get_enr()
         temp_k, temp_c, _ = self.get_temperature()
         noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw,
@@ -218,9 +227,10 @@ class YFactorCalibration(Action):
 
         return 'Noise Figure:{}, Gain:{}'.format(noise_figure, gain)
 
-    def apply_mean_fft(self, measurement_result: dict) -> NDArray:
-        complex_fft = get_fft(measurement_result['data'], self.fft_size,
-                              'backward', self.fft_window, self.nffts)
+    def apply_mean_fft(self, measurement_result: dict, fft_size: int,
+                       fft_window: NDArray, nffts: int) -> NDArray:
+        complex_fft = get_fft(measurement_result['data'], fft_size,
+                              'backward', fft_window, nffts)
         power_fft = convert_volts_to_watts(complex_fft)
         mean_result = apply_power_detector(power_fft, self.fft_detector)
         return mean_result
@@ -235,7 +245,6 @@ class YFactorCalibration(Action):
             )
         else:
             enr_dB = preselector.cal_sources[0].enr
-            # enr_dB = 14.53
             linear_enr = 10 ** (enr_dB / 10.0)
             return linear_enr
 
@@ -243,13 +252,19 @@ class YFactorCalibration(Action):
     def description(self):
 
         if isinstance(self.parameter_map['frequency'], float):
-            frequencies = self.parameter_map["frequency"] / 1e6
-            nffts = self.parameter_map["nffts"]
-            fft_size = self.parameter_map["fft_size"]
+            frequencies = get_param(FREQUENCY, self.parameter_map) / 1e6
+            nffts = get_param(NUM_FFTS, self.parameter_map)
+            fft_size = get_param(FFT_SIZE, self.parameter_map)
         else:
-            frequencies = utils.list_to_string(self.parameter_map['frequency'])
-            nffts = utils.list_to_string(self.parameter_map["nffts"])
-            fft_size = utils.list_to_string(self.parameter_map["fft_size"])
+            frequencies = utils.list_to_string(
+                [f / 1e6 for f in get_param(FREQUENCY, self.parameter_map)]
+            )
+            nffts = utils.list_to_string(
+                get_param(NUM_FFTS, self.parameter_map)
+            )
+            fft_size = utils.list_to_string(
+                get_param(FFT_SIZE, self.parameter_map)
+            )
         acq_plan = f"Performs a y-factor calibration at frequencies: " \
                    f"{frequencies}, nffts:{nffts}, fft_size: {fft_size}\n"
         definitions = {
