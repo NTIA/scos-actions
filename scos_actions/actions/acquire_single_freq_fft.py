@@ -91,24 +91,33 @@ import logging
 from numpy import log10
 from numpy.typing import NDArray
 from scos_actions import utils
+from scos_actions.actions.action_utils import get_param
 from scos_actions.actions.interfaces.measurement_action import (
     MeasurementAction
-)
-from scos_actions.actions.fft import (
-    FftM4sDetector, get_fft, apply_fft_detector, get_fft_frequencies,
-    get_fft_window, get_fft_window_correction, get_fft_enbw
-)
-from scos_actions.actions.power_analysis import (
-    convert_volts_to_watts, convert_watts_to_dBm
-)
-from scos_actions.actions.sigmf_builder import (
-    Domain, MeasurementType, SigMFBuilder
 )
 from scos_actions.actions.metadata.annotations.fft_annotation import (
     FrequencyDomainDetectionAnnotation
 )
+from scos_actions.actions.sigmf_builder import (
+    Domain,
+    MeasurementType,
+    SigMFBuilder
+)
 from scos_actions.hardware import gps as mock_gps
-from scos_actions.actions.action_utils import get_param
+from scos_actions.signal_processing.fft import (
+    apply_fft_detector,
+    FftM4sDetector,
+    get_fft,
+    get_fft_enbw,
+    get_fft_frequencies,
+    get_fft_window,
+    get_fft_window_correction
+)
+from scos_actions.signal_processing.power_analysis import (
+    convert_volts_to_watts,
+    convert_watts_to_dBm
+)
+
 logger = logging.getLogger(__name__)
 
 

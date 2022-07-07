@@ -59,23 +59,14 @@ each row of the matrix.
 """
 
 import logging
-import time
 import os
-
+import time
 from numpy.typing import NDArray
 from scipy.constants import Boltzmann
 
 from scos_actions import utils
 from scos_actions.actions.action_utils import get_param
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.actions.power_analysis import convert_volts_to_watts
-from scos_actions.actions.fft import (
-    apply_fft_detector,
-    create_fft_detector,
-    get_fft,
-    get_fft_enbw,
-    get_fft_window
-)
 from scos_actions.hardware import (
     gps as mock_gps,
     preselector
@@ -85,7 +76,16 @@ from scos_actions.settings import (
     SENSOR_CALIBRATION_FILE
 )
 from scos_actions.signal_processing.calibration import y_factor
-
+from scos_actions.signal_processing.fft import (
+    apply_fft_detector,
+    create_fft_detector,
+    get_fft,
+    get_fft_enbw,
+    get_fft_window
+)
+from scos_actions.signal_processing.power_analysis import (
+    convert_volts_to_watts
+)
 
 logger = logging.getLogger(__name__)
 
