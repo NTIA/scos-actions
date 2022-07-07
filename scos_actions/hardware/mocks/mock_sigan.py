@@ -24,6 +24,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     """
 
     def __init__(self, randomize_values=False):
+        super().__init__()
         self.auto_dc_offset = False
         self._frequency = 700e6
         self._sample_rate = 10e6
