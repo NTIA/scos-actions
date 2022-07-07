@@ -69,7 +69,6 @@ each row of the matrix.
 import logging
 import os
 import time
-import numpy as np
 from numpy.typing import NDArray
 from scipy.constants import Boltzmann
 
