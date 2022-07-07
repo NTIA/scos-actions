@@ -72,7 +72,6 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
 
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
-        self.is_complex = True
         # Pull parameters from action config
         self.nskip = get_param('nskip', self.parameter_map)
         self.duration_ms = get_param('duration_ms', self.parameter_map)

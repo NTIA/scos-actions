@@ -40,6 +40,7 @@ import logging
 import numpy as np
 
 from scos_actions import utils
+from scos_actions.actions.action_utils import get_param
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     SingleFrequencyTimeDomainIqAcquisition,
 )
@@ -103,11 +104,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             self.configure(measurement_params)
             sample_rate = self.sigan.sample_rate
             num_samples = int(sample_rate * measurement_params["duration_ms"] * 1e-3)
-            nskip = None
-            if "nskip" in measurement_params:
-                nskip = measurement_params["nskip"]
-            else:
-                raise Exception("nskip is missing from the measurement parameters.")
+            nskip = get_param('nskip', self.parameter_map)
             measurement_result = super().acquire_data(num_samples, nskip)
             measurement_result.update(measurement_params)
             end_time = utils.get_datetime_str_now()
@@ -170,3 +167,6 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
 
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**defs)
+
+    def is_complex(self) -> bool:
+        return True
