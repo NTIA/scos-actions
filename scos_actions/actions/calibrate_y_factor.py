@@ -77,13 +77,13 @@ from scos_actions.settings import (
 )
 from scos_actions.signal_processing.calibration import y_factor
 from scos_actions.signal_processing.fft import (
-    apply_fft_detector,
     create_fft_detector,
     get_fft,
     get_fft_enbw,
     get_fft_window
 )
 from scos_actions.signal_processing.power_analysis import (
+    apply_power_detector,
     convert_volts_to_watts
 )
 
@@ -214,7 +214,7 @@ class YFactorCalibration(Action):
         complex_fft = get_fft(measurement_result['data'], self.fft_size,
                               'backward', self.fft_window, self.nffts)
         power_fft = convert_volts_to_watts(complex_fft)
-        mean_result = apply_fft_detector(power_fft, self.fft_detector)
+        mean_result = apply_power_detector(power_fft, self.fft_detector)
         return mean_result
 
     def get_enr(self):

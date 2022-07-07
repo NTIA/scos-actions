@@ -105,7 +105,6 @@ from scos_actions.actions.sigmf_builder import (
 )
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.signal_processing.fft import (
-    apply_fft_detector,
     create_fft_detector,
     get_fft,
     get_fft_enbw,
@@ -114,6 +113,7 @@ from scos_actions.signal_processing.fft import (
     get_fft_window_correction
 )
 from scos_actions.signal_processing.power_analysis import (
+    apply_power_detector,
     convert_volts_to_watts,
     convert_watts_to_dBm
 )
@@ -200,7 +200,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         complex_fft = get_fft(measurement_result['data'], self.fft_size,
                               'forward', self.fft_window, self.nffts)
         power_fft = convert_volts_to_watts(complex_fft)
-        m4s_result = apply_fft_detector(power_fft, self.fft_detector, float32)
+        m4s_result = apply_power_detector(power_fft, self.fft_detector, float32)
         m4s_result = convert_watts_to_dBm(m4s_result)
         m4s_result -= 3  # Baseband/RF power conversion
         m4s_result += 10 * log10(self.fft_window_acf)  # Window correction

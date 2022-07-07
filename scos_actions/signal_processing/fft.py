@@ -42,55 +42,6 @@ def create_fft_detector(name: str, detectors: list) -> EnumMeta:
     return Enum(name, tuple(_args))
 
 
-def apply_fft_detector(data: NDArray, detector: EnumMeta,
-                       dtype: type = None) -> NDArray:
-    """
-    Apply statistical detectors to a 2-D array of FFT results.
-
-    The input FFT results are expected to be packed in the shape
-    (N_FFTs, N_Bins). Statistical detectors are applied along
-    axis 0 (bin-wise), and the sample detector selects a single
-    FFT from the N_FFTs results at random.
-
-    The shape of the output depends on the number of detectors
-    specified. The order of the results always follows min, max,
-    mean, median, sample - regardless of which detectors are used.
-    This ordering matches that of the detector enumerations.
-
-    :param data: A 2-dimensional array of frequency-domain linear
-        power values. Shape should be (N_FFTs, N_Bins).
-    :param detector: A detector enumeration containing any
-        combination of 'min', 'max', 'mean', 'median', and 'sample'.
-        Also see the create_fft_detector documentation.
-    :param dtype: Data type of values within the returned array.
-        If not provided, the type is determined by NumPy as the
-        minimum type required to hold the values (see numpy.array).
-    :returns: A (M x N_Bins) array containing the selected detector
-        results as np.float32, where M is the number of detectors
-        selected and N_Bins is the second dimension of the input array.
-    """
-    # Get detector names from detector enumeration
-    detectors = [d.name for _, d in enumerate(detector)]
-    # Get functions based on specified detector
-    detector_functions = []
-    if 'min' in detectors:
-        detector_functions.append(np.min)
-    if 'max' in detectors:
-        detector_functions.append(np.max)
-    if 'mean' in detectors:
-        detector_functions.append(np.mean)
-    if 'median' in detectors:
-        detector_functions.append(np.median)
-    # Apply statistical detectors
-    result = [d(data, axis=0) for d in detector_functions]
-    # Add sample detector result if configured
-    if 'sample' in detectors:
-        rng = np.random.default_rng()
-        result.append(data[rng.integers(0, data.shape[0], 1)][0])
-        del rng
-    return np.array(result, dtype=dtype)
-
-
 def get_fft(time_data: NDArray, fft_size: int, norm: str = 'forward',
             fft_window: NDArray = None, num_ffts: int = 0,
             workers: int = os.cpu_count() // 2) -> NDArray:
