@@ -256,6 +256,8 @@ def get_fft_enbw(fft_window: NDArray, sample_rate: float) -> float:
     :param fft_window: An array of window samples.
     :param sample_rate: The sampling rate, in Hz.
     """
-    acf = get_fft_window_correction(fft_window, 'amplitude')
-    ecf = get_fft_window_correction(fft_window, 'energy')
-    return (sample_rate / len(fft_window)) * ((acf / ecf) ** 2)
+    # window_enbw is (amplitude_correction/energy_correction)^2
+    # Here, get_fft_window_correction is not used in order to
+    # simplify the calculation.
+    window_enbw = np.mean(fft_window ** 2) / (np.mean(fft_window) ** 2)
+    return (sample_rate / len(fft_window)) * window_enbw
