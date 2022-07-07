@@ -174,6 +174,3 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
 
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**defs)
-
-    def is_complex(self) -> bool:
-        return True
