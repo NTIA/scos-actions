@@ -2,10 +2,12 @@ import copy
 import logging
 from abc import ABC, abstractmethod
 
-from scos_actions.hardware import gps as mock_gps
-from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.capabilities import capabilities
-from scos_actions.hardware import preselector
+from scos_actions.hardware import (
+    gps as mock_gps,
+    sigan as mock_sigan,
+    preselector
+)
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +91,3 @@ class Action(ABC):
     @abstractmethod
     def __call__(self, schedule_entry, task_id):
         pass
-
-
-
