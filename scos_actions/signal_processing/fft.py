@@ -13,18 +13,19 @@ def create_fft_detector(name: str, detectors: list) -> EnumMeta:
     """
     Construct an FFT detector based on a list of selected detectors.
 
-    This allows for constructing new FFT detectors while preserving the
-    order of the 5 possible detector types in all instances. The five
-    possible detector types to include are min, max, mean, median, and
-    sample.
+    This allows for constructing new FFT detectors while preserving
+    the order of the 5 possible detector types in all instances. The
+    five possible detector types to include are min, max, mean, median,
+    and sample.
 
     The returned enumeration can be passed to apply_fft_detector.
 
     :param name: The name of the returned detector enumeration.
-    :param detectors: A list of strings specifying the detectors. Valid
-        contents are: 'min', 'max', 'mean', 'median', and 'sample'.
-
-    :returns: The detector enumeration created based on the input parameters.
+    :param detectors: A list of strings specifying the detectors.
+        Valid contents are: 'min', 'max', 'mean', 'median', and
+        'sample'.
+    :returns: The detector enumeration created based on the input
+        parameters.
     """
     # Construct 2-tuples to create enumeration
     _args = []
@@ -44,26 +45,26 @@ def create_fft_detector(name: str, detectors: list) -> EnumMeta:
 def apply_fft_detector(data: NDArray, detector: EnumMeta,
                        dtype: type = None) -> NDArray:
     """
-    Apply statistical detectors to a 2D array of FFT results.
+    Apply statistical detectors to a 2-D array of FFT results.
 
     The input FFT results are expected to be packed in the shape
-    (N_FFTs, N_Bins). Statistical detectors are applied along axis 0
-    (bin-wise), and the sample detector selects a single FFT from the
-    N_FFTs results at random.
+    (N_FFTs, N_Bins). Statistical detectors are applied along
+    axis 0 (bin-wise), and the sample detector selects a single
+    FFT from the N_FFTs results at random.
 
     The shape of the output depends on the number of detectors
-    specified. The order of the results always follows min, max, mean,
-    median, sample - regardless of which detectors are used. This
-    ordering matches that of the detector enumerations.
+    specified. The order of the results always follows min, max,
+    mean, median, sample - regardless of which detectors are used.
+    This ordering matches that of the detector enumerations.
 
-    :param data: A 2-dimensional array of real, frequency-domain,
-        linear power values. Shape should be (N_FFTs, N_Bins).
-    :param detector: A detector enumeration containing any combination
-        of 'min', 'max', 'mean', 'median', and 'sample'. Also see the
-        create_fft_detector documentation.
-    :param dtype: Data type of values within the returned array. If not
-        provided, the type is determined by NumPy as the minimum type
-        required to hold the values (see numpy.array).
+    :param data: A 2-dimensional array of frequency-domain linear
+        power values. Shape should be (N_FFTs, N_Bins).
+    :param detector: A detector enumeration containing any
+        combination of 'min', 'max', 'mean', 'median', and 'sample'.
+        Also see the create_fft_detector documentation.
+    :param dtype: Data type of values within the returned array.
+        If not provided, the type is determined by NumPy as the
+        minimum type required to hold the values (see numpy.array).
     :returns: A (M x N_Bins) array containing the selected detector
         results as np.float32, where M is the number of detectors
         selected and N_Bins is the second dimension of the input array.
@@ -90,10 +91,11 @@ def apply_fft_detector(data: NDArray, detector: EnumMeta,
     return np.array(result, dtype=dtype)
 
 
-def get_fft(time_data: NDArray, fft_size: int, fft_window: NDArray,
-            num_ffts: int = 0, workers: int = os.cpu_count() // 2) -> NDArray:
+def get_fft(time_data: NDArray, fft_size: int, norm: str = 'forward',
+            fft_window: NDArray = None, num_ffts: int = 0,
+            workers: int = os.cpu_count() // 2) -> NDArray:
     """
-    Get the FFT of input time domain samples.
+    Compute the 1-D DFT using the FFT algorithm.
 
     The input time domain samples are reshaped based on fft_size
     and num_ffts. Then, the window is applied. The FFT is performed
@@ -116,14 +118,24 @@ def get_fft(time_data: NDArray, fft_size: int, fft_window: NDArray,
     evenly divisible by fft_size, the time domain data will still be
     truncated.
 
-    :param time_data: An array of time domain samples.
+    :param time_data: An array of time domain samples, which can be
+        complex.
     :param fft_size: Length of FFT (N_Bins).
-    :param fft_window: An array of window samples.
+    :param norm: Normalization mode. Valid options are 'backward',
+        'ortho', and 'forward'. Backward applies no normalization,
+        while 'forward' applies 1/fft_size scaling and 'ortho' applies
+        1/sqrt(fft_size) scaling. Defaults to 'forward'.
+    :param fft_window: An array of window samples (see get_fft_window).
+        If not given, no windowing is performed (equivalent to rectangular
+        windowing).
     :param num_ffts: The number of FFTs of length fft_size to compute.
         Setting this to zero or a negative number results in "as many
-        as possible" behavior.
-    :param workers:
-    :returns:
+        as possible" behavior, which is also the default behavior if
+        num_ffts is not specified.
+    :param workers: Maximum number of workers to use for parallel
+        computation. See scipy.fft.fft for more details.
+    :returns: The transformed input, scaled based on the specified
+        normalization mode.
     """
     # Get num_ffts for default case: as many as possible
     if num_ffts <= 0:
@@ -141,12 +153,12 @@ def get_fft(time_data: NDArray, fft_size: int, fft_window: NDArray,
     time_data = np.reshape(time_data[:num_ffts * fft_size],
                            (num_ffts, fft_size))
 
-    # Apply the FFT window
-    time_data *= fft_window
+    # Apply the FFT window if provided
+    if fft_window is not None:
+        time_data *= fft_window
 
     # Take and shift the FFT
-    # (norm='forward' applies 1/fft_size scaling)
-    complex_fft = sp_fft(time_data, norm='forward', workers=workers)
+    complex_fft = sp_fft(time_data, norm=norm, workers=workers)
     complex_fft = np.fft.fftshift(complex_fft)
     return complex_fft
 
@@ -156,9 +168,9 @@ def get_fft_window(window_type: str, window_length: int) -> NDArray:
     Generate a periodic window of the specified length.
 
     Supported values for window_type: boxcar, triang, blackman,
-    hamming, hann (also "Hanning" supported for backwards
-    compatibility), bartlett, flattop, parzen, bohman, blackmanharris,
-    nuttall, barthann, cosine, exponential, tukey, and taylor.
+    hamming, hann (also "Hanning" supported for backwards compatibility),
+    bartlett, flattop, parzen, bohman, blackmanharris, nuttall, barthann,
+    cosine, exponential, tukey, and taylor.
 
     If an invalid window type is specified, a boxcar (rectangular)
     window will be used instead.

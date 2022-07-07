@@ -196,8 +196,9 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         return measurement_result
 
     def apply_m4s(self, measurement_result: dict) -> NDArray:
+        # 'forward' normalization applies 1/fft_size normalization
         complex_fft = get_fft(measurement_result['data'], self.fft_size,
-                              self.fft_window, self.nffts)
+                              'forward', self.fft_window, self.nffts)
         power_fft = convert_volts_to_watts(complex_fft)
         m4s_result = apply_fft_detector(power_fft, self.fft_detector, float32)
         m4s_result = convert_watts_to_dBm(m4s_result)

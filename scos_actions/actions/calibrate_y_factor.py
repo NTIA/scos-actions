@@ -212,7 +212,7 @@ class YFactorCalibration(Action):
 
     def apply_mean_fft(self, measurement_result: dict) -> NDArray:
         complex_fft = get_fft(measurement_result['data'], self.fft_size,
-                              self.fft_window, self.nffts)
+                              'backward', self.fft_window, self.nffts)
         power_fft = convert_volts_to_watts(complex_fft)
         mean_result = apply_fft_detector(power_fft, self.fft_detector)
         return mean_result
