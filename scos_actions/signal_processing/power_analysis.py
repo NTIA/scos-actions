@@ -98,12 +98,13 @@ def apply_power_detector(data: NDArray, detector: EnumMeta,
 
 def convert_volts_to_watts(val_volts, impedance_ohms: float = 50.):
     """
-    Convert a value, or array of values, from Volts to Watts.
+    Convert from Volts to Watts.
 
     Calculation: (abs(val_volts)^2) / impedance_ohms
 
-    NumExpr is used to speed up the operation for large arrays.
-    Calculation assumes 50 Ohm impedance by default.
+    NumExpr is used to speed up the operation for large
+    arrays. The calculation assumes 50 Ohm impedance by
+    default.
 
     :param val_volts: A value, or array of values, in Volts.
     :param impedance_ohms: The impedance value to use when
@@ -115,11 +116,12 @@ def convert_volts_to_watts(val_volts, impedance_ohms: float = 50.):
 
 def convert_watts_to_dBm(val_watts):
     """
-    Convert a value, or array of values, from Watts to dBm.
+    Convert from Watts to dBm.
 
     Calculation: 10 * log10(val_watts) + 30
 
-    NumExpr is used to speed up the operation for large arrays.
+    NumExpr is used to speed up the operation for large
+    arrays.
 
     :param val_watts: A value, or array of values, in Watts.
     :returns: The input val_watts, converted to dBm.
@@ -132,16 +134,47 @@ def convert_watts_to_dBm(val_watts):
 
 def convert_dBm_to_watts(val_dBm):
     """
-    Convert a value, or array of values, from dBm to Watts.
+    Convert from dBm to Watts.
 
     Calculation: 10^((val_dBm - 30) / 10)
 
-    NumExpr is used to speed up the operation for large arrays.
+    NumExpr is used to speed up the operation for large
+    arrays.
 
     :param val_dBm: A value, or array of values, in dBm.
     :returns: The input val_dBm, converted to Watts.
     """
     return ne.evaluate('10**((val_dBm-30)/10)')
+
+
+def convert_linear_to_dB(val_linear):
+    """
+    Convert from linear units to dB.
+
+    Calculation: 10 * log10(val_linear)
+
+    NumExpr is used to speed up the operation for large
+    arrays.
+
+    :param val_linear: A value, or array of values, in linear
+        units.
+    :returns: The input val_linear, convert to dB.
+    """
+    return ne.evaluate('10*log10(val_linear)')
+
+
+def convert_dB_to_linear(val_dB):
+    """
+    Convert from dB to linear units.
+
+    Calculation: 10^(val_dB / 10)
+
+    NumExpr is used to speed up the operation for large arrays.
+
+    :param val_dB: A value, or array of values, in dB.
+    :returns: The input val_dB, in corresponding linear units.
+    """
+    return ne.evaluate('10**(val_dB/10)')
 
 
 def filter_quantiles(x: NDArray, q_lo: float, q_hi: float) -> NDArray:
