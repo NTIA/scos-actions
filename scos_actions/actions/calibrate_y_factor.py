@@ -61,6 +61,7 @@ each row of the matrix.
 import logging
 import time
 
+from scipy.constants import Boltzmann
 from scipy.signal import windows
 #from scos_actions.signal_processing.utils import get_enbw
 from scos_actions.signal_processing.calibration import y_factor
@@ -159,11 +160,11 @@ class YFactorCalibration(Action):
         noise_off_measurement_result = self.sigan.acquire_time_domain_samples(num_samples, num_samples_skip=nskip, gain_adjust=False)
         mean_off_watts = get_mean_detector_watts(fft_size, noise_off_measurement_result, fft_window, fft_window_acf)
         enbw = get_enbw(param_map['sample_rate'], fft_size, fft_window_enbw)
-        noise_floor = 1.38e-23 * 300 * enbw
-        logger.debug('Noise floor: ' + str(noise_floor))
         enr = self.get_enr()
         logger.debug('ENR: ' + str(enr))
         temp_k, temp_c, temp_f = self.get_temperature()
+        noise_floor = Boltzmann * temp_k * enbw
+        logger.debug('Noise floor: ' + str(noise_floor))
         noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw, T_room=temp_k)
         logger.debug('Noise Figure:' + str(noise_figure))
         logger.debug('Gain: ' + str(gain))
@@ -179,7 +180,6 @@ class YFactorCalibration(Action):
             raise Exception('Preselector contains multiple calibration sources.')
         else:
             enr_dB = preselector.cal_sources[0].enr
-            # enr_dB = 14.53
             linear_enr = 10 ** (enr_dB / 10.0)
             return linear_enr
 

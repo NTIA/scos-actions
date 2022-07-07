@@ -29,7 +29,7 @@ class Calibration(object):
 
     def get_values(self, sample_rate, args):
         values = self.calibration_data[sample_rate]
-        for i in len(args):
+        for i in range(len(args)):
             values = values[args[i]]
         return values
 
