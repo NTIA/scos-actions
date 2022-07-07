@@ -8,7 +8,7 @@ class FrequencyDomainDetectionAnnotation(Metadata):
         super().__init__(start, count)
         self.detector = detector
 
-    def create_metadata(self, sigmf_builder: SigMFBuilder, measurement_result):
+    def create_metadata(self, sigmf_builder: SigMFBuilder, measurement_result: dict):
         metadata = {
             "ntia-core:annotation_type": "FrequencyDomainDetection",
             "ntia-algorithm:number_of_samples_in_fft": measurement_result['fft_size'],
@@ -22,4 +22,6 @@ class FrequencyDomainDetectionAnnotation(Metadata):
             "ntia-algorithm:frequency_stop": measurement_result['frequency_stop'],
             "ntia-algorithm:frequency_step": measurement_result['frequency_step'],
         }
-        sigmf_builder.add_annotation(self.start, measurement_result['fft_size'], metadata)
+        sigmf_builder.add_annotation(
+            self.start, measurement_result['fft_size'], metadata
+        )

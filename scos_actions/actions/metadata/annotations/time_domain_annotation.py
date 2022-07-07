@@ -1,10 +1,11 @@
 from scos_actions.actions.metadata.metadata import Metadata
 from scos_actions.actions.sigmf_builder import SigMFBuilder
 
+
 class TimeDomainAnnotation(Metadata):
 
     def __init__(self, start, count):
-        super().__init__(start,count)
+        super().__init__(start, count)
 
     def create_metadata(self, sigmf_builder: SigMFBuilder, measurement_result):
         time_domain_detection_md = {
@@ -14,4 +15,6 @@ class TimeDomainAnnotation(Metadata):
             "ntia-algorithm:units": "volts",
             "ntia-algorithm:reference": "preselector input",
         }
-        sigmf_builder.add_annotation(self.start, self.count, time_domain_detection_md)
+        sigmf_builder.add_annotation(
+            self.start, self.count, time_domain_detection_md
+        )
