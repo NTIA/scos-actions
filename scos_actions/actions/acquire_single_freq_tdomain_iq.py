@@ -83,7 +83,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         self.duration_ms = get_param(DURATION_MS, self.parameter_map)
         self.frequency_Hz = get_param(FREQUENCY, self.parameter_map)
 
-    def execute(self, schedule_entry, task_id):
+    def execute(self, schedule_entry, task_id) -> dict:
         start_time = utils.get_datetime_str_now()
         # Use the sigan's actual reported instead of requested sample rate
         sample_rate = self.sigan.sample_rate
