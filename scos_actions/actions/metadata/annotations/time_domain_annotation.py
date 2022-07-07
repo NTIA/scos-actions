@@ -12,6 +12,6 @@ class TimeDomainAnnotation(Metadata):
             "ntia-algorithm:detector": "sample_iq",
             "ntia-algorithm:number_of_samples": self.count,
             "ntia-algorithm:units": "volts",
-            "ntia-algorithm:reference": "preslector input",
+            "ntia-algorithm:reference": "preselector input",
         }
         sigmf_builder.add_annotation(self.start, self.count, time_domain_detection_md)

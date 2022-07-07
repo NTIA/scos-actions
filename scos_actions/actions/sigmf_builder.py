@@ -111,35 +111,6 @@ class SigMFBuilder:
 
         self.sigmf_md.add_capture(start_index=0, metadata=capture_md)
 
-    def add_frequency_domain_detection(
-            self,
-            start_index,
-            fft_size,
-            enbw,
-            detector,
-            num_ffts,
-            window,
-            units,
-            reference,
-            frequency_start,
-            frequency_stop,
-            frequency_step,
-    ):
-        metadata = {
-            "ntia-core:annotation_type": "FrequencyDomainDetection",
-            "ntia-algorithm:number_of_samples_in_fft": fft_size,
-            "ntia-algorithm:window": window,
-            "ntia-algorithm:equivalent_noise_bandwidth": enbw,
-            "ntia-algorithm:detector": detector,
-            "ntia-algorithm:number_of_ffts": num_ffts,
-            "ntia-algorithm:units": units,
-            "ntia-algorithm:reference": reference,
-            "ntia-algorithm:frequency_start": frequency_start,
-            "ntia-algorithm:frequency_stop": frequency_stop,
-            "ntia-algorithm:frequency_step": frequency_step,
-        }
-        self.add_annotation(start_index, fft_size, metadata)
-
     def add_annotation(self, start_index, length, annotation_md):
         self.sigmf_md.add_annotation(
             start_index=start_index, length=length, metadata=annotation_md

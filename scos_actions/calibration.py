@@ -29,7 +29,7 @@ class Calibration(object):
 
     def get_values(self, sample_rate, args):
         values = self.calibration_data[sample_rate]
-        for i in len(args):
+        for i in range(len(args)):
             values = values[args[i]]
         return values
 
@@ -130,6 +130,7 @@ def filter_by_parameter(calibrations, parameter, value):
 
 def check_floor_of_parameter(calibrations, parameter, value):
     value = math.floor(value)
+    logger.debug("Checking floor value of: " + str(value))
     if value in calibrations:
         return calibrations[value]
     else:
@@ -138,6 +139,7 @@ def check_floor_of_parameter(calibrations, parameter, value):
 
 def check_ceiling_of_parameter(calibrations, parameter, value):
     value = math.ceil(value)
+    logger.debug('Checking ceiling at: ' + str(value))
     if value in calibrations:
         return calibrations[value]
     else:
