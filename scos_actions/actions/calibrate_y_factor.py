@@ -159,7 +159,7 @@ class YFactorCalibration(Action):
         logger.debug('Acquiring noise off M4')
         noise_off_measurement_result = self.sigan.acquire_time_domain_samples(num_samples, num_samples_skip=nskip, gain_adjust=False)
         mean_off_watts = get_mean_detector_watts(fft_size, noise_off_measurement_result, fft_window, fft_window_acf)
-        enbw = get_enbw(param_map['sample_rate'], fft_size, fft_window_enbw)
+        enbw = get_enbw(param_map[SAMPLE_RATE], fft_size, fft_window_enbw)
         enr = self.get_enr()
         logger.debug('ENR: ' + str(enr))
         temp_k, temp_c, temp_f = self.get_temperature()
@@ -189,11 +189,11 @@ class YFactorCalibration(Action):
         if (isinstance(self.parameter_map['frequency'], float)):
             frequencies = self.parameter_map["frequency"] / 1e6
             nffts = self.parameter_map["nffts"]
-            fft_size = self.parameter_map["fft_size"]
+            fft_size = self.parameter_map[FFT_SIZE]
         else:
             frequencies = utils.list_to_string(self.parameter_map['frequency'])
             nffts = utils.list_to_string(self.parameter_map["nffts"])
-            fft_size = utils.list_to_string(self.parameter_map["fft_size"])
+            fft_size = utils.list_to_string(self.parameter_map[FFT_SIZE])
         acq_plan = f"Performs a y-factor calibration at frequencies: {frequencies}, nffts:{nffts}, fft_size: {fft_size}\n"
         definitions = {
             "name": self.name,
