@@ -2,7 +2,8 @@ import copy
 from abc import ABC, abstractmethod
 from scos_actions.settings import sensor_calibration
 from scos_actions.settings import sigan_calibration
-from scos_actions import utils
+from scos_actions.utils import convert_string_to_millisecond_iso_format
+from scos_actions.utils import get_datetime_str_now
 
 
 class SignalAnalyzerInterface(ABC):
@@ -14,6 +15,7 @@ class SignalAnalyzerInterface(ABC):
             "enbw_sigan": None,  # Defaults to sample rate
             "noise_figure_sigan": 0,
             "1db_compression_sigan": 100,
+            'calibration_datetime': get_datetime_str_now()
         }
 
         self.DEFAULT_SENSOR_CALIBRATION = {
@@ -24,6 +26,7 @@ class SignalAnalyzerInterface(ABC):
             "gain_preselector": 0,
             "noise_figure_preselector": 0,
             "1db_compression_preselector": 100,
+            'calibration_datetime': get_datetime_str_now()
         }
         self.sensor_calibration_data = copy.deepcopy(self.DEFAULT_SENSOR_CALIBRATION)
         self.sigan_calibration_data = copy.deepcopy(self.DEFAULT_SIGAN_CALIBRATION)
@@ -31,7 +34,7 @@ class SignalAnalyzerInterface(ABC):
     @property
     def last_calibration_time(self):
         """Returns the last calibration time from calibration data."""
-        return utils.convert_string_to_millisecond_iso_format(
+        return convert_string_to_millisecond_iso_format(
                 sensor_calibration.calibration_datetime
         )
 

@@ -12,26 +12,6 @@ logger = logging.getLogger(__name__)
 tune_result_params = ["actual_dsp_freq", "actual_rf_freq"]
 MockTuneResult = namedtuple("MockTuneResult", tune_result_params)
 
-# Define the default calibration dicts
-DEFAULT_SIGAN_CALIBRATION = {
-    "gain_sigan": None,  # Defaults to gain setting
-    "enbw_sigan": None,  # Defaults to sample rate
-    "noise_figure_sigan": 0,
-    "1db_compression_sigan": 100,
-    'calibration_datetime': get_datetime_str_now()
-}
-
-DEFAULT_SENSOR_CALIBRATION = {
-    "gain_sensor": None,  # Defaults to sigan gain
-    "enbw_sensor": None,  # Defaults to sigan enbw
-    "noise_figure_sensor": None,  # Defaults to sigan noise figure
-    "1db_compression_sensor": None,  # Defaults to sigan compression + preselector gain
-    "gain_preselector": 0,
-    "noise_figure_preselector": 0,
-    "1db_compression_preselector": 100,
-    'calibration_datetime': get_datetime_str_now()
-}
-
 class MockSignalAnalyzer(SignalAnalyzerInterface):
     """
     MockSignalAnalyzer is mock signal analyzer object for testing.
@@ -60,8 +40,8 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
 
 
         self.randomize_values = randomize_values
-        self.sensor_calibration_data = DEFAULT_SENSOR_CALIBRATION
-        self.sigan_calibration_data = DEFAULT_SIGAN_CALIBRATION
+        self.sensor_calibration_data = self.DEFAULT_SENSOR_CALIBRATION
+        self.sigan_calibration_data = self.DEFAULT_SIGAN_CALIBRATION
 
     @property
     def is_available(self):
