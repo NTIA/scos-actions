@@ -105,7 +105,7 @@ from scos_actions.actions.sigmf_builder import (
     Domain, MeasurementType, SigMFBuilder
 )
 from scos_actions.actions.metadata.annotations.fft_annotation import (
-    FftAnnotation
+    FrequencyDomainDetectionAnnotation
 )
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.actions.action_utils import get_param
@@ -217,8 +217,9 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
         for i, detector in enumerate(self.fft_detector):
-            fft_annotation = FftAnnotation(detector.value, i * self.fft_size,
-                                           self.fft_size)
+            fft_annotation = FrequencyDomainDetectionAnnotation(
+                detector.value, i * self.fft_size, self.fft_size
+            )
             sigmf_builder.add_metadata_generator(type(fft_annotation).__name__
                                                  + '_' + detector.value,
                                                  fft_annotation)
