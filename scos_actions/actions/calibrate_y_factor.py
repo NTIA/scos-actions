@@ -69,8 +69,9 @@ each row of the matrix.
 import logging
 import os
 import time
-from numpy.typing import NDArray
+from numpy import ndarray
 from scipy.constants import Boltzmann
+from typing import Tuple
 
 from scos_actions import utils
 from scos_actions.actions.action_utils import get_param
@@ -92,8 +93,9 @@ from scos_actions.signal_processing.fft import (
 )
 from scos_actions.signal_processing.power_analysis import (
     apply_power_detector,
-    convert_volts_to_watts
+    calculate_power_watts
 )
+from scos_actions.signal_processing.unit_conversion import convert_dB_to_linear
 
 logger = logging.getLogger(__name__)
 
@@ -207,45 +209,54 @@ class YFactorCalibration(Action):
                                              fft_size, fft_window, nffts)
 
         # Y-Factor
-        enbw = get_fft_enbw(fft_window, sample_rate)
-        enr = self.get_enr()
+        enbw_hz = get_fft_enbw(fft_window, sample_rate)
+        enr_linear = self.get_linear_enr(cal_source_idx=0)
         temp_k, temp_c, _ = self.get_temperature()
-        noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw,
-                                      T_room=temp_k)
+        noise_figure, gain = y_factor(mean_on_watts, mean_off_watts,
+                                      enr_linear, enbw_hz, temp_k)
         sensor_calibration.update(param_map, utils.get_datetime_str_now(),
                                   gain, noise_figure, temp_c,
                                   SENSOR_CALIBRATION_FILE)
 
         # Debugging
-        noise_floor = Boltzmann * temp_k * enbw
-        logger.debug('Noise floor: ' + str(noise_floor))
-        enr = self.get_enr()
-        logger.debug('ENR: ' + str(enr))
-        logger.debug('Noise Figure:' + str(noise_figure))
-        logger.debug('Gain: ' + str(gain))
+        noise_floor = Boltzmann * temp_k * enbw_hz
+        logger.debug(f'Noise floor: {noise_floor} Watts')
+        logger.debug(f'Noise Figure: {noise_figure} dB')
+        logger.debug(f'Gain: {gain} dB')
 
         return 'Noise Figure:{}, Gain:{}'.format(noise_figure, gain)
 
     def apply_mean_fft(self, measurement_result: dict, fft_size: int,
-                       fft_window: NDArray, nffts: int) -> NDArray:
+                       fft_window: ndarray, nffts: int) -> ndarray:
         complex_fft = get_fft(measurement_result['data'], fft_size,
                               'backward', fft_window, nffts)
-        power_fft = convert_volts_to_watts(complex_fft)
+        power_fft = calculate_power_watts(complex_fft)
         mean_result = apply_power_detector(power_fft, self.fft_detector)
         return mean_result
 
-    def get_enr(self):
+    @staticmethod
+    def get_linear_enr(cal_source_idx: int = 0) -> float:
+        """
+        Get the excess noise ratio of a calibration source.
+
+        :param cal_source_idx: The index of the desired
+            calibration source in preselector.cal_sources.
+        :returns: The excess noise ratio of the specified
+            calibration source, in linear units.
+        """
         # todo deal with multiple cal sources
+        # (this is only partially implemented for now, an error
+        # is still raised if multiple cal sources exist)
         if len(preselector.cal_sources) == 0:
-            raise Exception('No calibrations sources defined in preselector.')
+            raise Exception('No calibration sources defined in preselector.')
         elif len(preselector.cal_sources) > 1:
             raise Exception(
                 'Preselector contains multiple calibration sources.'
             )
         else:
-            enr_dB = preselector.cal_sources[0].enr
-            linear_enr = 10 ** (enr_dB / 10.0)
-            return linear_enr
+            enr_dB = preselector.cal_sources[cal_source_idx].enr
+            enr_linear = convert_dB_to_linear(enr_dB)
+            return enr_linear
 
     @property
     def description(self):
@@ -277,7 +288,16 @@ class YFactorCalibration(Action):
         return __doc__.format(**definitions)
 
     # todo support multiple temperature sensors
-    def get_temperature(self):
+    @staticmethod
+    def get_temperature() -> Tuple[float, float, float]:
+        """
+        Get the temperature from a preselector sensor.
+
+        :returns:
+            - temp_k - Thing
+            - temp_c
+            - temp_f
+        """
         kelvin_temp = 290.0
         celsius_temp = kelvin_temp - 273.15
         fahrenheit = (celsius_temp * 9. / 5.) + 32

@@ -1,12 +1,38 @@
 import logging
-import os
-import warnings
 import numexpr as ne
 import numpy as np
 from enum import Enum, EnumMeta
-from numpy.typing import NDArray
+from numpy import ndarray
 
 logger = logging.getLogger(__name__)
+
+
+def calculate_power_watts(val_volts, impedance_ohms: float = 50.):
+    """
+    Calculate power in Watts from time domain samples in Volts.
+
+    Calculation: (abs(val_volts)^2) / impedance_ohms
+
+    NumPy is used for scalar inputs.
+    NumExpr is used to speed up the operation for arrays.
+
+    The calculation assumes 50 Ohm impedance by default.
+
+    :param val_volts: A value, or array of values, in Volts.
+        The input may be complex or real.
+    :param impedance_ohms: The impedance value to use when
+        converting from Volts to Watts.
+    :returns: The input val_volts, converted to Watts. The
+        returned quantity is always real.
+    """
+    if np.isscalar(val_volts):
+        power = (np.abs(val_volts) ** 2) / impedance_ohms
+    else:
+        power = ne.evaluate('(abs(val_volts)**2)/impedance_ohms')
+    if np.iscomplexobj(power):
+        # NumExpr returns complex type for complex input
+        power = np.real(power)
+    return power
 
 
 def create_time_domain_detector(name: str, detectors: list) -> EnumMeta:
@@ -41,8 +67,8 @@ def create_time_domain_detector(name: str, detectors: list) -> EnumMeta:
     return Enum(name, tuple(_args))
 
 
-def apply_power_detector(data: NDArray, detector: EnumMeta,
-                         dtype: type = None) -> NDArray:
+def apply_power_detector(data: ndarray, detector: EnumMeta,
+                         dtype: type = None) -> ndarray:
     """
     Apply statistical detectors to a 2-D array of samples.
 
@@ -96,88 +122,7 @@ def apply_power_detector(data: NDArray, detector: EnumMeta,
     return np.array(result, dtype=dtype)
 
 
-def convert_volts_to_watts(val_volts, impedance_ohms: float = 50.):
-    """
-    Convert from Volts to Watts.
-
-    Calculation: (abs(val_volts)^2) / impedance_ohms
-
-    NumExpr is used to speed up the operation for large
-    arrays. The calculation assumes 50 Ohm impedance by
-    default.
-
-    :param val_volts: A value, or array of values, in Volts.
-    :param impedance_ohms: The impedance value to use when
-        converting from Volts to Watts.
-    :returns: The input val_volts, converted to Watts.
-    """
-    return ne.evaluate('(abs(val_volts)**2)/impedance_ohms')
-
-
-def convert_watts_to_dBm(val_watts):
-    """
-    Convert from Watts to dBm.
-
-    Calculation: 10 * log10(val_watts) + 30
-
-    NumExpr is used to speed up the operation for large
-    arrays.
-
-    :param val_watts: A value, or array of values, in Watts.
-    :returns: The input val_watts, converted to dBm.
-    """
-    # If testing, don't output divide-by-zero warnings from log10
-    if 'PYTEST_CURRENT_TEST' in os.environ:
-        warnings.filterwarnings('ignore', message='divide by zero')
-    return ne.evaluate('10*log10(val_watts)+30')
-
-
-def convert_dBm_to_watts(val_dBm):
-    """
-    Convert from dBm to Watts.
-
-    Calculation: 10^((val_dBm - 30) / 10)
-
-    NumExpr is used to speed up the operation for large
-    arrays.
-
-    :param val_dBm: A value, or array of values, in dBm.
-    :returns: The input val_dBm, converted to Watts.
-    """
-    return ne.evaluate('10**((val_dBm-30)/10)')
-
-
-def convert_linear_to_dB(val_linear):
-    """
-    Convert from linear units to dB.
-
-    Calculation: 10 * log10(val_linear)
-
-    NumExpr is used to speed up the operation for large
-    arrays.
-
-    :param val_linear: A value, or array of values, in linear
-        units.
-    :returns: The input val_linear, convert to dB.
-    """
-    return ne.evaluate('10*log10(val_linear)')
-
-
-def convert_dB_to_linear(val_dB):
-    """
-    Convert from dB to linear units.
-
-    Calculation: 10^(val_dB / 10)
-
-    NumExpr is used to speed up the operation for large arrays.
-
-    :param val_dB: A value, or array of values, in dB.
-    :returns: The input val_dB, in corresponding linear units.
-    """
-    return ne.evaluate('10**(val_dB/10)')
-
-
-def filter_quantiles(x: NDArray, q_lo: float, q_hi: float) -> NDArray:
+def filter_quantiles(x: ndarray, q_lo: float, q_hi: float) -> ndarray:
     """
     Replace values outside specified quantiles with NaN.
 
@@ -192,8 +137,8 @@ def filter_quantiles(x: NDArray, q_lo: float, q_hi: float) -> NDArray:
     return ne.evaluate('x + where((x<=lo)|(x>hi), nan, 0)')
 
 
-def data_to_blocks(data: NDArray, num_blocks: int = None,
-                   block_size: int = None) -> NDArray:
+def data_to_blocks(data: ndarray, num_blocks: int = None,
+                   block_size: int = None) -> ndarray:
     """
     Convert 1-D array of samples in to 2-D array of sequential blocks.
 

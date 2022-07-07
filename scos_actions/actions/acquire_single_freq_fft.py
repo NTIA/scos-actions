@@ -88,8 +88,7 @@ The resulting matrix is real-valued, 32-bit floats representing dBm.
 """
 
 import logging
-from numpy import log10, float32
-from numpy.typing import NDArray
+from numpy import log10, float32, ndarray
 from scos_actions import utils
 from scos_actions.actions.action_utils import get_param
 from scos_actions.actions.interfaces.measurement_action import (
@@ -114,9 +113,9 @@ from scos_actions.signal_processing.fft import (
 )
 from scos_actions.signal_processing.power_analysis import (
     apply_power_detector,
-    convert_volts_to_watts,
-    convert_watts_to_dBm
+    calculate_power_watts
 )
+from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
 
 logger = logging.getLogger(__name__)
 
@@ -195,11 +194,11 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
         return measurement_result
 
-    def apply_m4s(self, measurement_result: dict) -> NDArray:
+    def apply_m4s(self, measurement_result: dict) -> ndarray:
         # 'forward' normalization applies 1/fft_size normalization
         complex_fft = get_fft(measurement_result['data'], self.fft_size,
                               'forward', self.fft_window, self.nffts)
-        power_fft = convert_volts_to_watts(complex_fft)
+        power_fft = calculate_power_watts(complex_fft)
         m4s_result = apply_power_detector(power_fft, self.fft_detector, float32)
         m4s_result = convert_watts_to_dBm(m4s_result)
         m4s_result -= 3  # Baseband/RF power conversion
