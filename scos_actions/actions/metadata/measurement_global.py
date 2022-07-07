@@ -5,9 +5,9 @@ from scos_actions.actions.sigmf_builder import SigMFBuilder
 class MeasurementMetadata(Metadata):
 
     def __init__(self):
-       pass
+        super().__init__()
 
-    def create_metadata(self,  sigmf_builder: SigMFBuilder, measurement_result: dict):
+    def create_metadata(self, sigmf_builder: SigMFBuilder, measurement_result: dict):
 
         if 'frequency_low' in measurement_result:
             freq_low = measurement_result['frequency_low']
@@ -24,7 +24,7 @@ class MeasurementMetadata(Metadata):
                 "time_start": measurement_result['start_time'],
                 "time_stop": measurement_result['end_time'],
                 "domain": measurement_result['domain'],
-                "measurement_type":measurement_result['measurement_type'],
+                "measurement_type": measurement_result['measurement_type'],
                 "frequency_tuned_low": freq_low,
                 "frequency_tuned_high": freq_high
             },

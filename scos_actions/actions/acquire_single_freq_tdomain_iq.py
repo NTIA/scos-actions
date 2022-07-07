@@ -64,7 +64,6 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
 
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
-        self.is_complex = True
 
     def execute(self, schedule_entry, task_id):
         start_time = utils.get_datetime_str_now()
@@ -88,7 +87,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
 
     def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
-        time_domain_annotation = TimeDomainAnnotation( 0, self.received_samples)
+        time_domain_annotation = TimeDomainAnnotation(0, self.received_samples)
         sigmf_builder.add_metadata_generator(type(time_domain_annotation).__name__, time_domain_annotation)
         return sigmf_builder
 
@@ -115,3 +114,6 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
 
     def transform_data(self, measurement_result):
         return measurement_result['data'].astype(complex64)
+
+    def is_complex(self) -> bool:
+        return True

@@ -1,5 +1,6 @@
 import logging
 
+from abc import abstractmethod
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import sigan as mock_sigan
@@ -36,23 +37,22 @@ class MeasurementAction(Action):
     def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
         sigmf_builder = SigMFBuilder()
         self.received_samples = len(measurement_result["data"].flatten())
-        calibration_annotation = CalibrationAnnotation( 0, self.received_samples)
+        calibration_annotation = CalibrationAnnotation(0, self.received_samples)
         sigmf_builder.add_metadata_generator(type(calibration_annotation).__name__, calibration_annotation)
         measurement_metadata = MeasurementMetadata()
         sigmf_builder.add_metadata_generator(type(measurement_metadata).__name__, measurement_metadata)
-        sensor_annotation = SensorAnnotation( 0, self.received_samples)
+        sensor_annotation = SensorAnnotation(0, self.received_samples)
         sigmf_builder.add_metadata_generator(type(sensor_annotation).__name__, sensor_annotation)
         return sigmf_builder
 
     def create_metadata(self, sigmf_builder, schedule_entry, measurement_result, recording=None):
-
         sigmf_builder.set_base_sigmf_global(
             schedule_entry,
             self.sensor_definition,
-            measurement_result, recording, self.is_complex
+            measurement_result, recording, self.is_complex()
         )
         sigmf_builder.add_sigmf_capture(sigmf_builder, measurement_result)
-        sigmf_builder.build( measurement_result)
+        sigmf_builder.build(measurement_result)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
@@ -69,7 +69,6 @@ class MeasurementAction(Action):
         )
 
     def acquire_data(self, num_samples, nskip):
-
         logger.debug(
             f"acquiring {num_samples} samples and skipping the first {nskip if nskip else 0} samples"
         )
@@ -81,3 +80,7 @@ class MeasurementAction(Action):
 
     def transform_data(self, measurement_result):
         return measurement_result["data"]
+
+    @abstractmethod
+    def is_complex(self) -> bool:
+        pass
