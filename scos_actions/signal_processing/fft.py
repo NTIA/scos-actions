@@ -41,14 +41,8 @@ def create_fft_detector(name: str, detectors: list) -> EnumMeta:
     return Enum(name, tuple(_args))
 
 
-# Included as default for apply_fft_detector
-FftM4sDetector = create_fft_detector('FftM4sDetector', ['min', 'max', 'mean',
-                                                        'median', 'sample'])
-
-
-def apply_fft_detector(data: NDArray,
-                       detector: EnumMeta = FftM4sDetector,
-                       dtype: type = np.float32) -> NDArray:
+def apply_fft_detector(data: NDArray, detector: EnumMeta,
+                       dtype: type = None) -> NDArray:
     """
     Apply statistical detectors to a 2D array of FFT results.
 
@@ -56,10 +50,6 @@ def apply_fft_detector(data: NDArray,
     (N_FFTs, N_Bins). Statistical detectors are applied along axis 0
     (bin-wise), and the sample detector selects a single FFT from the
     N_FFTs results at random.
-
-    By default, the M4S detector is applied, returning minimum, maximum,
-    mean, median, and sample detector results as an array of shape
-    (5, N_Bins).
 
     The shape of the output depends on the number of detectors
     specified. The order of the results always follows min, max, mean,
@@ -71,8 +61,9 @@ def apply_fft_detector(data: NDArray,
     :param detector: A detector enumeration containing any combination
         of 'min', 'max', 'mean', 'median', and 'sample'. Also see the
         create_fft_detector documentation.
-    :param dtype: Data type of values within the returned array.
-        Defaults to numpy.float32.
+    :param dtype: Data type of values within the returned array. If not
+        provided, the type is determined by NumPy as the minimum type
+        required to hold the values (see numpy.array).
     :returns: A (M x N_Bins) array containing the selected detector
         results as np.float32, where M is the number of detectors
         selected and N_Bins is the second dimension of the input array.
