@@ -1,7 +1,8 @@
 class ParameterException(Exception):
     """Basic exception handling for missing parameters."""
+
     def __init__(self, param):
-        super().__init__(f'{param} missing from measurement parameters.')
+        super().__init__(f"{param} missing from measurement parameters.")
 
 
 def get_param(p: str, params: dict):
@@ -16,4 +17,3 @@ def get_param(p: str, params: dict):
     if p not in params:
         raise ParameterException(p)
     return params[p]
-

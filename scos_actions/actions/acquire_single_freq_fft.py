@@ -91,17 +91,11 @@ import logging
 from numpy import log10, float32, ndarray
 from scos_actions import utils
 from scos_actions.actions.action_utils import get_param
-from scos_actions.actions.interfaces.measurement_action import (
-    MeasurementAction
-)
+from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.actions.metadata.annotations.fft_annotation import (
-    FrequencyDomainDetectionAnnotation
+    FrequencyDomainDetectionAnnotation,
 )
-from scos_actions.actions.sigmf_builder import (
-    Domain,
-    MeasurementType,
-    SigMFBuilder
-)
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.signal_processing.fft import (
     create_fft_detector,
@@ -109,11 +103,11 @@ from scos_actions.signal_processing.fft import (
     get_fft_enbw,
     get_fft_frequencies,
     get_fft_window,
-    get_fft_window_correction
+    get_fft_window_correction,
 )
 from scos_actions.signal_processing.power_analysis import (
     apply_power_detector,
-    calculate_power_watts
+    calculate_power_watts,
 )
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
 
@@ -145,59 +139,60 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         super().__init__(parameters, sigan, gps)
         self.is_complex = False
         # Pull parameters from action config
-        self.fft_size = get_param('fft_size', self.parameter_map)
-        self.nffts = get_param('nffts', self.parameter_map)
-        self.nskip = get_param('nskip', self.parameter_map)
-        self.frequency_Hz = get_param('frequency', self.parameter_map)
+        self.fft_size = get_param("fft_size", self.parameter_map)
+        self.nffts = get_param("nffts", self.parameter_map)
+        self.nskip = get_param("nskip", self.parameter_map)
+        self.frequency_Hz = get_param("frequency", self.parameter_map)
         # FFT setup
         self.fft_detector = create_fft_detector(
-            'FftM4sDetector',
-            ['min', 'max', 'mean', 'median', 'sample']
+            "FftM4sDetector", ["min", "max", "mean", "median", "sample"]
         )
-        self.fft_window_type = 'flattop'
+        self.fft_window_type = "flattop"
         self.num_samples = self.fft_size * self.nffts
         self.fft_window = get_fft_window(self.fft_window_type, self.fft_size)
-        self.fft_window_acf = get_fft_window_correction(
-            self.fft_window,
-            'amplitude'
-        )
+        self.fft_window_acf = get_fft_window_correction(self.fft_window, "amplitude")
 
     def execute(self, schedule_entry, task_id) -> dict:
         # Acquire IQ data and generate M4S result
         start_time = utils.get_datetime_str_now()
         measurement_result = self.acquire_data(self.num_samples, self.nskip)
         # Actual sample rate may differ from configured value
-        sample_rate_Hz = measurement_result['sample_rate']
+        sample_rate_Hz = measurement_result["sample_rate"]
         m4s_result = self.apply_m4s(measurement_result)
 
         # Save measurement results
-        measurement_result['data'] = m4s_result
-        measurement_result['start_time'] = start_time
-        measurement_result['end_time'] = utils.get_datetime_str_now()
-        measurement_result['enbw'] = get_fft_enbw(self.fft_window,
-                                                  sample_rate_Hz)
-        frequencies = get_fft_frequencies(self.fft_size, sample_rate_Hz,
-                                          self.frequency_Hz)
+        measurement_result["data"] = m4s_result
+        measurement_result["start_time"] = start_time
+        measurement_result["end_time"] = utils.get_datetime_str_now()
+        measurement_result["enbw"] = get_fft_enbw(self.fft_window, sample_rate_Hz)
+        frequencies = get_fft_frequencies(
+            self.fft_size, sample_rate_Hz, self.frequency_Hz
+        )
         measurement_result.update(self.parameter_map)
-        measurement_result['description'] = self.description
-        measurement_result['domain'] = Domain.FREQUENCY.value
-        measurement_result['frequency_start'] = frequencies[0]
-        measurement_result['frequency_stop'] = frequencies[-1]
-        measurement_result['frequency_step'] = frequencies[1] - frequencies[0]
-        measurement_result['window'] = self.fft_window_type
-        measurement_result['calibration_datetime'] = \
-            self.sigan.sensor_calibration_data['calibration_datetime']
-        measurement_result['task_id'] = task_id
-        measurement_result['measurement_type'] = \
-            MeasurementType.SINGLE_FREQUENCY.value
-        measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
-        measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
+        measurement_result["description"] = self.description
+        measurement_result["domain"] = Domain.FREQUENCY.value
+        measurement_result["frequency_start"] = frequencies[0]
+        measurement_result["frequency_stop"] = frequencies[-1]
+        measurement_result["frequency_step"] = frequencies[1] - frequencies[0]
+        measurement_result["window"] = self.fft_window_type
+        measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
+            "calibration_datetime"
+        ]
+        measurement_result["task_id"] = task_id
+        measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
+        measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
+        measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         return measurement_result
 
     def apply_m4s(self, measurement_result: dict) -> ndarray:
         # 'forward' normalization applies 1/fft_size normalization
-        complex_fft = get_fft(measurement_result['data'], self.fft_size,
-                              'forward', self.fft_window, self.nffts)
+        complex_fft = get_fft(
+            measurement_result["data"],
+            self.fft_size,
+            "forward",
+            self.fft_window,
+            self.nffts,
+        )
         power_fft = calculate_power_watts(complex_fft)
         m4s_result = apply_power_detector(power_fft, self.fft_detector, float32)
         m4s_result = convert_watts_to_dBm(m4s_result)
@@ -209,13 +204,17 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def description(self):
         frequency_MHz = self.frequency_Hz / 1e6
         used_keys = ["frequency", "nffts", "fft_size", "name"]
-        acq_plan = f"The signal analyzer is tuned to {frequency_MHz:.2f} MHz" \
-                   f" and the following parameters are set:\n"
+        acq_plan = (
+            f"The signal analyzer is tuned to {frequency_MHz:.2f} MHz"
+            f" and the following parameters are set:\n"
+        )
         for name, value in self.parameters.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
-        acq_plan += f"\nThen, ${self.nffts} \times {self.fft_size}$ samples " \
-                    "are acquired gap-free."
+        acq_plan += (
+            f"\nThen, ${self.nffts} \times {self.fft_size}$ samples "
+            "are acquired gap-free."
+        )
 
         definitions = {
             "name": self.name,
@@ -234,9 +233,9 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
             fft_annotation = FrequencyDomainDetectionAnnotation(
                 detector.value, i * self.fft_size, self.fft_size
             )
-            sigmf_builder.add_metadata_generator(type(fft_annotation).__name__
-                                                 + '_' + detector.value,
-                                                 fft_annotation)
+            sigmf_builder.add_metadata_generator(
+                type(fft_annotation).__name__ + "_" + detector.value, fft_annotation
+            )
         return sigmf_builder
 
     def is_complex(self) -> bool:

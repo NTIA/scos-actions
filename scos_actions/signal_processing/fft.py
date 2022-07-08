@@ -29,22 +29,27 @@ def create_fft_detector(name: str, detectors: list) -> EnumMeta:
     """
     # Construct 2-tuples to create enumeration
     _args = []
-    if 'min' in detectors:
-        _args.append(('min', 'fft_min_power'))
-    if 'max' in detectors:
-        _args.append(('max', 'fft_max_power'))
-    if 'mean' in detectors:
-        _args.append(('mean', 'fft_mean_power'))
-    if 'median' in detectors:
-        _args.append(('median', 'fft_median_power'))
-    if 'sample' in detectors:
-        _args.append(('sample', 'fft_sample_power'))
+    if "min" in detectors:
+        _args.append(("min", "fft_min_power"))
+    if "max" in detectors:
+        _args.append(("max", "fft_max_power"))
+    if "mean" in detectors:
+        _args.append(("mean", "fft_mean_power"))
+    if "median" in detectors:
+        _args.append(("median", "fft_median_power"))
+    if "sample" in detectors:
+        _args.append(("sample", "fft_sample_power"))
     return Enum(name, tuple(_args))
 
 
-def get_fft(time_data: ndarray, fft_size: int, norm: str = 'forward',
-            fft_window: ndarray = None, num_ffts: int = 0,
-            workers: int = os.cpu_count() // 2) -> ndarray:
+def get_fft(
+    time_data: ndarray,
+    fft_size: int,
+    norm: str = "forward",
+    fft_window: ndarray = None,
+    num_ffts: int = 0,
+    workers: int = os.cpu_count() // 2,
+) -> ndarray:
     """
     Compute the 1-D DFT using the FFT algorithm.
 
@@ -101,8 +106,7 @@ def get_fft(time_data: ndarray, fft_size: int, norm: str = 'forward',
         logger.warning(msg)
 
     # Resize time data for FFTs
-    time_data = np.reshape(time_data[:num_ffts * fft_size],
-                           (num_ffts, fft_size))
+    time_data = np.reshape(time_data[: num_ffts * fft_size], (num_ffts, fft_size))
 
     # Apply the FFT window if provided
     if fft_window is not None:
@@ -134,19 +138,21 @@ def get_fft_window(window_type: str, window_length: int) -> ndarray:
         type window_type.
     """
     # String formatting for backwards-compatibility
-    window_type = window_type.lower().strip().replace(' ', '')
+    window_type = window_type.lower().strip().replace(" ", "")
 
     # Catch Hanning window for backwards-compatibility
-    if window_type == 'hanning':
-        window_type = 'hann'
+    if window_type == "hanning":
+        window_type = "hann"
 
     # Get window samples
     try:
         window = get_window(window_type, window_length)
     except ValueError:
-        logger.debug('Error generating FFT window. Attempting to'
-                     + ' use a rectangular window...')
-        window = get_window('boxcar', window_length)
+        logger.debug(
+            "Error generating FFT window. Attempting to"
+            + " use a rectangular window..."
+        )
+        window = get_window("boxcar", window_length)
 
     # Return the window
     return window
@@ -163,18 +169,19 @@ def get_fft_window_correction(window: ndarray, correction_type: str) -> float:
     :raises ValueError: If the correction type is neither 'energy'
         nor 'amplitude'.
     """
-    if correction_type == 'amplitude':
-        window_correction = 1. / np.mean(window)
-    elif correction_type == 'energy':
-        window_correction = np.sqrt(1. / np.mean(window ** 2))
+    if correction_type == "amplitude":
+        window_correction = 1.0 / np.mean(window)
+    elif correction_type == "energy":
+        window_correction = np.sqrt(1.0 / np.mean(window**2))
     else:
         raise ValueError(f"Invalid window correction type: {correction_type}")
 
     return window_correction
 
 
-def get_fft_frequencies(fft_size: int, sample_rate: float,
-                        center_frequency: float) -> list:
+def get_fft_frequencies(
+    fft_size: int, sample_rate: float, center_frequency: float
+) -> list:
     """
     Get the frequency axis for an FFT.
 
@@ -190,7 +197,7 @@ def get_fft_frequencies(fft_size: int, sample_rate: float,
     :returns: A list of values representing the frequency axis of the
         FFT.
     """
-    time_step = 1. / sample_rate
+    time_step = 1.0 / sample_rate
     frequencies = np.fft.fftfreq(fft_size, time_step)
     frequencies = np.fft.fftshift(frequencies) + center_frequency
     return frequencies.tolist()
@@ -209,5 +216,5 @@ def get_fft_enbw(fft_window: ndarray, sample_rate: float) -> float:
     # window_enbw is (amplitude_correction/energy_correction)^2
     # Here, get_fft_window_correction is not used in order to
     # simplify the calculation.
-    window_enbw = np.mean(fft_window ** 2) / (np.mean(fft_window) ** 2)
+    window_enbw = np.mean(fft_window**2) / (np.mean(fft_window) ** 2)
     return (sample_rate / len(fft_window)) * window_enbw

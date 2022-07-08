@@ -7,7 +7,7 @@ from numpy import ndarray
 logger = logging.getLogger(__name__)
 
 
-def calculate_power_watts(val_volts, impedance_ohms: float = 50.):
+def calculate_power_watts(val_volts, impedance_ohms: float = 50.0):
     """
     Calculate power in Watts from time domain samples in Volts.
 
@@ -28,7 +28,7 @@ def calculate_power_watts(val_volts, impedance_ohms: float = 50.):
     if np.isscalar(val_volts):
         power = (np.abs(val_volts) ** 2) / impedance_ohms
     else:
-        power = ne.evaluate('(abs(val_volts)**2)/impedance_ohms')
+        power = ne.evaluate("(abs(val_volts)**2)/impedance_ohms")
     if np.iscomplexobj(power):
         # NumExpr returns complex type for complex input
         power = np.real(power)
@@ -54,21 +54,22 @@ def create_time_domain_detector(name: str, detectors: list) -> EnumMeta:
     """
     # Construct 2-tuples to create enumeration
     _args = []
-    if 'min' in detectors:
-        _args.append(('min', 'time_domain_min_power'))
-    if 'max' in detectors:
-        _args.append(('max', 'time_domain_max_power'))
-    if 'mean' in detectors:
-        _args.append(('mean', 'time_domain_mean_power'))
-    if 'median' in detectors:
-        _args.append(('median', 'time_domain_median_power'))
-    if 'sample' in detectors:
-        _args.append(('sample', 'time_domain_sample_power'))
+    if "min" in detectors:
+        _args.append(("min", "time_domain_min_power"))
+    if "max" in detectors:
+        _args.append(("max", "time_domain_max_power"))
+    if "mean" in detectors:
+        _args.append(("mean", "time_domain_mean_power"))
+    if "median" in detectors:
+        _args.append(("median", "time_domain_median_power"))
+    if "sample" in detectors:
+        _args.append(("sample", "time_domain_sample_power"))
     return Enum(name, tuple(_args))
 
 
-def apply_power_detector(data: ndarray, detector: EnumMeta,
-                         dtype: type = None) -> ndarray:
+def apply_power_detector(
+    data: ndarray, detector: EnumMeta, dtype: type = None
+) -> ndarray:
     """
     Apply statistical detectors to a 2-D array of samples.
 
@@ -104,18 +105,18 @@ def apply_power_detector(data: ndarray, detector: EnumMeta,
     detectors = [d.name for _, d in enumerate(detector)]
     # Get functions based on specified detector
     detector_functions = []
-    if 'min' in detectors:
+    if "min" in detectors:
         detector_functions.append(np.min)
-    if 'max' in detectors:
+    if "max" in detectors:
         detector_functions.append(np.max)
-    if 'mean' in detectors:
+    if "mean" in detectors:
         detector_functions.append(np.mean)
-    if 'median' in detectors:
+    if "median" in detectors:
         detector_functions.append(np.median)
     # Apply statistical detectors
     result = [d(data, axis=0) for d in detector_functions]
     # Add sample detector result if configured
-    if 'sample' in detectors:
+    if "sample" in detectors:
         rng = np.random.default_rng()
         result.append(data[rng.integers(0, data.shape[0], 1)][0])
         del rng
@@ -134,4 +135,4 @@ def filter_quantiles(x: ndarray, q_lo: float, q_hi: float) -> ndarray:
     """
     lo, hi = np.quantile(x, [q_lo, q_hi])  # Works on flattened array
     nan = np.nan
-    return ne.evaluate('x + where((x<=lo)|(x>hi), nan, 0)')
+    return ne.evaluate("x + where((x<=lo)|(x>hi), nan, 0)")

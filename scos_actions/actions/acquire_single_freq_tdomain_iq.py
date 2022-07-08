@@ -35,24 +35,20 @@ import logging
 from numpy import complex64
 from scos_actions import utils
 from scos_actions.actions.action_utils import get_param
-from scos_actions.actions.interfaces.measurement_action import (
-    MeasurementAction
-)
-from scos_actions.actions.sigmf_builder import (
-    Domain, MeasurementType, SigMFBuilder
-)
+from scos_actions.actions.interfaces.measurement_action import MeasurementAction
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.actions.metadata.annotations.time_domain_annotation import (
-    TimeDomainAnnotation
+    TimeDomainAnnotation,
 )
 
 logger = logging.getLogger(__name__)
 
 # Define parameter keys
-FREQUENCY = 'frequency'
-SAMPLE_RATE = 'sample_rate'
-DURATION_MS = 'duration_ms'
-NUM_SKIP = 'nskip'
+FREQUENCY = "frequency"
+SAMPLE_RATE = "sample_rate"
+DURATION_MS = "duration_ms"
+NUM_SKIP = "nskip"
 
 
 class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
@@ -89,27 +85,26 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         sample_rate = self.sigan.sample_rate
         num_samples = int(sample_rate * self.duration_ms * 1e-3)
         measurement_result = self.acquire_data(num_samples, self.nskip)
-        measurement_result['start_time'] = start_time
+        measurement_result["start_time"] = start_time
         end_time = utils.get_datetime_str_now()
         measurement_result.update(self.parameter_map)
-        measurement_result['end_time'] = end_time
-        measurement_result['domain'] = Domain.TIME.value
-        measurement_result['measurement_type'] = \
-            MeasurementType.SINGLE_FREQUENCY.value
-        measurement_result['task_id'] = task_id
-        measurement_result['calibration_datetime'] = \
-            self.sigan.sensor_calibration_data['calibration_datetime']
-        measurement_result['description'] = self.description
-        measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
-        measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
+        measurement_result["end_time"] = end_time
+        measurement_result["domain"] = Domain.TIME.value
+        measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
+        measurement_result["task_id"] = task_id
+        measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
+            "calibration_datetime"
+        ]
+        measurement_result["description"] = self.description
+        measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
+        measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         return measurement_result
 
     def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
         time_domain_annotation = TimeDomainAnnotation(0, self.received_samples)
         sigmf_builder.add_metadata_generator(
-            type(time_domain_annotation).__name__,
-            time_domain_annotation
+            type(time_domain_annotation).__name__, time_domain_annotation
         )
         return sigmf_builder
 
@@ -118,8 +113,10 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         """Parameterize and return the module-level docstring."""
         frequency_MHz = self.frequency_Hz / 1e6
         used_keys = [FREQUENCY, DURATION_MS, "name"]
-        acq_plan = f"The signal analyzer is tuned to {frequency_MHz:.2f} " \
-                   + "MHz and the following parameters are set:\n"
+        acq_plan = (
+            f"The signal analyzer is tuned to {frequency_MHz:.2f} "
+            + "MHz and the following parameters are set:\n"
+        )
         for name, value in self.parameter_map.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
@@ -135,7 +132,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         return __doc__.format(**defs)
 
     def transform_data(self, measurement_result):
-        return measurement_result['data'].astype(complex64)
+        return measurement_result["data"].astype(complex64)
 
     def is_complex(self) -> bool:
         return True

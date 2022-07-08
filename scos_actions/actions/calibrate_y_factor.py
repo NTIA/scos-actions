@@ -76,39 +76,33 @@ from typing import Tuple
 from scos_actions import utils
 from scos_actions.actions.action_utils import get_param
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.hardware import (
-    gps as mock_gps,
-    preselector
-)
-from scos_actions.settings import (
-    sensor_calibration,
-    SENSOR_CALIBRATION_FILE
-)
+from scos_actions.hardware import gps as mock_gps, preselector
+from scos_actions.settings import sensor_calibration, SENSOR_CALIBRATION_FILE
 from scos_actions.signal_processing.calibration import y_factor
 from scos_actions.signal_processing.fft import (
     create_fft_detector,
     get_fft,
     get_fft_enbw,
-    get_fft_window
+    get_fft_window,
 )
 from scos_actions.signal_processing.power_analysis import (
     apply_power_detector,
-    calculate_power_watts
+    calculate_power_watts,
 )
 from scos_actions.signal_processing.unit_conversion import convert_dB_to_linear
 
 logger = logging.getLogger(__name__)
 
-RF_PATH = 'rf_path'
-NOISE_DIODE_ON = {RF_PATH: 'noise_diode_on'}
-NOISE_DIODE_OFF = {RF_PATH: 'noise_diode_off'}
+RF_PATH = "rf_path"
+NOISE_DIODE_ON = {RF_PATH: "noise_diode_on"}
+NOISE_DIODE_OFF = {RF_PATH: "noise_diode_off"}
 
 # Define parameter keys
-FREQUENCY = 'frequency'
-SAMPLE_RATE = 'sample_rate'
-FFT_SIZE = 'fft_size'
-NUM_FFTS = 'nffts'
-NUM_SKIP = 'nskip'
+FREQUENCY = "frequency"
+SAMPLE_RATE = "sample_rate"
+FFT_SIZE = "fft_size"
+NUM_FFTS = "nffts"
+NUM_SKIP = "nskip"
 
 
 class YFactorCalibration(Action):
@@ -135,17 +129,17 @@ class YFactorCalibration(Action):
     """
 
     def __init__(self, parameters, sigan, gps=mock_gps):
-        logger.debug('Initializing calibration action')
+        logger.debug("Initializing calibration action")
         super().__init__(parameters, sigan, gps)
         # FFT setup
-        self.fft_detector = create_fft_detector('FftMeanDetector', ['mean'])
-        self.fft_window_type = 'flattop'
+        self.fft_detector = create_fft_detector("FftMeanDetector", ["mean"])
+        self.fft_window_type = "flattop"
 
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
-        frequencies = self.parameter_map['frequency']
-        detail = ''
+        frequencies = self.parameter_map["frequency"]
+        detail = ""
         if isinstance(frequencies, list):
             for i in range(len(frequencies)):
                 iteration_params = utils.get_parameters(i, self.parameter_map)
@@ -160,22 +154,23 @@ class YFactorCalibration(Action):
 
     def calibrate(self, params):
         # Set noise diode on
-        logger.debug('Setting noise diode on')
+        logger.debug("Setting noise diode on")
         super().configure_preselector(NOISE_DIODE_ON)
-        time.sleep(.25)
+        time.sleep(0.25)
 
         # Debugging
-        logger.debug('Before configuring, sigan preamp enable = '
-                     + str(self.sigan.preamp_enable))
+        logger.debug(
+            "Before configuring, sigan preamp enable = " + str(self.sigan.preamp_enable)
+        )
 
         # Configure signal analyzer
         self.sigan.preamp_enable = True
         super().configure_sigan(params)
         param_map = self.get_parameter_map(params)
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug('Preamp = ' + str(self.sigan.preamp_enable))
-            logger.debug('Ref_level: ' + str(self.sigan.reference_level))
-            logger.debug('Attenuation:' + str(self.sigan.attenuation))
+            logger.debug("Preamp = " + str(self.sigan.preamp_enable))
+            logger.debug("Ref_level: " + str(self.sigan.reference_level))
+            logger.debug("Attenuation:" + str(self.sigan.attenuation))
         # Get parameters from action config
         fft_size = get_param(FFT_SIZE, param_map)
         nffts = get_param(NUM_FFTS, param_map)
@@ -183,51 +178,61 @@ class YFactorCalibration(Action):
         fft_window = get_fft_window(self.fft_window_type, fft_size)
         num_samples = fft_size * nffts
 
-        logger.debug('acquiring mean FFT')
+        logger.debug("acquiring mean FFT")
 
         # Get noise diode on mean FFT result
         noise_on_measurement_result = self.sigan.acquire_time_domain_samples(
             num_samples, num_samples_skip=nskip, gain_adjust=False
         )
-        sample_rate = noise_on_measurement_result['sample_rate']
-        mean_on_watts = self.apply_mean_fft(noise_on_measurement_result,
-                                            fft_size, fft_window, nffts)
+        sample_rate = noise_on_measurement_result["sample_rate"]
+        mean_on_watts = self.apply_mean_fft(
+            noise_on_measurement_result, fft_size, fft_window, nffts
+        )
 
         # Set noise diode off
-        logger.debug('Setting noise diode off')
+        logger.debug("Setting noise diode off")
         self.configure_preselector(NOISE_DIODE_OFF)
-        time.sleep(.25)
+        time.sleep(0.25)
 
         # Get noise diode off mean FFT result
-        logger.debug('Acquiring noise off mean FFT')
+        logger.debug("Acquiring noise off mean FFT")
         noise_off_measurement_result = self.sigan.acquire_time_domain_samples(
             num_samples, num_samples_skip=nskip, gain_adjust=False
         )
-        mean_off_watts = self.apply_mean_fft(noise_off_measurement_result,
-                                             fft_size, fft_window, nffts)
+        mean_off_watts = self.apply_mean_fft(
+            noise_off_measurement_result, fft_size, fft_window, nffts
+        )
 
         # Y-Factor
         enbw_hz = get_fft_enbw(fft_window, sample_rate)
         enr_linear = self.get_linear_enr(cal_source_idx=0)
         temp_k, temp_c, _ = self.get_temperature()
-        noise_figure, gain = y_factor(mean_on_watts, mean_off_watts,
-                                      enr_linear, enbw_hz, temp_k)
-        sensor_calibration.update(param_map, utils.get_datetime_str_now(),
-                                  gain, noise_figure, temp_c,
-                                  SENSOR_CALIBRATION_FILE)
+        noise_figure, gain = y_factor(
+            mean_on_watts, mean_off_watts, enr_linear, enbw_hz, temp_k
+        )
+        sensor_calibration.update(
+            param_map,
+            utils.get_datetime_str_now(),
+            gain,
+            noise_figure,
+            temp_c,
+            SENSOR_CALIBRATION_FILE,
+        )
 
         # Debugging
         noise_floor = Boltzmann * temp_k * enbw_hz
-        logger.debug(f'Noise floor: {noise_floor} Watts')
-        logger.debug(f'Noise Figure: {noise_figure} dB')
-        logger.debug(f'Gain: {gain} dB')
+        logger.debug(f"Noise floor: {noise_floor} Watts")
+        logger.debug(f"Noise Figure: {noise_figure} dB")
+        logger.debug(f"Gain: {gain} dB")
 
-        return 'Noise Figure:{}, Gain:{}'.format(noise_figure, gain)
+        return "Noise Figure:{}, Gain:{}".format(noise_figure, gain)
 
-    def apply_mean_fft(self, measurement_result: dict, fft_size: int,
-                       fft_window: ndarray, nffts: int) -> ndarray:
-        complex_fft = get_fft(measurement_result['data'], fft_size,
-                              'backward', fft_window, nffts)
+    def apply_mean_fft(
+        self, measurement_result: dict, fft_size: int, fft_window: ndarray, nffts: int
+    ) -> ndarray:
+        complex_fft = get_fft(
+            measurement_result["data"], fft_size, "backward", fft_window, nffts
+        )
         power_fft = calculate_power_watts(complex_fft)
         mean_result = apply_power_detector(power_fft, self.fft_detector)
         return mean_result
@@ -246,11 +251,9 @@ class YFactorCalibration(Action):
         # (this is only partially implemented for now, an error
         # is still raised if multiple cal sources exist)
         if len(preselector.cal_sources) == 0:
-            raise Exception('No calibration sources defined in preselector.')
+            raise Exception("No calibration sources defined in preselector.")
         elif len(preselector.cal_sources) > 1:
-            raise Exception(
-                'Preselector contains multiple calibration sources.'
-            )
+            raise Exception("Preselector contains multiple calibration sources.")
         else:
             enr_dB = preselector.cal_sources[cal_source_idx].enr
             enr_linear = convert_dB_to_linear(enr_dB)
@@ -267,14 +270,12 @@ class YFactorCalibration(Action):
             frequencies = utils.list_to_string(
                 [f / 1e6 for f in get_param(FREQUENCY, self.parameter_map)]
             )
-            nffts = utils.list_to_string(
-                get_param(NUM_FFTS, self.parameter_map)
-            )
-            fft_size = utils.list_to_string(
-                get_param(FFT_SIZE, self.parameter_map)
-            )
-        acq_plan = f"Performs a y-factor calibration at frequencies: " \
-                   f"{frequencies}, nffts:{nffts}, fft_size: {fft_size}\n"
+            nffts = utils.list_to_string(get_param(NUM_FFTS, self.parameter_map))
+            fft_size = utils.list_to_string(get_param(FFT_SIZE, self.parameter_map))
+        acq_plan = (
+            f"Performs a y-factor calibration at frequencies: "
+            f"{frequencies}, nffts:{nffts}, fft_size: {fft_size}\n"
+        )
         definitions = {
             "name": self.name,
             "frequencies": frequencies,
@@ -298,21 +299,20 @@ class YFactorCalibration(Action):
         """
         kelvin_temp = 290.0
         celsius_temp = kelvin_temp - 273.15
-        fahrenheit = (celsius_temp * 9. / 5.) + 32
+        fahrenheit = (celsius_temp * 9.0 / 5.0) + 32
         temp = preselector.get_sensor_value(1)
-        logger.debug('Temp: ' + str(temp))
+        logger.debug("Temp: " + str(temp))
         if temp is None:
-            logger.warning('Temperature is None. Using 290 K instead.')
+            logger.warning("Temperature is None. Using 290 K instead.")
         else:
             fahrenheit = float(temp)
-            celsius_temp = ((5.0 * (fahrenheit - 32)) / 9.0)
+            celsius_temp = (5.0 * (fahrenheit - 32)) / 9.0
             kelvin_temp = celsius_temp + 273.15
-            logger.debug('Temperature: ' + str(kelvin_temp))
+            logger.debug("Temperature: " + str(kelvin_temp))
         return kelvin_temp, celsius_temp, fahrenheit
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
         if not self.sigan.is_available:
-            msg = "Acquisition failed: signal analyzer required but not " \
-                  + "available"
+            msg = "Acquisition failed: signal analyzer required but not " + "available"
             raise RuntimeError(msg)

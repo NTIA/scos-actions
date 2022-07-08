@@ -51,10 +51,10 @@ from scos_actions.hardware import gps as mock_gps
 logger = logging.getLogger(__name__)
 
 # Define parameter keys
-FREQUENCY = 'frequency'
-SAMPLE_RATE = 'sample_rate'
-DURATION_MS = 'duration_ms'
-NUM_SKIP = 'nskip'
+FREQUENCY = "frequency"
+SAMPLE_RATE = "sample_rate"
+DURATION_MS = "duration_ms"
+NUM_SKIP = "nskip"
 
 
 class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisition):
@@ -98,9 +98,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                     continue
                 sorted_params[key] = parameters[key][i]
             self.sorted_measurement_parameters.append(sorted_params)
-        self.sorted_measurement_parameters.sort(
-            key=lambda params: params[FREQUENCY]
-        )
+        self.sorted_measurement_parameters.sort(key=lambda params: params[FREQUENCY])
 
         self.sigan = sigan  # make instance variable to allow mocking
         self.num_center_frequencies = num_center_frequencies
@@ -121,18 +119,21 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             measurement_result = super().acquire_data(num_samples, nskip)
             measurement_result.update(measurement_params)
             end_time = utils.get_datetime_str_now()
-            measurement_result['start_time'] = start_time
-            measurement_result['end_time'] = end_time
-            measurement_result['domain'] = Domain.TIME.value
-            measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
-            measurement_result['task_id'] = task_id
-            measurement_result['description'] = self.description
-            measurement_result['name'] = self.name
-            measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
-            measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
+            measurement_result["start_time"] = start_time
+            measurement_result["end_time"] = end_time
+            measurement_result["domain"] = Domain.TIME.value
+            measurement_result[
+                "measurement_type"
+            ] = MeasurementType.SINGLE_FREQUENCY.value
+            measurement_result["task_id"] = task_id
+            measurement_result["description"] = self.description
+            measurement_result["name"] = self.name
+            measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
+            measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
             sigmf_builder = self.get_sigmf_builder(measurement_result)
-            self.create_metadata(sigmf_builder, schedule_entry_json,
-                                 measurement_result, recording_id)
+            self.create_metadata(
+                sigmf_builder, schedule_entry_json, measurement_result, recording_id
+            )
             measurement_action_completed.send(
                 sender=self.__class__,
                 task_id=task_id,
@@ -146,10 +147,12 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
 
         acquisition_plan = ""
         used_keys = [FREQUENCY, DURATION_MS, "name"]
-        acq_plan_template = "The signal analyzer is tuned to " \
-                            + "{center_frequency:.2f} MHz and the following " \
-                            + "parameters are set:\n{parameters} Then, " \
-                            + "acquire samples for {duration_ms} ms.\n"
+        acq_plan_template = (
+            "The signal analyzer is tuned to "
+            + "{center_frequency:.2f} MHz and the following "
+            + "parameters are set:\n{parameters} Then, "
+            + "acquire samples for {duration_ms} ms.\n"
+        )
 
         for measurement_params in self.sorted_measurement_parameters:
             parameters = ""
