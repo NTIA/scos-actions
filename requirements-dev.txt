@@ -12,8 +12,6 @@ atomicwrites==1.4.0
     # via pytest
 attrs==21.4.0
     # via pytest
-black==22.6.0
-    # via -r requirements-dev.in
 certifi==2021.10.8
     # via
     #   -r requirements.txt
@@ -24,11 +22,8 @@ charset-normalizer==2.0.12
     # via
     #   -r requirements.txt
     #   requests
-click==8.0.4
-    # via black
 colorama==0.4.5
     # via
-    #   click
     #   pytest
     #   tox
 distlib==0.3.4
@@ -47,7 +42,6 @@ idna==3.3
     #   requests
 importlib-metadata==4.11.2
     # via
-    #   click
     #   pluggy
     #   pre-commit
     #   pytest
@@ -57,8 +51,6 @@ iniconfig==1.1.1
     # via pytest
 its-preselector @ git+https://github.com/NTIA/Preselector@1.0.0
     # via -r requirements.txt
-mypy-extensions==0.4.3
-    # via black
 nodeenv==1.6.0
     # via pre-commit
 numexpr==2.8.3
@@ -75,12 +67,8 @@ packaging==21.3
     #   numexpr
     #   pytest
     #   tox
-pathspec==0.9.0
-    # via black
 platformdirs==2.5.1
-    # via
-    #   black
-    #   virtualenv
+    # via virtualenv
 pluggy==1.0.0
     # via
     #   pytest
@@ -135,18 +123,13 @@ toml==0.10.2
     #   pre-commit
     #   tox
 tomli==2.0.1
-    # via
-    #   black
-    #   pytest
+    # via pytest
 tox==3.24.5
     # via -r requirements-dev.in
-typed-ast==1.5.2
-    # via black
 typing-extensions==4.1.1
     # via
     #   -r requirements.txt
     #   asgiref
-    #   black
     #   importlib-metadata
 urllib3==1.26.8
     # via
