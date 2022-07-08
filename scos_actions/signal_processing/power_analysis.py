@@ -1,7 +1,8 @@
 import logging
+from enum import Enum, EnumMeta
+
 import numexpr as ne
 import numpy as np
-from enum import Enum, EnumMeta
 from numpy import ndarray
 
 logger = logging.getLogger(__name__)

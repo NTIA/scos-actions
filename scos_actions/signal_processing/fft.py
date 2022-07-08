@@ -1,10 +1,11 @@
-import os
 import logging
+import os
+from enum import Enum, EnumMeta
+
 import numpy as np
 from numpy import ndarray
-from enum import Enum, EnumMeta
-from scipy.signal import get_window
 from scipy.fft import fft as sp_fft
+from scipy.signal import get_window
 
 logger = logging.getLogger(__name__)
 

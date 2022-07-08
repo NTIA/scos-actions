@@ -1,9 +1,10 @@
 import os
 import warnings
+from typing import Union
+
 import numexpr as ne
 import numpy as np
 from numpy import ndarray
-from typing import Union
 
 
 def suppress_divide_by_zero_when_testing():
