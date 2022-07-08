@@ -88,5 +88,5 @@ class MeasurementAction(Action):
         pass
 
     @abstractmethod
-    def execute(self, schedule_entry, task_id) -> dict:
+    def execute(self, schedule_entry, task_id):
         pass
