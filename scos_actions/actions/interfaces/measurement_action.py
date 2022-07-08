@@ -84,3 +84,7 @@ class MeasurementAction(Action):
     @abstractmethod
     def is_complex(self) -> bool:
         pass
+
+    @abstractmethod
+    def execute(self, schedule_entry, task_id):
+        pass
