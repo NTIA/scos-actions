@@ -69,15 +69,17 @@ each row of the matrix.
 import logging
 import os
 import time
+from typing import Tuple
+
 from numpy import ndarray
 from scipy.constants import Boltzmann
-from typing import Tuple
 
 from scos_actions import utils
 from scos_actions.actions.action_utils import get_param
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.hardware import gps as mock_gps, preselector
-from scos_actions.settings import sensor_calibration, SENSOR_CALIBRATION_FILE
+from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware import preselector
+from scos_actions.settings import SENSOR_CALIBRATION_FILE, sensor_calibration
 from scos_actions.signal_processing.calibration import y_factor
 from scos_actions.signal_processing.fft import (
     create_fft_detector,

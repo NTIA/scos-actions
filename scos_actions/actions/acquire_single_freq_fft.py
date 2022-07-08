@@ -88,7 +88,9 @@ The resulting matrix is real-valued, 32-bit floats representing dBm.
 """
 
 import logging
-from numpy import log10, float32, ndarray
+
+from numpy import float32, log10, ndarray
+
 from scos_actions import utils
 from scos_actions.actions.action_utils import get_param
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
