@@ -4,7 +4,6 @@ from typing import Union
 
 import numexpr as ne
 import numpy as np
-from numpy import ndarray
 
 
 def suppress_divide_by_zero_when_testing():
@@ -15,7 +14,9 @@ def suppress_divide_by_zero_when_testing():
         np_error_settings_savepoint = np.seterr(divide="ignore")
 
 
-def convert_watts_to_dBm(val_watts: Union[float, ndarray]) -> Union[float, ndarray]:
+def convert_watts_to_dBm(
+    val_watts: Union[float, np.ndarray]
+) -> Union[float, np.ndarray]:
     """
     Convert from Watts to dBm.
 
@@ -35,7 +36,7 @@ def convert_watts_to_dBm(val_watts: Union[float, ndarray]) -> Union[float, ndarr
     return val_dBm
 
 
-def convert_dBm_to_watts(val_dBm: Union[float, ndarray]) -> Union[float, ndarray]:
+def convert_dBm_to_watts(val_dBm: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
     """
     Convert from dBm to Watts.
 
@@ -54,7 +55,9 @@ def convert_dBm_to_watts(val_dBm: Union[float, ndarray]) -> Union[float, ndarray
     return val_watts
 
 
-def convert_linear_to_dB(val_linear: Union[float, ndarray]) -> Union[float, ndarray]:
+def convert_linear_to_dB(
+    val_linear: Union[float, np.ndarray]
+) -> Union[float, np.ndarray]:
     """
     Convert from linear units to dB.
 
@@ -75,7 +78,7 @@ def convert_linear_to_dB(val_linear: Union[float, ndarray]) -> Union[float, ndar
     return val_dB
 
 
-def convert_dB_to_linear(val_dB: Union[float, ndarray]) -> Union[float, ndarray]:
+def convert_dB_to_linear(val_dB: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
     """
     Convert from dB to linear units.
 

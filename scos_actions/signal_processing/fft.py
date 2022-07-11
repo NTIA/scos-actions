@@ -3,7 +3,6 @@ import os
 from enum import Enum, EnumMeta
 
 import numpy as np
-from numpy import ndarray
 from scipy.fft import fft as sp_fft
 from scipy.signal import get_window
 
@@ -44,13 +43,13 @@ def create_fft_detector(name: str, detectors: list) -> EnumMeta:
 
 
 def get_fft(
-    time_data: ndarray,
+    time_data: np.ndarray,
     fft_size: int,
     norm: str = "forward",
-    fft_window: ndarray = None,
+    fft_window: np.ndarray = None,
     num_ffts: int = 0,
     workers: int = os.cpu_count() // 2,
-) -> ndarray:
+) -> np.ndarray:
     """
     Compute the 1-D DFT using the FFT algorithm.
 
@@ -119,7 +118,7 @@ def get_fft(
     return complex_fft
 
 
-def get_fft_window(window_type: str, window_length: int) -> ndarray:
+def get_fft_window(window_type: str, window_length: int) -> np.ndarray:
     """
     Generate a periodic window of the specified length.
 
@@ -159,7 +158,7 @@ def get_fft_window(window_type: str, window_length: int) -> ndarray:
     return window
 
 
-def get_fft_window_correction(window: ndarray, correction_type: str) -> float:
+def get_fft_window_correction(window: np.ndarray, correction_type: str) -> float:
     """
     Get the amplitude or energy correction factor for a window.
 
@@ -204,7 +203,7 @@ def get_fft_frequencies(
     return frequencies.tolist()
 
 
-def get_fft_enbw(fft_window: ndarray, sample_rate: float) -> float:
+def get_fft_enbw(fft_window: np.ndarray, sample_rate: float) -> float:
     """
     Get the equivalent noise bandwidth of an FFT bin.
 

@@ -3,7 +3,6 @@ from enum import Enum, EnumMeta
 
 import numexpr as ne
 import numpy as np
-from numpy import ndarray
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +68,8 @@ def create_time_domain_detector(name: str, detectors: list) -> EnumMeta:
 
 
 def apply_power_detector(
-    data: ndarray, detector: EnumMeta, dtype: type = None
-) -> ndarray:
+    data: np.ndarray, detector: EnumMeta, dtype: type = None
+) -> np.ndarray:
     """
     Apply statistical detectors to a 2-D array of samples.
 
@@ -124,7 +123,7 @@ def apply_power_detector(
     return np.array(result, dtype=dtype)
 
 
-def filter_quantiles(x: ndarray, q_lo: float, q_hi: float) -> ndarray:
+def filter_quantiles(x: np.ndarray, q_lo: float, q_hi: float) -> np.ndarray:
     """
     Replace values outside specified quantiles with NaN.
 

@@ -2,7 +2,6 @@ import logging
 from typing import Tuple
 
 import numpy as np
-from numpy import ndarray
 from scipy.constants import Boltzmann
 
 from scos_actions.signal_processing.unit_conversion import convert_linear_to_dB
@@ -11,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 def y_factor(
-    pwr_noise_on_watts: ndarray,
-    pwr_noise_off_watts: ndarray,
+    pwr_noise_on_watts: np.ndarray,
+    pwr_noise_off_watts: np.ndarray,
     enr_linear: float,
     enbw_hz: float,
     temp_kelvins: float = 300.0,
