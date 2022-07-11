@@ -2,7 +2,6 @@ import logging
 
 import numexpr as ne
 import numpy as np
-from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +62,7 @@ def get_apd(time_data, bin_size_dB: float = 0.5, gain=0):
     return p, a
 
 
-def sample_ccdf(a: np.array, edges: np.array, density: bool = True) -> np.array:
+def sample_ccdf(a: np.ndarray, edges: np.ndarray, density: bool = True) -> np.ndarray:
     """
     Computes the fraction (or total number) of samples in `a` that
     exceed each edge value.
