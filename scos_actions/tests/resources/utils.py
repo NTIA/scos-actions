@@ -1,8 +1,3 @@
-import datetime
-
-from scos_actions.calibration import Calibration
-
-
 def easy_gain(sample_rate, frequency, gain):
     """Create an easily interpolated calibration gain value for testing.
 
@@ -17,9 +12,4 @@ def easy_gain(sample_rate, frequency, gain):
 
     :rtype: float
     """
-    return (gain) + (sample_rate / 1e6) + (frequency / 1e9)
-
-
-def is_close(a, b, tolerance):
-    """Handle floating point comparisons"""
-    return abs(a - b) <= tolerance
+    return gain + (sample_rate / 1e6) + (frequency / 1e9)
