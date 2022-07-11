@@ -139,7 +139,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
 
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters, sigan, gps)
-        self.is_complex = False
         # Pull parameters from action config
         self.fft_size = get_param("fft_size", self.parameter_map)
         self.nffts = get_param("nffts", self.parameter_map)
