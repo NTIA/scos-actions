@@ -32,16 +32,16 @@ def calculate_power_watts(val_volts, impedance_ohms: float = 50.0):
     return power
 
 
-def create_time_domain_detector(name: str, detectors: list) -> EnumMeta:
+def create_power_detector(name: str, detectors: list) -> EnumMeta:
     """
-    Construct a time domain detector based on a list of selected detectors.
+    Construct a power detector based on a list of selected detectors.
 
-    This allows for constructing new time domain detectors while preserving
-    the order of the 5 possible detector types in all instances. The five
+    This allows for constructing new detectors while preserving the
+    order of the 5 possible detector types in all instances. The five
     possible detector types to include are min, max, mean, median, and
     sample.
 
-    The returned enumeration can be passed to apply_detector.
+    The returned enumeration can be passed to ``apply_power_detector()``.
 
     :param name: The name of the returned detector enumeration.
     :param detectors: A list of strings specifying the detectors. Valid
@@ -52,15 +52,15 @@ def create_time_domain_detector(name: str, detectors: list) -> EnumMeta:
     # Construct 2-tuples to create enumeration
     _args = []
     if "min" in detectors:
-        _args.append(("min", "time_domain_min_power"))
+        _args.append(("min", "min_power"))
     if "max" in detectors:
-        _args.append(("max", "time_domain_max_power"))
+        _args.append(("max", "max_power"))
     if "mean" in detectors:
-        _args.append(("mean", "time_domain_mean_power"))
+        _args.append(("mean", "mean_power"))
     if "median" in detectors:
-        _args.append(("median", "time_domain_median_power"))
+        _args.append(("median", "median_power"))
     if "sample" in detectors:
-        _args.append(("sample", "time_domain_sample_power"))
+        _args.append(("sample", "sample_power"))
     return Enum(name, tuple(_args))
 
 
@@ -82,8 +82,7 @@ def apply_power_detector(
     median, sample - regardless of which detectors are used. This
     ordering matches that of the detector enumerations.
 
-    Create a detector using fft.create_fft_detector or
-    create_time_domain_detector.
+    Create a detector using ``create_power_detector()``
 
     :param data: A 2-D array of real, linear samples.
     :param detector: A detector enumeration containing any combination

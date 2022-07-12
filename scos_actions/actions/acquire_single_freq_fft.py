@@ -100,7 +100,6 @@ from scos_actions.actions.metadata.annotations.fft_annotation import (
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.signal_processing.fft import (
-    create_fft_detector,
     get_fft,
     get_fft_enbw,
     get_fft_frequencies,
@@ -110,6 +109,7 @@ from scos_actions.signal_processing.fft import (
 from scos_actions.signal_processing.power_analysis import (
     apply_power_detector,
     calculate_power_watts,
+    create_power_detector,
 )
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
 
@@ -145,8 +145,8 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         self.nskip = get_param("nskip", self.parameter_map)
         self.frequency_Hz = get_param("frequency", self.parameter_map)
         # FFT setup
-        self.fft_detector = create_fft_detector(
-            "FftM4sDetector", ["min", "max", "mean", "median", "sample"]
+        self.fft_detector = create_power_detector(
+            "M4sDetector", ["min", "max", "mean", "median", "sample"]
         )
         self.fft_window_type = "flattop"
         self.num_samples = self.fft_size * self.nffts

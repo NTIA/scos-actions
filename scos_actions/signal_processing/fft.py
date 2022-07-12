@@ -9,39 +9,6 @@ from scipy.signal import get_window
 logger = logging.getLogger(__name__)
 
 
-def create_fft_detector(name: str, detectors: list) -> EnumMeta:
-    """
-    Construct an FFT detector based on a list of selected detectors.
-
-    This allows for constructing new FFT detectors while preserving
-    the order of the 5 possible detector types in all instances. The
-    five possible detector types to include are min, max, mean, median,
-    and sample.
-
-    The returned enumeration can be passed to apply_fft_detector.
-
-    :param name: The name of the returned detector enumeration.
-    :param detectors: A list of strings specifying the detectors.
-        Valid contents are: 'min', 'max', 'mean', 'median', and
-        'sample'.
-    :return: The detector enumeration created based on the input
-        parameters.
-    """
-    # Construct 2-tuples to create enumeration
-    _args = []
-    if "min" in detectors:
-        _args.append(("min", "fft_min_power"))
-    if "max" in detectors:
-        _args.append(("max", "fft_max_power"))
-    if "mean" in detectors:
-        _args.append(("mean", "fft_mean_power"))
-    if "median" in detectors:
-        _args.append(("median", "fft_median_power"))
-    if "sample" in detectors:
-        _args.append(("sample", "fft_sample_power"))
-    return Enum(name, tuple(_args))
-
-
 def get_fft(
     time_data: np.ndarray,
     fft_size: int,
