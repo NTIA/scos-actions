@@ -27,12 +27,6 @@ class Calibration(object):
                 return mapping["clock_frequency"]
         return sample_rate
 
-    def get_values(self, sample_rate, args):
-        values = self.calibration_data[sample_rate]
-        for i in range(len(args)):
-            values = values[args[i]]
-        return values
-
     def get_calibration_dict(self, args):
         """Find the calibration points closest to the specified args (gain, attenuation,ref_level...)."""
 

@@ -18,6 +18,11 @@ class MeasurementMetadata(Metadata):
         if 'frequency_high' in measurement_result:
             freq_high = measurement_result['frequency_high']
 
+        if freq_high is None:
+            raise Exception('frequency_high is a required measurement metadata value.')
+        if freq_low is None:
+            raise Exception('frequency_low is a required measurement metadata value.')
+
         sigmf_builder.add_to_global(
             "ntia-core:measurement",
             {
