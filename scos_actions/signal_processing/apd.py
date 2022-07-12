@@ -1,63 +1,62 @@
 import logging
+from typing import Tuple
 
 import numexpr as ne
 import numpy as np
 
+from scos_actions.signal_processing.unit_conversion import convert_linear_to_dB
+
 logger = logging.getLogger(__name__)
 
 
-def get_apd(time_data, bin_size_dB: float = 0.5, gain=0):
+def get_apd(
+    time_data: np.ndarray, bin_size_dB: float = None
+) -> Tuple[np.ndarray, np.ndarray]:
     """Estimate the APD by sampling the CCDF.
 
-    The size of the output depends on the parameter bin_size_dB,
-    which determines the effective downsampling of IQ data into an APD dataset.
-    Higher bin sizes will lead to smaller data sizes but less resolution,
-    inversley smaller bin sizes will reslut in larger data size output with more resolution.
+    The size of the output depends on ``bin_size_dB``, which
+    determines the effective downsampling of IQ data into an APD dataset.
+    Higher bin sizes will lead to smaller data sizes but less resolution.
+    Inversely, smaller bin sizes will result in larger data size output
+    with higher resolution.
 
-    Setting the bin size to 0 will result in no downsampling of the data
-    and will output the same data size as the input time_data.
+    Not setting ``bin_size_dB`` will result in no downsampling of the data
+    and will output the same data size as ``time_data``.
 
-    The gain arg will correct for added rf front end gain in order to get more accurate values
-    of actual received power returned from this function.
+    No additional scaling is applied, so resulting amplitude units are
+    dBV. Typical applications will require converting this result to
+    power units.
 
-    Parameters
-    ----------
-    time_data: Input complex baseband IQ samples.
-    bin_size_dB: Amplitude granularity, in dB, for estimating the APD. A value of 0 will result in no downsampling of the apd.
-    gain: correction value used to correct for rf front end gain
-
-    Returns
-    -------
-    p: APD probabilities, scaled from 0 to 1.
-    a: APD amplitudes.
+    :param time_data: Input complex baseband IQ samples.
+    :param bin_size_dB: Amplitude granularity, in dB, for estimating the APD.
+        If not specified, the APD will not be downsampled (default behavior).
+    :return: A tuple (p, a) of NumPy arrays, where p contains the APD
+        probabilities, and a contains the APD amplitudes.
     """
     # Convert IQ to amplitudes
     all_amps = ne.evaluate("abs(time_data).real")
-    del time_data
 
     # Replace any 0 value amplitudes with NaN
     all_amps[all_amps == 0] = np.nan
 
-    # Convert to dB(V^2)
-    ne.evaluate("20*log10(all_amps)", out=all_amps)
+    # Convert amplitudes from V to dBV
+    all_amps = convert_linear_to_dB(all_amps)
 
-    # Create amplitude bins
-    if bin_size_dB != 0:
+    if bin_size_dB is None:
+        # No downsampling
+        a = np.sort(all_amps)
+        p = 1 - ((np.arange(len(a)) + 1) / len(a))
+    else:
+        # Generate bins based on bin_size_dB for downsampling
         a = np.arange(
             np.nanmin(all_amps), np.nanmax(all_amps) + bin_size_dB, bin_size_dB
         )
         # Get counts of amplitudes exceeding each bin value
         p = sample_ccdf(all_amps, a)
-    else:
-        a = np.sort(all_amps)
-        p = 1 - ((np.arange(len(a)) + 1) / len(a))
 
     # Replace peak amplitude 0 count with NaN
     p[-1] = np.nan
     logger.debug(f"APD result length: {len(a)} samples.")
-
-    # Gain corrections (dB(V^2) --> dBm, RF/baseband (-3 dB), system gain, impedance)
-    a = a + 27 - gain - (10.0 * np.log10(50))
 
     return p, a
 
@@ -67,16 +66,13 @@ def sample_ccdf(a: np.ndarray, edges: np.ndarray, density: bool = True) -> np.nd
     Computes the fraction (or total number) of samples in `a` that
     exceed each edge value.
 
-    Args:
-        a: the vector of input samples
-        edges: sample threshold values at which to characterize the distribution
-        density: if True, the sample counts are normalized by `a.size`
-    Returns:
-        the empirical complementary cumulative distribution
+    :param a: the vector of input samples
+    :param edges: sample threshold values at which to characterize the distribution
+    :param density: if True, the sample counts are normalized by `a.size`
+    :return: The empirical complementary cumulative distribution
     """
-
     # 'left' makes the bin interval open-ended on the left side
-    # (the CCDF is "number of samples exceeding interval", and not equal to)
+    # (the CCDF is "number of samples exceeding interval")
     edge_inds = np.searchsorted(edges, a, side="left")
     bin_counts = np.bincount(edge_inds, minlength=edges.size + 1)
     ccdf = (a.size - bin_counts.cumsum())[:-1]
