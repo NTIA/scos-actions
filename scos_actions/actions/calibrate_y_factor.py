@@ -94,9 +94,9 @@ import os
 
 logger = logging.getLogger(__name__)
 
-RF_PATH = "rf_path"
-NOISE_DIODE_ON = {RF_PATH: "noise_diode_on"}
-NOISE_DIODE_OFF = {RF_PATH: "noise_diode_off"}
+RF_PATH = 'rf_path'
+NOISE_DIODE_ON = {RF_PATH: 'noise_diode_on'}
+NOISE_DIODE_OFF = {RF_PATH: 'noise_diode_off'}
 
 # Define parameter keys
 FREQUENCY = "frequency"
@@ -273,6 +273,7 @@ class YFactorCalibration(Action):
         if not self.sigan.is_available:
             msg = "acquisition failed: signal analyzer required but not available"
             raise RuntimeError(msg)
+
 
 
 
