@@ -22,7 +22,7 @@ def calculate_power_watts(val_volts, impedance_ohms: float = 50.0):
         The input may be complex or real.
     :param impedance_ohms: The impedance value to use when
         converting from Volts to Watts.
-    :returns: The input val_volts, converted to Watts. The
+    :return: The input val_volts, converted to Watts. The
         returned quantity is always real.
     """
     if np.isscalar(val_volts):
@@ -50,7 +50,7 @@ def create_time_domain_detector(name: str, detectors: list) -> EnumMeta:
     :param detectors: A list of strings specifying the detectors. Valid
         contents are: 'min', 'max', 'mean', 'median', and 'sample'.
 
-    :returns: The detector enumeration created based on the input parameters.
+    :return: The detector enumeration created based on the input parameters.
     """
     # Construct 2-tuples to create enumeration
     _args = []
@@ -95,7 +95,7 @@ def apply_power_detector(
     :param dtype: Data type of values within the returned array. If not
         provided, the type is determined by NumPy as the minimum type
         required to hold the values (see numpy.array).
-    :returns: A 2-D array containing the selected detector results
+    :return: A 2-D array containing the selected detector results
         as the specified dtype. The number of rows is equal to the
         number of detectors applied, and the number of columns is equal
         to the number of columns in the input array.
@@ -130,7 +130,7 @@ def filter_quantiles(x: np.ndarray, q_lo: float, q_hi: float) -> np.ndarray:
     :param x: Input N-dimensional data array.
     :param q_lo: Lower quantile, 0 <= q_lo < q_hi.
     :param q_hi: Upper quantile, q_lo < q_hi <= 1.
-    :returns: The input data array, with values outside the
+    :return: The input data array, with values outside the
         specified quantile replaced with NaN (numpy.nan).
     """
     lo, hi = np.quantile(x, [q_lo, q_hi])  # Works on flattened array

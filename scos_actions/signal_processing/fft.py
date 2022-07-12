@@ -24,7 +24,7 @@ def create_fft_detector(name: str, detectors: list) -> EnumMeta:
     :param detectors: A list of strings specifying the detectors.
         Valid contents are: 'min', 'max', 'mean', 'median', and
         'sample'.
-    :returns: The detector enumeration created based on the input
+    :return: The detector enumeration created based on the input
         parameters.
     """
     # Construct 2-tuples to create enumeration
@@ -90,7 +90,7 @@ def get_fft(
         num_ffts is not specified.
     :param workers: Maximum number of workers to use for parallel
         computation. See scipy.fft.fft for more details.
-    :returns: The transformed input, scaled based on the specified
+    :return: The transformed input, scaled based on the specified
         normalization mode.
     """
     # Get num_ffts for default case: as many as possible
@@ -134,7 +134,7 @@ def get_fft_window(window_type: str, window_length: int) -> np.ndarray:
         Only windows which do not require additional parameters are
         supported. Whitespace and capitalization are ignored.
     :param window_length: The number of samples in the window.
-    :returns: An array of window samples, of length window_length and
+    :return: An array of window samples, of length window_length and
         type window_type.
     """
     # String formatting for backwards-compatibility
@@ -165,7 +165,7 @@ def get_fft_window_correction(window: np.ndarray, correction_type: str) -> float
     :param window: The array of window samples.
     :param correction_type: Which correction factor to return.
         Must be one of 'amplitude' or 'energy'.
-    :returns: The specified window correction factor.
+    :return: The specified window correction factor.
     :raises ValueError: If the correction type is neither 'energy'
         nor 'amplitude'.
     """
@@ -194,7 +194,7 @@ def get_fft_frequencies(
     :param sample_rate: The sample rate for the transformed time domain
         samples, in Hz.
     :param center_frequency: The center frequency, in Hz.
-    :returns: A list of values representing the frequency axis of the
+    :return: A list of values representing the frequency axis of the
         FFT.
     """
     time_step = 1.0 / sample_rate

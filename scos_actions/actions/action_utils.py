@@ -11,7 +11,7 @@ def get_param(p: str, params: dict):
 
     :param p: The parameter name (key).
     :param params: The parameter dictionary.
-    :returns: The specified parameter (value).
+    :return: The specified parameter (value).
     :raises ParameterException: If p is not a key in params.
     """
     if p not in params:
