@@ -16,7 +16,7 @@
 # - Markdown reference: https://commonmark.org/help/
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
-r"""Apply M4S detector to {nffts} {fft_size}-pt FFTs at {center_frequency:.2f} MHz.
+r"""Apply M4S detector over {nffts} {fft_size}-pt FFTs at {center_frequency:.2f} MHz.
 
 # {name}
 
@@ -46,7 +46,7 @@ where $a_{{i,j}}$ is a complex time-domain sample.
 At that point, a Flat Top window, defined as
 
 $$w(n) = &0.2156 - 0.4160 \cos{{(2 \pi n / M)}} + 0.2781 \cos{{(4 \pi n / M)}} -
-        &0.0836 \cos{{(6 \pi n / M)}} + 0.0069 \cos{{(8 \pi n / M)}}$$
+         &0.0836 \cos{{(6 \pi n / M)}} + 0.0069 \cos{{(8 \pi n / M)}}$$
 
 where $M = {fft_size}$ is the number of points in the window, is applied to
 each row of the matrix.
