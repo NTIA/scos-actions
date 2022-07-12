@@ -87,17 +87,8 @@ The resulting matrix is real-valued, 32-bit floats representing dBm.
 """
 
 import logging
-
-from numpy import float32, log10, ndarray
-
 from scos_actions import utils
-from scos_actions.actions.action_utils import get_param
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.actions.metadata.annotations.fft_annotation import (
-    FrequencyDomainDetectionAnnotation,
-)
-from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
-from scos_actions.hardware import gps as mock_gps
 from scos_actions.signal_processing.fft import (
     get_fft,
     get_fft_enbw,
@@ -105,12 +96,18 @@ from scos_actions.signal_processing.fft import (
     get_fft_window,
     get_fft_window_correction,
 )
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.actions.metadata.annotations.fft_annotation import FrequencyDomainDetectionAnnotation
+from scos_actions.hardware import gps as mock_gps
+
+from scos_actions.actions.action_utils import get_param
 from scos_actions.signal_processing.power_analysis import (
     apply_power_detector,
     calculate_power_watts,
     create_power_detector,
 )
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
+from numpy import float32, log10, ndarray
 
 logger = logging.getLogger(__name__)
 
@@ -160,27 +157,25 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         m4s_result = self.apply_m4s(measurement_result)
 
         # Save measurement results
-        measurement_result["data"] = m4s_result
-        measurement_result["start_time"] = start_time
-        measurement_result["end_time"] = utils.get_datetime_str_now()
-        measurement_result["enbw"] = get_fft_enbw(self.fft_window, sample_rate_Hz)
+        measurement_result['data'] = m4s_result
+        measurement_result['start_time'] = start_time
+        measurement_result['end_time'] = utils.get_datetime_str_now()
+        measurement_result['enbw'] = get_fft_enbw(self.fft_window, sample_rate_Hz)
         frequencies = get_fft_frequencies(
             self.fft_size, sample_rate_Hz, self.frequency_Hz
         )
         measurement_result.update(self.parameter_map)
-        measurement_result["description"] = self.description
-        measurement_result["domain"] = Domain.FREQUENCY.value
-        measurement_result["frequency_start"] = frequencies[0]
-        measurement_result["frequency_stop"] = frequencies[-1]
-        measurement_result["frequency_step"] = frequencies[1] - frequencies[0]
-        measurement_result["window"] = self.fft_window_type
-        measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
-            "calibration_datetime"
-        ]
-        measurement_result["task_id"] = task_id
-        measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
-        measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
-        measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
+        measurement_result['description'] = self.description
+        measurement_result['domain'] = Domain.FREQUENCY.value
+        measurement_result['frequency_start'] = frequencies[0]
+        measurement_result['frequency_stop'] = frequencies[-1]
+        measurement_result['frequency_step'] = frequencies[1] - frequencies[0]
+        measurement_result['window'] = self.fft_window_type
+        measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
+        measurement_result['task_id'] = task_id
+        measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
+        measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
+        measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
         return measurement_result
 
     def apply_m4s(self, measurement_result: dict) -> ndarray:
