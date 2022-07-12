@@ -214,8 +214,8 @@ class YFactorCalibration(Action):
 
         # Y-Factor
         enbw_hz = get_fft_enbw(fft_window, sample_rate)
-        enr_linear = get_linear_enr(preselector, self.cal_source_idx)
-        temp_k, temp_c, _ = get_temperature(preselector, self.temp_sensor_idx)
+        enr_linear = get_linear_enr(self.cal_source_idx)
+        temp_k, temp_c, _ = get_temperature(self.temp_sensor_idx)
         noise_figure, gain = y_factor(
             mean_on_watts, mean_off_watts, enr_linear, enbw_hz, temp_k
         )
