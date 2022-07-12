@@ -8,16 +8,15 @@
 # escaped to {{m \over n}}.
 #
 # To print out this docstring after parameterization, see
-# scos-sensor/scripts/print_action_docstring.py. You can then paste that into
-# the SCOS Markdown Editor (link below) to see the final rendering.
+# scos-sensor/scripts/print_action_docstring.py. You can then paste that into the
+# SCOS Markdown Editor (link below) to see the final rendering.
 #
 # Resources:
 # - MathJax reference: https://math.meta.stackexchange.com/q/5020
 # - Markdown reference: https://commonmark.org/help/
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
-r"""
-Apply M4S detector to {nffts} {fft_size}-pt FFTs at {center_frequency:.2f} MHz.
+r"""Apply M4S detector to {nffts} {fft_size}-pt FFTs at {center_frequency:.2f} MHz.
 
 # {name}
 
@@ -29,8 +28,8 @@ Each time this task runs, the following process is followed:
 ## Time-domain processing
 
 First, the ${nffts} \times {fft_size}$ continuous samples are acquired from
-the signal analyzer. If specified, a voltage scaling factor is applied to the
-complex time-domain signals. Then, the data is reshaped into a ${nffts} \times
+the signal analyzer. If specified, a voltage scaling factor is applied to the complex
+time-domain signals. Then, the data is reshaped into a ${nffts} \times
 {fft_size}$ matrix:
 
 $$
@@ -46,8 +45,8 @@ where $a_{{i,j}}$ is a complex time-domain sample.
 
 At that point, a Flat Top window, defined as
 
-$$w(n) = &0.2156 - 0.4160 \cos{{(2 \pi n / M)}} + 0.2781 \cos{{(4 \pi n / M)}}
-        - &0.0836 \cos{{(6 \pi n / M)}} + 0.0069 \cos{{(8 \pi n / M)}}$$
+$$w(n) = &0.2156 - 0.4160 \cos{{(2 \pi n / M)}} + 0.2781 \cos{{(4 \pi n / M)}} -
+        &0.0836 \cos{{(6 \pi n / M)}} + 0.0069 \cos{{(8 \pi n / M)}}$$
 
 where $M = {fft_size}$ is the number of points in the window, is applied to
 each row of the matrix.
