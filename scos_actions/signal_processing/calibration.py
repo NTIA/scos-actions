@@ -4,9 +4,21 @@ from typing import Tuple
 import numpy as np
 from scipy.constants import Boltzmann
 
-from scos_actions.signal_processing.unit_conversion import convert_linear_to_dB
+from scos_actions.hardware import preselector
+from scos_actions.signal_processing.unit_conversion import (
+    convert_linear_to_dB,
+    convert_dB_to_linear,
+    convert_celsius_to_kelvins,
+    convert_fahrenheit_to_celsius
+)
 
 logger = logging.getLogger(__name__)
+
+
+class CalibrationException(Exception):
+    """Basic exception handling for calibration functions."""
+    def __init__(self, msg):
+        super().__init__(msg)
 
 
 def y_factor(
@@ -32,6 +44,8 @@ def y_factor(
     :param enbw_hz: Equivalent noise bandwidth, in Hz.
     :param temp_kelvins: Temperature, in Kelvins. If not given,
         a default value of 300 K is used.
+    :return: A tuple (noise_figure, gain) containing the calculated
+        noise figure and gain, both in dB, from the Y-factor method.
     """
     logger.debug(f"ENR: {convert_linear_to_dB(enr_linear)} dB")
     logger.debug(f"ENBW: {enbw_hz} Hz")
@@ -46,3 +60,66 @@ def y_factor(
     noise_figure = convert_linear_to_dB(np.mean(noise_factor))
     gain = convert_linear_to_dB(np.mean(gain_watts))
     return noise_figure, gain
+
+
+def get_linear_enr(cal_source_idx: int = None) -> float:
+    """
+    Get the excess noise ratio of a calibration source.
+
+    Specifying ``cal_source_idx`` is optional as long as there is
+    only one calibration source. It is required if multiple
+    calibration sources are present.
+
+    The preselector is loaded from scos_actions.hardware.
+
+    :param cal_source_idx: The index of the specified
+        calibration source in preselector.cal_sources.
+    :return: The excess noise ratio of the specified
+        calibration source, in linear units.
+    :raises CalibrationException: If multiple calibration sources are
+        available but `cal_source_idx` is not specified.
+    :raises IndexError: If the specified calibration source
+        index is out of range for the current preselector.
+    """
+    if len(preselector.cal_sources) == 0:
+        raise CalibrationException("No calibration sources defined in preselector.")
+    elif len(preselector.cal_sources) == 1 and cal_source_idx is None:
+        # Default to the only cal source available
+        cal_source_idx = 0
+    elif len(preselector.cal_sources) > 1 and cal_source_idx is None:
+        # Must specify index if multiple sources available
+        raise CalibrationException("Preselector contains multiple calibration sources, "
+                                   + "and the source index was not specified.")
+    try:
+        enr_dB = preselector.cal_sources[cal_source_idx].enr
+    except IndexError:
+        raise IndexError(f"Calibration source index {cal_source_idx} out of range "
+                         + "while trying to get ENR value.")
+    enr_linear = convert_dB_to_linear(enr_dB)
+    return enr_linear
+
+
+def get_temperature(sensor_idx: int = None) -> Tuple[float, float, float]:
+    """
+    Get the temperature from a preselector sensor.
+
+    The preselector is loaded from scos_actions.hardware
+
+    :param sensor_idx: The index of the desired temperature
+        sensor in the preselector.
+    :raises CalibrationException: If no sensor index is provided, or
+        if no value is returned after querying the sensor.
+    :return: A tuple of floats (temp_k, temp_c, temp_f) containing
+        the retrieved temperature in Kelvins, degrees Celsius, and
+        degrees Fahrenheit, respectively.
+    """
+    if sensor_idx is None:
+        raise CalibrationException("Temperature sensor index not specified.")
+    temp = preselector.get_sensor_value(sensor_idx)
+    if temp is None:
+        raise CalibrationException("Failed to get temperature from sensor.")
+    logger.debug(f"Got temperature from sensor: {temp} deg. Fahrenheit")
+    temp_f = float(temp)
+    temp_c = convert_fahrenheit_to_celsius(temp_f)
+    temp_k = convert_celsius_to_kelvins(temp_c)
+    return temp_k, temp_c, temp_f

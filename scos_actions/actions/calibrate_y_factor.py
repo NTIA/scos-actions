@@ -69,7 +69,6 @@ each row of the matrix.
 import logging
 import os
 import time
-from typing import Tuple
 
 from numpy import ndarray
 from scipy.constants import Boltzmann
@@ -80,7 +79,11 @@ from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import preselector
 from scos_actions.settings import SENSOR_CALIBRATION_FILE, sensor_calibration
-from scos_actions.signal_processing.calibration import y_factor
+from scos_actions.signal_processing.calibration import (
+    y_factor,
+    get_linear_enr,
+    get_temperature
+)
 from scos_actions.signal_processing.fft import (
     create_fft_detector,
     get_fft,
@@ -91,7 +94,6 @@ from scos_actions.signal_processing.power_analysis import (
     apply_power_detector,
     calculate_power_watts,
 )
-from scos_actions.signal_processing.unit_conversion import convert_dB_to_linear
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +107,8 @@ SAMPLE_RATE = "sample_rate"
 FFT_SIZE = "fft_size"
 NUM_FFTS = "nffts"
 NUM_SKIP = "nskip"
+# TODO: Should calibration source index and temperature sensor number
+# be required parameters?
 
 
 class YFactorCalibration(Action):
@@ -133,6 +137,9 @@ class YFactorCalibration(Action):
     def __init__(self, parameters, sigan, gps=mock_gps):
         logger.debug("Initializing calibration action")
         super().__init__(parameters, sigan, gps)
+        # Specify calibration source and temperature sensor indices
+        self.cal_source_idx = 0
+        self.temp_sensor_idx = 1
         # FFT setup
         self.fft_detector = create_fft_detector("FftMeanDetector", ["mean"])
         self.fft_window_type = "flattop"
@@ -207,8 +214,8 @@ class YFactorCalibration(Action):
 
         # Y-Factor
         enbw_hz = get_fft_enbw(fft_window, sample_rate)
-        enr_linear = self.get_linear_enr(cal_source_idx=0)
-        temp_k, temp_c, _ = self.get_temperature()
+        enr_linear = get_linear_enr(preselector, self.cal_source_idx)
+        temp_k, temp_c, _ = get_temperature(preselector, self.temp_sensor_idx)
         noise_figure, gain = y_factor(
             mean_on_watts, mean_off_watts, enr_linear, enbw_hz, temp_k
         )
@@ -239,28 +246,6 @@ class YFactorCalibration(Action):
         mean_result = apply_power_detector(power_fft, self.fft_detector)
         return mean_result
 
-    @staticmethod
-    def get_linear_enr(cal_source_idx: int = 0) -> float:
-        """
-        Get the excess noise ratio of a calibration source.
-
-        :param cal_source_idx: The index of the desired
-            calibration source in preselector.cal_sources.
-        :returns: The excess noise ratio of the specified
-            calibration source, in linear units.
-        """
-        # todo deal with multiple cal sources
-        # (this is only partially implemented for now, an error
-        # is still raised if multiple cal sources exist)
-        if len(preselector.cal_sources) == 0:
-            raise Exception("No calibration sources defined in preselector.")
-        elif len(preselector.cal_sources) > 1:
-            raise Exception("Preselector contains multiple calibration sources.")
-        else:
-            enr_dB = preselector.cal_sources[cal_source_idx].enr
-            enr_linear = convert_dB_to_linear(enr_dB)
-            return enr_linear
-
     @property
     def description(self):
 
@@ -287,31 +272,6 @@ class YFactorCalibration(Action):
         }
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**definitions)
-
-    # todo support multiple temperature sensors
-    @staticmethod
-    def get_temperature() -> Tuple[float, float, float]:
-        """
-        Get the temperature from a preselector sensor.
-
-        :returns:
-            - temp_k - Thing
-            - temp_c
-            - temp_f
-        """
-        kelvin_temp = 290.0
-        celsius_temp = kelvin_temp - 273.15
-        fahrenheit = (celsius_temp * 9.0 / 5.0) + 32
-        temp = preselector.get_sensor_value(1)
-        logger.debug("Temp: " + str(temp))
-        if temp is None:
-            logger.warning("Temperature is None. Using 290 K instead.")
-        else:
-            fahrenheit = float(temp)
-            celsius_temp = (5.0 * (fahrenheit - 32)) / 9.0
-            kelvin_temp = celsius_temp + 273.15
-            logger.debug("Temperature: " + str(kelvin_temp))
-        return kelvin_temp, celsius_temp, fahrenheit
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
