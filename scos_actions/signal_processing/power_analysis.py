@@ -28,10 +28,7 @@ def calculate_power_watts(val_volts, impedance_ohms: float = 50.0):
     if np.isscalar(val_volts):
         power = (np.abs(val_volts) ** 2) / impedance_ohms
     else:
-        power = ne.evaluate("(abs(val_volts)**2)/impedance_ohms")
-    if np.iscomplexobj(power):
-        # NumExpr returns complex type for complex input
-        power = np.real(power)
+        power = ne.evaluate("(abs(val_volts).real**2)/impedance_ohms")
     return power
 
 
