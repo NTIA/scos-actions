@@ -6,10 +6,10 @@ from scipy.constants import Boltzmann
 
 from scos_actions.hardware import preselector
 from scos_actions.signal_processing.unit_conversion import (
-    convert_linear_to_dB,
-    convert_dB_to_linear,
     convert_celsius_to_kelvins,
-    convert_fahrenheit_to_celsius
+    convert_dB_to_linear,
+    convert_fahrenheit_to_celsius,
+    convert_linear_to_dB,
 )
 
 logger = logging.getLogger(__name__)
@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 class CalibrationException(Exception):
     """Basic exception handling for calibration functions."""
+
     def __init__(self, msg):
         super().__init__(msg)
 
@@ -88,13 +89,17 @@ def get_linear_enr(cal_source_idx: int = None) -> float:
         cal_source_idx = 0
     elif len(preselector.cal_sources) > 1 and cal_source_idx is None:
         # Must specify index if multiple sources available
-        raise CalibrationException("Preselector contains multiple calibration sources, "
-                                   + "and the source index was not specified.")
+        raise CalibrationException(
+            "Preselector contains multiple calibration sources, "
+            + "and the source index was not specified."
+        )
     try:
         enr_dB = preselector.cal_sources[cal_source_idx].enr
     except IndexError:
-        raise IndexError(f"Calibration source index {cal_source_idx} out of range "
-                         + "while trying to get ENR value.")
+        raise IndexError(
+            f"Calibration source index {cal_source_idx} out of range "
+            + "while trying to get ENR value."
+        )
     enr_linear = convert_dB_to_linear(enr_dB)
     return enr_linear
 

@@ -80,9 +80,9 @@ from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import preselector
 from scos_actions.settings import SENSOR_CALIBRATION_FILE, sensor_calibration
 from scos_actions.signal_processing.calibration import (
-    y_factor,
     get_linear_enr,
-    get_temperature
+    get_temperature,
+    y_factor,
 )
 from scos_actions.signal_processing.fft import (
     create_fft_detector,
