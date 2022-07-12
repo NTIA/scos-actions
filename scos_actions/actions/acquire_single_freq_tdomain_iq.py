@@ -8,8 +8,8 @@
 # escaped to {{m \over n}}.
 #
 # To print out this docstring after parameterization, see
-# scos-sensor/scripts/print_action_docstring.py. You can then paste that into
-# the SCOS Markdown Editor (link below) to see the final rendering.
+# scos-sensor/scripts/print_action_docstring.py. You can then paste that into the
+# SCOS Markdown Editor (link below) to see the final rendering.
 #
 # Resources:
 # - MathJax reference: https://math.meta.stackexchange.com/q/5020
@@ -33,16 +33,13 @@ signals.
 
 import logging
 
-from numpy import complex64
-
 from scos_actions import utils
 from scos_actions.actions.action_utils import get_param
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.actions.metadata.annotations.time_domain_annotation import (
-    TimeDomainAnnotation,
-)
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.hardware import gps as mock_gps
+from scos_actions.actions.metadata.annotations.time_domain_annotation import TimeDomainAnnotation
+from numpy import complex64
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +51,7 @@ NUM_SKIP = "nskip"
 
 
 class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
-    """
-    Acquire IQ data at each of the requested frequencies.
+    """Acquire IQ data at each of the requested frequencies.
 
     The action will set any matching attributes found in the
     signal analyzer object. The following parameters are
@@ -87,19 +83,17 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         sample_rate = self.sigan.sample_rate
         num_samples = int(sample_rate * self.duration_ms * 1e-3)
         measurement_result = self.acquire_data(num_samples, self.nskip)
-        measurement_result["start_time"] = start_time
+        measurement_result['start_time'] = start_time
         end_time = utils.get_datetime_str_now()
         measurement_result.update(self.parameter_map)
-        measurement_result["end_time"] = end_time
-        measurement_result["domain"] = Domain.TIME.value
-        measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
-        measurement_result["task_id"] = task_id
-        measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
-            "calibration_datetime"
-        ]
-        measurement_result["description"] = self.description
-        measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
-        measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
+        measurement_result['end_time'] = end_time
+        measurement_result['domain'] = Domain.TIME.value
+        measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
+        measurement_result['task_id'] = task_id
+        measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
+        measurement_result['description'] = self.description
+        measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
+        measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
         return measurement_result
 
     def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:

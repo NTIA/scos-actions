@@ -116,8 +116,7 @@ logger = logging.getLogger(__name__)
 
 
 class SingleFrequencyFftAcquisition(MeasurementAction):
-    """
-    Perform M4S detection over requested number of single-frequency FFTs.
+    """Perform M4S detection over requested number of single-frequency FFTs.
 
     The action will set any matching attributes found in the signal
     analyzer object. The following parameters are required by the action:
