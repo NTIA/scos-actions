@@ -46,7 +46,6 @@ class MeasurementAction(Action):
         return sigmf_builder
 
     def create_metadata(self, sigmf_builder, schedule_entry, measurement_result, recording=None):
-
         sigmf_builder.set_base_sigmf_global(
             schedule_entry,
             self.sensor_definition,
@@ -70,7 +69,6 @@ class MeasurementAction(Action):
         )
 
     def acquire_data(self, num_samples, nskip):
-
         logger.debug(
             f"acquiring {num_samples} samples and skipping the first {nskip if nskip else 0} samples"
         )

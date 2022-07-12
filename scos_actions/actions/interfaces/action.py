@@ -29,7 +29,6 @@ class Action(ABC):
         added to the task result's detail field.
 
     """
-
     PRESELECTOR_PATH_KEY='rf_path'
 
     def __init__(self, parameters, sigan=mock_sigan, gps=mock_gps):
@@ -92,5 +91,6 @@ class Action(ABC):
     @abstractmethod
     def __call__(self, schedule_entry, task_id):
         pass
+
 
 

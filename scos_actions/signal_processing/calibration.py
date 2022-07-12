@@ -1,9 +1,7 @@
-import logging
-from typing import Tuple
-
 import numpy as np
 from scipy.constants import Boltzmann
-
+import logging
+from typing import Tuple
 from scos_actions.hardware import preselector
 from scos_actions.signal_processing.unit_conversion import (
     convert_celsius_to_kelvins,

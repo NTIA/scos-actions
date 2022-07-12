@@ -20,13 +20,24 @@ class CalibrationAnnotation(Metadata):
             "ntia-core:annotation_type": "CalibrationAnnotation",
             "ntia-sensor:gain_sigan": sigan_cal["gain_sigan"],
             "ntia-sensor:gain_sensor": sensor_cal['gain_sensor'],
-            "ntia-sensor:noise_figure_sigan": sigan_cal["noise_figure_sigan"],
-            "ntia-sensor:1db_compression_point_sigan": sigan_cal["1db_compression_sigan"],
+            "ntia-sensor:noise_figure_sigan": sigan_cal[
+                "noise_figure_sigan"
+            ],
+            "ntia-sensor:1db_compression_point_sigan": sigan_cal[
+                "1db_compression_sigan"
+            ],
             "ntia-sensor:enbw_sigan": sigan_cal["enbw_sigan"],
-            "ntia-sensor:gain_preselector": sensor_cal["gain_preselector"],
-            "ntia-sensor:noise_figure_sensor": sensor_cal["noise_figure_sensor"],
-            "ntia-sensor:1db_compression_point_sensor": sensor_cal["1db_compression_sensor"],
+            "ntia-sensor:gain_preselector": sensor_cal[
+                "gain_preselector"
+            ],
+            "ntia-sensor:noise_figure_sensor": sensor_cal[
+                "noise_figure_sensor"
+            ],
+            "ntia-sensor:1db_compression_point_sensor": sensor_cal[
+                "1db_compression_sensor"
+            ],
             "ntia-sensor:enbw_sensor": sensor_cal["enbw_sensor"]
+
         }
         if 'temperature' in sensor_cal:
             annotation_md["ntia-sensor:temperature"] = sensor_cal["temperature"]

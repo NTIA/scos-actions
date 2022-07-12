@@ -2,20 +2,19 @@
 
 import datetime
 import json
+import os
 import random
 from copy import deepcopy
+from math import isclose
 
 import pytest
 import pytz
-
-from scos_actions import calibration
-from scos_actions.calibration import Calibration
-from scos_actions.tests.resources.utils import easy_gain, is_close
-from scos_actions import utils
-from scos_actions.settings import sensor_calibration
-from scos_actions.settings import sigan_calibration
-import os
 from pytz import timezone
+
+from scos_actions import calibration, utils
+from scos_actions.calibration import Calibration
+from scos_actions.settings import sensor_calibration, sigan_calibration
+from scos_actions.tests.resources.utils import easy_gain
 
 
 class TestCalibrationFile:
@@ -91,10 +90,10 @@ class TestCalibrationFile:
                 msg
             )
         )
-        if not is_close(calc_gain_sigan, interp_gain_siggan, tolerance):
+        if not isclose(calc_gain_sigan, interp_gain_siggan, abs_tol=tolerance):
             interp_cal_data = self.sample_cal.get_calibration_dict([sr, f, g])
 
-        assert is_close(calc_gain_sigan, interp_gain_siggan, tolerance), msg
+        assert isclose(calc_gain_sigan, interp_gain_siggan, abs_tol=tolerance), msg
         return True
 
     @pytest.fixture(autouse=True)
