@@ -2,9 +2,11 @@ import copy
 import logging
 from abc import ABC, abstractmethod
 
-from scos_actions.actions.action_utils import get_param
+from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.capabilities import capabilities
-from scos_actions.hardware import gps as mock_gps, sigan as mock_sigan, preselector
+from scos_actions.hardware import preselector
+from scos_actions.actions.action_utils import get_param
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +30,13 @@ class Action(ABC):
 
     """
 
-    PRESELECTOR_PATH_KEY = "rf_path"
+    PRESELECTOR_PATH_KEY='rf_path'
 
     def __init__(self, parameters, sigan=mock_sigan, gps=mock_gps):
         self.parameters = parameters
         self.sigan = sigan
         self.gps = gps
-        self.sensor_definition = capabilities["sensor"]
+        self.sensor_definition = capabilities['sensor']
         self.parameter_map = self.get_parameter_map(self.parameters)
 
     def configure(self, measurement_params):
@@ -86,6 +88,9 @@ class Action(ABC):
         elif isinstance(params, dict):
             return copy.deepcopy(params)
 
+
     @abstractmethod
     def __call__(self, schedule_entry, task_id):
         pass
+
+
