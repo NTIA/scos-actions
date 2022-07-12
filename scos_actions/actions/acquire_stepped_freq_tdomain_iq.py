@@ -58,8 +58,7 @@ NUM_SKIP = "nskip"
 
 
 class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisition):
-    """
-    Acquire IQ data at each of the requested frequencies.
+    """Acquire IQ data at each of the requested frequencies.
 
     The action will set any matching attributes found in the
     signal analyzer object. The following parameters are required
@@ -119,17 +118,15 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             measurement_result = super().acquire_data(num_samples, nskip)
             measurement_result.update(measurement_params)
             end_time = utils.get_datetime_str_now()
-            measurement_result["start_time"] = start_time
-            measurement_result["end_time"] = end_time
-            measurement_result["domain"] = Domain.TIME.value
-            measurement_result[
-                "measurement_type"
-            ] = MeasurementType.SINGLE_FREQUENCY.value
-            measurement_result["task_id"] = task_id
-            measurement_result["description"] = self.description
-            measurement_result["name"] = self.name
-            measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
-            measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
+            measurement_result['start_time'] = start_time
+            measurement_result['end_time'] = end_time
+            measurement_result['domain'] = Domain.TIME.value
+            measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
+            measurement_result['task_id'] = task_id
+            measurement_result['description'] = self.description
+            measurement_result['name'] = self.name
+            measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
+            measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
             sigmf_builder = self.get_sigmf_builder(measurement_result)
             self.create_metadata(
                 sigmf_builder, schedule_entry_json, measurement_result, recording_id
