@@ -6,6 +6,7 @@ from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.capabilities import capabilities
 from scos_actions.hardware import preselector
+from scos_actions.actions.action_utils import get_param
 
 logger = logging.getLogger(__name__)
 
@@ -72,10 +73,9 @@ class Action(ABC):
     def description(self):
         return self.__doc__
 
-
     @property
     def name(self):
-        return self.parameter_map['name']
+        return get_param("name", self.parameter_map)
 
     def get_parameter_map(self, params):
         if isinstance(params, list):
