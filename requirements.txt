@@ -16,11 +16,18 @@ idna==3.3
     # via requests
 its-preselector @ git+https://github.com/NTIA/Preselector@1.0.0
     # via -r requirements.in
+numexpr==2.8.3
+    # via -r requirements.in
 numpy==1.21.5
     # via
     #   -r requirements.in
+    #   numexpr
     #   scipy
     #   sigmf
+packaging==21.3
+    # via numexpr
+pyparsing==3.0.9
+    # via packaging
 python-dateutil==2.8.2
     # via -r requirements.in
 pytz==2021.3
