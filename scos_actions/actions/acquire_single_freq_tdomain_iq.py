@@ -34,7 +34,7 @@ signals.
 import logging
 
 from scos_actions import utils
-from scos_actions.actions.action_utils import get_num_skip
+from scos_actions.actions.action_utils import get_param
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.hardware import gps as mock_gps
@@ -43,35 +43,46 @@ from numpy import complex64
 
 logger = logging.getLogger(__name__)
 
+# Define parameter keys
+FREQUENCY = "frequency"
+SAMPLE_RATE = "sample_rate"
+DURATION_MS = "duration_ms"
+NUM_SKIP = "nskip"
+
 
 class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     """Acquire IQ data at each of the requested frequencies.
 
-    :param parameters: The dictionary of parameters needed for the action and the signal analyzer.
-
-    The action will set any matching attributes found in the signal analyzer object. The following
-    parameters are required by the action:
+    The action will set any matching attributes found in the
+    signal analyzer object. The following parameters are
+    required by the action:
 
         name: name of the action
         frequency: center frequency in Hz
         duration_ms: duration to acquire in ms
 
-    or the parameters required by the signal analyzer, see the documentation from the Python
-    package for the signal analyzer being used.
+    For the parameters required by the signal analyzer, see the
+    documentation from the Python package for the signal analyzer
+    being used.
 
-    :param sigan: instance of SignalAnalyzerInterface
+    :param parameters: The dictionary of parameters needed for
+    the action and the signal analyzer.
+    :param sigan: instance of SignalAnalyzerInterface.
     """
 
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
+        # Pull parameters from action config
+        self.nskip = get_param(NUM_SKIP, self.parameter_map)
+        self.duration_ms = get_param(DURATION_MS, self.parameter_map)
+        self.frequency_Hz = get_param(FREQUENCY, self.parameter_map)
 
-    def execute(self, schedule_entry, task_id):
+    def execute(self, schedule_entry, task_id) -> dict:
         start_time = utils.get_datetime_str_now()
-        nskip = get_num_skip(self.parameter_map)
-        # Use the signal analyzer's actual reported sample rate instead of requested rate
+        # Use the sigan's actual reported instead of requested sample rate
         sample_rate = self.sigan.sample_rate
-        num_samples = int(sample_rate * self.parameter_map["duration_ms"] * 1e-3)
-        measurement_result = self.acquire_data(num_samples, nskip)
+        num_samples = int(sample_rate * self.duration_ms * 1e-3)
+        measurement_result = self.acquire_data(num_samples, self.nskip)
         measurement_result['start_time'] = start_time
         end_time = utils.get_datetime_str_now()
         measurement_result.update(self.parameter_map)
@@ -85,27 +96,31 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
         return measurement_result
 
-    def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
+    def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
         time_domain_annotation = TimeDomainAnnotation(0, self.received_samples)
-        sigmf_builder.add_metadata_generator(type(time_domain_annotation).__name__, time_domain_annotation)
+        sigmf_builder.add_metadata_generator(
+            type(time_domain_annotation).__name__, time_domain_annotation
+        )
         return sigmf_builder
 
     @property
     def description(self):
         """Parameterize and return the module-level docstring."""
-        center_frequency = self.parameter_map["frequency"] / 1e6
-        duration_ms = self.parameter_map["duration_ms"]
-        used_keys = ["frequency", "duration_ms", "name"]
-        acq_plan = f"The signal analyzer is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
+        frequency_MHz = self.frequency_Hz / 1e6
+        used_keys = [FREQUENCY, DURATION_MS, "name"]
+        acq_plan = (
+            f"The signal analyzer is tuned to {frequency_MHz:.2f} "
+            + "MHz and the following parameters are set:\n"
+        )
         for name, value in self.parameter_map.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
-        acq_plan += f"\nThen, acquire samples for {duration_ms} ms\n."
+        acq_plan += f"\nThen, acquire samples for {self.duration_ms} ms\n."
 
         defs = {
             "name": self.name,
-            "center_frequency": center_frequency,
+            "center_frequency": frequency_MHz,
             "acquisition_plan": acq_plan,
         }
 
@@ -113,7 +128,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         return __doc__.format(**defs)
 
     def transform_data(self, measurement_result):
-        return measurement_result['data'].astype(complex64)
+        return measurement_result["data"].astype(complex64)
 
     def is_complex(self) -> bool:
         return True

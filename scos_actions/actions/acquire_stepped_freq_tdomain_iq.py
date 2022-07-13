@@ -40,39 +40,48 @@ import logging
 import numpy as np
 
 from scos_actions import utils
-from scos_actions.actions.action_utils import get_num_skip
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     SingleFrequencyTimeDomainIqAcquisition,
 )
+from scos_actions.actions.action_utils import get_param
 from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType
 from scos_actions.hardware import gps as mock_gps
 
 logger = logging.getLogger(__name__)
+
+# Define parameter keys
+FREQUENCY = "frequency"
+SAMPLE_RATE = "sample_rate"
+DURATION_MS = "duration_ms"
+NUM_SKIP = "nskip"
 
 
 class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisition):
     """Acquire IQ data at each of the requested frequencies.
 
-    :param parameters: The dictionary of parameters needed for the action and the signal analyzer.
+    The action will set any matching attributes found in the
+    signal analyzer object. The following parameters are required
+    by the action:
 
-    The action will set any matching attributes found in the signal analyzer object. The following
-    parameters are required by the action:
+        name: The name of the action.
+        frequency: An iterable of center frequencies, in Hz.
+        duration_ms: An iterable of measurement durations, per
+            center_frequency, in ms
 
-        name: name of the action
-        frequency: an iterable of center frequencies in Hz
-        duration_ms: an iterable of measurement durations per center_frequency in ms
+    For the parameters required by the signal analyzer, see the
+    documentation from the Python package for the signal analyzer
+    being used.
 
-    For the parameters required by the signal analyzer, see the documentation from the Python
-    package for the signal analyzer being used.
-
+    :param parameters: The dictionary of parameters needed for
+        the action and the signal analyzer.
     :param sigan: instance of SignalAnalyzerInterface
     """
 
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
         self.sorted_measurement_parameters = []
-        num_center_frequencies = len(parameters["frequency"])
+        num_center_frequencies = len(parameters[FREQUENCY])
 
         # convert dictionary of lists from yaml file to list of dictionaries
         longest_length = 0
@@ -88,7 +97,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                     continue
                 sorted_params[key] = parameters[key][i]
             self.sorted_measurement_parameters.append(sorted_params)
-        self.sorted_measurement_parameters.sort(key=lambda params: params["frequency"])
+        self.sorted_measurement_parameters.sort(key=lambda params: params[FREQUENCY])
 
         self.sigan = sigan  # make instance variable to allow mocking
         self.num_center_frequencies = num_center_frequencies
@@ -102,9 +111,10 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         ):
             start_time = utils.get_datetime_str_now()
             self.configure(measurement_params)
+            duration_ms = get_param(DURATION_MS, measurement_params)
+            nskip = get_param(NUM_SKIP, measurement_params)
             sample_rate = self.sigan.sample_rate
-            num_samples = int(sample_rate * measurement_params["duration_ms"] * 1e-3)
-            nskip = get_num_skip(measurement_params)
+            num_samples = int(sample_rate * duration_ms * 1e-3)
             measurement_result = super().acquire_data(num_samples, nskip)
             measurement_result.update(measurement_params)
             end_time = utils.get_datetime_str_now()
@@ -114,11 +124,13 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
             measurement_result['task_id'] = task_id
             measurement_result['description'] = self.description
-            measurement_result['name'] = self.parameter_map['name']
+            measurement_result['name'] = self.name
             measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
             measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
             sigmf_builder = self.get_sigmf_builder(measurement_result)
-            self.create_metadata(sigmf_builder, schedule_entry_json,measurement_result, recording_id)
+            self.create_metadata(
+                sigmf_builder, schedule_entry_json, measurement_result, recording_id
+            )
             measurement_action_completed.send(
                 sender=self.__class__,
                 task_id=task_id,
@@ -131,10 +143,10 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         """Parameterize and return the module-level docstring."""
 
         acquisition_plan = ""
-        used_keys = ["frequency", "duration_ms", "name"]
+        used_keys = [FREQUENCY, DURATION_MS, "name"]
         acq_plan_template = "The signal analyzer is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
         acq_plan_template += "{parameters}"
-        acq_plan_template += "Then, acquire samples for {duration_ms} ms\n."
+        acq_plan_template += "Then, acquire samples for {duration_ms} ms.\n"
 
         for measurement_params in self.sorted_measurement_parameters:
             parameters = ""
@@ -143,13 +155,13 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                     parameters += f"{name} = {value}\n"
             acquisition_plan += acq_plan_template.format(
                 **{
-                    "center_frequency": measurement_params["frequency"] / 1e6,
+                    "center_frequency": measurement_params[FREQUENCY] / 1e6,
                     "parameters": parameters,
-                    "duration_ms": measurement_params["duration_ms"],
+                    "duration_ms": measurement_params[DURATION_MS],
                 }
             )
 
-        durations = [v["duration_ms"] for v in self.sorted_measurement_parameters]
+        durations = [v[DURATION_MS] for v in self.sorted_measurement_parameters]
         min_duration_ms = np.sum(durations)
 
         defs = {
@@ -157,7 +169,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             "num_center_frequencies": self.num_center_frequencies,
             "center_frequencies": ", ".join(
                 [
-                    "{:.2f} MHz".format(param["frequency"] / 1e6)
+                    "{:.2f} MHz".format(param[FREQUENCY] / 1e6)
                     for param in self.sorted_measurement_parameters
                 ]
             ),

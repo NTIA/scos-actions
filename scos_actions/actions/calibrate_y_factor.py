@@ -18,13 +18,15 @@
 #
 r"""Perform a Y-Factor Calibration.
 Supports calibration of gain and noise figure for one or more channels.
-For each center frequency, sets the preselector to the noise diode path, turns noise diode on, performs and M4 measurmenet,
-turns the noise diode off and performs another M4 measurements. Uses the mean power on and mean power off data to compute the noise figure and gain.
-For each M4 measurement, it applies an m4s detector over {nffts} {fft_size}-pt FFTs at {frequencies} MHz.
+For each center frequency, sets the preselector to the noise diode path, turns
+noise diode on, performs a mean FFT measurement, turns the noise diode off and
+performs another mean FFT measurement. The mean power on and mean power off
+data are used to compute the noise figure and gain. For each measurement, the
+mean detector is applied over {nffts} {fft_size}-pt FFTs at {frequencies} MHz.
 
 # {name}
 
-## Radio setup and sample acquisition
+## Signal analyzer setup and sample acquisition
 
 Each time this task runs, the following process is followed:
 {acquisition_plan}
@@ -32,7 +34,7 @@ Each time this task runs, the following process is followed:
 ## Time-domain processing
 
 First, the ${nffts} \times {fft_size}$ continuous samples are acquired from
-the radio. If specified, a voltage scaling factor is applied to the complex
+the signal analyzer. If specified, a voltage scaling factor is applied to the complex
 time-domain signals. Then, the data is reshaped into a ${nffts} \times
 {fft_size}$ matrix:
 
@@ -55,50 +57,63 @@ $$w(n) = &0.2156 - 0.4160 \cos{{(2 \pi n / M)}} + 0.2781 \cos{{(4 \pi n / M)}} -
 where $M = {fft_size}$ is the number of points in the window, is applied to
 each row of the matrix.
 
+## Frequency-domain processing
 
+### To-do: add details of FFT processing
+
+## Y-Factor Method
+
+### To-do: add details of Y-Factor method
 """
 
 import logging
 import time
 
+from numpy import ndarray
 from scipy.constants import Boltzmann
-from scipy.signal import windows
-#from scos_actions.signal_processing.utils import get_enbw
-from scos_actions.signal_processing.calibration import y_factor
+
 from scos_actions import utils
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.settings import sensor_calibration
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.actions.action_utils import (
-    get_num_samples_and_fft_size,
-    get_num_skip
+from scos_actions.actions.action_utils import get_param
+from scos_actions.signal_processing.fft import get_fft, get_fft_enbw, get_fft_window
+
+from scos_actions.signal_processing.calibration import (
+    get_linear_enr,
+    get_temperature,
+    y_factor,
 )
-from scos_actions.actions.fft import (
-    get_fft_window,
-    get_fft_window_correction_factors,
-    get_mean_detector_watts,
-    get_enbw
+from scos_actions.signal_processing.power_analysis import (
+    apply_power_detector,
+    calculate_power_watts,
+    create_power_detector,
 )
-from scos_actions.hardware import preselector
 import os
+
+logger = logging.getLogger(__name__)
 
 RF_PATH = 'rf_path'
 NOISE_DIODE_ON = {RF_PATH: 'noise_diode_on'}
 NOISE_DIODE_OFF = {RF_PATH: 'noise_diode_off'}
-SAMPLE_RATE = 'sample_rate'
-FFT_SIZE = 'fft_size'
 
-logger = logging.getLogger(__name__)
+# Define parameter keys
+FREQUENCY = "frequency"
+SAMPLE_RATE = "sample_rate"
+FFT_SIZE = "fft_size"
+NUM_FFTS = "nffts"
+NUM_SKIP = "nskip"
+# TODO: Should calibration source index and temperature sensor number
+# be required parameters?
 
 
 class YFactorCalibration(Action):
-    """Perform a single or stepped y-factor calibration.
+    """Perform a single- or stepped-frequency Y-factor calibration.
 
-    :param parameters: The dictionary of parameters needed for the action and the radio.
-
-    The action will set any matching attributes found in the radio object. The following
-    parameters are required by the action:
+    The action will set any matching attributes found in the signal
+    analyzer object. The following parameters are required by the
+    action:
 
         name: name of the action
         frequency: center frequency in Hz
@@ -106,20 +121,29 @@ class YFactorCalibration(Action):
         nffts: number of consecutive FFTs to pass to detector
 
 
-    For the parameters required by the radio, see the documentation for the radio being used.
+    For the parameters required by the signal analyzer, see the
+    documentation from the Python package for the signal analyzer
+    being used.
 
-    :param radio: instance of RadioInterface
+    :param parameters: The dictionary of parameters needed for the
+        action and the signal analyzer.
+    :param sigan: instance of SignalAnalyzerInterface.
     """
 
     def __init__(self, parameters, sigan, gps=mock_gps):
         logger.debug('Initializing calibration action')
         super().__init__(parameters, sigan, gps)
+        # Specify calibration source and temperature sensor indices
+        self.cal_source_idx = 0
+        self.temp_sensor_idx = 1
+        # FFT setup
+        self.fft_detector = create_power_detector("MeanDetector", ["mean"])
+        self.fft_window_type = "flattop"
 
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
-        start_time = utils.get_datetime_str_now()
-        frequencies = self.parameter_map['frequency']
+        frequencies = self.parameter_map[FREQUENCY]
         detail = ''
         if isinstance(frequencies, list):
             for i in range(len(frequencies)):
@@ -131,14 +155,18 @@ class YFactorCalibration(Action):
         elif isinstance(frequencies, float):
             detail = self.calibrate(self.parameters)
 
-        end_time = utils.get_datetime_str_now()
         return detail
 
     def calibrate(self, params):
+        # Set noise diode on
         logger.debug('Setting noise diode on')
         super().configure_preselector(NOISE_DIODE_ON)
         time.sleep(.25)
+
+        # Debugging
         logger.debug('Before configure, Preamp = ' + str(self.sigan.preamp_enable))
+
+        # Configure signal analyzer
         self.sigan.preamp_enable = True
         super().configure_sigan(params)
         param_map = self.get_parameter_map(params)
@@ -146,55 +174,90 @@ class YFactorCalibration(Action):
             logger.debug('Preamp = ' + str(self.sigan.preamp_enable))
             logger.debug('Ref_level: ' + str(self.sigan.reference_level))
             logger.debug('Attenuation:' + str(self.sigan.attenuation))
-        logger.debug('acquiring m4')
-        nskip = get_num_skip(param_map)
-        num_samples, fft_size = get_num_samples_and_fft_size(param_map)
-        noise_on_measurement_result = self.sigan.acquire_time_domain_samples(num_samples, num_samples_skip=nskip, gain_adjust=False)
-        fft_window = get_fft_window("Flat Top", fft_size)
-        fft_window_acf, fft_window_ecf, fft_window_enbw = get_fft_window_correction_factors(fft_window)
-        mean_on_watts = get_mean_detector_watts(fft_size, noise_on_measurement_result,fft_window,fft_window_acf)
+
+        # Get parameters from action config
+        fft_size = get_param(FFT_SIZE, param_map)
+        nffts = get_param(NUM_FFTS, param_map)
+        nskip = get_param(NUM_SKIP, param_map)
+        fft_window = get_fft_window(self.fft_window_type, fft_size)
+        num_samples = fft_size * nffts
+
+        logger.debug("Acquiring mean FFT")
+
+        # Get noise diode on mean FFT result
+        noise_on_measurement_result = self.sigan.acquire_time_domain_samples(
+            num_samples, num_samples_skip=nskip, gain_adjust=False
+        )
+        sample_rate = noise_on_measurement_result["sample_rate"]
+        mean_on_watts = self.apply_mean_fft(
+            noise_on_measurement_result, fft_size, fft_window, nffts
+        )
+
+        # Set noise diode off
         logger.debug('Setting noise diode off')
         self.configure_preselector(NOISE_DIODE_OFF)
         time.sleep(.25)
-        logger.debug('Acquiring noise off M4')
-        noise_off_measurement_result = self.sigan.acquire_time_domain_samples(num_samples, num_samples_skip=nskip, gain_adjust=False)
-        mean_off_watts = get_mean_detector_watts(fft_size, noise_off_measurement_result, fft_window, fft_window_acf)
-        enbw = get_enbw(param_map[SAMPLE_RATE], fft_size, fft_window_enbw)
-        enr = self.get_enr()
-        logger.debug('ENR: ' + str(enr))
-        temp_k, temp_c, temp_f = self.get_temperature()
-        noise_floor = Boltzmann * temp_k * enbw
-        logger.debug('Noise floor: ' + str(noise_floor))
-        noise_figure, gain = y_factor(mean_on_watts, mean_off_watts, enr, enbw, T_room=temp_k)
-        logger.debug('Noise Figure:' + str(noise_figure))
-        logger.debug('Gain: ' + str(gain))
-        sensor_calibration.update(param_map, utils.get_datetime_str_now(), gain, noise_figure, temp_c,
-                                  SENSOR_CALIBRATION_FILE)
+
+        # Get noise diode off mean FFT result
+        logger.debug('Acquiring noise off mean FFT')
+        noise_off_measurement_result = self.sigan.acquire_time_domain_samples(
+            num_samples, num_samples_skip=nskip, gain_adjust=False
+        )
+        mean_off_watts = self.apply_mean_fft(
+            noise_off_measurement_result, fft_size, fft_window, nffts
+        )
+
+        # Y-Factor
+        enbw_hz = get_fft_enbw(fft_window, sample_rate)
+        enr_linear = get_linear_enr(self.cal_source_idx)
+        temp_k, temp_c, _ = get_temperature(self.temp_sensor_idx)
+        noise_figure, gain = y_factor(
+            mean_on_watts, mean_off_watts, enr_linear, enbw_hz, temp_k
+        )
+        sensor_calibration.update(
+            param_map,
+            utils.get_datetime_str_now(),
+            gain,
+            noise_figure,
+            temp_c,
+            SENSOR_CALIBRATION_FILE,
+        )
+
+        # Debugging
+        noise_floor = Boltzmann * temp_k * enbw_hz
+        logger.debug(f'Noise floor: {noise_floor} Watts')
+        logger.debug(f'Noise Figure: {noise_figure} dB')
+        logger.debug(f'Gain: {gain} dB')
+
         return 'Noise Figure:{}, Gain:{}'.format(noise_figure, gain)
 
-    def get_enr(self):
-        # todo deal with multiple cal sources
-        if len(preselector.cal_sources) == 0:
-            raise Exception('No calibrations sources defined in preselector.')
-        elif len(preselector.cal_sources) > 1:
-            raise Exception('Preselector contains multiple calibration sources.')
-        else:
-            enr_dB = preselector.cal_sources[0].enr
-            linear_enr = 10 ** (enr_dB / 10.0)
-            return linear_enr
+    def apply_mean_fft(
+        self, measurement_result: dict, fft_size: int, fft_window: ndarray, nffts: int
+    ) -> ndarray:
+        complex_fft = get_fft(
+            measurement_result["data"], fft_size, "backward", fft_window, nffts
+        )
+        power_fft = calculate_power_watts(complex_fft)
+        mean_result = apply_power_detector(power_fft, self.fft_detector)
+        return mean_result
 
     @property
     def description(self):
 
-        if (isinstance(self.parameter_map['frequency'], float)):
-            frequencies = self.parameter_map["frequency"] / 1e6
-            nffts = self.parameter_map["nffts"]
-            fft_size = self.parameter_map[FFT_SIZE]
+        if isinstance(get_param(FREQUENCY, self.parameter_map), float):
+            frequencies = get_param(FREQUENCY, self.parameter_map) / 1e6
+            nffts = get_param(NUM_FFTS, self.parameter_map)
+            fft_size = get_param(FFT_SIZE, self.parameter_map)
         else:
-            frequencies = utils.list_to_string(self.parameter_map['frequency'])
-            nffts = utils.list_to_string(self.parameter_map["nffts"])
-            fft_size = utils.list_to_string(self.parameter_map[FFT_SIZE])
-        acq_plan = f"Performs a y-factor calibration at frequencies: {frequencies}, nffts:{nffts}, fft_size: {fft_size}\n"
+            frequencies = utils.list_to_string(
+                [f / 1e6 for f in get_param(FREQUENCY, self.parameter_map)]
+            )
+            nffts = utils.list_to_string(get_param(NUM_FFTS, self.parameter_map))
+            fft_size = utils.list_to_string(get_param(FFT_SIZE, self.parameter_map))
+        acq_plan = (
+            f"Performs a y-factor calibration at frequencies: "
+            f"{frequencies}, nffts:{nffts}, fft_size: {fft_size}\n"
+        )
         definitions = {
             "name": self.name,
             "frequencies": frequencies,
@@ -204,22 +267,6 @@ class YFactorCalibration(Action):
         }
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**definitions)
-
-    # todo support multiple temperature sensors
-    def get_temperature(self):
-        kelvin_temp = 290.0
-        celsius_temp = kelvin_temp - 273.15
-        fahrenheit = (celsius_temp * 9. / 5.) + 32
-        temp = preselector.get_sensor_value(1)
-        logger.debug('Temp: ' + str(temp))
-        if temp is None:
-            logger.warning('Temperature is None. Using 290 K instead.')
-        else:
-            fahrenheit = float(temp)
-            celsius_temp = ((5.0 * (fahrenheit - 32)) / 9.0)
-            kelvin_temp = celsius_temp + 273.15
-            logger.debug('Temperature: ' + str(kelvin_temp))
-        return kelvin_temp, celsius_temp, fahrenheit
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
