@@ -8,13 +8,14 @@ class MeasurementMetadata(Metadata):
         super().__init__()
 
     def create_metadata(self, sigmf_builder: SigMFBuilder, measurement_result: dict):
+        freq_low = None
+        freq_high = None
 
         if 'frequency_low' in measurement_result:
             freq_low = measurement_result['frequency_low']
         elif 'frequency' in measurement_result:
             freq_low = measurement_result['frequency']
             freq_high = measurement_result['frequency']
-
         if 'frequency_high' in measurement_result:
             freq_high = measurement_result['frequency_high']
 
