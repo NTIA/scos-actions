@@ -1,0 +1,77 @@
+nasctn_sea_data_product:
+  name: test_nasctn_sea_data_product
+# IIR filter settings
+  iir_apply: True
+  iir_rp_dB: 0.1  # Max passband ripple below unity gain
+  iir_rs_dB: 40  # Minimum stopband attenuation
+  iir_cutoff_Hz: 5e6  # Transition frequency
+  iir_width_Hz: 8e3  # Transition width
+# Quantile filter settings
+  qfilt_apply: True
+  qfilt_qlo: 0.00015  # Lower quantile
+  qfilt_qhi: 0.99999  # Upper quantile
+# Mean/Max FFT settings
+  fft_size: 175
+  nffts: 320e3
+  fft_window_type: flattop # See scipy.signal.get_window for supported input
+# APD downsampling settings
+  apd_bin_size_dB: 0.5  # Set to 0 or negative for no downsampling
+# Time domain power statistics settings
+  td_bin_size_ms: 100
+# Sigan settings (Mock USRP in this case)
+  gain:
+    - 40
+    - 40
+    - 40
+    - 40
+    - 40
+    - 40
+    - 40
+    - 40
+    - 40
+    - 40
+# Acquisition settings (3550-3650 MHz in 10 MHz steps, each 4s long)
+  frequency:
+    - 3555e6
+    - 3565e6
+    - 3575e6
+    - 3585e6
+    - 3595e6
+    - 3605e6
+    - 3615e6
+    - 3625e6
+    - 3635e6
+    - 3645e6
+  sample_rate:
+    - 14e6
+    - 14e6
+    - 14e6
+    - 14e6
+    - 14e6
+    - 14e6
+    - 14e6
+    - 14e6
+    - 14e6
+    - 14e6
+  duration_ms:
+    - 4000
+    - 4000
+    - 4000
+    - 4000
+    - 4000
+    - 4000
+    - 4000
+    - 4000
+    - 4000
+    - 4000
+  nskip:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
