@@ -1,8 +1,0 @@
-single_frequency_apd:
-  name: test_single_frequency_apd_action
-  frequency: 739e6
-  gain: 40
-  sample_rate: 15.36e6
-  nskip: 15.36e4
-  duration_ms: 1000
-  apd_bin_size_dB: 0.5
