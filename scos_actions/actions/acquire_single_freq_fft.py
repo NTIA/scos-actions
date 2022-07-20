@@ -106,7 +106,7 @@ from scos_actions.signal_processing.power_analysis import (
     calculate_power_watts,
     create_power_detector,
 )
-from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
+from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm, convert_linear_to_dB
 from numpy import float32, log10, ndarray
 
 logger = logging.getLogger(__name__)
@@ -179,6 +179,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         return measurement_result
 
     def apply_m4s(self, measurement_result: dict) -> ndarray:
+        # IQ samples already scaled based on calibration
         # 'forward' normalization applies 1/fft_size normalization
         complex_fft = get_fft(
             measurement_result["data"],
@@ -190,8 +191,11 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         power_fft = calculate_power_watts(complex_fft)
         m4s_result = apply_power_detector(power_fft, self.fft_detector, float32)
         m4s_result = convert_watts_to_dBm(m4s_result)
-        m4s_result -= 3  # Baseband/RF power conversion
-        m4s_result += 10 * log10(self.fft_window_acf)  # Window correction
+        # Scaling applied:
+        #   RF/Baseband power conversion (-3 dB)
+        #   FFT window amplitude correction
+        m4s_result -= 3
+        m4s_result += convert_linear_to_dB(self.fft_window_acf)
         return m4s_result
 
     @property
