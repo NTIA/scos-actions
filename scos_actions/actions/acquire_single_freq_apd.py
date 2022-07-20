@@ -117,7 +117,8 @@ class SingleFrequencyApdAcquisition(MeasurementAction):
         start_time = utils.get_datetime_str_now()
         measurement_result = self.acquire_data(self.num_samples, self.nskip)
         apd_result = self.get_power_apd(measurement_result)
-        # apd_result is (p, a) concatenated into a single array
+        # apd_result is a complex array, with probability values as the real
+        # part and corresponding amplitude values as the imaginary part
 
         # Save measurement results
         measurement_result["data"] = apd_result
@@ -142,8 +143,8 @@ class SingleFrequencyApdAcquisition(MeasurementAction):
         #  a + 27 : dBW --> dBm (+30), RF/baseband conversion (-3)
         scale_factor = 27 - convert_linear_to_dB(50.)
         ne.evaluate("(2*a)+scale_factor", out=a)
-        # For now: concatenate axes to store as a single array
-        return np.concatenate((p, a))
+        # For now: store probability and amplitude axes in one complex array
+        return p + 1j*a
 
     @property
     def description(self):
@@ -172,4 +173,5 @@ class SingleFrequencyApdAcquisition(MeasurementAction):
 
 
     def is_complex(self) -> bool:
-        return False
+        # True for now; should likely change with metadata handling updates
+        return True
