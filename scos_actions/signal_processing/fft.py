@@ -15,6 +15,7 @@ def get_fft(
     norm: str = "forward",
     fft_window: np.ndarray = None,
     num_ffts: int = 0,
+    shift: bool = True,
     workers: int = os.cpu_count() // 2,
 ) -> np.ndarray:
     """
@@ -55,6 +56,8 @@ def get_fft(
         Setting this to zero or a negative number results in "as many
         as possible" behavior, which is also the default behavior if
         num_ffts is not specified.
+    :param shift: If True, shift the zero-frequency component to the
+        center of the spectrum.
     :param workers: Maximum number of workers to use for parallel
         computation. See scipy.fft.fft for more details.
     :return: The transformed input, scaled based on the specified
@@ -79,9 +82,12 @@ def get_fft(
     if fft_window is not None:
         time_data *= fft_window
 
-    # Take and shift the FFT
+    # Take the FFT
     complex_fft = sp_fft(time_data, norm=norm, workers=workers)
-    complex_fft = np.fft.fftshift(complex_fft)
+
+    # Shift the frequencies if desired
+    if shift:
+        complex_fft = np.fft.fftshift(complex_fft)
     return complex_fft
 
 
