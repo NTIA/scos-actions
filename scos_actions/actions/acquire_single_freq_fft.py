@@ -111,6 +111,13 @@ from numpy import float32, log10, ndarray
 
 logger = logging.getLogger(__name__)
 
+# Define paramter keys
+FREQUENCY = "frequency"
+SAMPLE_RATE = "sample_rate"
+NUM_SKIP = "nskip"
+NUM_FFTS = "nffts"
+FFT_SIZE = "fft_size"
+
 
 class SingleFrequencyFftAcquisition(MeasurementAction):
     """Perform M4S detection over requested number of single-frequency FFTs.
@@ -135,10 +142,10 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters, sigan, gps)
         # Pull parameters from action config
-        self.fft_size = get_param("fft_size", self.parameter_map)
-        self.nffts = get_param("nffts", self.parameter_map)
-        self.nskip = get_param("nskip", self.parameter_map)
-        self.frequency_Hz = get_param("frequency", self.parameter_map)
+        self.fft_size = get_param(FFT_SIZE, self.parameter_map)
+        self.nffts = get_param(NUM_FFTS, self.parameter_map)
+        self.nskip = get_param(NUM_SKIP, self.parameter_map)
+        self.frequency_Hz = get_param(FREQUENCY, self.parameter_map)
         # FFT setup
         self.fft_detector = create_power_detector(
             "M4sDetector", ["min", "max", "mean", "median", "sample"]
@@ -201,7 +208,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     @property
     def description(self):
         frequency_MHz = self.frequency_Hz / 1e6
-        used_keys = ["frequency", "nffts", "fft_size", "name"]
+        used_keys = [FREQUENCY, NUM_FFTS, FFT_SIZE, "name"]
         acq_plan = (
             f"The signal analyzer is tuned to {frequency_MHz:.2f} MHz"
             f" and the following parameters are set:\n"
