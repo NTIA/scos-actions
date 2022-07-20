@@ -160,7 +160,6 @@ class SingleFrequencyApdAcquisition(MeasurementAction):
             "num_samps": self.num_samples,
             "center_frequency": frequency_MHz,
             "acquisition_plan": acq_plan,
-            "apd_bin_size_dB": self.apd_bin_size_dB  # Currently unused in docstring
         }
 
         # __doc__ refers to the module docstring at the top of the file
