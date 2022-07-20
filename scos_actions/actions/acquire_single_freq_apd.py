@@ -61,7 +61,7 @@ import numexpr as ne
 import numpy as np
 from scos_actions.actions.interfaces.measurement_action import (MeasurementAction)
 from scos_actions.actions.action_utils import get_param, ParameterException
-from scos_actions.actions.sigmf_builder import Domain, MeasurementType
+from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.unit_conversion import convert_linear_to_dB
 from scos_actions.hardware import gps as mock_gps
@@ -97,13 +97,12 @@ class SingleFrequencyApdAcquisition(MeasurementAction):
     """
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters, sigan, gps)
-        self.is_complex = False
         # Pull parameters from action config
         self.nskip = get_param(NUM_SKIP, self.parameter_map)
         self.duration_ms = get_param(DURATION_MS, self.parameter_map)
         self.frequency_Hz = get_param(FREQUENCY, self.parameter_map)
         self.sample_rate_Hz = get_param(SAMPLE_RATE, self.parameter_map)
-        self.num_samples = int(self.sample_rate * self.duration_ms * 1e-3)
+        self.num_samples = int(self.sample_rate_Hz * self.duration_ms * 1e-3)
         try:
             self.apd_bin_size = get_param(APD_BIN_SIZE, self.parameter_map)
         except ParameterException:
@@ -166,3 +165,12 @@ class SingleFrequencyApdAcquisition(MeasurementAction):
 
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**definitions)
+
+
+    def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
+        # TO DO
+        return super().get_sigmf_builder(measurement_result)
+
+
+    def is_complex(self) -> bool:
+        return False
