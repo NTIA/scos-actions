@@ -107,7 +107,7 @@ from scos_actions.signal_processing.power_analysis import (
     create_power_detector,
 )
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm, convert_linear_to_dB
-from numpy import float32, log10, ndarray
+from numpy import float32, ndarray
 
 logger = logging.getLogger(__name__)
 
