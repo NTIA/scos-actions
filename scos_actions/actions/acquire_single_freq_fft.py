@@ -96,11 +96,11 @@ from scos_actions.signal_processing.fft import (
     get_fft_window,
     get_fft_window_correction,
 )
-from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.actions.metadata.annotations.fft_annotation import FrequencyDomainDetectionAnnotation
 from scos_actions.hardware import gps as mock_gps
 
-from scos_actions.actions.action_utils import get_param
+from scos_actions.utils import get_parameter
 from scos_actions.signal_processing.power_analysis import (
     apply_power_detector,
     calculate_power_watts,
@@ -142,10 +142,10 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters, sigan, gps)
         # Pull parameters from action config
-        self.fft_size = get_param(FFT_SIZE, self.parameter_map)
-        self.nffts = get_param(NUM_FFTS, self.parameter_map)
-        self.nskip = get_param(NUM_SKIP, self.parameter_map)
-        self.frequency_Hz = get_param(FREQUENCY, self.parameter_map)
+        self.fft_size = get_parameter(FFT_SIZE, self.parameter_map)
+        self.nffts = get_parameter(NUM_FFTS, self.parameter_map)
+        self.nskip = get_parameter(NUM_SKIP, self.parameter_map)
+        self.frequency_Hz = get_parameter(FREQUENCY, self.parameter_map)
         # FFT setup
         self.fft_detector = create_power_detector(
             "M4sDetector", ["min", "max", "mean", "median", "sample"]
