@@ -169,7 +169,7 @@ class YFactorCalibration(Action):
         # Configure signal analyzer
         self.sigan.preamp_enable = True
         super().configure_sigan(params)
-        param_map = self.get_parameter_map(params)
+        param_map = utils.get_parameter_map(params)
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Preamp = ' + str(self.sigan.preamp_enable))
             logger.debug('Ref_level: ' + str(self.sigan.reference_level))

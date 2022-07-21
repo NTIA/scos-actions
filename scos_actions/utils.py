@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from dateutil import parser
 import json
-
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -45,3 +45,14 @@ def get_parameters(i, parameters):
 def list_to_string(a_list):
     string_list = [str(i) for i in a_list ]
     return ','.join(string_list)
+
+
+def get_parameter_map(params):
+    if isinstance(params, list):
+        key_map = {}
+        for param in params:
+            for key, value in param.items():
+                key_map[key] = value
+        return key_map
+    elif isinstance(params, dict):
+        return copy.deepcopy(params)
