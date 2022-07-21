@@ -26,10 +26,36 @@ def calculate_power_watts(val_volts, impedance_ohms: float = 50.0):
         returned quantity is always real.
     """
     if np.isscalar(val_volts):
-        power = (np.abs(val_volts) ** 2) / impedance_ohms
+        power = (np.abs(val_volts) ** 2.) / impedance_ohms
     else:
         power = ne.evaluate("(abs(val_volts).real**2)/impedance_ohms")
     return power
+
+
+def calculate_pseudo_power(val):
+    """
+    Calculate the 'pseudo-power' (magnitude-squared) of input samples.
+
+    Calculation: abs(val)^2
+
+    'Pseudo-power' is useful in certain applications to avoid
+    computing the power of many samples before data reduction
+    by a detector.
+
+    NumPy is used for scalar inputs.
+    NumExpr is used to speed up the operation for arrays.
+
+    :param val: A value, or array of values, to be converted
+        to 'pseudo-power' (magnitude-squared). The input may be
+        complex or real.
+    :return: The input val, converted to 'pseudo-power' (magnitude-
+        squared). The returned quantity is always real.
+    """
+    if np.isscalar(val):
+        ps_pwr = np.abs(val) ** 2.
+    else:
+        ps_pwr = ne.evaluate("abs(val).real**2")
+    return ps_pwr
 
 
 def create_power_detector(name: str, detectors: list) -> EnumMeta:
