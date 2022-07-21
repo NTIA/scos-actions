@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from scos_actions.actions.sigmf_builder import SigMFBuilder
+from scos_actions.actions.metadata.sigmf_builder import SigMFBuilder
 
 
 class Metadata(ABC):
