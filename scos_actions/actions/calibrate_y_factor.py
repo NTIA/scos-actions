@@ -147,7 +147,7 @@ class YFactorCalibration(Action):
         detail = ''
         if isinstance(frequencies, list):
             for i in range(len(frequencies)):
-                iteration_params = utils.get_parameters(i, self.parameter_map)
+                iteration_params = utils.get_iteration_parameters(i, self.parameter_map)
                 if i == 0:
                     detail += self.calibrate(iteration_params)
                 else:

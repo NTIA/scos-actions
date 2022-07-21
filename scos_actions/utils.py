@@ -35,7 +35,7 @@ def load_from_json(fname):
     except Exception:
         logger.exception("Unable to load JSON file {}".format(fname))
 
-def get_parameters(i, parameters):
+def get_iteration_parameters(i, parameters):
     iteration_params = {}
     for key in parameters:
         if key != 'name':
