@@ -1,12 +1,11 @@
 import logging
 from abc import ABC, abstractmethod
 
-from scos_actions.utils import get_parameter_map
+from scos_actions.utils import get_parameter_map, get_parameter
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.capabilities import capabilities
 from scos_actions.hardware import preselector
-from scos_actions.actions.action_utils import get_param
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +74,7 @@ class Action(ABC):
 
     @property
     def name(self):
-        return get_param("name", self.parameter_map)
+        return get_parameter("name", self.parameter_map)
 
     @abstractmethod
     def __call__(self, schedule_entry, task_id):

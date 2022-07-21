@@ -34,7 +34,7 @@ signals.
 import logging
 
 from scos_actions import utils
-from scos_actions.actions.action_utils import get_param
+from scos_actions.utils import get_parameter
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.hardware import gps as mock_gps
@@ -73,9 +73,9 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
         # Pull parameters from action config
-        self.nskip = get_param(NUM_SKIP, self.parameter_map)
-        self.duration_ms = get_param(DURATION_MS, self.parameter_map)
-        self.frequency_Hz = get_param(FREQUENCY, self.parameter_map)
+        self.nskip = get_parameter(NUM_SKIP, self.parameter_map)
+        self.duration_ms = get_parameter(DURATION_MS, self.parameter_map)
+        self.frequency_Hz = get_parameter(FREQUENCY, self.parameter_map)
 
     def execute(self, schedule_entry, task_id) -> dict:
         start_time = utils.get_datetime_str_now()

@@ -43,7 +43,7 @@ from scos_actions import utils
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     SingleFrequencyTimeDomainIqAcquisition,
 )
-from scos_actions.actions.action_utils import get_param
+from scos_actions.utils import get_parameter
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.metadata.sigmf_builder import Domain, MeasurementType
 from scos_actions.hardware import gps as mock_gps
@@ -100,8 +100,8 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         ):
             start_time = utils.get_datetime_str_now()
             self.configure(measurement_params)
-            duration_ms = get_param(DURATION_MS, measurement_params)
-            nskip = get_param(NUM_SKIP, measurement_params)
+            duration_ms = get_parameter(DURATION_MS, measurement_params)
+            nskip = get_parameter(NUM_SKIP, measurement_params)
             sample_rate = self.sigan.sample_rate
             num_samples = int(sample_rate * duration_ms * 1e-3)
             measurement_result = super().acquire_data(num_samples, nskip)
