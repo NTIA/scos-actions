@@ -34,3 +34,14 @@ def load_from_json(fname):
             return json.load(f)
     except Exception:
         logger.exception("Unable to load JSON file {}".format(fname))
+
+def get_parameters(i, parameters):
+    iteration_params = {}
+    for key in parameters:
+        if key != 'name':
+            iteration_params[key] = parameters[key][i]
+    return iteration_params
+
+def list_to_string(a_list):
+    string_list = [str(i) for i in a_list ]
+    return ','.join(string_list)
