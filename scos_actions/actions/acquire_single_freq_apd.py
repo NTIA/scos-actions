@@ -61,7 +61,7 @@ import numexpr as ne
 import numpy as np
 from scos_actions.actions.interfaces.measurement_action import (MeasurementAction)
 from scos_actions.actions.action_utils import get_param, ParameterException
-from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.unit_conversion import convert_linear_to_dB
 from scos_actions.hardware import gps as mock_gps
