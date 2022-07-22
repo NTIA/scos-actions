@@ -42,12 +42,31 @@ def load_from_json(fname):
         logger.exception("Unable to load JSON file {}".format(fname))
 
 
-def get_iteration_parameters(i, parameters):
-    iteration_params = {}
-    for key in parameters:
-        if key != 'name':
-            iteration_params[key] = parameters[key][i]
-    return iteration_params
+def get_iterable_parameters(parameters):
+    """Convert parameter dictionary into iterable list."""
+    # Copy input and remove name key
+    params = dict(parameters)
+    del params["name"]
+    # Convert all elements to lists if they are not already
+    for p_key, p_val in params.items():
+        if not isinstance(p_val, list):
+            params[p_key] = [p_val]
+    # Find longest set of parameters
+    max_param_length = max([len(p) for p in params.values()])
+    for p_key, p_val in params.items():
+        if len(p_val) < max_param_length:
+            if len(p_val) == 1:
+                # Repeat parameter to max length
+                # TODO: Add logger warning when this happens
+                params[p_key] = p_val * max_param_length
+            else:
+                # Don't make assumptions otherwise. Raise an error.
+                # TODO: Change this to ParameterException
+                raise Exception
+    # Construct iterable parameter mapping
+    result = [dict(zip(params, v)) for v in zip(*params.values())]
+    result.sort(key=lambda param: param["frequency"])
+    return result
 
 
 def list_to_string(a_list):

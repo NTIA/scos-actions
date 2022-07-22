@@ -145,15 +145,15 @@ class YFactorCalibration(Action):
         self.test_required_components()
         frequencies = self.parameters[FREQUENCY]
         detail = ''
-        if isinstance(frequencies, list):
-            for i in range(len(frequencies)):
-                iteration_params = utils.get_iteration_parameters(i, self.parameters)
-                if i == 0:
-                    detail += self.calibrate(iteration_params)
-                else:
-                    detail += os.linesep + self.calibrate(iteration_params)
-        elif isinstance(frequencies, float):
-            detail = self.calibrate(self.parameters)
+        # iteration_params is iterable even if it contains only one set of parameters
+        iteration_params = utils.get_iterable_parameters(self.parameters)
+        
+        # Calibrate
+        for i, p in enumerate(iteration_params):
+            if i == 0:
+                detail += self.calibrate(p)
+            else:
+                detail += os.linesep + self.calibrate(p)
 
         return detail
 
