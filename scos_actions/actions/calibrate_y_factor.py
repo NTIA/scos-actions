@@ -143,9 +143,9 @@ class YFactorCalibration(Action):
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
-        frequencies = self.parameters[FREQUENCY]
         detail = ''
         # iteration_params is iterable even if it contains only one set of parameters
+        # it is also sorted by frequency from low to high
         iteration_params = utils.get_iterable_parameters(self.parameters)
         
         # Calibrate
