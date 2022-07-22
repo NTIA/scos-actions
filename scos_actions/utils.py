@@ -8,9 +8,9 @@ logger = logging.getLogger(__name__)
 
 
 class ParameterException(Exception):
-    """Basic exception handling for missing parameters."""
-    def __init__(self, param):
-        super().__init__(f"{param} missing from measurement parameters.")
+    """Basic exception handling for parameter-related problems."""
+    def __init__(self, msg):
+        super().__init__(msg)
 
 
 def get_datetime_str_now():
@@ -42,27 +42,53 @@ def load_from_json(fname):
         logger.exception("Unable to load JSON file {}".format(fname))
 
 
-def get_iterable_parameters(parameters):
-    """Convert parameter dictionary into iterable list."""
-    # Copy input and remove name key
-    params = dict(parameters)
+def get_iterable_parameters(parameters: dict):
+    """
+    Convert parameter dictionary into iterable list.
+    
+    The input parameters, as read from the YAML file, will be
+    converted into an iterable list, in which each element is
+    an individual set of corresponding parameters. This is useful
+    for multi-frequency measurements, for example.
+
+    The 'name' key is ignored, and not included in the returned list.
+
+    This method also allows for YAML config files to specify
+    single values for any parameters which should be held constant
+    in every iteration. For example, specify only a single gain value
+    to use the same gain value for all measurements in a stepped-frequency
+    acquisition.
+
+    The output list is automatically sorted by frequency, but it can
+    be manually resorted by any key if desired.
+
+    :param parameters: The parameter dictionary, as loaded by the action.
+    :return: An iterable list of parameter dictionaries based on the input.
+        If only single values are given for all parameters in the input, a
+        list will still be returned, containing a single dictionary.
+    :raises ParameterException: If a parameter in the input has a number of
+        values which is neither 1 nor the maximum number of values specified
+        for any parameter.
+    """
+    # Create copy of parameters with all values as lists
+    params = {k:(v if isinstance(v, list) else [v]) for k, v in parameters.items()}
     del params["name"]
-    # Convert all elements to lists if they are not already
-    for p_key, p_val in params.items():
-        if not isinstance(p_val, list):
-            params[p_key] = [p_val]
     # Find longest set of parameters
     max_param_length = max([len(p) for p in params.values()])
-    for p_key, p_val in params.items():
-        if len(p_val) < max_param_length:
+    if max_param_length > 1:
+        for p_key, p_val in params.items():
             if len(p_val) == 1:
                 # Repeat parameter to max length
-                # TODO: Add logger warning when this happens
+                msg = f'Parameter {p_key} has only one value specified.\n'
+                msg += 'It will be used for all iterations in the action.'
+                logger.warning(msg)
                 params[p_key] = p_val * max_param_length
-            else:
+            elif len(p_val) < max_param_length:
                 # Don't make assumptions otherwise. Raise an error.
-                # TODO: Change this to ParameterException
-                raise Exception
+                msg = f'Parameter {p_key} has {len(p_val)} specified values.\n'
+                msg += 'YAML parameters must have either 1 value or a number of values equal to '
+                msg += f'that of the parameter with the most values provided ({max_param_length}).'
+                raise ParameterException(msg)
     # Construct iterable parameter mapping
     result = [dict(zip(params, v)) for v in zip(*params.values())]
     result.sort(key=lambda param: param["frequency"])
@@ -84,5 +110,5 @@ def get_parameter(p: str, params: dict):
     :raises ParameterException: If p is not a key in params.
     """
     if p not in params:
-        raise ParameterException(p)
+        raise ParameterException(f"{p} missing from measurement parameters.")
     return params[p]
