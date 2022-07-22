@@ -55,17 +55,6 @@ def list_to_string(a_list):
     return ','.join(string_list)
 
 
-def get_parameter_map(params):
-    if isinstance(params, list):
-        key_map = {}
-        for param in params:
-            for key, value in param.items():
-                key_map[key] = value
-        return key_map
-    elif isinstance(params, dict):
-        return copy.deepcopy(params)
-
-
 def get_parameter(p: str, params: dict):
     """
     Get a parameter by key from a parameter dictionary.

@@ -143,11 +143,11 @@ class YFactorCalibration(Action):
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
-        frequencies = self.parameter_map[FREQUENCY]
+        frequencies = self.parameters[FREQUENCY]
         detail = ''
         if isinstance(frequencies, list):
             for i in range(len(frequencies)):
-                iteration_params = utils.get_iteration_parameters(i, self.parameter_map)
+                iteration_params = utils.get_iteration_parameters(i, self.parameters)
                 if i == 0:
                     detail += self.calibrate(iteration_params)
                 else:
@@ -169,16 +169,15 @@ class YFactorCalibration(Action):
         # Configure signal analyzer
         self.sigan.preamp_enable = True
         super().configure_sigan(params)
-        param_map = utils.get_parameter_map(params)
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Preamp = ' + str(self.sigan.preamp_enable))
             logger.debug('Ref_level: ' + str(self.sigan.reference_level))
             logger.debug('Attenuation:' + str(self.sigan.attenuation))
 
         # Get parameters from action config
-        fft_size = get_parameter(FFT_SIZE, param_map)
-        nffts = get_parameter(NUM_FFTS, param_map)
-        nskip = get_parameter(NUM_SKIP, param_map)
+        fft_size = get_parameter(FFT_SIZE, params)
+        nffts = get_parameter(NUM_FFTS, params)
+        nskip = get_parameter(NUM_SKIP, params)
         fft_window = get_fft_window(self.fft_window_type, fft_size)
         num_samples = fft_size * nffts
 
@@ -215,7 +214,7 @@ class YFactorCalibration(Action):
             mean_on_watts, mean_off_watts, enr_linear, enbw_hz, temp_k
         )
         sensor_calibration.update(
-            param_map,
+            params,
             utils.get_datetime_str_now(),
             gain,
             noise_figure,
@@ -244,16 +243,16 @@ class YFactorCalibration(Action):
     @property
     def description(self):
 
-        if isinstance(get_parameter(FREQUENCY, self.parameter_map), float):
-            frequencies = get_parameter(FREQUENCY, self.parameter_map) / 1e6
-            nffts = get_parameter(NUM_FFTS, self.parameter_map)
-            fft_size = get_parameter(FFT_SIZE, self.parameter_map)
+        if isinstance(get_parameter(FREQUENCY, self.parameters), float):
+            frequencies = get_parameter(FREQUENCY, self.parameters) / 1e6
+            nffts = get_parameter(NUM_FFTS, self.parameters)
+            fft_size = get_parameter(FFT_SIZE, self.parameters)
         else:
             frequencies = utils.list_to_string(
-                [f / 1e6 for f in get_parameter(FREQUENCY, self.parameter_map)]
+                [f / 1e6 for f in get_parameter(FREQUENCY, self.parameters)]
             )
-            nffts = utils.list_to_string(get_parameter(NUM_FFTS, self.parameter_map))
-            fft_size = utils.list_to_string(get_parameter(FFT_SIZE, self.parameter_map))
+            nffts = utils.list_to_string(get_parameter(NUM_FFTS, self.parameters))
+            fft_size = utils.list_to_string(get_parameter(FFT_SIZE, self.parameters))
         acq_plan = (
             f"Performs a y-factor calibration at frequencies: "
             f"{frequencies}, nffts:{nffts}, fft_size: {fft_size}\n"
