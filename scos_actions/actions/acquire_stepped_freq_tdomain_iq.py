@@ -83,11 +83,9 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         self.sorted_measurement_parameters = []
         num_center_frequencies = len(parameters[FREQUENCY])
 
-        # convert dictionary of lists from yaml file to list of dictionaries
-        parameters.pop('name')
-        self.sorted_measurement_parameters = [dict(zip(parameters, v)) for v in zip(*parameters.values())]
-        self.sorted_measurement_parameters.sort(key=lambda params: params[FREQUENCY])
-
+        # Create iterable parameter set
+        self.sorted_measurement_parameters = utils.get_iterable_parameters(parameters)
+        
         self.sigan = sigan  # make instance variable to allow mocking
         self.num_center_frequencies = num_center_frequencies
 

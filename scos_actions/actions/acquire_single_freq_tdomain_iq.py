@@ -73,9 +73,9 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
         # Pull parameters from action config
-        self.nskip = get_parameter(NUM_SKIP, self.parameter_map)
-        self.duration_ms = get_parameter(DURATION_MS, self.parameter_map)
-        self.frequency_Hz = get_parameter(FREQUENCY, self.parameter_map)
+        self.nskip = get_parameter(NUM_SKIP, self.parameters)
+        self.duration_ms = get_parameter(DURATION_MS, self.parameters)
+        self.frequency_Hz = get_parameter(FREQUENCY, self.parameters)
 
     def execute(self, schedule_entry, task_id) -> dict:
         start_time = utils.get_datetime_str_now()
@@ -85,7 +85,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         measurement_result = self.acquire_data(num_samples, self.nskip)
         measurement_result['start_time'] = start_time
         end_time = utils.get_datetime_str_now()
-        measurement_result.update(self.parameter_map)
+        measurement_result.update(self.parameters)
         measurement_result['end_time'] = end_time
         measurement_result['domain'] = Domain.TIME.value
         measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
@@ -113,7 +113,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
             f"The signal analyzer is tuned to {frequency_MHz:.2f} "
             + "MHz and the following parameters are set:\n"
         )
-        for name, value in self.parameter_map.items():
+        for name, value in self.parameters.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
         acq_plan += f"\nThen, acquire samples for {self.duration_ms} ms\n."

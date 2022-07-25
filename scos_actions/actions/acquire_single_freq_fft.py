@@ -142,10 +142,10 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters, sigan, gps)
         # Pull parameters from action config
-        self.fft_size = get_parameter(FFT_SIZE, self.parameter_map)
-        self.nffts = get_parameter(NUM_FFTS, self.parameter_map)
-        self.nskip = get_parameter(NUM_SKIP, self.parameter_map)
-        self.frequency_Hz = get_parameter(FREQUENCY, self.parameter_map)
+        self.fft_size = get_parameter(FFT_SIZE, self.parameters)
+        self.nffts = get_parameter(NUM_FFTS, self.parameters)
+        self.nskip = get_parameter(NUM_SKIP, self.parameters)
+        self.frequency_Hz = get_parameter(FREQUENCY, self.parameters)
         # FFT setup
         self.fft_detector = create_power_detector(
             "M4sDetector", ["min", "max", "mean", "median", "sample"]
@@ -171,7 +171,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         frequencies = get_fft_frequencies(
             self.fft_size, sample_rate_Hz, self.frequency_Hz
         )
-        measurement_result.update(self.parameter_map)
+        measurement_result.update(self.parameters)
         measurement_result['description'] = self.description
         measurement_result['domain'] = Domain.FREQUENCY.value
         measurement_result['frequency_start'] = frequencies[0]
