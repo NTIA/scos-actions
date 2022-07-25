@@ -1,7 +1,8 @@
 import logging
 from abc import ABC, abstractmethod
+from copy import deepcopy
 
-from scos_actions.utils import get_parameter_map, get_parameter
+from scos_actions.utils import get_parameter
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.capabilities import capabilities
@@ -31,11 +32,10 @@ class Action(ABC):
     PRESELECTOR_PATH_KEY='rf_path'
 
     def __init__(self, parameters, sigan=mock_sigan, gps=mock_gps):
-        self.parameters = parameters
+        self.parameters = deepcopy(parameters)
         self.sigan = sigan
         self.gps = gps
         self.sensor_definition = capabilities['sensor']
-        self.parameter_map = get_parameter_map(self.parameters)
 
     def configure(self, measurement_params):
         self.configure_sigan(measurement_params)
@@ -74,7 +74,7 @@ class Action(ABC):
 
     @property
     def name(self):
-        return get_parameter("name", self.parameter_map)
+        return get_parameter("name", self.parameters)
 
     @abstractmethod
     def __call__(self, schedule_entry, task_id):
