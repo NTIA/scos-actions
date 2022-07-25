@@ -1,10 +1,11 @@
+import copy
 import logging
 from abc import ABC, abstractmethod
 
 from scos_actions.hardware import gps as mock_gps
-from scos_actions.hardware import preselector
 from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.capabilities import capabilities
+from scos_actions.hardware import preselector
 
 logger = logging.getLogger(__name__)
 
@@ -29,15 +30,36 @@ class Action(ABC):
     """
     PRESELECTOR_PATH_KEY='rf_path'
 
-    def __init__(self, parameters={}, sigan=mock_sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan=mock_sigan, gps=mock_gps):
         self.parameters = parameters
         self.sigan = sigan
         self.gps = gps
         self.sensor_definition = capabilities['sensor']
+        self.parameter_map = self.get_parameter_map(self.parameters)
 
-    @abstractmethod
-    def __call__(self, schedule_entry_json, task_id):
-        pass
+    def configure(self, measurement_params):
+        self.configure_sigan(measurement_params)
+        self.configure_preselector(measurement_params)
+
+    def configure_sigan(self, measurement_params):
+        if isinstance(measurement_params, list):
+            for item in measurement_params:
+                self.configure_sigan_with_dictionary(item)
+
+        elif isinstance(measurement_params, dict):
+            self.configure_sigan_with_dictionary(measurement_params)
+
+    def configure_sigan_with_dictionary(self, dictionary):
+        for key, value in dictionary.items():
+            if hasattr(self.sigan, key):
+                setattr(self.sigan, key, value)
+            else:
+                logger.warning(f"radio does not have attribute {key}")
+
+    def configure_preselector(self, measurement_params):
+        if self.PRESELECTOR_PATH_KEY in measurement_params:
+            path = measurement_params[self.PRESELECTOR_PATH_KEY]
+            preselector.set_state(path)
 
     @property
     def summary(self):
@@ -50,18 +72,25 @@ class Action(ABC):
     def description(self):
         return self.__doc__
 
-    def configure(self, measurement_params):
-        self.configure_sigan(measurement_params)
-        self.configure_preselector(measurement_params)
 
-    def configure_sigan(self, measurement_params):
-        for key, value in measurement_params.items():
-            if hasattr(self.sigan, key):
-                setattr(self.sigan, key, value)
-            else:
-                logger.warning(f"radio does not have attribute {key}")
+    @property
+    def name(self):
+        return self.parameter_map['name']
 
-    def configure_preselector(self, measurement_params):
-        if self.PRESELECTOR_PATH_KEY in measurement_params:
-            path = measurement_params[self.PRESELECTOR_PATH_KEY]
-            preselector.set_rf_path(path)
+    def get_parameter_map(self, params):
+        if isinstance(params, list):
+            key_map = {}
+            for param in params:
+                for key, value in param.items():
+                    key_map[key] = value
+            return key_map
+        elif isinstance(params, dict):
+           return copy.deepcopy(params)
+
+
+    @abstractmethod
+    def __call__(self, schedule_entry, task_id):
+        pass
+
+
+

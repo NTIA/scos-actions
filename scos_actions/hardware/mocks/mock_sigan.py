@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 tune_result_params = ["actual_dsp_freq", "actual_rf_freq"]
 MockTuneResult = namedtuple("MockTuneResult", tune_result_params)
 
-
 class MockSignalAnalyzer(SignalAnalyzerInterface):
     """
     MockSignalAnalyzer is mock signal analyzer object for testing.
@@ -24,6 +23,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     """
 
     def __init__(self, randomize_values=False):
+        super().__init__()
         self.auto_dc_offset = False
         self._frequency = 700e6
         self._sample_rate = 10e6
@@ -39,7 +39,10 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         self.times_to_fail_recv = 0
         self.times_failed_recv = 0
 
+
         self.randomize_values = randomize_values
+        self.sensor_calibration_data = self.DEFAULT_SENSOR_CALIBRATION
+        self.sigan_calibration_data = self.DEFAULT_SIGAN_CALIBRATION
 
     @property
     def is_available(self):
@@ -72,7 +75,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     def gain(self, gain):
         self._gain = gain
 
-    def acquire_time_domain_samples(self, num_samples, num_samples_skip=0, retries=5):
+    def acquire_time_domain_samples(self, num_samples, num_samples_skip=0, retries=5, gain_adjust=True):
         self.sigan_overload = False
         self._capture_time = None
         self._num_samples_skip = num_samples_skip
@@ -112,7 +115,8 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
                 return {
                     "data": data,
                     "overload": self._overload,
-                    "frequency": self._frequency,
+                    "frequency_low": self._frequency,
+                    "frequency_high": self._frequency,
                     "gain": self._gain,
                     "sample_rate": self._sample_rate,
                     "capture_time": self._capture_time,
@@ -137,3 +141,6 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     @property
     def healthy(self):
         return self._healthy
+
+    def update_calibration(self, params):
+        pass

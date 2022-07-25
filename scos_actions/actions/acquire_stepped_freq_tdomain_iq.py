@@ -40,6 +40,7 @@ import logging
 import numpy as np
 
 from scos_actions import utils
+from scos_actions.actions.action_utils import get_num_skip
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     SingleFrequencyTimeDomainIqAcquisition,
 )
@@ -100,34 +101,24 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             self.sorted_measurement_parameters, start=1
         ):
             start_time = utils.get_datetime_str_now()
-            measurement_result = super().acquire_data(measurement_params)
+            self.configure(measurement_params)
+            sample_rate = self.sigan.sample_rate
+            num_samples = int(sample_rate * measurement_params["duration_ms"] * 1e-3)
+            nskip = get_num_skip(measurement_params)
+            measurement_result = super().acquire_data(num_samples, nskip)
+            measurement_result.update(measurement_params)
             end_time = utils.get_datetime_str_now()
-            received_samples = len(measurement_result["data"])
-            sigmf_builder = SigMFBuilder()
-            self.set_base_sigmf_global(
-                sigmf_builder,
-                schedule_entry_json,
-                self.sensor_definition,
-                measurement_result,
-                task_id,
-                recording_id,
-            )
-            sigmf_builder.set_measurement(
-                start_time,
-                end_time,
-                domain=Domain.TIME,
-                measurement_type=MeasurementType.SINGLE_FREQUENCY,
-                frequency=measurement_result["frequency"],
-            )
-            self.add_sigmf_capture(sigmf_builder, measurement_result)
-            self.add_base_sigmf_annotations(sigmf_builder, measurement_result)
-            sigmf_builder.add_time_domain_detection(
-                start_index=0,
-                num_samples=received_samples,
-                detector="sample_iq",
-                units="volts",
-                reference="preselector input",
-            )
+            measurement_result['start_time'] = start_time
+            measurement_result['end_time'] = end_time
+            measurement_result['domain'] = Domain.TIME.value
+            measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
+            measurement_result['task_id'] = task_id
+            measurement_result['description'] = self.description
+            measurement_result['name'] = self.parameter_map['name']
+            measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
+            measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
+            sigmf_builder = self.get_sigmf_builder(measurement_result)
+            self.create_metadata(sigmf_builder, schedule_entry_json,measurement_result, recording_id)
             measurement_action_completed.send(
                 sender=self.__class__,
                 task_id=task_id,

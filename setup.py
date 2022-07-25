@@ -15,7 +15,7 @@ if os.path.isfile(requirements_path):
 
 setuptools.setup(
     name="scos_actions",
-    version="1.0.1",
+    version="2.0.0",
     author="The Institute for Telecommunication Sciences",
     # author_email="author@example.com",
     description="Base actions and hardware support library for scos-sensor",
@@ -31,5 +31,5 @@ setuptools.setup(
     ],
     python_requires=">=3.7",
     install_requires=install_requires,
-    package_data={"scos_actions": ["configs/actions/*.yml"]},
+    package_data={"scos_actions": ["configs/actions/*.yml", "configs/*.json"]},
 )

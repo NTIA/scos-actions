@@ -33,18 +33,18 @@ signals.
 
 import logging
 
-import numpy as np
-
 from scos_actions import utils
-from scos_actions.actions.interfaces.action import Action
-from scos_actions.actions.interfaces.signals import measurement_action_completed
+from scos_actions.actions.action_utils import get_num_skip
+from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.actions.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.hardware import gps as mock_gps
+from scos_actions.actions.metadata.annotations.time_domain_annotation import TimeDomainAnnotation
+from numpy import complex64
 
 logger = logging.getLogger(__name__)
 
 
-class SingleFrequencyTimeDomainIqAcquisition(Action):
+class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     """Acquire IQ data at each of the requested frequencies.
 
     :param parameters: The dictionary of parameters needed for the action and the signal analyzer.
@@ -62,146 +62,43 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
     :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, sigan, gps = mock_gps):
+    def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
 
-
-    @property
-    def name(self):
-        return self.parameters["name"]
-
-    def __call__(self, schedule_entry_json, task_id):
-        """This is the entrypoint function called by the scheduler."""
-        self.test_required_components()
+    def execute(self, schedule_entry, task_id):
         start_time = utils.get_datetime_str_now()
-        measurement_result = self.acquire_data(self.parameters)
-        end_time = utils.get_datetime_str_now()
-        received_samples = len(measurement_result["data"])
-        sigmf_builder = SigMFBuilder()
-        self.set_base_sigmf_global(
-            sigmf_builder,
-            schedule_entry_json,
-            self.sensor_definition,
-            measurement_result,
-            task_id,
-        )
-        sigmf_builder.set_measurement(
-            start_time,
-            end_time,
-            domain=Domain.TIME,
-            measurement_type=MeasurementType.SINGLE_FREQUENCY,
-            frequency=measurement_result["frequency"],
-        )
-        self.add_sigmf_capture(sigmf_builder, measurement_result)
-        self.add_base_sigmf_annotations(sigmf_builder, measurement_result)
-        sigmf_builder.add_time_domain_detection(
-            start_index=0,
-            num_samples=received_samples,
-            detector="sample_iq",
-            units="volts",
-            reference="preselector input",
-        )
-        measurement_action_completed.send(
-            sender=self.__class__,
-            task_id=task_id,
-            data=measurement_result["data"].astype(np.complex64),
-            metadata=sigmf_builder.metadata,
-        )
-
-    def test_required_components(self):
-        """Fail acquisition if a required component is not available."""
-        if not self.sigan.is_available:
-            msg = "acquisition failed: signal analyzer required but not available"
-            raise RuntimeError(msg)
-
-    def acquire_data(self, measurement_params):
-        self.configure(measurement_params)
-
+        nskip = get_num_skip(self.parameter_map)
         # Use the signal analyzer's actual reported sample rate instead of requested rate
         sample_rate = self.sigan.sample_rate
-
-        num_samples = int(sample_rate * measurement_params["duration_ms"] * 1e-3)
-
-        nskip = None
-        if "nskip" in measurement_params:
-            nskip = measurement_params["nskip"]
-        logger.debug(
-            f"acquiring {num_samples} samples and skipping the first {nskip if nskip else 0} samples"
-        )
-        measurement_result = self.sigan.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip
-        )
-
+        num_samples = int(sample_rate * self.parameter_map["duration_ms"] * 1e-3)
+        measurement_result = self.acquire_data(num_samples, nskip)
+        measurement_result['start_time'] = start_time
+        end_time = utils.get_datetime_str_now()
+        measurement_result.update(self.parameter_map)
+        measurement_result['end_time'] = end_time
+        measurement_result['domain'] = Domain.TIME.value
+        measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
+        measurement_result['task_id'] = task_id
+        measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
+        measurement_result['description'] = self.description
+        measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
+        measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
         return measurement_result
 
-    def set_base_sigmf_global(
-        self,
-        sigmf_builder,
-        schedule_entry_json,
-        sensor_def,
-        measurement_result,
-        task_id,
-        recording_id=None,
-        is_complex=True,
-    ):
-        sample_rate = measurement_result["sample_rate"]
-        sigmf_builder.set_last_calibration_time(self.sigan.last_calibration_time)
-        sigmf_builder.set_action(
-            self.parameters["name"], self.description, self.description.splitlines()[0]
-        )
-        sigmf_builder.set_coordinate_system()
-        sigmf_builder.set_data_type(is_complex=is_complex)
-        sigmf_builder.set_sample_rate(sample_rate)
-        sigmf_builder.set_schedule(schedule_entry_json)
-        sigmf_builder.set_sensor(sensor_def)
-        sigmf_builder.set_task(task_id)
-        if recording_id:
-            sigmf_builder.set_recording(recording_id)
-
-    def add_sigmf_capture(self, sigmf_builder, measurement_result):
-        sigmf_builder.set_capture(
-            measurement_result["frequency"], measurement_result["capture_time"]
-        )
-
-    def add_base_sigmf_annotations(
-        self,
-        sigmf_builder,
-        measurement_result,
-    ):
-        received_samples = len(measurement_result["data"].flatten())
-
-        sigmf_builder.add_annotation(
-            start_index=0,
-            length=received_samples,
-            annotation_md=measurement_result["calibration_annotation"],
-        )
-
-        gain = measurement_result["gain"] if "gain" in measurement_result else None
-        attenuation = (
-            measurement_result["attenuation"]
-            if "attenuation" in measurement_result
-            else None
-        )
-        overload = (
-            measurement_result["overload"] if "overload" in measurement_result else None
-        )
-
-        sigmf_builder.add_sensor_annotation(
-            start_index=0,
-            length=received_samples,
-            overload=overload,
-            gain=gain,
-            attenuation=attenuation,
-        )
+    def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
+        sigmf_builder = super().get_sigmf_builder(measurement_result)
+        time_domain_annotation = TimeDomainAnnotation(0, self.received_samples)
+        sigmf_builder.add_metadata_generator(type(time_domain_annotation).__name__, time_domain_annotation)
+        return sigmf_builder
 
     @property
     def description(self):
         """Parameterize and return the module-level docstring."""
-        center_frequency = self.parameters["frequency"] / 1e6
-        duration_ms = self.parameters["duration_ms"]
+        center_frequency = self.parameter_map["frequency"] / 1e6
+        duration_ms = self.parameter_map["duration_ms"]
         used_keys = ["frequency", "duration_ms", "name"]
         acq_plan = f"The signal analyzer is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
-        for name, value in self.parameters.items():
+        for name, value in self.parameter_map.items():
             if name not in used_keys:
                 acq_plan += f"{name} = {value}\n"
         acq_plan += f"\nThen, acquire samples for {duration_ms} ms\n."
@@ -214,3 +111,9 @@ class SingleFrequencyTimeDomainIqAcquisition(Action):
 
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**defs)
+
+    def transform_data(self, measurement_result):
+        return measurement_result['data'].astype(complex64)
+
+    def is_complex(self) -> bool:
+        return True

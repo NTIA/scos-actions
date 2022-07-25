@@ -4,4 +4,4 @@ python-dateutil>=2.7.0
 ruamel.yaml>=0.1, <1.0
 scipy>=1.0, <2.0
 SigMF @ git+https://github.com/NTIA/SigMF.git@multi-recording-archive
-its-preselector @ git+https://github.com/NTIA/Preselector@0.0.1#egg=its-preselector
+its-preselector @ git+https://github.com/NTIA/Preselector@1.0.0#egg=its-preselector

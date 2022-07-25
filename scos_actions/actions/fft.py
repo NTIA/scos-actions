@@ -1,8 +1,10 @@
 import os
 from enum import Enum
-
+import logging
 import numpy as np
 from scipy.signal import windows
+
+logger = logging.getLogger(__name__)
 
 
 class M4sDetector(Enum):
@@ -33,19 +35,17 @@ def m4s_detector(array):
     return m4s
 
 
-def get_frequency_domain_data(time_data, sample_rate, fft_size):
-    # Get the fft window and its amplitude/energy correction factors
-    fft_window = get_fft_window("Flat Top", fft_size)
-    fft_window_acf = get_fft_window_correction(fft_window, "amplitude")
-    fft_window_ecf = get_fft_window_correction(fft_window, "energy")
-    fft_window_enbw = (fft_window_acf / fft_window_ecf) ** 2
-    # Calculate the equivalent noise bandwidth of the bins
-    enbw = sample_rate
-    enbw *= fft_window_enbw
-    enbw /= fft_size
+def mean_detector(array):
+    mean = np.mean(array, axis=0)
+    return mean
+
+
+def get_frequency_domain_data(time_data, sample_rate, fft_size, fft_window, fft_window_acf):
+    logger.debug(
+        'Converting {} samples at {} to freq domain with fft_size {}'.format(len(time_data), sample_rate, fft_size))
     # Resize time data for FFTs
     num_ffts = int(len(time_data) / fft_size)
-    time_data.resize((num_ffts, fft_size))
+    time_data = np.resize(time_data, (num_ffts, fft_size))
     # Apply the FFT window
     data = time_data * fft_window
     # Take and shift the fft (center frequency)
@@ -56,7 +56,7 @@ def get_frequency_domain_data(time_data, sample_rate, fft_size):
     complex_fft /= fft_size
     # Apply the window's amplitude correction factor
     complex_fft *= fft_window_acf
-    return complex_fft, enbw
+    return complex_fft
 
 
 def convert_volts_to_watts(complex_fft):
@@ -113,7 +113,7 @@ def get_fft_window_correction(window, correction_type="amplitude"):
     if correction_type == "amplitude":
         window_correction = 1 / np.mean(window)
     if correction_type == "energy":
-        window_correction = np.sqrt(1 / np.mean(window**2))
+        window_correction = np.sqrt(1 / np.mean(window ** 2))
 
     # Return the window correction factor
     return window_correction
@@ -124,3 +124,39 @@ def get_fft_frequencies(fft_size, sample_rate, center_frequency):
     frequencies = np.fft.fftfreq(fft_size, time_step)
     frequencies = np.fft.fftshift(frequencies) + center_frequency
     return frequencies
+
+
+def get_m4s_watts(fft_size, measurement_result, fft_window, fft_window_acf):
+    complex_fft = get_frequency_domain_data(
+        measurement_result["data"], measurement_result["sample_rate"], fft_size, fft_window, fft_window_acf
+    )
+    power_fft = convert_volts_to_watts(complex_fft)
+    power_fft_m4s = apply_detector(power_fft)
+    return power_fft_m4s
+
+
+def get_m4s_dbm(fft_size, measurement_result, fft_window, fft_window_acf):
+    m4_watts = get_m4s_watts(fft_size, measurement_result, fft_window, fft_window_acf)
+    power_fft_dbm = convert_watts_to_dbm(m4_watts)
+    return power_fft_dbm
+
+
+def get_mean_detector_watts(fft_size, measurement_result, fft_window, fft_window_acf):
+    complex_fft = get_frequency_domain_data(
+        measurement_result["data"], measurement_result["sample_rate"], fft_size, fft_window, fft_window_acf
+    )
+    power_fft = convert_volts_to_watts(complex_fft)
+    return mean_detector(power_fft)
+
+
+def get_enbw(sample_rate, fft_size, fft_window_enbw):
+    enbw = sample_rate
+    enbw *= fft_window_enbw
+    enbw /= fft_size
+    return enbw
+
+def get_fft_window_correction_factors(fft_window):
+    fft_window_acf = get_fft_window_correction(fft_window, "amplitude")
+    fft_window_ecf = get_fft_window_correction(fft_window, "energy")
+    fft_window_enbw = (fft_window_acf / fft_window_ecf) ** 2
+    return fft_window_acf, fft_window_ecf, fft_window_enbw
