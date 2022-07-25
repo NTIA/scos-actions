@@ -242,17 +242,21 @@ class YFactorCalibration(Action):
 
     @property
     def description(self):
+        # Get parameters; they may be single values or lists
+        frequencies = get_parameter(FREQUENCY, self.parameters)
+        nffts = get_parameter(NUM_FFTS, self.parameters)
+        fft_size = get_parameter(FFT_SIZE, self.parameters)
 
-        if isinstance(get_parameter(FREQUENCY, self.parameters), float):
-            frequencies = get_parameter(FREQUENCY, self.parameters) / 1e6
-            nffts = get_parameter(NUM_FFTS, self.parameters)
-            fft_size = get_parameter(FFT_SIZE, self.parameters)
-        else:
+        # Convert parameter lists to strings if needed
+        if isinstance(frequencies, list):
             frequencies = utils.list_to_string(
                 [f / 1e6 for f in get_parameter(FREQUENCY, self.parameters)]
             )
+        if isinstance(nffts, list):
             nffts = utils.list_to_string(get_parameter(NUM_FFTS, self.parameters))
+        if isinstance(fft_size, list):
             fft_size = utils.list_to_string(get_parameter(FFT_SIZE, self.parameters))
+        
         acq_plan = (
             f"Performs a y-factor calibration at frequencies: "
             f"{frequencies}, nffts:{nffts}, fft_size: {fft_size}\n"
