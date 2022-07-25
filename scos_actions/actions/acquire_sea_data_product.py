@@ -27,9 +27,8 @@ from typing import Tuple
 from scipy.signal import sosfilt
 
 from scos_actions import utils
-from scos_actions.actions.sigmf_builder import SigMFBuilder
+from scos_actions.actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.actions.action_utils import get_param
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.signal_processing.filtering import generate_elliptic_iir_low_pass_filter
 from scos_actions.signal_processing.fft import get_fft, get_fft_window, get_fft_window_correction
@@ -67,44 +66,28 @@ class NasctnSeaDataProduct(MeasurementAction):
     """
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters, sigan, gps)
-        self.sorted_measurement_parameters = []
-        self.num_center_frequencies = len(parameters[FREQUENCY])
-        # convert dictionary of lists from yaml file to list of dictionaries
-        longest_length = 0
-        for key, value in parameters.items():
-            if key == "name":
-                continue
-            if len(value) > longest_length:
-                longest_length = len(value)
-        for i in range(longest_length):
-            sorted_params = {}
-            for key in parameters.keys():
-                if key == "name":
-                    continue
-                sorted_params[key] = parameters[key][i]
-            self.sorted_measurement_parameters.append(sorted_params)
-        self.sorted_measurement_parameters.sort(key=lambda params: params[FREQUENCY])
 
         self.sigan = sigan  # make instance variable to allow mocking
 
         # Setup/pull config parameters
-        # TODO: Create ability to define single values for some params, multiple for others
-        self.iir_apply = get_param(IIR_APPLY, self.sorted_measurement_parameters)
-        self.iir_rp_dB = get_param(RP_DB, self.sorted_measurement_parameters)
-        self.iir_rs_dB = get_param(RS_DB, self.sorted_measurement_parameters)
-        self.iir_cutoff_Hz = get_param(IIR_CUTOFF_HZ, self.sorted_measurement_parameters)
-        self.iir_width_Hz = get_param(IIR_WIDTH_HZ, self.sorted_measurement_parameters)
-        self.qfilt_apply = get_param(QFILT_APPLY, self.sorted_measurement_parameters)
-        self.qfilt_qlo = get_param(Q_LO, self.sorted_measurement_parameters)
-        self.qfilt_qhi = get_param(Q_HI, self.sorted_measurement_parameters)
-        self.fft_size = get_param(FFT_SIZE, self.sorted_measurement_parameters)
-        self.nffts = get_param(NUM_FFTS, self.sorted_measurement_parameters)
-        self.fft_window_type = get_param(FFT_WINDOW_TYPE, self.sorted_measurement_parameters)
-        self.apd_bin_size_dB = get_param(APD_BIN_SIZE_DB, self.sorted_measurement_parameters)
-        self.td_bin_size_ms = get_param(TD_BIN_SIZE_MS, self.sorted_measurement_parameters)
-        # TODO: check that all sample rates are the same
-        # TODO: overall- how to handle parameters that are the same for all frequencies?
-        self.sample_rate_Hz = get_param(SAMPLE_RATE, self.sorted_measurement_parameters[0])
+        # TODO: All parameters in this section should end up hard-coded
+        self.iir_rp_dB = utils.get_parameter(RP_DB, self.parameters)
+        self.iir_rs_dB = utils.get_parameter(RS_DB, self.parameters)
+        self.iir_cutoff_Hz = utils.get_parameter(IIR_CUTOFF_HZ, self.parameters)
+        self.iir_width_Hz = utils.get_parameter(IIR_WIDTH_HZ, self.parameters)
+        self.qfilt_qlo = utils.get_parameter(Q_LO, self.parameters)
+        self.qfilt_qhi = utils.get_parameter(Q_HI, self.parameters)
+        self.fft_window_type = utils.get_parameter(FFT_WINDOW_TYPE, self.parameters)
+
+        # TODO: These parameters should not be hard-coded
+        # None of these should be lists - all single values
+        self.iir_apply = utils.get_parameter(IIR_APPLY, self.parameters)
+        self.qfilt_apply = utils.get_parameter(QFILT_APPLY, self.parameters)
+        self.fft_size = utils.get_parameter(FFT_SIZE, self.parameters)
+        self.nffts = utils.get_parameter(NUM_FFTS, self.parameters)
+        self.apd_bin_size_dB = utils.get_parameter(APD_BIN_SIZE_DB, self.parameters)
+        self.td_bin_size_ms = utils.get_parameter(TD_BIN_SIZE_MS, self.parameters)
+        self.sample_rate_Hz = utils.get_parameter(SAMPLE_RATE, self.parameters)
 
         # Construct IIR filter
         self.iir_sos = generate_elliptic_iir_low_pass_filter(self.iir_rp_dB, self.iir_rs_dB, self.iir_cutoff_Hz, self.iir_width_Hz, self.sample_rate_Hz)
@@ -120,37 +103,58 @@ class NasctnSeaDataProduct(MeasurementAction):
 
     def __call__(self, schedule_entry, task_id):
         """This is the entrypoint function called by the scheduler."""
+        # Temporary: remove config parameters which will be hard-coded eventually
+        for key in [RP_DB, RS_DB, IIR_CUTOFF_HZ, IIR_WIDTH_HZ, Q_LO, Q_HI, FFT_WINDOW_TYPE]:
+            self.parameters.pop(key)
         self.test_required_components()
 
-        # Step through frequencies and acquire IQ data
-        for recording_id, measurement_params in enumerate(self.sorted_measurement_parameters, start=1):
-            start_time = utils.get_datetime_str_now()
-            # Apply sigan configuration
-            self.configure(measurement_params)
-            duration_ms = get_param(DURATION_MS, measurement_params)
-            nskip = get_param(NUM_SKIP, measurement_params)
-            sample_rate = self.sigan.sample_rate
-            num_samples = int(sample_rate * duration_ms * 1e-3)
-            # Acquire IQ data
-            measurement_result = super().acquire_data(num_samples, nskip)
-            # Save IQ data
-            # TODO
+        iteration_params = utils.get_iterable_parameters(self.parameters)
 
+        # Handle single-channel case
+        if len(iteration_params) == 1:
+            # Capture IQ and generate data product
+            pass
+        else:
+            for i, p in enumerate(iteration_params):
+                # Capture and save IQ data
+                self.capture_iq(schedule_entry, task_id, i, p)
+                pass
+            for i, p in enumerate(iteration_params):
+                # Load IQ data, generate data product, save
+                pass
 
-        # Loop through acquired data and generate data product
-        for recording_id, measurement_params in enumerate(self.sorted_measurement_parameters, start=1):
-            # TODO
-            iq = [] # Placeholder for loaded IQ data
-            logger.debug(f"Applying IIR low-pass filter to IQ capture {recording_id}")
-            iq = sosfilt(self.iir_sos, iq)
-
-            # It should be possible to parallelize these tasks
-            mean_fft_result, max_fft_result = self.get_fft_results(iq)
-            apd_result = self.get_apd_results(iq)
-            td_pwr_result = self.get_td_power_results(iq)
-
-        # Save data product
+    def capture_iq(self, schedule_entry, task_id, recording_id, params):
+        start_time = utils.get_datetime_str_now()
+        # Configure signal analyzer + preselector
+        self.configure(params)
+        # Get IQ capture parameters
+        sample_rate = self.sigan.sample_rate
+        duration_ms = utils.get_parameter(DURATION_MS, params)
+        nskip = utils.get_parameter(NUM_SKIP, params)
+        num_samples = int(sample_rate * duration_ms * 1e-3)
+        # Collect IQ data
+        measurement_result = super().acquire_data(num_samples, nskip)
+        end_time = utils.get_datetime_str_now()
+        # TODO: Store some metadata?
+        # TODO: Save the IQ data and return the file name
+        return
+    
+    def generate_data_product(self):
+        # Load IQ, process, return data product, for single channel
         # TODO
+        iq = [] # Placeholder for iq data
+        rec_id = '' # Placeholder identifier
+
+        # Filter IQ data
+        logger.debug(f"Applying IIR low-pass filter to IQ capture {rec_id}")
+        iq = sosfilt(self.iir_sos, iq)
+
+        # It should be possible to parallelize each of these
+        mean_fft, max_fft = self.get_fft_results()
+        apd_result = self.get_apd_results()
+        td_pwr_result = self.get_td_power_results()
+
+        return
 
     def get_fft_results(self, measurement_result: dict) -> Tuple[np.ndarray, np.ndarray]:
         # IQ data already scaled for calibrated gain
