@@ -18,19 +18,14 @@ nasctn_sea_data_product:
   apd_bin_size_dB: 0.5  # Set to 0 or negative for no downsampling
 # Time domain power statistics settings
   td_bin_size_ms: 100
-# Sigan settings (Mock USRP in this case)
-  gain:
-    - 40
-    - 40
-    - 40
-    - 40
-    - 40
-    - 40
-    - 40
-    - 40
-    - 40
-    - 40
+# Sigan Settings
+  preamp_enable: True
+  reference_level: -25
+  attenuation: 0
+  sample_rate: 14e6
 # Acquisition settings (3550-3650 MHz in 10 MHz steps, each 4s long)
+  duration_ms: 4000
+  nskip: 0
   frequency:
     - 3555e6
     - 3565e6
@@ -42,36 +37,3 @@ nasctn_sea_data_product:
     - 3625e6
     - 3635e6
     - 3645e6
-  sample_rate:
-    - 14e6
-    - 14e6
-    - 14e6
-    - 14e6
-    - 14e6
-    - 14e6
-    - 14e6
-    - 14e6
-    - 14e6
-    - 14e6
-  duration_ms:
-    - 4000
-    - 4000
-    - 4000
-    - 4000
-    - 4000
-    - 4000
-    - 4000
-    - 4000
-    - 4000
-    - 4000
-  nskip:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
