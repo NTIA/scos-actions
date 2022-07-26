@@ -135,7 +135,6 @@ def apply_power_detector(
         detector_functions = [np.min, np.max, np.mean, np.median]
         
     # Get functions based on specified detector
-    detector_functions = []
     if "min" in detectors:
         detector_functions.append(detector_functions[0])
     if "max" in detectors:
