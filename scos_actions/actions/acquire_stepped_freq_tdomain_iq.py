@@ -45,7 +45,7 @@ from scos_actions.actions.acquire_single_freq_tdomain_iq import (
 )
 from scos_actions.utils import get_parameter
 from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.actions.metadata.sigmf_builder import Domain, MeasurementType
+from scos_actions.metadata.sigmf_builder import Domain, MeasurementType
 from scos_actions.hardware import gps as mock_gps
 
 logger = logging.getLogger(__name__)
