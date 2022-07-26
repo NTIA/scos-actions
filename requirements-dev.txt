@@ -95,7 +95,7 @@ ruamel-yaml-clib==0.2.6
     #   ruamel-yaml
 scipy==1.8.1
     # via -r requirements.txt
-sigmf @ git+https://github.com/NTIA/SigMF.git@multi-recording-archive
+sigmf @ git+https://github.com/NTIA/SigMF.git@python3.10_fix
     # via -r requirements.txt
 six==1.16.0
     # via
@@ -103,7 +103,6 @@ six==1.16.0
     #   python-dateutil
     #   sigmf
     #   tox
-    #   virtualenv
 sqlparse==0.4.2
     # via
     #   -r requirements.txt
@@ -124,7 +123,7 @@ urllib3==1.26.11
     # via
     #   -r requirements.txt
     #   requests
-virtualenv==20.15.1
+virtualenv==20.16.0
     # via
     #   pre-commit
     #   tox
