@@ -154,7 +154,7 @@ class NasctnSeaDataProduct(MeasurementAction):
         # TODO: Explore parallelizing these tasks
         mean_fft, max_fft = self.get_fft_results(iq)
         apd_p, apd_a = self.get_apd_results(iq)
-        td_pwr_result = self.get_td_power_results(iq)
+        mean_td_pwr, max_td_pwr = self.get_td_power_results(iq)
 
         return
 
