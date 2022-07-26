@@ -27,7 +27,7 @@ repos:
       - id: isort
         name: isort (python)
         types: [file, python]
-        args: ["--profile", "black", "--filter-files"]
+        args: ["--profile", "black", "--filter-files", "--gitignore"]
   - repo: https://github.com/psf/black
     rev: 22.6.0
     hooks:
