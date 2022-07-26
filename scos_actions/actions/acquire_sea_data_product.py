@@ -29,6 +29,7 @@ from scipy.signal import sosfilt
 from scos_actions import utils
 from scos_actions.actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
+from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.filtering import generate_elliptic_iir_low_pass_filter
@@ -112,20 +113,28 @@ class NasctnSeaDataProduct(MeasurementAction):
 
         iteration_params = utils.get_iterable_parameters(self.parameters)
 
-        # Handle single-channel case
-        if len(iteration_params) == 1:
-            # Capture IQ and generate data product
-            pass
-        else:
-            for i, p in enumerate(iteration_params):
-                # Capture and save IQ data
-                self.capture_iq(schedule_entry, task_id, i, p)
-                pass
-            for i, p in enumerate(iteration_params):
-                # Load IQ data, generate data product, save
-                pass
+        # TODO:
+        # For now, this iterates (capture IQ -> process data product) for each
+        # configured frequency. It is probably better to do all IQ captures first,
+        # then generate all data products, or to parallelize captures/processing.
 
-    def capture_iq(self, schedule_entry, task_id, recording_id, params):
+
+        for i, p in enumerate(iteration_params, start=1):
+            # Capture IQ data
+            measurement_result = self.capture_iq(schedule_entry, task_id, i, p)
+            # Generate data product
+            data_product = self.generate_data_product(measurement_result)
+            # Send signal
+            measurement_action_completed.send(
+                sender=self.__class_,
+                task_id=task_id,
+                data=data_product,
+                metadata=None # TODO: Add metadata
+            )
+        
+        # TODO: Save the data product
+
+    def capture_iq(self, schedule_entry, task_id, recording_id, params) -> dict:
         start_time = utils.get_datetime_str_now()
         # Configure signal analyzer + preselector
         self.configure(params)
@@ -137,26 +146,31 @@ class NasctnSeaDataProduct(MeasurementAction):
         # Collect IQ data
         measurement_result = super().acquire_data(num_samples, nskip)
         end_time = utils.get_datetime_str_now()
-        # TODO: Store some metadata?
-        # TODO: Save the IQ data and return the file name
-        return
+        # Store some metadata with the IQ
+        measurement_result.update(params)
+        measurement_result["start_time"] = start_time
+        measurement_result["end_time"] = end_time
+        measurement_result["domain"] = Domain.TIME.value
+        measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
+        measurement_result["task_id"] = task_id
+        return measurement_result
     
-    def generate_data_product(self):
+    def generate_data_product(self, measurement_result: dict) -> np.ndarray:
         # Load IQ, process, return data product, for single channel
-        # TODO
-        iq = [] # Placeholder for iq data
-        rec_id = '' # Placeholder identifier
-
+        rec_id = 1  # TODO: Placeholder value
         # Filter IQ data
         logger.debug(f"Applying IIR low-pass filter to IQ capture {rec_id}")
-        iq = sosfilt(self.iir_sos, iq)
+        iq = sosfilt(self.iir_sos, measurement_result["data"])
 
         # TODO: Explore parallelizing these tasks
         mean_fft, max_fft = self.get_fft_results(iq)
         apd_p, apd_a = self.get_apd_results(iq)
         mean_td_pwr, max_td_pwr = self.get_td_power_results(iq)
 
-        return
+        # TODO: Pack data product results into single array and convert dtype
+        data_product = np.array()
+
+        return data_product
 
     def get_fft_results(self, iqdata: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         # IQ data already scaled for calibrated gain
@@ -228,6 +242,7 @@ class NasctnSeaDataProduct(MeasurementAction):
 
     def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
         # TODO (low-priority)
+        # Create metadata annotations for the data
         return super().get_sigmf_builder(measurement_result)
 
     def is_complex(self) -> bool:
