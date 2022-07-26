@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 from dateutil import parser
 import json
-import copy
 
 logger = logging.getLogger(__name__)
 
