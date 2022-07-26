@@ -91,7 +91,7 @@ def create_power_detector(name: str, detectors: list) -> EnumMeta:
 
 
 def apply_power_detector(
-    data: np.ndarray, detector: EnumMeta, dtype: type = None, ignore_nan: bool = True,
+    data: np.ndarray, detector: EnumMeta, dtype: type = None, ignore_nan: bool = False,
 ) -> np.ndarray:
     """
     Apply statistical detectors to a 2-D array of samples.
