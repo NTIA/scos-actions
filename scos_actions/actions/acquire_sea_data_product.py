@@ -32,7 +32,7 @@ from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.signal_processing.filtering import generate_elliptic_iir_low_pass_filter
 from scos_actions.signal_processing.fft import get_fft, get_fft_window, get_fft_window_correction
-from scos_actions.signal_processing.power_analysis import apply_power_detector, create_power_detector, calculate_pseudo_power
+from scos_actions.signal_processing.power_analysis import apply_power_detector, calculate_power_watts, create_power_detector, calculate_pseudo_power, filter_quantiles
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
 
 logger = logging.getLogger(__name__)
@@ -71,6 +71,7 @@ class NasctnSeaDataProduct(MeasurementAction):
 
         # Setup/pull config parameters
         # TODO: All parameters in this section should end up hard-coded
+        # For now they are parameterized in the action config for testing
         self.iir_rp_dB = utils.get_parameter(RP_DB, self.parameters)
         self.iir_rs_dB = utils.get_parameter(RS_DB, self.parameters)
         self.iir_cutoff_Hz = utils.get_parameter(IIR_CUTOFF_HZ, self.parameters)
@@ -149,7 +150,7 @@ class NasctnSeaDataProduct(MeasurementAction):
         logger.debug(f"Applying IIR low-pass filter to IQ capture {rec_id}")
         iq = sosfilt(self.iir_sos, iq)
 
-        # It should be possible to parallelize each of these
+        # TODO: Explore parallelizing these tasks
         mean_fft, max_fft = self.get_fft_results()
         apd_result = self.get_apd_results()
         td_pwr_result = self.get_td_power_results()
@@ -183,8 +184,34 @@ class NasctnSeaDataProduct(MeasurementAction):
         return None
 
     def get_td_power_results(self, measurement_result: dict):
-        # TODO
-        return None
+        # Reshape IQ data into blocks
+        block_size = (self.td_bin_size_ms * measurement_result["sample_rate"] * 1e3)
+        n_blocks = len(measurement_result["data"]) // block_size
+        iq = measurement_result["data"].reshape(n_blocks, block_size)
+
+        iq_pwr = calculate_power_watts(iq, impedance_ohms=50.)
+
+        if self.qfilt_apply:
+            # Apply quantile filtering before computing power statistics
+            logger.info("Quantile-filtering time domain power data...")
+            iq_pwr = filter_quantiles(iq_pwr, self.qfilt_qlo, self.qfilt_qhi)
+            # Diagnostics
+            num_nans = np.count_nonzero(np.isnan(iq_pwr))
+            nan_pct = num_nans * 100 / len(iq_pwr.flatten())
+            logger.debug(f"Rejected {num_nans} samples ({nan_pct:.2f}% of total capture)")
+        else:
+            logger.info("Quantile-filtering disabled. Skipping...")
+        
+        # Apply mean/max detectors
+        td_result = apply_power_detector(iq_pwr, self.td_detector, ignore_nan=True)
+
+        # Convert to dBm
+        td_result = convert_watts_to_dBm(td_result)
+
+        # Account for RF/baseband power difference
+        td_result -= 3
+
+        return td_result[0], td_result[1]
 
     @property
     def description(self):
