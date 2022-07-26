@@ -152,16 +152,16 @@ class NasctnSeaDataProduct(MeasurementAction):
         iq = sosfilt(self.iir_sos, iq)
 
         # TODO: Explore parallelizing these tasks
-        mean_fft, max_fft = self.get_fft_results()
-        apd_result = self.get_apd_results()
-        td_pwr_result = self.get_td_power_results()
+        mean_fft, max_fft = self.get_fft_results(iq)
+        apd_p, apd_a = self.get_apd_results(iq)
+        td_pwr_result = self.get_td_power_results(iq)
 
         return
 
-    def get_fft_results(self, measurement_result: dict) -> Tuple[np.ndarray, np.ndarray]:
+    def get_fft_results(self, iqdata: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         # IQ data already scaled for calibrated gain
         fft_result = get_fft(
-            time_data = measurement_result["data"],
+            time_data = iqdata,
             fft_size = self.fft_size,
             norm = 'forward',
             fft_window = self.fft_window,
@@ -180,8 +180,8 @@ class NasctnSeaDataProduct(MeasurementAction):
         fft_result += 20. * np.log10(self.fft_window_ecf)  # Window energy correction
         return fft_result[0], fft_result[1]
 
-    def get_apd_results(self, measurement_result: dict):
-        p, a = get_apd(measurement_result["data"], self.apd_bin_size_dB)
+    def get_apd_results(self, iqdata: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        p, a = get_apd(iqdata, self.apd_bin_size_dB)
         # Convert dBV to dBm:
         # a = a * 2 : dBV --> dB(V^2)
         # a = a - impedance_dB : dB(V^2) --> dBW
@@ -190,13 +190,13 @@ class NasctnSeaDataProduct(MeasurementAction):
         ne.evaluate("(a*2)+scale_factor", out=a)
         return p, a
 
-    def get_td_power_results(self, measurement_result: dict):
+    def get_td_power_results(self, iqdata: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         # Reshape IQ data into blocks
-        block_size = (self.td_bin_size_ms * measurement_result["sample_rate"] * 1e3)
-        n_blocks = len(measurement_result["data"]) // block_size
-        iq = measurement_result["data"].reshape(n_blocks, block_size)
+        block_size = (self.td_bin_size_ms * self.sample_rate_Hz * 1e3)  # TODO: Assure this uses correct sample rate
+        n_blocks = len(iqdata) // block_size
+        iqdata = iqdata.reshape(n_blocks, block_size)
 
-        iq_pwr = calculate_power_watts(iq, impedance_ohms=50.)
+        iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.)
 
         if self.qfilt_apply:
             # Apply quantile filtering before computing power statistics
