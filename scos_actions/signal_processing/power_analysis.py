@@ -91,7 +91,7 @@ def create_power_detector(name: str, detectors: list) -> EnumMeta:
 
 
 def apply_power_detector(
-    data: np.ndarray, detector: EnumMeta, dtype: type = None
+    data: np.ndarray, detector: EnumMeta, dtype: type = None, ignore_nan: bool = True,
 ) -> np.ndarray:
     """
     Apply statistical detectors to a 2-D array of samples.
@@ -117,6 +117,9 @@ def apply_power_detector(
     :param dtype: Data type of values within the returned array. If not
         provided, the type is determined by NumPy as the minimum type
         required to hold the values (see numpy.array).
+    :param ignore_nan: If true, statistical detectors (min/max/mean/median)
+        will ignore any NaN values. NaN values may still appear in the
+        random sample detector result.
     :return: A 2-D array containing the selected detector results
         as the specified dtype. The number of rows is equal to the
         number of detectors applied, and the number of columns is equal
@@ -125,16 +128,22 @@ def apply_power_detector(
     # Currently this is identical to apply_fft_detector: make general?
     # Get detector names from detector enumeration
     detectors = [d.name for _, d in enumerate(detector)]
+
+    if ignore_nan:
+        detector_functions = [np.nanmin, np.nanmax, np.nanmean, np.nanmedian]
+    else:
+        detector_functions = [np.min, np.max, np.mean, np.median]
+        
     # Get functions based on specified detector
     detector_functions = []
     if "min" in detectors:
-        detector_functions.append(np.min)
+        detector_functions.append(detector_functions[0])
     if "max" in detectors:
-        detector_functions.append(np.max)
+        detector_functions.append(detector_functions[1])
     if "mean" in detectors:
-        detector_functions.append(np.mean)
+        detector_functions.append(detector_functions[2])
     if "median" in detectors:
-        detector_functions.append(np.median)
+        detector_functions.append(detector_functions[3])
     # Apply statistical detectors
     result = [d(data, axis=0) for d in detector_functions]
     # Add sample detector result if configured
