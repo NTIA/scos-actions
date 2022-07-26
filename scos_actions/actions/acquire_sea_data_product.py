@@ -30,10 +30,11 @@ from scos_actions import utils
 from scos_actions.actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware import gps as mock_gps
+from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.filtering import generate_elliptic_iir_low_pass_filter
 from scos_actions.signal_processing.fft import get_fft, get_fft_window, get_fft_window_correction
 from scos_actions.signal_processing.power_analysis import apply_power_detector, calculate_power_watts, create_power_detector, calculate_pseudo_power, filter_quantiles
-from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
+from scos_actions.signal_processing.unit_conversion import convert_linear_to_dB, convert_watts_to_dBm
 
 logger = logging.getLogger(__name__)
 
@@ -180,8 +181,14 @@ class NasctnSeaDataProduct(MeasurementAction):
         return fft_result[0], fft_result[1]
 
     def get_apd_results(self, measurement_result: dict):
-        # TODO
-        return None
+        p, a = get_apd(measurement_result["data"], self.apd_bin_size_dB)
+        # Convert dBV to dBm:
+        # a = a * 2 : dBV --> dB(V^2)
+        # a = a - impedance_dB : dB(V^2) --> dBW
+        # a = a + 27 : dBW --> dBm (+30) and RF/baseband conversion (-3)
+        scale_factor = 27 - convert_linear_to_dB(50.)  # Hard-coded for 50 Ohms.
+        ne.evaluate("(a*2)+scale_factor", out=a)
+        return p, a
 
     def get_td_power_results(self, measurement_result: dict):
         # Reshape IQ data into blocks
