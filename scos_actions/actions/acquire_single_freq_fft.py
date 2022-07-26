@@ -96,8 +96,8 @@ from scos_actions.signal_processing.fft import (
     get_fft_window,
     get_fft_window_correction,
 )
-from scos_actions.actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
-from scos_actions.actions.metadata.annotations.fft_annotation import FrequencyDomainDetectionAnnotation
+from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.metadata.annotations.fft_annotation import FrequencyDomainDetectionAnnotation
 from scos_actions.hardware import gps as mock_gps
 
 from scos_actions.utils import get_parameter
