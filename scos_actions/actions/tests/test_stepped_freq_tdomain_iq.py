@@ -46,4 +46,7 @@ def test_num_samples_skip():
     action = actions["test_multi_frequency_iq_action"]
     assert action.description
     action(SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1)
-    assert action.sigan._num_samples_skip == action.parameters["nskip"][-1]
+    if isinstance(action.parameters["nskip"], list):
+        assert action.sigan._num_samples_skip == action.parameters["nskip"][-1]
+    else:
+        assert action.sigan._num_samples_skip == action.parameters["nskip"]
