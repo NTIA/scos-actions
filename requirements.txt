@@ -28,8 +28,6 @@ packaging==21.3
     # via numexpr
 pyparsing==3.0.9
     # via packaging
-python-dateutil==2.8.2
-    # via -r requirements.in
 pytz==2021.3
     # via django
 requests==2.27.1
@@ -43,9 +41,7 @@ scipy==1.7.3
 sigmf @ git+https://github.com/NTIA/SigMF.git@multi-recording-archive
     # via -r requirements.in
 six==1.16.0
-    # via
-    #   python-dateutil
-    #   sigmf
+    # via sigmf
 sqlparse==0.4.2
     # via django
 typing-extensions==4.1.1

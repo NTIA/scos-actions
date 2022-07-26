@@ -8,8 +8,6 @@ asgiref==3.5.0
     # via
     #   -r requirements.txt
     #   django
-atomicwrites==1.4.0
-    # via pytest
 attrs==21.4.0
     # via pytest
 certifi==2021.10.8
@@ -22,10 +20,6 @@ charset-normalizer==2.0.12
     # via
     #   -r requirements.txt
     #   requests
-colorama==0.4.5
-    # via
-    #   pytest
-    #   tox
 distlib==0.3.4
     # via virtualenv
 django==3.2.12
@@ -85,8 +79,6 @@ pyparsing==3.0.9
     #   packaging
 pytest==7.0.1
     # via -r requirements-dev.in
-python-dateutil==2.8.2
-    # via -r requirements.txt
 pytz==2021.3
     # via
     #   -r requirements.txt
@@ -110,7 +102,6 @@ sigmf @ git+https://github.com/NTIA/SigMF.git@multi-recording-archive
 six==1.16.0
     # via
     #   -r requirements.txt
-    #   python-dateutil
     #   sigmf
     #   tox
     #   virtualenv
