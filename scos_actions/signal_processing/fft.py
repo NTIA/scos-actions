@@ -1,7 +1,7 @@
 import logging
 import os
-from enum import Enum, EnumMeta
 
+import numexpr as ne
 import numpy as np
 from scipy.fft import fft as sp_fft
 from scipy.signal import get_window
@@ -80,7 +80,7 @@ def get_fft(
 
     # Apply the FFT window if provided
     if fft_window is not None:
-        time_data *= fft_window
+        time_data = ne.evaluate("time_data*fft_window")
 
     # Take the FFT
     complex_fft = sp_fft(time_data, norm=norm, workers=workers)
