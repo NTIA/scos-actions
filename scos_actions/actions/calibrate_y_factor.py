@@ -207,7 +207,7 @@ class YFactorCalibration(Action):
             num_samples, num_samples_skip=nskip, gain_adjust=False
         )
         mean_off_watts = self.apply_mean_fft(
-            noise_off_measurement_result, fft_size, fft_window, nffts
+            noise_off_measurement_result, fft_size, fft_window, nffts, fft_acf
         )
 
         # Y-Factor
