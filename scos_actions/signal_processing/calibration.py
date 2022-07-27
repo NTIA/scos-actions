@@ -65,14 +65,14 @@ def get_linear_enr(cal_source_idx: int = None) -> float:
     """
     Get the excess noise ratio of a calibration source.
 
-    Specifying ``cal_source_idx`` is optional as long as there is
+    Specifying `cal_source_idx` is optional as long as there is
     only one calibration source. It is required if multiple
     calibration sources are present.
 
-    The preselector is loaded from scos_actions.hardware.
+    The preselector is loaded from `scos_actions.hardware`.
 
     :param cal_source_idx: The index of the specified
-        calibration source in preselector.cal_sources.
+        calibration source in `preselector.cal_sources`.
     :return: The excess noise ratio of the specified
         calibration source, in linear units.
     :raises CalibrationException: If multiple calibration sources are
@@ -106,7 +106,7 @@ def get_temperature(sensor_idx: int = None) -> Tuple[float, float, float]:
     """
     Get the temperature from a preselector sensor.
 
-    The preselector is loaded from scos_actions.hardware
+    The preselector is loaded from `scos_actions.hardware`.
 
     :param sensor_idx: The index of the desired temperature
         sensor in the preselector.

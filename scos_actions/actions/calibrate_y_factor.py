@@ -166,16 +166,11 @@ class YFactorCalibration(Action):
         super().configure_preselector(NOISE_DIODE_ON)
         time.sleep(.25)
 
-        # Debugging
-        logger.debug('Before configure, Preamp = ' + str(self.sigan.preamp_enable))
-
         # Configure signal analyzer
-        self.sigan.preamp_enable = True
         super().configure_sigan(params)
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug('Preamp = ' + str(self.sigan.preamp_enable))
-            logger.debug('Ref_level: ' + str(self.sigan.reference_level))
-            logger.debug('Attenuation:' + str(self.sigan.attenuation))
+        logger.debug('Preamp = ' + str(self.sigan.preamp_enable))
+        logger.debug('Ref_level: ' + str(self.sigan.reference_level))
+        logger.debug('Attenuation:' + str(self.sigan.attenuation))
 
         # Get parameters from action config
         fft_size = get_parameter(FFT_SIZE, params)
@@ -185,7 +180,7 @@ class YFactorCalibration(Action):
         fft_acf = get_fft_window_correction(fft_window, 'amplitude')
         num_samples = fft_size * nffts
 
-        logger.debug("Acquiring mean FFT")
+        logger.debug("Acquiring mean FFT with noise diode ON")
 
         # Get noise diode on mean FFT result
         noise_on_measurement_result = self.sigan.acquire_time_domain_samples(
@@ -202,7 +197,7 @@ class YFactorCalibration(Action):
         time.sleep(.25)
 
         # Get noise diode off mean FFT result
-        logger.debug('Acquiring noise off mean FFT')
+        logger.debug('Acquiring mean FFT with noise diode OFF')
         noise_off_measurement_result = self.sigan.acquire_time_domain_samples(
             num_samples, num_samples_skip=nskip, gain_adjust=False
         )
@@ -238,11 +233,18 @@ class YFactorCalibration(Action):
         self, measurement_result: dict, fft_size: int, fft_window: ndarray, nffts: int, fft_window_cf: float
     ) -> ndarray:
         complex_fft = get_fft(
-            measurement_result["data"], fft_size, "forward", fft_window, nffts
+            time_data=measurement_result["data"],
+            fft_size=fft_size,
+            norm="forward",
+            fft_window=fft_window,
+            num_ffts=nffts,
+            shift=True
         )
+        complex_fft /= 2  # INCORRECT SCALING for testing
+        complex_fft *= fft_window_cf
         power_fft = calculate_power_watts(complex_fft)
-        power_fft /= 2  # RF/baseband conversion
-        power_fft *= fft_window_cf  # Window correction
+        # power_fft /= 2  # RF/baseband conversion
+        # power_fft *= fft_window_cf  # Window correction
         mean_result = apply_power_detector(power_fft, self.fft_detector)
         return mean_result
 
