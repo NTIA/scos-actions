@@ -78,7 +78,7 @@ from scos_actions.settings import sensor_calibration
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.utils import get_parameter
-from scos_actions.signal_processing.fft import get_fft, get_fft_enbw, get_fft_window
+from scos_actions.signal_processing.fft import get_fft, get_fft_enbw, get_fft_window, get_fft_window_correction
 
 from scos_actions.signal_processing.calibration import (
     get_linear_enr,
@@ -90,6 +90,9 @@ from scos_actions.signal_processing.power_analysis import (
     calculate_power_watts,
     create_power_detector,
 )
+
+from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
+
 import os
 
 logger = logging.getLogger(__name__)
@@ -179,6 +182,7 @@ class YFactorCalibration(Action):
         nffts = get_parameter(NUM_FFTS, params)
         nskip = get_parameter(NUM_SKIP, params)
         fft_window = get_fft_window(self.fft_window_type, fft_size)
+        fft_acf = get_fft_window_correction(fft_window, 'amplitude')
         num_samples = fft_size * nffts
 
         logger.debug("Acquiring mean FFT")
@@ -189,7 +193,7 @@ class YFactorCalibration(Action):
         )
         sample_rate = noise_on_measurement_result["sample_rate"]
         mean_on_watts = self.apply_mean_fft(
-            noise_on_measurement_result, fft_size, fft_window, nffts
+            noise_on_measurement_result, fft_size, fft_window, nffts, fft_acf
         )
 
         # Set noise diode off
@@ -223,20 +227,22 @@ class YFactorCalibration(Action):
         )
 
         # Debugging
-        noise_floor = Boltzmann * temp_k * enbw_hz
-        logger.debug(f'Noise floor: {noise_floor} Watts')
+        noise_floor_dBm = convert_watts_to_dBm(Boltzmann * temp_k * enbw_hz)
+        logger.debug(f'Noise floor: {noise_floor_dBm} dBm')
         logger.debug(f'Noise Figure: {noise_figure} dB')
         logger.debug(f'Gain: {gain} dB')
 
-        return 'Noise Figure:{}, Gain:{}'.format(noise_figure, gain)
+        return 'Noise Figure: {}, Gain: {}'.format(noise_figure, gain)
 
     def apply_mean_fft(
-        self, measurement_result: dict, fft_size: int, fft_window: ndarray, nffts: int
+        self, measurement_result: dict, fft_size: int, fft_window: ndarray, nffts: int, fft_window_cf: float
     ) -> ndarray:
         complex_fft = get_fft(
-            measurement_result["data"], fft_size, "backward", fft_window, nffts
+            measurement_result["data"], fft_size, "forward", fft_window, nffts
         )
         power_fft = calculate_power_watts(complex_fft)
+        power_fft /= 2  # RF/baseband conversion
+        power_fft *= fft_window_cf  # Window correction
         mean_result = apply_power_detector(power_fft, self.fft_detector)
         return mean_result
 
