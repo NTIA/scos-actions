@@ -160,92 +160,14 @@ class YFactorCalibration(Action):
         # Calibrate
         for i, p in enumerate(iteration_params):
             if i == 0:
-                detail += 'OLD ' + self.calibrate_old(p)
-                detail += 'NEW ' + self.calibrate(p)
+                detail += self.calibrate(p)
             else:
-                detail += os.linesep + 'OLD ' + self.calibrate_old(p)
-                detail += ' NEW ' + self.calibrate(p)
+                detail += os.linesep + self.calibrate(p)
 
         return detail
 
+
     def calibrate(self, params):
-        # New implementation, time domain calculation
-        logger.debug('Setting noise diode on')
-        super().configure_preselector(NOISE_DIODE_ON)
-        time.sleep(0.25)
-
-        # Configure signal analyzer
-        super().configure_sigan(params)
-        logger.debug('Preamp = ' + str(self.sigan.preamp_enable))
-        logger.debug('Ref_level: ' + str(self.sigan.reference_level))
-        logger.debug('Attenuation:' + str(self.sigan.attenuation))
-
-        # Use num_samples as defined by FFT parameters
-        # TODO: Change action config to remove FFT parameters
-        fft_size = get_parameter(FFT_SIZE, params)
-        nffts = get_parameter(NUM_FFTS, params)
-        nskip = get_parameter(NUM_SKIP, params)
-        num_samples = fft_size * nffts
-
-        # Acquire data with noise diode on
-        logger.debug('Acquiring IQ samples with noise diode ON')
-        noise_on_result = self.sigan.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip, gain_adjust=False
-        )
-        sample_rate = noise_on_result["sample_rate"]
-        
-        # Set noise diode off
-        logger.debug('Setting noise diode off')
-        self.configure_preselector(NOISE_DIODE_OFF)
-        time.sleep(0.25)
-
-        # Acquire data with noise diode off
-        logger.debug('Acquiring IQ samples with noise diode OFF')
-        noise_off_result = self.sigan.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip, gain_adjust=False
-        )
-        assert noise_off_result["sample_rate"] == sample_rate, "Sample rate mismatch for noise diode on/off measurements."
-
-        # Apply IIR filtering to both captures
-        # TODO
-        logger.debug("Applying IIR filter to IQ captures")
-        noise_on_filtered = sosfilt(self.iir_sos, noise_on_result["data"])
-        noise_off_filtered = sosfilt(self.iir_sos, noise_off_result["data"])
-
-        # Get power values from each capture
-        power_on_watts = calculate_power_watts(noise_on_filtered) / 2. # Divide by 2 for RF/baseband conversion
-        power_off_watts = calculate_power_watts(noise_off_filtered) / 2.
-
-        # Y-Factor
-        enbw_hz = sample_rate  # TODO: Get actual ENBW value
-        enr_linear = get_linear_enr(self.cal_source_idx)
-        temp_k, temp_c, _ = get_temperature(self.temp_sensor_idx)
-        noise_figure, gain = y_factor(
-            power_on_watts, power_off_watts, enr_linear, enbw_hz, temp_k
-        )
-        sensor_calibration.update(
-            params,
-            utils.get_datetime_str_now(),
-            gain,
-            noise_figure,
-            temp_c,
-            SENSOR_CALIBRATION_FILE,
-        )
-
-        # Debugging
-        noise_floor_dBm = convert_watts_to_dBm(Boltzmann * temp_k * enbw_hz)
-        logger.debug(f'Noise floor: {noise_floor_dBm:.3f} dBm')
-        logger.debug(f'Noise Figure: {noise_figure:.3f} dB')
-        logger.debug(f'Gain: {gain:.3f} dB')
-
-        return 'Noise Figure: {}, Gain: {}'.format(noise_figure, gain)
-
-    def calibrate_old(self, params):
-        # Set noise diode on
-        logger.debug('Setting noise diode on')
-        super().configure_preselector(NOISE_DIODE_ON)
-        time.sleep(.25)
-
         # Configure signal analyzer
         super().configure_sigan(params)
         logger.debug('Preamp = ' + str(self.sigan.preamp_enable))
@@ -259,61 +181,86 @@ class YFactorCalibration(Action):
         fft_window = get_fft_window(self.fft_window_type, fft_size)
         fft_acf = get_fft_window_correction(fft_window, 'amplitude')
         num_samples = fft_size * nffts
+        
+        # Set noise diode on
+        logger.debug('Setting noise diode on')
+        super().configure_preselector(NOISE_DIODE_ON)
+        time.sleep(.25)
 
-        logger.debug("Acquiring mean FFT with noise diode ON")
-
-        # Get noise diode on mean FFT result
+        # Get noise diode on IQ
+        logger.debug("Acquiring IQ samples with noise diode ON")
         noise_on_measurement_result = self.sigan.acquire_time_domain_samples(
             num_samples, num_samples_skip=nskip, gain_adjust=False
         )
         sample_rate = noise_on_measurement_result["sample_rate"]
-        mean_on_watts = self.apply_mean_fft(
-            noise_on_measurement_result, fft_size, fft_window, nffts, fft_acf
-        )
 
         # Set noise diode off
         logger.debug('Setting noise diode off')
         self.configure_preselector(NOISE_DIODE_OFF)
         time.sleep(.25)
 
-        # Get noise diode off mean FFT result
-        logger.debug('Acquiring mean FFT with noise diode OFF')
+        # Get noise diode off IQ
+        logger.debug('Acquiring IQ samples with noise diode OFF')
         noise_off_measurement_result = self.sigan.acquire_time_domain_samples(
             num_samples, num_samples_skip=nskip, gain_adjust=False
         )
-        mean_off_watts = self.apply_mean_fft(
-            noise_off_measurement_result, fft_size, fft_window, nffts, fft_acf
+        
+
+        # Apply IIR filtering to both captures
+        logger.debug("Applying IIR filter to IQ captures")
+        noise_on_filtered = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
+        noise_off_filtered = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
+
+        # Get power values in time domain
+        td_on_watts = calculate_power_watts(noise_on_filtered) / 2. # Divide by 2 for RF/baseband conversion
+        td_off_watts = calculate_power_watts(noise_off_filtered) / 2.
+
+        # Get mean power FFT results
+        fft_on_watts = self.apply_mean_fft(
+            noise_on_filtered, fft_size, fft_window, nffts, fft_acf
+        )
+        fft_off_watts = self.apply_mean_fft(
+            noise_off_filtered, fft_size, fft_window, nffts, fft_acf
         )
 
         # Y-Factor
         enbw_hz = get_fft_enbw(fft_window, sample_rate)
+        enbw_hz_td = sample_rate  # TODO Get actual ENBW
         enr_linear = get_linear_enr(self.cal_source_idx)
         temp_k, temp_c, _ = get_temperature(self.temp_sensor_idx)
-        noise_figure, gain = y_factor(
-            mean_on_watts, mean_off_watts, enr_linear, enbw_hz, temp_k
+        td_noise_figure, td_gain = y_factor(
+            td_on_watts, td_off_watts, enr_linear, sample_rate, temp_k
         )
-        sensor_calibration.update(
-            params,
-            utils.get_datetime_str_now(),
-            gain,
-            noise_figure,
-            temp_c,
-            SENSOR_CALIBRATION_FILE,
+        fft_noise_figure, fft_gain = y_factor(
+            fft_on_watts, fft_off_watts, enr_linear, enbw_hz, temp_k
         )
+
+        # Don't update the sensor calibration while testing
+        # sensor_calibration.update(
+        #     params,
+        #     utils.get_datetime_str_now(),
+        #     gain,
+        #     noise_figure,
+        #     temp_c,
+        #     SENSOR_CALIBRATION_FILE,
+        # )
 
         # Debugging
         noise_floor_dBm = convert_watts_to_dBm(Boltzmann * temp_k * enbw_hz)
-        logger.debug(f'Noise floor: {noise_floor_dBm} dBm')
-        logger.debug(f'Noise Figure: {noise_figure} dB')
-        logger.debug(f'Gain: {gain} dB')
-
-        return 'Noise Figure: {}, Gain: {}'.format(noise_figure, gain)
+        logger.debug(f'Noise floor: {noise_floor_dBm:.2f} dBm')
+        logger.debug(f'Noise Figure (FFT): {fft_noise_figure:.2f} dB')
+        logger.debug(f'Gain (FFT): {fft_gain:.2f} dB')
+        logger.debug(f'Noise figure (TD): {td_noise_figure:.2f} dB')
+        logger.debug(f"Gain (TD): {td_gain:.2f} dB")
+        
+        # Detail results contain only FFT version of result for now
+        return 'Noise Figure: {}, Gain: {}'.format(fft_noise_figure, fft_gain)
 
     def apply_mean_fft(
-        self, measurement_result: dict, fft_size: int, fft_window: ndarray, nffts: int, fft_window_cf: float
+        self, iqdata: ndarray, fft_size: int, fft_window: ndarray, nffts: int, fft_window_cf: float
     ) -> ndarray:
         complex_fft = get_fft(
-            time_data=measurement_result["data"],
+            time_data=iqdata,
             fft_size=fft_size,
             norm="forward",
             fft_window=fft_window,
