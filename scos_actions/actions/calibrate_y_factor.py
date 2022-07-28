@@ -225,7 +225,7 @@ class YFactorCalibration(Action):
 
         # Y-Factor
         enbw_hz = get_fft_enbw(fft_window, sample_rate)
-        enbw_hz_td = sample_rate  # TODO Get actual ENBW
+        enbw_hz_td = 10e6  # TODO Get actual ENBW
         enr_linear = get_linear_enr(self.cal_source_idx)
         temp_k, temp_c, _ = get_temperature(self.temp_sensor_idx)
         td_noise_figure, td_gain = y_factor(
