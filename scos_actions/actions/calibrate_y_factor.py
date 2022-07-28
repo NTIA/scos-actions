@@ -137,6 +137,7 @@ class YFactorCalibration(Action):
         logger.debug('Initializing calibration action')
         super().__init__(parameters, sigan, gps)
         # Specify calibration source and temperature sensor indices
+        # TODO: Should these be part of the action config?
         self.cal_source_idx = 0
         self.temp_sensor_idx = 1
         # FFT setup
@@ -154,13 +155,84 @@ class YFactorCalibration(Action):
         # Calibrate
         for i, p in enumerate(iteration_params):
             if i == 0:
-                detail += self.calibrate(p)
+                detail += 'OLD ' + self.calibrate_old(p)
+                detail += 'NEW ' + self.calibrate(p)
             else:
-                detail += os.linesep + self.calibrate(p)
+                detail += os.linesep + 'OLD ' + self.calibrate_old(p)
+                detail += os.linesep + 'NEW ' + self.calibrate(p)
 
         return detail
 
     def calibrate(self, params):
+        # New implementation, time domain calculation
+        logger.debug('Setting noise diode on')
+        super().configure_preselector(NOISE_DIODE_ON)
+        time.sleep(0.25)
+
+        # Configure signal analyzer
+        super().configure_sigan(params)
+        logger.debug('Preamp = ' + str(self.sigan.preamp_enable))
+        logger.debug('Ref_level: ' + str(self.sigan.reference_level))
+        logger.debug('Attenuation:' + str(self.sigan.attenuation))
+
+        # Use num_samples as defined by FFT parameters
+        # TODO: Change action config to remove FFT parameters
+        fft_size = get_parameter(FFT_SIZE, params)
+        nffts = get_parameter(NUM_FFTS, params)
+        nskip = get_parameter(NUM_SKIP, params)
+        num_samples = fft_size * nffts
+
+        # Acquire data with noise diode on
+        logger.debug('Acquiring IQ samples with noise diode ON')
+        noise_on_result = self.sigan.acquire_time_domain_samples(
+            num_samples, num_samples_skip=nskip, gain_adjust=False
+        )
+        sample_rate = noise_on_result["sample_rate"]
+        
+        # Set noise diode off
+        logger.debug('Setting noise diode off')
+        self.configure_preselector(NOISE_DIODE_OFF)
+        time.sleep(0.25)
+
+        # Acquire data with noise diode off
+        logger.debug('Acquiring IQ samples with noise diode OFF')
+        noise_off_result = self.sigan.acquire_time_domain_samples(
+            num_samples, num_samples_skip=nskip, gain_adjust=False
+        )
+        assert noise_off_result["sample_rate"] == sample_rate, "Sample rate mismatch for noise diode on/off measurements."
+
+        # Apply IIR filtering to both captures
+        # TODO
+
+        # Get power values from each capture
+        power_on_watts = calculate_power_watts(noise_on_result["data"]) / 2. # Divide by 2 for RF/baseband conversion
+        power_off_watts = calculate_power_watts(noise_off_result["data"]) / 2.
+
+        # Y-Factor
+        enbw_hz = sample_rate  # TODO: Get actual ENBW value
+        enr_linear = get_linear_enr(self.cal_source_idx)
+        temp_k, temp_c, _ = get_temperature(self.temp_sensor_idx)
+        noise_figure, gain = y_factor(
+            power_on_watts, power_off_watts, enr_linear, enbw_hz, temp_k
+        )
+        sensor_calibration.update(
+            params,
+            utils.get_datetime_str_now(),
+            gain,
+            noise_figure,
+            temp_c,
+            SENSOR_CALIBRATION_FILE,
+        )
+
+        # Debugging
+        noise_floor_dBm = convert_watts_to_dBm(Boltzmann * temp_k * enbw_hz)
+        logger.debug(f'Noise floor: {noise_floor_dBm:.3f} dBm')
+        logger.debug(f'Noise Figure: {noise_figure:.3f} dB')
+        logger.debug(f'Gain: {gain:.3f} dB')
+
+        return 'Noise Figure: {}, Gain: {}'.format(noise_figure, gain)
+
+    def calibrate_old(self, params):
         # Set noise diode on
         logger.debug('Setting noise diode on')
         super().configure_preselector(NOISE_DIODE_ON)
@@ -283,7 +355,5 @@ class YFactorCalibration(Action):
         if not self.sigan.is_available:
             msg = "acquisition failed: signal analyzer required but not available"
             raise RuntimeError(msg)
-
-
 
 
