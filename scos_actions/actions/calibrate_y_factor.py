@@ -225,7 +225,7 @@ class YFactorCalibration(Action):
 
         # Y-Factor
         enbw_hz = get_fft_enbw(fft_window, sample_rate)
-        enbw_hz_td = 10e6  # TODO Get actual ENBW
+        enbw_hz_td = 11.607e6  # TODO Parameterize this
         enr_linear = get_linear_enr(self.cal_source_idx)
         temp_k, temp_c, _ = get_temperature(self.temp_sensor_idx)
         td_noise_figure, td_gain = y_factor(
@@ -268,9 +268,9 @@ class YFactorCalibration(Action):
             shift=True
         )
         # TESTING SCALING
+        power_fft /= 2  # RF/baseband conversion
         complex_fft *= fft_window_cf  # Window correction
         power_fft = calculate_power_watts(complex_fft)
-        power_fft /= 2  # RF/baseband conversion
         mean_result = apply_power_detector(power_fft, self.fft_detector)
         return mean_result
 
