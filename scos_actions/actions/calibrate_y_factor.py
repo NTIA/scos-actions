@@ -212,15 +212,15 @@ class YFactorCalibration(Action):
         noise_off_filtered = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
 
         # Get power values in time domain
-        td_on_watts = calculate_power_watts(noise_on_filtered) / 2. # Divide by 2 for RF/baseband conversion
-        td_off_watts = calculate_power_watts(noise_off_filtered) / 2.
+        td_on_watts = calculate_power_watts(noise_on_filtered.copy()) / 2. # Divide by 2 for RF/baseband conversion
+        td_off_watts = calculate_power_watts(noise_off_filtered.copy()) / 2.
 
         # Get mean power FFT results
         fft_on_watts = self.apply_mean_fft(
-            noise_on_filtered, fft_size, fft_window, nffts, fft_acf
+            noise_on_filtered.copy(), fft_size, fft_window, nffts, fft_acf
         )
         fft_off_watts = self.apply_mean_fft(
-            noise_off_filtered, fft_size, fft_window, nffts, fft_acf
+            noise_off_filtered.copy(), fft_size, fft_window, nffts, fft_acf
         )
 
         # Y-Factor
