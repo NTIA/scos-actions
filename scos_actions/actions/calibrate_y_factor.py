@@ -268,7 +268,7 @@ class YFactorCalibration(Action):
             shift=True
         )
         # TESTING SCALING
-        power_fft /= 2  # RF/baseband conversion
+        complex_fft /= 2  # RF/baseband conversion
         complex_fft *= fft_window_cf  # Window correction
         power_fft = calculate_power_watts(complex_fft)
         mean_result = apply_power_detector(power_fft, self.fft_detector)
