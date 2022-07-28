@@ -8,6 +8,7 @@ from scos_actions.signal_processing.unit_conversion import (
     convert_dB_to_linear,
     convert_fahrenheit_to_celsius,
     convert_linear_to_dB,
+    convert_watts_to_dBm
 )
 
 logger = logging.getLogger(__name__)
@@ -46,10 +47,15 @@ def y_factor(
     :return: A tuple (noise_figure, gain) containing the calculated
         noise figure and gain, both in dB, from the Y-factor method.
     """
-    logger.debug(f"ENR: {convert_linear_to_dB(enr_linear)} dB")
-    logger.debug(f"ENBW: {enbw_hz} Hz")
-    logger.debug(f"Mean power on: {np.mean(pwr_noise_on_watts)} W")
-    logger.debug(f"Mean power off: {np.mean(pwr_noise_off_watts)} W")
+    if logger.isEnabledFor(logging.DEBUG):
+        mean_on_watts = np.mean(pwr_noise_on_watts)
+        mean_off_watts = np.mean(pwr_noise_off_watts)
+        mean_on_dBm = convert_watts_to_dBm(mean_on_watts)
+        mean_off_dBm = convert_watts_to_dBm(mean_off_watts)
+        logger.debug(f"ENR: {convert_linear_to_dB(enr_linear)} dB")
+        logger.debug(f"ENBW: {enbw_hz} Hz")
+        logger.debug(f"Mean power on: {mean_on_watts:.2f} W = {mean_on_dBm:.2f} dBm")
+        logger.debug(f"Mean power off: {mean_off_watts:.2f} W = {mean_off_dBm:.2f} dBm")
     y = pwr_noise_on_watts / pwr_noise_off_watts
     noise_factor = enr_linear / (y - 1.0)
     gain_watts = pwr_noise_on_watts / (
