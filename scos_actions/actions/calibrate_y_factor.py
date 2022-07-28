@@ -71,6 +71,7 @@ import time
 
 from numpy import ndarray
 from scipy.constants import Boltzmann
+from scipy.signal import sosfilt
 
 from scos_actions import utils
 from scos_actions.hardware import gps as mock_gps
@@ -92,6 +93,7 @@ from scos_actions.signal_processing.power_analysis import (
 )
 
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
+from scos_actions.signal_processing.filtering import generate_elliptic_iir_low_pass_filter
 
 import os
 
@@ -143,6 +145,9 @@ class YFactorCalibration(Action):
         # FFT setup
         self.fft_detector = create_power_detector("MeanDetector", ["mean"])
         self.fft_window_type = "flattop"
+        # IIR Filter
+        # Hard-coded parameters for now
+        self.iir_sos = generate_elliptic_iir_low_pass_filter(0.1, 40, 5e6, 8e3, 14e6)
 
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
@@ -159,7 +164,7 @@ class YFactorCalibration(Action):
                 detail += 'NEW ' + self.calibrate(p)
             else:
                 detail += os.linesep + 'OLD ' + self.calibrate_old(p)
-                detail += os.linesep + 'NEW ' + self.calibrate(p)
+                detail += ' NEW ' + self.calibrate(p)
 
         return detail
 
@@ -203,10 +208,13 @@ class YFactorCalibration(Action):
 
         # Apply IIR filtering to both captures
         # TODO
+        logger.debug("Applying IIR filter to IQ captures")
+        noise_on_filtered = sosfilt(self.iir_sos, noise_on_result["data"])
+        noise_off_filtered = sosfilt(self.iir_sos, noise_off_result["data"])
 
         # Get power values from each capture
-        power_on_watts = calculate_power_watts(noise_on_result["data"]) / 2. # Divide by 2 for RF/baseband conversion
-        power_off_watts = calculate_power_watts(noise_off_result["data"]) / 2.
+        power_on_watts = calculate_power_watts(noise_on_filtered) / 2. # Divide by 2 for RF/baseband conversion
+        power_off_watts = calculate_power_watts(noise_off_filtered) / 2.
 
         # Y-Factor
         enbw_hz = sample_rate  # TODO: Get actual ENBW value
