@@ -78,7 +78,7 @@ from scos_actions.hardware import gps as mock_gps
 from scos_actions.settings import sensor_calibration
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.utils import get_parameter
+from scos_actions.utils import ParameterException, get_parameter
 from scos_actions.signal_processing.fft import get_fft, get_fft_enbw, get_fft_window, get_fft_window_correction
 
 from scos_actions.signal_processing.calibration import (
@@ -109,6 +109,14 @@ SAMPLE_RATE = "sample_rate"
 FFT_SIZE = "fft_size"
 NUM_FFTS = "nffts"
 NUM_SKIP = "nskip"
+IIR_APPLY = 'iir_apply'
+IIR_RP = 'iir_rp_dB'
+IIR_RS = 'iir_rs_dB'
+IIR_CUTOFF = 'iir_cutoff_Hz'
+IIR_WIDTH = 'iir_width_Hz'
+CAL_SOURCE_IDX = 'cal_source_idx'
+TEMP_SENSOR_IDX = 'temp_sensor_idx'
+
 # TODO: Should calibration source index and temperature sensor number
 # be required parameters?
 
@@ -138,26 +146,42 @@ class YFactorCalibration(Action):
     def __init__(self, parameters, sigan, gps=mock_gps):
         logger.debug('Initializing calibration action')
         super().__init__(parameters, sigan, gps)
-        # Specify calibration source and temperature sensor indices
-        # TODO: Should these be part of the action config?
-        self.cal_source_idx = 0
-        self.temp_sensor_idx = 1
         # FFT setup
+        # TODO: Remove these
         self.fft_detector = create_power_detector("MeanDetector", ["mean"])
         self.fft_window_type = "flattop"
-        # IIR Filter
-        # Hard-coded parameters for now
-        self.iir_sos = generate_elliptic_iir_low_pass_filter(0.1, 40, 5e6, 8e3, 14e6)
+        # IIR Filter Setup
+        try:
+            self.iir_apply = get_parameter(IIR_APPLY, parameters)
+        except ParameterException:
+            logger.info("Config parameter 'iir_apply' not provided. "
+                        + "No IIR filtering will be used during calibration.")
+            self.iir_apply = False
+        
+        if self.iir_apply is True:
+            # If any parameters are multiply-specified, generate the filter
+            # in the calibration loop instead of here.
+            self.iir_rp_dB = get_parameter(IIR_RP, parameters)
+            self.iir_rs_dB = get_parameter(IIR_RS, parameters)
+            self.iir_cutoff_Hz = get_parameter(IIR_CUTOFF, parameters)
+            self.iir_width_Hz = get_parameter(IIR_WIDTH, parameters)
+            self.sample_rate = get_parameter(SAMPLE_RATE, parameters)
+            if not any([isinstance(v, list) for v in [self.iir_rp_dB, self.iir_rs_dB, self.iir_cutoff_Hz, self.iir_width_Hz, self.sample_rate]]):
+                # Generate single filter ahead of calibration loop
+                self.iir_sos = generate_elliptic_iir_low_pass_filter(
+                    self.iir_rp_dB, self.iir_rs_dB, self.iir_cutoff_Hz, self.iir_width_Hz, self.sample_rate
+                )
+                self.regenerate_iir = False
+            else:
+                self.regenerate_iir = True
 
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
-        detail = ''
-        # iteration_params is iterable even if it contains only one set of parameters
-        # it is also sorted by frequency from low to high
         iteration_params = utils.get_iterable_parameters(self.parameters)
+        detail = ''
         
-        # Calibrate
+        # Run calibration routine
         for i, p in enumerate(iteration_params):
             if i == 0:
                 detail += self.calibrate(p)
@@ -170,14 +194,15 @@ class YFactorCalibration(Action):
     def calibrate(self, params):
         # Configure signal analyzer
         super().configure_sigan(params)
-        logger.debug('Preamp = ' + str(self.sigan.preamp_enable))
-        logger.debug('Ref_level: ' + str(self.sigan.reference_level))
-        logger.debug('Attenuation:' + str(self.sigan.attenuation))
 
         # Get parameters from action config
+        cal_source_idx = get_parameter(CAL_SOURCE_IDX, params)
+        temp_sensor_idx = get_parameter(TEMP_SENSOR_IDX, params)
+        iir_apply = get_parameter(IIR_APPLY, params)
         fft_size = get_parameter(FFT_SIZE, params)
         nffts = get_parameter(NUM_FFTS, params)
         nskip = get_parameter(NUM_SKIP, params)
+
         fft_window = get_fft_window(self.fft_window_type, fft_size)
         fft_acf = get_fft_window_correction(fft_window, 'amplitude')
         num_samples = fft_size * nffts
@@ -204,33 +229,55 @@ class YFactorCalibration(Action):
         noise_off_measurement_result = self.sigan.acquire_time_domain_samples(
             num_samples, num_samples_skip=nskip, gain_adjust=False
         )
-        
+        assert sample_rate == noise_off_measurement_result["sample_rate"], "Sample rate mismatch"
 
-        # Apply IIR filtering to both captures
-        logger.debug("Applying IIR filter to IQ captures")
-        noise_on_filtered = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
-        noise_off_filtered = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
+        # Apply IIR filtering to both captures if configured
+        if iir_apply:
+            if self.regenerate_iir:
+                logger.debug("Generating IIR filter")
+                rp_dB = get_parameter(IIR_RP, params)
+                rs_dB = get_parameter(IIR_RS, params)
+                cutoff_Hz = get_parameter(IIR_CUTOFF, params)
+                width_Hz = get_parameter(IIR_WIDTH, params)
+                iir_sos = generate_elliptic_iir_low_pass_filter(
+                    rp_dB, rs_dB, cutoff_Hz, width_Hz, sample_rate
+                )
+            else:
+                iir_sos = self.iir_sos
+            logger.debug("Applying IIR filter to IQ captures")
+            noise_on_data = sosfilt(iir_sos, noise_on_measurement_result["data"])
+            noise_off_data = sosfilt(iir_sos, noise_off_measurement_result["data"])
+        else:
+            logger.debug('Skipping IIR filtering')
+            noise_on_data = noise_on_measurement_result["data"]
+            noise_off_data = noise_off_measurement_result["data"]
 
         # Get power values in time domain
-        td_on_watts = calculate_power_watts(noise_on_filtered.copy()) / 2. # Divide by 2 for RF/baseband conversion
-        td_off_watts = calculate_power_watts(noise_off_filtered.copy()) / 2.
+        td_on_watts = calculate_power_watts(noise_on_data.copy()) / 2. # Divide by 2 for RF/baseband conversion
+        td_off_watts = calculate_power_watts(noise_off_data.copy()) / 2.
 
         # Get mean power FFT results
         fft_on_watts = self.apply_mean_fft(
-            noise_on_filtered.copy(), fft_size, fft_window, nffts, fft_acf
+            noise_on_data.copy(), fft_size, fft_window, nffts, fft_acf
         )
         fft_off_watts = self.apply_mean_fft(
-            noise_off_filtered.copy(), fft_size, fft_window, nffts, fft_acf
+            noise_off_data.copy(), fft_size, fft_window, nffts, fft_acf
         )
 
         # Y-Factor
         enbw_hz = get_fft_enbw(fft_window, sample_rate)
-        enbw_hz_td = 11.607e6  # TODO Parameterize this
-        enr_linear = get_linear_enr(self.cal_source_idx)
-        temp_k, temp_c, _ = get_temperature(self.temp_sensor_idx)
+        # TODO Parameterize ENBW
+        # ENBW should differ based on whether or not IIR filtering is used
+        # enbw_hz_td = 11.607e6  # For RSA 507A
+        enbw_hz_td = (cutoff_Hz + width_Hz) * 2.  # Roughly based on IIR filter
+        enr_linear = get_linear_enr(cal_source_idx)
+        temp_k, temp_c, _ = get_temperature(temp_sensor_idx)
+
+        # New method
         td_noise_figure, td_gain = y_factor(
-            td_on_watts, td_off_watts, enr_linear, sample_rate, temp_k
+            td_on_watts, td_off_watts, enr_linear, enbw_hz_td, temp_k
         )
+        # Old method for comparison
         fft_noise_figure, fft_gain = y_factor(
             fft_on_watts, fft_off_watts, enr_linear, enbw_hz, temp_k
         )
