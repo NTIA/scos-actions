@@ -1,7 +1,7 @@
 import logging
 import os
-from enum import Enum, EnumMeta
 
+import numexpr as ne
 import numpy as np
 from scipy.fft import fft as sp_fft
 from scipy.signal import get_window
@@ -65,7 +65,9 @@ def get_fft(
     """
     # Get num_ffts for default case: as many as possible
     if num_ffts <= 0:
+        logger.info("Number of FFTs not specified. Using as many as possible.")
         num_ffts = int(len(time_data) // fft_size)
+        logger.info(f"Number of FFTs set to {num_ffts} based on specified FFT size {fft_size}")
 
     # Determine if truncation will occur and raise a warning if so
     if len(time_data) != fft_size * num_ffts:
@@ -80,7 +82,8 @@ def get_fft(
 
     # Apply the FFT window if provided
     if fft_window is not None:
-        time_data *= fft_window
+        logger.debug("Applying window before FFT")
+        time_data = ne.evaluate("time_data*fft_window")
 
     # Take the FFT
     complex_fft = sp_fft(time_data, norm=norm, workers=workers)
