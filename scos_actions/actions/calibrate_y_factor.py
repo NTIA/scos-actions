@@ -114,6 +114,8 @@ IIR_RP = 'iir_rp_dB'
 IIR_RS = 'iir_rs_dB'
 IIR_CUTOFF = 'iir_cutoff_Hz'
 IIR_WIDTH = 'iir_width_Hz'
+CAL_SOURCE_IDX = 'cal_source_idx'
+TEMP_SENSOR_IDX = 'temp_sensor_idx'
 
 # TODO: Should calibration source index and temperature sensor number
 # be required parameters?
@@ -144,10 +146,6 @@ class YFactorCalibration(Action):
     def __init__(self, parameters, sigan, gps=mock_gps):
         logger.debug('Initializing calibration action')
         super().__init__(parameters, sigan, gps)
-        # Specify calibration source and temperature sensor indices
-        # TODO: Add cal source and sensor indices to YAML config
-        self.cal_source_idx = 0
-        self.temp_sensor_idx = 1
         # FFT setup
         # TODO: Remove these
         self.fft_detector = create_power_detector("MeanDetector", ["mean"])
@@ -198,10 +196,13 @@ class YFactorCalibration(Action):
         super().configure_sigan(params)
 
         # Get parameters from action config
+        cal_source_idx = get_parameter(CAL_SOURCE_IDX, params)
+        temp_sensor_idx = get_parameter(TEMP_SENSOR_IDX, params)
         iir_apply = get_parameter(IIR_APPLY, params)
         fft_size = get_parameter(FFT_SIZE, params)
         nffts = get_parameter(NUM_FFTS, params)
         nskip = get_parameter(NUM_SKIP, params)
+
         fft_window = get_fft_window(self.fft_window_type, fft_size)
         fft_acf = get_fft_window_correction(fft_window, 'amplitude')
         num_samples = fft_size * nffts
@@ -269,8 +270,8 @@ class YFactorCalibration(Action):
         # ENBW should differ based on whether or not IIR filtering is used
         # enbw_hz_td = 11.607e6  # For RSA 507A
         enbw_hz_td = (cutoff_Hz + width_Hz) * 2.  # Roughly based on IIR filter
-        enr_linear = get_linear_enr(self.cal_source_idx)
-        temp_k, temp_c, _ = get_temperature(self.temp_sensor_idx)
+        enr_linear = get_linear_enr(cal_source_idx)
+        temp_k, temp_c, _ = get_temperature(temp_sensor_idx)
 
         # New method
         td_noise_figure, td_gain = y_factor(
