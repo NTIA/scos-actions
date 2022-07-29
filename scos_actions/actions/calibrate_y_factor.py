@@ -152,34 +152,38 @@ class YFactorCalibration(Action):
         # TODO: Remove these
         self.fft_detector = create_power_detector("MeanDetector", ["mean"])
         self.fft_window_type = "flattop"
-        # IIR Filter
+        # IIR Filter Setup
         try:
             self.iir_apply = get_parameter(IIR_APPLY, parameters)
         except ParameterException:
-            # Do not apply IIR filter if iir_apply is not in config
             logger.info("Config parameter 'iir_apply' not provided. "
                         + "No IIR filtering will be used during calibration.")
             self.iir_apply = False
-        if self.iir_apply:
-            # Check if any parameters are provided as lists, and if so, save
-            # filter generation for the calibration loop
+        
+        if self.iir_apply is True:
+            # If any parameters are multiply-specified, generate the filter
+            # in the calibration loop instead of here.
             self.iir_rp_dB = get_parameter(IIR_RP, parameters)
             self.iir_rs_dB = get_parameter(IIR_RS, parameters)
             self.iir_cutoff_Hz = get_parameter(IIR_CUTOFF, parameters)
             self.iir_width_Hz = get_parameter(IIR_WIDTH, parameters)
-            # TODO: Get sample rate dynamically for filter design
-            self.iir_sos = generate_elliptic_iir_low_pass_filter(
-                self.iir_rp_dB, self.iir_rs_dB, self.iir_cutoff_Hz, self.iir_width_Hz, 14e6)
+            self.sample_rate = get_parameter(SAMPLE_RATE, parameters)
+            if not any([isinstance(v, list) for v in [self.iir_rp_dB, self.iir_rs_dB, self.iir_cutoff_Hz, self.iir_width_Hz, self.sample_rate]]):
+                # Generate single filter ahead of calibration loop
+                self.iir_sos = generate_elliptic_iir_low_pass_filter(
+                    self.iir_rp_dB, self.iir_rs_dB, self.iir_cutoff_Hz, self.iir_width_Hz, self.sample_rate
+                )
+                self.regenerate_iir = False
+            else:
+                self.regenerate_iir = True
 
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
-        detail = ''
-        # iteration_params is iterable even if it contains only one set of parameters
-        # it is also sorted by frequency from low to high
         iteration_params = utils.get_iterable_parameters(self.parameters)
+        detail = ''
         
-        # Calibrate
+        # Run calibration routine
         for i, p in enumerate(iteration_params):
             if i == 0:
                 detail += self.calibrate(p)
@@ -194,6 +198,7 @@ class YFactorCalibration(Action):
         super().configure_sigan(params)
 
         # Get parameters from action config
+        iir_apply = get_parameter(IIR_APPLY, params)
         fft_size = get_parameter(FFT_SIZE, params)
         nffts = get_parameter(NUM_FFTS, params)
         nskip = get_parameter(NUM_SKIP, params)
@@ -225,21 +230,35 @@ class YFactorCalibration(Action):
         )
         assert sample_rate == noise_off_measurement_result["sample_rate"], "Sample rate mismatch"
 
-        # Apply IIR filtering to both captures
-        logger.debug("Applying IIR filter to IQ captures")
-        noise_on_filtered = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
-        noise_off_filtered = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
+        # Apply IIR filtering to both captures if configured
+        if iir_apply:
+            if self.regenerate_iir:
+                logger.debug("Generating IIR filter")
+                rp_dB = get_parameter(IIR_RP, params)
+                rs_dB = get_parameter(IIR_RS, params)
+                cutoff_Hz = get_parameter(IIR_CUTOFF, params)
+                width_Hz = get_parameter(IIR_WIDTH, params)
+                self.iir_sos = generate_elliptic_iir_low_pass_filter(
+                    rp_dB, rs_dB, cutoff_Hz, width_Hz, sample_rate
+                )
+            logger.debug("Applying IIR filter to IQ captures")
+            noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
+            noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
+        else:
+            logger.debug('Skipping IIR filtering')
+            noise_on_data = noise_on_measurement_result["data"]
+            noise_off_data = noise_off_measurement_result["data"]
 
         # Get power values in time domain
-        td_on_watts = calculate_power_watts(noise_on_filtered.copy()) / 2. # Divide by 2 for RF/baseband conversion
-        td_off_watts = calculate_power_watts(noise_off_filtered.copy()) / 2.
+        td_on_watts = calculate_power_watts(noise_on_data.copy()) / 2. # Divide by 2 for RF/baseband conversion
+        td_off_watts = calculate_power_watts(noise_off_data.copy()) / 2.
 
         # Get mean power FFT results
         fft_on_watts = self.apply_mean_fft(
-            noise_on_filtered.copy(), fft_size, fft_window, nffts, fft_acf
+            noise_on_data.copy(), fft_size, fft_window, nffts, fft_acf
         )
         fft_off_watts = self.apply_mean_fft(
-            noise_off_filtered.copy(), fft_size, fft_window, nffts, fft_acf
+            noise_off_data.copy(), fft_size, fft_window, nffts, fft_acf
         )
 
         # Y-Factor
