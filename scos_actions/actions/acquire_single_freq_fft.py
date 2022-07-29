@@ -202,7 +202,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         #   RF/Baseband power conversion (-3 dB)
         #   FFT window amplitude correction
         m4s_result -= 3
-        m4s_result += convert_linear_to_dB(self.fft_window_acf)
+        m4s_result += 2. * convert_linear_to_dB(self.fft_window_acf)
         return m4s_result
 
     @property

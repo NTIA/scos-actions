@@ -8,6 +8,7 @@ from scos_actions.signal_processing.unit_conversion import (
     convert_dB_to_linear,
     convert_fahrenheit_to_celsius,
     convert_linear_to_dB,
+    convert_watts_to_dBm
 )
 
 logger = logging.getLogger(__name__)
@@ -46,10 +47,15 @@ def y_factor(
     :return: A tuple (noise_figure, gain) containing the calculated
         noise figure and gain, both in dB, from the Y-factor method.
     """
-    logger.debug(f"ENR: {convert_linear_to_dB(enr_linear)} dB")
-    logger.debug(f"ENBW: {enbw_hz} Hz")
-    logger.debug(f"Mean power on: {np.mean(pwr_noise_on_watts)} W")
-    logger.debug(f"Mean power off: {np.mean(pwr_noise_off_watts)} W")
+    if logger.isEnabledFor(logging.DEBUG):
+        mean_on_watts = np.mean(pwr_noise_on_watts)
+        mean_off_watts = np.mean(pwr_noise_off_watts)
+        mean_on_dBm = convert_watts_to_dBm(mean_on_watts)
+        mean_off_dBm = convert_watts_to_dBm(mean_off_watts)
+        logger.debug(f"ENR: {convert_linear_to_dB(enr_linear)} dB")
+        logger.debug(f"ENBW: {enbw_hz} Hz")
+        logger.debug(f"Mean power on: {mean_on_watts:.2f} W = {mean_on_dBm:.2f} dBm")
+        logger.debug(f"Mean power off: {mean_off_watts:.2f} W = {mean_off_dBm:.2f} dBm")
     y = pwr_noise_on_watts / pwr_noise_off_watts
     noise_factor = enr_linear / (y - 1.0)
     gain_watts = pwr_noise_on_watts / (
@@ -65,14 +71,14 @@ def get_linear_enr(cal_source_idx: int = None) -> float:
     """
     Get the excess noise ratio of a calibration source.
 
-    Specifying ``cal_source_idx`` is optional as long as there is
+    Specifying `cal_source_idx` is optional as long as there is
     only one calibration source. It is required if multiple
     calibration sources are present.
 
-    The preselector is loaded from scos_actions.hardware.
+    The preselector is loaded from `scos_actions.hardware`.
 
     :param cal_source_idx: The index of the specified
-        calibration source in preselector.cal_sources.
+        calibration source in `preselector.cal_sources`.
     :return: The excess noise ratio of the specified
         calibration source, in linear units.
     :raises CalibrationException: If multiple calibration sources are
@@ -106,7 +112,7 @@ def get_temperature(sensor_idx: int = None) -> Tuple[float, float, float]:
     """
     Get the temperature from a preselector sensor.
 
-    The preselector is loaded from scos_actions.hardware
+    The preselector is loaded from `scos_actions.hardware`.
 
     :param sensor_idx: The index of the desired temperature
         sensor in the preselector.

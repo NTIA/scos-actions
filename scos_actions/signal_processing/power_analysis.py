@@ -94,14 +94,19 @@ def apply_power_detector(
     data: np.ndarray, detector: EnumMeta, dtype: type = None, ignore_nan: bool = False,
 ) -> np.ndarray:
     """
-    Apply statistical detectors to a 2-D array of samples.
+    Apply statistical detectors to a 1- or 2-D array of samples.
 
-    Statistical detectors are applied along axis 0 (column-wise),
-    and the sample detector selects a single row from the 2-D
-    array at random.
+    For 2-D input data, statistical detectors are applied along
+    axis 0 (column-wise), and the sample detector selects a single
+    row at random.
 
-    If the input samples are power FFT samples, they are expected
-    to be packed in the shape (N_FFTs, N_Bins).
+    For 1-D input data, statistical detectors are applied along the
+    array, producing a single value output for each selected detector,
+    and the sample detector selects a single value from the input at
+    random.
+
+    If the input samples are power FFT samples, stored in a 2-D array,
+    they are expected to be packed in the shape (N_FFTs, N_Bins).
 
     The shape of the output depends on the number of detectors
     specified. The order of the results always follows min, max, mean,
@@ -110,7 +115,7 @@ def apply_power_detector(
 
     Create a detector using ``create_power_detector()``
 
-    :param data: A 2-D array of real, linear samples.
+    :param data: A 1- or 2-D array of real-valued samples in linear units.
     :param detector: A detector enumeration containing any combination
         of 'min', 'max', 'mean', 'median', and 'sample'. Also see the
         create_fft_detector and create_time_domain_detector documentation.
@@ -120,12 +125,12 @@ def apply_power_detector(
     :param ignore_nan: If true, statistical detectors (min/max/mean/median)
         will ignore any NaN values. NaN values may still appear in the
         random sample detector result.
-    :return: A 2-D array containing the selected detector results
-        as the specified dtype. The number of rows is equal to the
-        number of detectors applied, and the number of columns is equal
-        to the number of columns in the input array.
+    :return: A 1- or 2-D array containing the selected detector results
+        as the specified dtype. For 1-D inputs, the 1-D output length is
+        equal to the number of detectors applied. For 2-D inputs, the number
+        of rows is equal to the number of detectors applied, and the number
+        of columns is equal to the number of columns in the input array.
     """
-    # Currently this is identical to apply_fft_detector: make general?
     # Get detector names from detector enumeration
     detectors = [d.name for _, d in enumerate(detector)]
 
