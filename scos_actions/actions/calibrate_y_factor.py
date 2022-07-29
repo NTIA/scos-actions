@@ -238,12 +238,14 @@ class YFactorCalibration(Action):
                 rs_dB = get_parameter(IIR_RS, params)
                 cutoff_Hz = get_parameter(IIR_CUTOFF, params)
                 width_Hz = get_parameter(IIR_WIDTH, params)
-                self.iir_sos = generate_elliptic_iir_low_pass_filter(
+                iir_sos = generate_elliptic_iir_low_pass_filter(
                     rp_dB, rs_dB, cutoff_Hz, width_Hz, sample_rate
                 )
+            else:
+                iir_sos = self.iir_sos
             logger.debug("Applying IIR filter to IQ captures")
-            noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
-            noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
+            noise_on_data = sosfilt(iir_sos, noise_on_measurement_result["data"])
+            noise_off_data = sosfilt(iir_sos, noise_off_measurement_result["data"])
         else:
             logger.debug('Skipping IIR filtering')
             noise_on_data = noise_on_measurement_result["data"]
@@ -266,7 +268,7 @@ class YFactorCalibration(Action):
         # TODO Parameterize ENBW
         # ENBW should differ based on whether or not IIR filtering is used
         # enbw_hz_td = 11.607e6  # For RSA 507A
-        enbw_hz_td = 10.016e6  # Roughly based on IIR filter
+        enbw_hz_td = (cutoff_Hz + width_Hz) * 2.  # Roughly based on IIR filter
         enr_linear = get_linear_enr(self.cal_source_idx)
         temp_k, temp_c, _ = get_temperature(self.temp_sensor_idx)
 
