@@ -1,5 +1,7 @@
 # NTIA/ITS SCOS Actions Plugin
 
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 This repository contains common actions and interfaces to be re-used by scos-sensor
 plugins. See the [scos-sensor README](
 https://github.com/NTIA/scos-sensor/blob/master/README.md)
@@ -20,30 +22,33 @@ architecture.
 
 ## Overview of Repo Structure
 
-- scos_actions/actions: This includes the base Action class, signals, and the following
+- `scos_actions/actions`: This includes the base Action class, signals, and the following
   common action classes:
-  - acquire_single_freq_fft: performs FFTs and calculates mean, median, min, max, and
+  - `acquire_single_freq_fft`: performs FFTs and calculates mean, median, min, max, and
     sample statistics at a single center frequency.
-  - acquire_single_freq_tdomain_iq: acquires IQ data at a single center frequency.
-  - acquire_stepped_freq_tdomain_iq: acquires IQ data at multiple center frequencies.
-  - sync_gps: gets GPS location and syncs the host to GPS time
-  - monitor_sigan: ensures a signal analyzer is available and is able to maintain a
+  - `acquire_single_freq_tdomain_iq`: acquires IQ data at a single center frequency.
+  - `acquire_stepped_freq_tdomain_iq`: acquires IQ data at multiple center frequencies.
+  - `calibrate_y_facvtor`: performs calibration using the Y-Factor method.
+  - `sync_gps`: gets GPS location and syncs the host to GPS time
+  - `monitor_sigan`: ensures a signal analyzer is available and is able to maintain a
     connection to the computer.
-- scos_actions/configs/actions: This folder contains the yaml files with the parameters
+- `scos_actions/configs/actions`: This folder contains the YAML files with the parameters
   used to initialize the actions described above.
-- scos_actions/discover: This includes the code to read yaml files and make actions
+- `scos_actions/discover`: This includes the code to read YAML files and make actions
   available to scos-sensor.
-- scos_actions/hardware: This includes the signal analyzer interface and GPS interface
+- `scos_actions/hardware`: This includes the signal analyzer interface and GPS interface
   used by the actions and the mock signal analyzer. The signal analyzer interface is
   intended to represent universal functionality that is common across all signal
   analyzers. The specific implementations of the signal analyzer interface for
   particular signal analyzers are provided in separate repositories like
   [scos-usrp](https://github.com/NTIA/scos-usrp).
+- `scos_actions/signal_processing`: This contains various common signal processing
+routines which are used in actions.
 
 ## Running in scos-sensor
 
-Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`) and
-python>=3.7.
+Requires `pip>=18.1` (upgrade using `python3 -m pip install --upgrade pip`) and
+`python>=3.7`.
 
 1. Clone scos-sensor: git clone <https://github.com/NTIA/scos-sensor.git>
 1. Navigate to scos-sensor: `cd scos-sensor`
@@ -56,17 +61,19 @@ python>=3.7.
 1. If it does not exist, create env file while in the root scos-sensor directory:
    `cp env.template ./env`
 1. In env file, change `BASE_IMAGE=ubuntu:18.04` (at the bottom of the file)
-1. Set `MOCK_SIGAN` and `MOCK_SIGAN_RANDOM` equal to 1 in docker-compose.yml
+1. Set `MOCK_SIGAN` and `MOCK_SIGAN_RANDOM` equal to 1 in `docker-compose.yml`
 1. Get environment variables: `source ./env`
 1. Build and start containers: `docker-compose up -d --build --force-recreate`
 
-If scos-actions is installed to scos-sensor as a plugin, the following three
+If scos-actions is installed to scos-sensor as a plugin, the following
 parameterized actions are offered for testing using a mock signal analyzer; their
-parameters are defined in scos_actions/configs/actions.
+parameters are defined in `scos_actions/configs/actions`.
 
-- test_multi_frequency_iq_action
-- test_single_frequency_iq_action
-- test_single_frequency_m4s_action
+- `test_multi_frequency_iq_action`
+- `test_multi_frequency_y_factor_action`
+- `test_single_frequency_iq_action`
+- `test_single_frequency_m4s_action`
+- `test_single_frequency_y_factor_action`
 
 ## Development
 
@@ -94,38 +101,38 @@ python3 -m pip install --upgrade pip # upgrade to pip>=18.1
 python3 -m pip install -r requirements-dev.txt
 ```
 
-#### Using pip-tools
+#### Using `pip-tools`
 
 It is recommended to keep direct dependencies in a separate file. The direct
-dependencies are in the requirements.in and requirements-dev.in files. Then pip-tools
+dependencies are in the `requirements.in` and `requirements-dev.in` files. Then `pip-tools`
 can be used to generate files with all the dependencies and transitive dependencies
-(sub-dependencies). The files containing all the dependencies are in requirements.txt
-and requirements-dev.txt. Run the following in the virtual environment to install
-pip-tools.
+(sub-dependencies). The files containing all the dependencies are in `requirements.txt`
+and `requirements-dev.txt`. Run the following in the virtual environment to install
+`pip-tools`.
 
 ```bash
 python -m pip install pip-tools
 ```
 
-To update requirements.txt after modifying requirements.in:
+To update `requirements.txt` after modifying `requirements.in`:
 
 ```bash
 pip-compile requirements.in
 ```
 
-To update requirements-dev.txt after modifying requirements.in or requirements-dev.in:
+To update `requirements-dev.txt` after modifying `requirements.in` or `requirements-dev.in`:
 
 ```bash
 pip-compile requirements-dev.in
 ```
 
-Use pip-sync to match virtual environment to requirements-dev.txt:
+Use `pip-sync` to match virtual environment to `requirements-dev.txt`:
 
 ```bash
 pip-sync requirements.txt requirements-dev.txt
 ```
 
-For more information about pip-tools, see <https://pip-tools.readthedocs.io/en/latest/#>
+For more information about `pip-tools`, see <https://pip-tools.readthedocs.io/en/latest/#>
 
 ### Running Tests
 
