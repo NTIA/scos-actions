@@ -260,8 +260,14 @@ class YFactorCalibration(Action):
             noise_off_data = noise_off_measurement_result["data"]
 
         # Get power values in time domain
-        td_on_watts = calculate_power_watts(noise_on_data) / 2. # Divide by 2 for RF/baseband conversion
-        td_off_watts = calculate_power_watts(noise_off_data) / 2.
+        # td_on_watts = calculate_power_watts(noise_on_data) / 2. # Divide by 2 for RF/baseband conversion
+        # td_off_watts = calculate_power_watts(noise_off_data) / 2.
+        td_on_watts = self.apply_mean_td(
+            noise_on_data, fft_size, nffts
+        )
+        td_off_watts = self.apply_mean_td(
+            noise_off_data, fft_size, nffts
+        )
 
         # Get mean power FFT results
         fft_on_watts = self.apply_mean_fft(
@@ -306,6 +312,17 @@ class YFactorCalibration(Action):
         # Detail results contain only FFT version of result for now
         return 'Noise Figure: {}, Gain: {}'.format(fft_noise_figure, fft_gain)
 
+    def apply_mean_td(self, iqdata: ndarray, block_size: int, n_blocks: int):
+        # TESTING
+        # fft_detector can also be used for time domain
+        # Reshape data
+        import numpy as np
+        iq = np.reshape(iqdata[:block_size * n_blocks], (n_blocks, block_size))
+        iq /= 2 # RF/baseband conversion
+        iq_pwr = calculate_power_watts(iq)
+        mean_result = apply_power_detector(iq_pwr, self.fft_detector)
+        return mean_result
+
     def apply_mean_fft(
         self, iqdata: ndarray, fft_size: int, fft_window: ndarray, nffts: int, fft_window_cf: float
     ) -> ndarray:
@@ -317,14 +334,10 @@ class YFactorCalibration(Action):
             num_ffts=nffts,
             shift=True
         )
-        # TESTING SCALING
         complex_fft /= 2  # RF/baseband conversion
         complex_fft *= fft_window_cf  # Window correction
-        logger.debug(f"Scaled FFT: {complex_fft[0,:5]}")
         power_fft = calculate_power_watts(complex_fft)
-        logger.debug(f"Power FFT: {power_fft[0,:5]}")
         mean_result = apply_power_detector(power_fft, self.fft_detector)
-        logger.debug(f"Mean result shape: {mean_result.shape}")
         return mean_result
 
     @property
