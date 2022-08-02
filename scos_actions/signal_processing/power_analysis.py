@@ -156,9 +156,10 @@ def apply_power_detector(
         rng = np.random.default_rng()
         result.append(data[rng.integers(0, data.shape[0], 1)][0])
         del rng
+    result = np.array(result, dtype=dtype)
     logger.debug(f"Power detector input shape: {data.shape}")
     logger.debug(f"Power detector output shape: {result.shape}")
-    return np.array(result, dtype=dtype)
+    return result
 
 
 def filter_quantiles(x: np.ndarray, q_lo: float, q_hi: float) -> np.ndarray:
