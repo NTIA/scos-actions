@@ -140,6 +140,7 @@ def apply_power_detector(
         detector_functions = [np.min, np.max, np.mean, np.median]
         
     # Get functions based on specified detector
+    logger.debug(f"Applying power detectors: {detectors}")
     if "min" in detectors:
         detector_functions.append(detector_functions[0])
     if "max" in detectors:
@@ -155,6 +156,8 @@ def apply_power_detector(
         rng = np.random.default_rng()
         result.append(data[rng.integers(0, data.shape[0], 1)][0])
         del rng
+    logger.debug(f"Power detector input shape: {data.shape}")
+    logger.debug(f"Power detector output shape: {result.shape}")
     return np.array(result, dtype=dtype)
 
 

@@ -84,19 +84,13 @@ def get_fft(
 
     # Apply the FFT window if provided
     if fft_window is not None:
-        logger.debug("Applying window before FFT")
-        logger.debug(f"Time data: {time_data[0,:5]}, window: {fft_window[:5]}")
         time_data = ne.evaluate("time_data*fft_window")
-        logger.debug("After windowing:")
-        logger.debug(f"Time data: {time_data[0,:5]}")
-        logger.debug(f"Windowed data type and shape {time_data.dtype}, {time_data.shape}")
 
     # Take the FFT
     complex_fft = sp_fft(time_data, norm=norm, workers=workers)
 
     # Shift the frequencies if desired (only along second axis)
     if shift:
-        logger.debug("Shifting zero-frequency component of FFT to center")
         complex_fft = np.fft.fftshift(complex_fft) #, axes=(1,))
     return complex_fft
 
