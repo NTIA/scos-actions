@@ -198,10 +198,13 @@ class YFactorCalibration(Action):
         # Get parameters from action config
         cal_source_idx = get_parameter(CAL_SOURCE_IDX, params)
         temp_sensor_idx = get_parameter(TEMP_SENSOR_IDX, params)
-        iir_apply = get_parameter(IIR_APPLY, params)
         fft_size = get_parameter(FFT_SIZE, params)
         nffts = get_parameter(NUM_FFTS, params)
         nskip = get_parameter(NUM_SKIP, params)
+        if self.iir_apply is not False:
+            iir_apply = get_parameter(IIR_APPLY, params)
+        else:
+            iir_apply = False
 
         fft_window = get_fft_window(self.fft_window_type, fft_size)
         fft_acf = get_fft_window_correction(fft_window, 'amplitude')
@@ -244,6 +247,8 @@ class YFactorCalibration(Action):
                 )
             else:
                 iir_sos = self.iir_sos
+                cutoff_Hz = self.iir_cutoff_Hz
+                width_Hz = self.iir_width_Hz
             logger.debug("Applying IIR filter to IQ captures")
             noise_on_data = sosfilt(iir_sos, noise_on_measurement_result["data"])
             noise_off_data = sosfilt(iir_sos, noise_off_measurement_result["data"])
