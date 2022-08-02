@@ -85,6 +85,8 @@ def get_fft(
     # Apply the FFT window if provided
     if fft_window is not None:
         logger.debug("Applying window before FFT")
+        if time_data.dtype is np.complex64:
+            time_data = time_data.astype(np.complex128)
         logger.debug(f"Time data: {time_data[0,:5]}, window: {fft_window[:5]}")
         ne.evaluate("time_data*fft_window", out=time_data)
         logger.debug("After windowing:")
