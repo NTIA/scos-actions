@@ -260,15 +260,15 @@ class YFactorCalibration(Action):
             noise_off_data = noise_off_measurement_result["data"]
 
         # Get power values in time domain
-        td_on_watts = calculate_power_watts(noise_on_data.copy()) / 2. # Divide by 2 for RF/baseband conversion
-        td_off_watts = calculate_power_watts(noise_off_data.copy()) / 2.
+        td_on_watts = calculate_power_watts(noise_on_data) / 2. # Divide by 2 for RF/baseband conversion
+        td_off_watts = calculate_power_watts(noise_off_data) / 2.
 
         # Get mean power FFT results
         fft_on_watts = self.apply_mean_fft(
-            noise_on_data.copy(), fft_size, fft_window, nffts, fft_acf
+            noise_on_data, fft_size, fft_window, nffts, fft_acf
         )
         fft_off_watts = self.apply_mean_fft(
-            noise_off_data.copy(), fft_size, fft_window, nffts, fft_acf
+            noise_off_data, fft_size, fft_window, nffts, fft_acf
         )
 
         # Y-Factor
@@ -320,8 +320,11 @@ class YFactorCalibration(Action):
         # TESTING SCALING
         complex_fft /= 2  # RF/baseband conversion
         complex_fft *= fft_window_cf  # Window correction
+        logger.debug(f"Scaled FFT: {complex_fft[0,:5]}")
         power_fft = calculate_power_watts(complex_fft)
+        logger.debug(f"Power FFT: {power_fft[0,:5]}")
         mean_result = apply_power_detector(power_fft, self.fft_detector)
+        logger.debug(f"Mean result shape: {mean_result.shape}")
         return mean_result
 
     @property

@@ -63,6 +63,7 @@ def get_fft(
     :return: The transformed input, scaled based on the specified
         normalization mode.
     """
+    logger.debug("Computing FFTs")
     # Get num_ffts for default case: as many as possible
     if num_ffts <= 0:
         logger.info("Number of FFTs not specified. Using as many as possible.")
@@ -79,18 +80,23 @@ def get_fft(
 
     # Resize time data for FFTs
     time_data = np.reshape(time_data[: num_ffts * fft_size], (num_ffts, fft_size))
+    logger.debug(f"Num. FFTs: {num_ffts}, FFT Size: {fft_size}, Data shape: {time_data.shape}")
 
     # Apply the FFT window if provided
     if fft_window is not None:
         logger.debug("Applying window before FFT")
-        time_data = ne.evaluate("time_data*fft_window")
+        logger.debug(f"Time data: {time_data[0,:5]}, window: {fft_window[:5]}")
+        ne.evaluate("time_data*fft_window", out=time_data)
+        logger.debug("After windowing:")
+        logger.debug(f"Time data: {time_data[0,:5]}")
 
     # Take the FFT
     complex_fft = sp_fft(time_data, norm=norm, workers=workers)
 
     # Shift the frequencies if desired (only along second axis)
     if shift:
-        complex_fft = np.fft.fftshift(complex_fft, axes=(1,))
+        logger.debug("Shifting zero-frequency component of FFT to center")
+        complex_fft = np.fft.fftshift(complex_fft) #, axes=(1,))
     return complex_fft
 
 
