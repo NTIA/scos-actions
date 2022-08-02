@@ -27,7 +27,7 @@ from typing import Tuple
 from scipy.signal import sosfilt
 
 from scos_actions import utils
-from scos_actions.actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.hardware import gps as mock_gps
@@ -53,6 +53,7 @@ NUM_FFTS = 'nffts'
 FFT_WINDOW_TYPE = "fft_window_type"
 APD_BIN_SIZE_DB = 'apd_bin_size_dB'
 TD_BIN_SIZE_MS = 'td_bin_size_ms'
+ROUND_TO = 'round_to_places'
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 DURATION_MS = "duration_ms"
@@ -90,6 +91,7 @@ class NasctnSeaDataProduct(MeasurementAction):
         self.nffts = utils.get_parameter(NUM_FFTS, self.parameters)
         self.apd_bin_size_dB = utils.get_parameter(APD_BIN_SIZE_DB, self.parameters)
         self.td_bin_size_ms = utils.get_parameter(TD_BIN_SIZE_MS, self.parameters)
+        self.round_to = utils.get_parameter(ROUND_TO, self.parameters)
         self.sample_rate_Hz = utils.get_parameter(SAMPLE_RATE, self.parameters)
 
         # Construct IIR filter
@@ -122,13 +124,13 @@ class NasctnSeaDataProduct(MeasurementAction):
         for i, p in enumerate(iteration_params, start=1):
             # Capture IQ data
             measurement_result = self.capture_iq(schedule_entry, task_id, i, p)
-            # Generate data product
-            data_product = self.generate_data_product(measurement_result)
+            # Generate data product, overwrite IQ data
+            measurement_result["data"] = self.generate_data_product(measurement_result)
             # Send signal
             measurement_action_completed.send(
                 sender=self.__class_,
                 task_id=task_id,
-                data=data_product,
+                data=measurement_result["data"],
                 metadata=None # TODO: Add metadata
             )
         
@@ -157,18 +159,40 @@ class NasctnSeaDataProduct(MeasurementAction):
     
     def generate_data_product(self, measurement_result: dict) -> np.ndarray:
         # Load IQ, process, return data product, for single channel
-        rec_id = 1  # TODO: Placeholder value
+        # TODO: Explore parallelizing computation tasks
+        logger.debug(f'Generating data product for {measurement_result["task_id"]}')
+        iq = measurement_result["data"].astype(np.complex128)
+        data_product = []
+
+        # Get FFT amplitudes using unfiltered data
+        logger.debug("Getting FFT results...")
+        data_product.extend(self.get_fft_results(iq))
+
         # Filter IQ data
-        logger.debug(f"Applying IIR low-pass filter to IQ capture {rec_id}")
-        iq = sosfilt(self.iir_sos, measurement_result["data"])
+        if self.iir_apply:
+            logger.debug(f'Applying IIR low-pass filter to IQ data...')
+            iq = sosfilt(self.iir_sos, iq)
+        else:
+            logger.debug(f"Skipping IIR filtering of IQ data...")
 
-        # TODO: Explore parallelizing these tasks
-        mean_fft, max_fft = self.get_fft_results(iq)
-        apd_p, apd_a = self.get_apd_results(iq)
-        mean_td_pwr, max_td_pwr = self.get_td_power_results(iq)
+        logger.debug("Calculating time-domain power statistics...")
+        data_product.extend(self.get_td_power_results(iq))
 
-        # TODO: Pack data product results into single array and convert dtype
-        data_product = np.array()
+        logger.debug("Generating APD...")
+        data_product.extend(self.get_apd_results(iq))
+
+        del iq
+
+        # Quantize power results
+        for i, data in enumerate(data_product):
+            if i == 4:
+                # Do not round APD probability axis
+                continue
+            data.round(decimals=self.round_to, out=data)
+
+        # Reduce data types to half-precision floats
+        for i in len(data_product):
+            data_product[i] = data_product[i].astype(np.half)
 
         return data_product
 

@@ -18,6 +18,8 @@ nasctn_sea_data_product:
   apd_bin_size_dB: 0.5  # Set to 0 or negative for no downsampling
 # Time domain power statistics settings
   td_bin_size_ms: 100
+# Round all power results to X decimal places
+  round_to_places: 2
 # Sigan Settings
   preamp_enable: True
   reference_level: -25
