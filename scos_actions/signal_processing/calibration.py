@@ -48,14 +48,14 @@ def y_factor(
         noise figure and gain, both in dB, from the Y-factor method.
     """
     if logger.isEnabledFor(logging.DEBUG):
-        mean_on_watts = np.mean(pwr_noise_on_watts)
-        mean_off_watts = np.mean(pwr_noise_off_watts)
-        mean_on_dBm = convert_watts_to_dBm(mean_on_watts)
-        mean_off_dBm = convert_watts_to_dBm(mean_off_watts)
+        mean_on_mwatts = np.mean(pwr_noise_on_watts) * 1e3
+        mean_off_mwatts = np.mean(pwr_noise_off_watts) * 1e3
+        mean_on_dBm = convert_linear_to_dB(mean_on_mwatts)
+        mean_off_dBm = convert_linear_to_dB(mean_off_mwatts)
         logger.debug(f"ENR: {convert_linear_to_dB(enr_linear)} dB")
         logger.debug(f"ENBW: {enbw_hz} Hz")
-        logger.debug(f"Mean power on: {mean_on_watts:.2f} W = {mean_on_dBm:.2f} dBm")
-        logger.debug(f"Mean power off: {mean_off_watts:.2f} W = {mean_off_dBm:.2f} dBm")
+        logger.debug(f"Mean power on: {mean_on_mwatts:.2f} mW = {mean_on_dBm:.2f} dBm")
+        logger.debug(f"Mean power off: {mean_off_mwatts:.2f} mW = {mean_off_dBm:.2f} dBm")
     y = pwr_noise_on_watts / pwr_noise_off_watts
     noise_factor = enr_linear / (y - 1.0)
     gain_watts = pwr_noise_on_watts / (
