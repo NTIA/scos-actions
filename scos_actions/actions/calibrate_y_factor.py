@@ -68,8 +68,8 @@ each row of the matrix.
 
 import logging
 import time
+import numpy as np
 
-from numpy import ndarray
 from scipy.constants import Boltzmann
 from scipy.signal import sosfilt
 
@@ -79,7 +79,6 @@ from scos_actions.settings import sensor_calibration
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.utils import ParameterException, get_parameter
-from scos_actions.signal_processing.fft import get_fft, get_fft_enbw, get_fft_window, get_fft_window_correction
 
 from scos_actions.signal_processing.calibration import (
     get_linear_enr,
@@ -106,8 +105,7 @@ NOISE_DIODE_OFF = {RF_PATH: 'noise_diode_off'}
 # Define parameter keys
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
-FFT_SIZE = "fft_size"
-NUM_FFTS = "nffts"
+DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
 IIR_APPLY = 'iir_apply'
 IIR_RP = 'iir_rp_dB'
@@ -146,10 +144,8 @@ class YFactorCalibration(Action):
     def __init__(self, parameters, sigan, gps=mock_gps):
         logger.debug('Initializing calibration action')
         super().__init__(parameters, sigan, gps)
-        # FFT setup
-        # TODO: Remove these
-        self.fft_detector = create_power_detector("MeanDetector", ["mean"])
-        self.fft_window_type = "flattop"
+        self.power_detector = create_power_detector("MeanDetector", ["mean"])
+
         # IIR Filter Setup
         try:
             self.iir_apply = get_parameter(IIR_APPLY, parameters)
@@ -198,17 +194,14 @@ class YFactorCalibration(Action):
         # Get parameters from action config
         cal_source_idx = get_parameter(CAL_SOURCE_IDX, params)
         temp_sensor_idx = get_parameter(TEMP_SENSOR_IDX, params)
-        fft_size = get_parameter(FFT_SIZE, params)
-        nffts = get_parameter(NUM_FFTS, params)
+        sample_rate = get_parameter(SAMPLE_RATE, params)
+        duration_ms = get_parameter(DURATION_MS, params)
+        num_samples = int(sample_rate * duration_ms * 1e-3)
         nskip = get_parameter(NUM_SKIP, params)
         if self.iir_apply is not False:
             iir_apply = get_parameter(IIR_APPLY, params)
         else:
             iir_apply = False
-
-        fft_window = get_fft_window(self.fft_window_type, fft_size)
-        fft_acf = get_fft_window_correction(fft_window, 'amplitude')
-        num_samples = fft_size * nffts
         
         # Set noise diode on
         logger.debug('Setting noise diode on')
@@ -249,46 +242,26 @@ class YFactorCalibration(Action):
                 iir_sos = self.iir_sos
                 cutoff_Hz = self.iir_cutoff_Hz
                 width_Hz = self.iir_width_Hz
-            enbw_hz_td = (cutoff_Hz + width_Hz) * 2.  # Roughly based on IIR filter
+            enbw_hz = (cutoff_Hz + width_Hz) * 2.  # Roughly based on IIR filter
             logger.debug("Applying IIR filter to IQ captures")
             noise_on_data = sosfilt(iir_sos, noise_on_measurement_result["data"])
             noise_off_data = sosfilt(iir_sos, noise_off_measurement_result["data"])
         else:
-            enbw_hz_td = 11.607e6  # For RSA 507A #TODO REMOVE
+            enbw_hz = 11.607e6  # For RSA 507A #TODO REMOVE
             logger.debug('Skipping IIR filtering')
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]
 
         # Get power values in time domain
-        # td_on_watts = calculate_power_watts(noise_on_data) / 2. # Divide by 2 for RF/baseband conversion
-        # td_off_watts = calculate_power_watts(noise_off_data) / 2.
-        td_on_watts = self.apply_mean_td(
-            noise_on_data, fft_size, nffts
-        )
-        td_off_watts = self.apply_mean_td(
-            noise_off_data, fft_size, nffts
-        )
-
-        # Get mean power FFT results
-        fft_on_watts = self.apply_mean_fft(
-            noise_on_data, fft_size, fft_window, nffts, fft_acf
-        )
-        fft_off_watts = self.apply_mean_fft(
-            noise_off_data, fft_size, fft_window, nffts, fft_acf
-        )
+        pwr_on_watts = self.get_mean_power(noise_on_data)
+        pwr_off_watts = self.get_mean_power(noise_off_data)
 
         # Y-Factor
-        enbw_hz = get_fft_enbw(fft_window, sample_rate)
         enr_linear = get_linear_enr(cal_source_idx)
         temp_k, temp_c, _ = get_temperature(temp_sensor_idx)
 
-        # New method
-        td_noise_figure, td_gain = y_factor(
-            td_on_watts, td_off_watts, enr_linear, enbw_hz_td, temp_k
-        )
-        # Old method for comparison
-        fft_noise_figure, fft_gain = y_factor(
-            fft_on_watts, fft_off_watts, enr_linear, enbw_hz, temp_k
+        noise_figure, gain = y_factor(
+            pwr_on_watts, pwr_off_watts, enr_linear, enbw_hz, temp_k
         )
 
         # Don't update the sensor calibration while testing
@@ -304,69 +277,48 @@ class YFactorCalibration(Action):
         # Debugging
         noise_floor_dBm = convert_watts_to_dBm(Boltzmann * temp_k * enbw_hz)
         logger.debug(f'Noise floor: {noise_floor_dBm:.2f} dBm')
-        logger.debug(f'Noise Figure (FFT): {fft_noise_figure:.2f} dB')
-        logger.debug(f'Gain (FFT): {fft_gain:.2f} dB')
-        logger.debug(f'Noise figure (TD): {td_noise_figure:.2f} dB')
-        logger.debug(f"Gain (TD): {td_gain:.2f} dB")
+        logger.debug(f'Noise figure: {noise_figure:.2f} dB')
+        logger.debug(f"Gain: {gain:.2f} dB")
         
         # Detail results contain only FFT version of result for now
-        return 'Noise Figure: {}, Gain: {}'.format(fft_noise_figure, fft_gain)
+        return 'Noise Figure: {}, Gain: {}'.format(noise_figure, gain)
 
-    def apply_mean_td(self, iqdata: ndarray, block_size: int, n_blocks: int):
-        # TESTING
-        # fft_detector can also be used for time domain
+    def get_mean_power(self, iqdata: np.ndarray) -> np.ndarray:
         # Reshape data
-        import numpy as np
-        iq = np.reshape(iqdata[:block_size * n_blocks], (n_blocks, block_size))
-        iq /= 2 # RF/baseband conversion
-        iq_pwr = calculate_power_watts(iq)
-        mean_result = apply_power_detector(iq_pwr, self.fft_detector)
-        return mean_result
-
-    def apply_mean_fft(
-        self, iqdata: ndarray, fft_size: int, fft_window: ndarray, nffts: int, fft_window_cf: float
-    ) -> ndarray:
-        complex_fft = get_fft(
-            time_data=iqdata,
-            fft_size=fft_size,
-            norm="forward",
-            fft_window=fft_window,
-            num_ffts=nffts,
-            shift=True
-        )
-        complex_fft /= 2  # RF/baseband conversion
-        complex_fft *= fft_window_cf  # Window correction
-        power_fft = calculate_power_watts(complex_fft)
-        mean_result = apply_power_detector(power_fft, self.fft_detector)
-        return mean_result
+        # iq = np.reshape(iqdata[:block_size * n_blocks], (n_blocks, block_size))
+        iqdata /= 2 # RF/baseband conversion
+        iq_pwr = calculate_power_watts(iqdata)
+        # mean_result = apply_power_detector(iq_pwr, self.power_detector)
+        # return mean_result
+        return iq_pwr
 
     @property
     def description(self):
         # Get parameters; they may be single values or lists
         frequencies = get_parameter(FREQUENCY, self.parameters)
-        nffts = get_parameter(NUM_FFTS, self.parameters)
-        fft_size = get_parameter(FFT_SIZE, self.parameters)
+        # nffts = get_parameter(NUM_FFTS, self.parameters)
+        # fft_size = get_parameter(FFT_SIZE, self.parameters)
 
         # Convert parameter lists to strings if needed
         if isinstance(frequencies, list):
             frequencies = utils.list_to_string(
                 [f / 1e6 for f in get_parameter(FREQUENCY, self.parameters)]
             )
-        if isinstance(nffts, list):
-            nffts = utils.list_to_string(get_parameter(NUM_FFTS, self.parameters))
-        if isinstance(fft_size, list):
-            fft_size = utils.list_to_string(get_parameter(FFT_SIZE, self.parameters))
+        # if isinstance(nffts, list):
+        #     nffts = utils.list_to_string(get_parameter(NUM_FFTS, self.parameters))
+        # if isinstance(fft_size, list):
+        #     fft_size = utils.list_to_string(get_parameter(FFT_SIZE, self.parameters))
         
         acq_plan = (
             f"Performs a y-factor calibration at frequencies: "
-            f"{frequencies}, nffts:{nffts}, fft_size: {fft_size}\n"
+            # f"{frequencies}, nffts:{nffts}, fft_size: {fft_size}\n"
         )
         definitions = {
             "name": self.name,
             "frequencies": frequencies,
             "acquisition_plan": acq_plan,
-            "fft_size": fft_size,
-            "nffts": nffts,
+            # "fft_size": fft_size,
+            # "nffts": nffts,
         }
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**definitions)
