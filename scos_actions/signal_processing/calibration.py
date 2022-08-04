@@ -59,12 +59,13 @@ def y_factor(
     logger.debug(f"Y (linear calc): {y}")
     logger.debug(f"Y (dB calc): {y_dBcalc}")
     noise_factor = enr_linear / (y - 1.0)
-    nf_dbcalc = convert_linear_to_dB(enr_linear / (y_dBcalc - 1.0))
+    noise_factor_dbcalc = enr_linear / (y_dBcalc - 1.0)
+    nf_dbcalc = convert_linear_to_dB(noise_factor_dbcalc)
     logger.debug(f"Noise figure (dB calc): {nf_dbcalc}")
     gain_watts = pwr_noise_on_watts / (
         Boltzmann * temp_kelvins * enbw_hz * (enr_linear + noise_factor)
     )
-    gain_dbcalc = mean_on_dBm - convert_watts_to_dBm(Boltzmann * temp_kelvins * enbw_hz * (enr_linear + noise_factor))
+    gain_dbcalc = mean_on_dBm - convert_watts_to_dBm(Boltzmann * temp_kelvins * enbw_hz * (enr_linear + noise_factor_dbcalc))
     logger.debug(f"Gain (dB calc): {gain_dbcalc}")
     # Get mean values from arrays and convert to dB
     noise_figure = convert_linear_to_dB(np.mean(noise_factor))
