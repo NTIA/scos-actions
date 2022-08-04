@@ -321,7 +321,7 @@ class YFactorCalibration(Action):
             # "nffts": nffts,
         }
         # __doc__ refers to the module docstring at the top of the file
-        return __doc__.format(**definitions)
+        return __doc__ #.format(**definitions)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
