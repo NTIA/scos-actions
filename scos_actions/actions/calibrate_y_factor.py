@@ -115,9 +115,6 @@ IIR_WIDTH = 'iir_width_Hz'
 CAL_SOURCE_IDX = 'cal_source_idx'
 TEMP_SENSOR_IDX = 'temp_sensor_idx'
 
-# TODO: Should calibration source index and temperature sensor number
-# be required parameters?
-
 
 class YFactorCalibration(Action):
     """Perform a single- or stepped-frequency Y-factor calibration.
