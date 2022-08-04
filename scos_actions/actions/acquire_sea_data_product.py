@@ -23,6 +23,7 @@ Currently in development.
 import logging
 import numpy as np
 import numexpr as ne
+from time import perf_counter
 from typing import Tuple
 from scipy.signal import sosfilt
 
@@ -120,12 +121,13 @@ class NasctnSeaDataProduct(MeasurementAction):
         # configured frequency. It is probably better to do all IQ captures first,
         # then generate all data products, or to parallelize captures/processing.
 
-
+        start_action = perf_counter()
         for i, p in enumerate(iteration_params, start=1):
             # Capture IQ data
             measurement_result = self.capture_iq(schedule_entry, task_id, i, p)
             # Generate data product, overwrite IQ data
             measurement_result["data"] = self.generate_data_product(measurement_result)
+
             # Send signal
             measurement_action_completed.send(
                 sender=self.__class_,
@@ -133,11 +135,12 @@ class NasctnSeaDataProduct(MeasurementAction):
                 data=measurement_result["data"],
                 metadata=None # TODO: Add metadata
             )
-        
-        # TODO: Save the data product
+        action_done = perf_counter()
+        logger.debug(f"IQ Capture and data processing completed in {action_done-start_action:.2f}")
 
     def capture_iq(self, schedule_entry, task_id, recording_id, params) -> dict:
         start_time = utils.get_datetime_str_now()
+        tic = perf_counter()
         # Configure signal analyzer + preselector
         self.configure(params)
         # Get IQ capture parameters
@@ -155,6 +158,8 @@ class NasctnSeaDataProduct(MeasurementAction):
         measurement_result["domain"] = Domain.TIME.value
         measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result["task_id"] = task_id
+        toc = perf_counter()
+        logger.debug(f"IQ Capture ({duration_ms} ms) completed in {toc-tic:.2f} s.")
         return measurement_result
     
     def generate_data_product(self, measurement_result: dict) -> np.ndarray:
@@ -166,35 +171,53 @@ class NasctnSeaDataProduct(MeasurementAction):
 
         # Get FFT amplitudes using unfiltered data
         logger.debug("Getting FFT results...")
+        tic = perf_counter()
         data_product.extend(self.get_fft_results(iq))
+        toc = perf_counter()
+        logger.debug(f"FFT computation complete in {toc-tic:.2f} s")
 
         # Filter IQ data
         if self.iir_apply:
             logger.debug(f'Applying IIR low-pass filter to IQ data...')
+            tic = perf_counter()
             iq = sosfilt(self.iir_sos, iq)
+            toc = perf_counter()
+            logger.debug(f"IIR filter applied to IQ samples in {toc-tic:.2f} s")
         else:
             logger.debug(f"Skipping IIR filtering of IQ data...")
 
         logger.debug("Calculating time-domain power statistics...")
+        tic = perf_counter()
         data_product.extend(self.get_td_power_results(iq))
+        toc = perf_counter()
+        logger.debug(f"Time domain power statistics calculated in {toc-tic:.2f} s")
 
         logger.debug("Generating APD...")
+        tic = perf_counter()
         data_product.extend(self.get_apd_results(iq))
+        toc = perf_counter()
+        logger.debug(f"APD result generated in {toc-tic:.2f} s")
 
         del iq
 
         # Quantize power results
+        tic = perf_counter()
         for i, data in enumerate(data_product):
             if i == 4:
                 # Do not round APD probability axis
                 continue
             data.round(decimals=self.round_to, out=data)
+        toc = perf_counter()
+        logger.debug(f"Data product rounded to {self.round_to} decimal places in {toc-tic:.2f} s")
 
         # Reduce data types to half-precision floats
+        tic = perf_counter()
         for i in len(data_product):
             data_product[i] = data_product[i].astype(np.half)
+        toc = perf_counter()
+        logger.debug(f"Reduced data types to half-precision float in {toc-tic:.2f} s")
 
-        return data_product
+        return np.array(data_product, dtype=object)
 
     def get_fft_results(self, iqdata: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         # IQ data already scaled for calibrated gain
