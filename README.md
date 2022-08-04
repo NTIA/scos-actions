@@ -1,5 +1,8 @@
 # NTIA/ITS SCOS Actions Plugin
 
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/NTIA/scos-actions?display_name=tag&sort=semver)
+![GitHub all releases](https://img.shields.io/github/downloads/NTIA/scos-actions/total)
+![GitHub issues](https://img.shields.io/github/issues/NTIA/scos-actions)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 This repository contains common actions and interfaces to be re-used by scos-sensor
