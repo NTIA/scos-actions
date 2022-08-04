@@ -47,24 +47,25 @@ def y_factor(
     :return: A tuple (noise_figure, gain) containing the calculated
         noise figure and gain, both in dB, from the Y-factor method.
     """
+    # mean_on_dBm = convert_watts_to_dBm(np.mean(pwr_noise_on_watts))
+    # mean_off_dBm = convert_watts_to_dBm(np.mean(pwr_noise_off_watts))
+    # Testing averaging before vs. after y-factor
+    # This version: average after
+    mean_on_dBm = convert_watts_to_dBm(pwr_noise_on_watts)
+    mean_off_dBm = convert_watts_to_dBm(pwr_noise_off_watts)
     if logger.isEnabledFor(logging.DEBUG):
-        mean_on_mwatts = np.mean(pwr_noise_on_watts) * 1e3
-        mean_off_mwatts = np.mean(pwr_noise_off_watts) * 1e3
-        mean_on_dBm = convert_linear_to_dB(mean_on_mwatts)
-        mean_off_dBm = convert_linear_to_dB(mean_off_mwatts)
         logger.debug(f"ENR: {convert_linear_to_dB(enr_linear)} dB")
         logger.debug(f"ENBW: {enbw_hz} Hz")
-        logger.debug(f"Mean power on: {mean_on_mwatts:.2f} mW = {mean_on_dBm:.2f} dBm")
-        logger.debug(f"Mean power off: {mean_off_mwatts:.2f} mW = {mean_off_dBm:.2f} dBm")
-    y = pwr_noise_on_watts / pwr_noise_off_watts
+        logger.debug(f"Mean power on: {mean_on_dBm:.2f} dBm")
+        logger.debug(f"Mean power off: {mean_off_dBm:.2f} dBm")
+    # y = pwr_noise_on_watts / pwr_noise_off_watts
+    y = convert_dB_to_linear(mean_on_dBm - mean_off_dBm)
     noise_factor = enr_linear / (y - 1.0)
-    gain_watts = pwr_noise_on_watts / (
-        Boltzmann * temp_kelvins * enbw_hz * (enr_linear + noise_factor)
-    )
+    gain_dB = convert_watts_to_dBm(np.mean(pwr_noise_on_watts)) - convert_watts_to_dBm(Boltzmann * temp_kelvins * enbw_hz * (enr_linear + noise_factor))
     # Get mean values from arrays and convert to dB
     noise_figure = convert_linear_to_dB(np.mean(noise_factor))
-    gain = convert_linear_to_dB(np.mean(gain_watts))
-    return noise_figure, gain
+    # gain = convert_linear_to_dB(np.mean(gain_dB))
+    return noise_figure, gain_dB
 
 
 def get_linear_enr(cal_source_idx: int = None) -> float:
