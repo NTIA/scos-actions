@@ -1,5 +1,6 @@
 -rrequirements.txt
 
+pip-tools>=6.6.2, <7.0
 pre-commit>=2.0, <3.0
 pytest>=7.0, <8.0
 tox>=3.0, <=4.0
