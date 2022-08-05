@@ -42,6 +42,7 @@ class SignalAnalyzerInterface(ABC):
     @property
     @abstractmethod
     def is_available(self) -> bool:
+        """Returns True if sigan is initialized and ready for measurements."""
         pass
 
     @abstractmethod
