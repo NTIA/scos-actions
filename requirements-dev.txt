@@ -61,6 +61,8 @@ packaging==21.3
     #   numexpr
     #   pytest
     #   tox
+pip-tools==6.8.0
+    # via -r requirements-dev.in
 platformdirs==2.5.1
     # via virtualenv
 pluggy==1.0.0
