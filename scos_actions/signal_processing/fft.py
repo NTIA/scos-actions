@@ -104,9 +104,6 @@ def get_fft_window(window_type: str, window_length: int) -> np.ndarray:
     bartlett, flattop, parzen, bohman, blackmanharris, nuttall, barthann,
     cosine, exponential, tukey, and taylor.
 
-    If an invalid window type is specified, a boxcar (rectangular)
-    window will be used instead.
-
     :param window_type: A string supported by scipy.signal.get_window.
         Only windows which do not require additional parameters are
         supported. Whitespace and capitalization are ignored.
@@ -122,14 +119,7 @@ def get_fft_window(window_type: str, window_length: int) -> np.ndarray:
         window_type = "hann"
 
     # Get window samples
-    try:
-        window = get_window(window_type, window_length)
-    except ValueError:
-        logger.debug(
-            "Error generating FFT window. Attempting to"
-            + " use a rectangular window..."
-        )
-        window = get_window("boxcar", window_length)
+    window = get_window(window_type, window_length, fftbins=True)
 
     # Return the window
     return window
