@@ -1,0 +1,75 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scos_actions"
+dynamic = ["version"]
+description = "Base plugin providing common actions and interfaces to be re-used by SCOS Sensor plugins."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE.md" }
+
+authors = [
+    { name = "The Institute for Telecommunication Sciences" },
+    { name="Anthony Romaniello", email="aromaniello@ntia.gov"}
+]
+
+keywords = [
+    "scos", "sdr", "spectrum-analyzer", "spectrum",
+    "analyzer", "spectrum analyzer", "scos-sensor", "scos sensor",
+    "spectrum monitoring", "monitoring", "spectrum management", "docker",
+    "linux", "software defined radio", "radio"
+]
+
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Telecommunications Industry",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Environment :: Plugins",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+
+dependencies = [
+    "django>3.2.14,<4.0",
+    # its_preselector @ ntia/preselector@1.0.0 not included
+    "numexpr>=2.8.3,<3.0",
+    "numpy>=1.22.0,<2.0",
+    "python-dateutil>=2.0,<3.0",
+    "ruamel.yaml>=0.15,<1.0",
+    "scipy>=1.6.0,<2.0",
+    # ntia/sigmf@multi-recording-archive not included
+]
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=2.20.0,<3.0",
+    "pytest>=7.1.2,<8.0",
+    "pytest-cov>=3.0.0,<4.0",
+    "tox>=3.0,<4.0",
+    "twine>=4.0.1,<5.0",
+]
+
+[project.urls]
+"Repository" = "https://github.com/NTIA/scos-actions"
+"Bug Tracker" = "https://github.com/NTIA/scos-actions/issues"
+"SCOS Sensor" = "https://github.com/NTIA/scos-sensor"
+"NTIA GitHub" = "https://github.com/NTIA"
+"ITS Website" = "https://its.ntia.gov"
+
+[tool.hatch.version]
+path = "src/scos_actions/__about__.py"
+
+[tool.hatch.build]
+skip-excluded-dirs = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/scos_actions"]
+
+[tool.hatch.build.targets.sdist]
