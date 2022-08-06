@@ -64,12 +64,12 @@ dev = [
 "ITS Website" = "https://its.ntia.gov"
 
 [tool.hatch.version]
-path = "src/scos_actions/__about__.py"
+path = "scos_actions/__about__.py"
 
 [tool.hatch.build]
 skip-excluded-dirs = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/scos_actions"]
+packages = ["scos_actions"]
 
 [tool.hatch.build.targets.sdist]
