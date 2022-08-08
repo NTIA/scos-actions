@@ -31,9 +31,9 @@ def y_factor(
     """
     Perform Y-Factor calculations of noise figure and gain.
 
-    Noise factor and linear gain are computed element-wise from
-    the input arrays using the Y-Factor method. The linear values
-    are then averaged and converted to dB.
+    Noise factor and linear gain are computed from the input
+    arrays using the Y-Factor method. The linear values are
+    then averaged and converted to dB.
 
     :param pwr_noise_on_watts: Array of power values, in Watts,
         recorded with the calibration noise source on.
@@ -47,25 +47,18 @@ def y_factor(
     :return: A tuple (noise_figure, gain) containing the calculated
         noise figure and gain, both in dB, from the Y-factor method.
     """
-    # mean_on_dBm = convert_watts_to_dBm(np.mean(pwr_noise_on_watts))
-    # mean_off_dBm = convert_watts_to_dBm(np.mean(pwr_noise_off_watts))
-    # Testing averaging before vs. after y-factor
-    # This version: average after
-    mean_on_dBm = convert_watts_to_dBm(pwr_noise_on_watts)
-    mean_off_dBm = convert_watts_to_dBm(pwr_noise_off_watts)
+    mean_on_dBm = convert_watts_to_dBm(np.mean(pwr_noise_on_watts))
+    mean_off_dBm = convert_watts_to_dBm(np.mean(pwr_noise_off_watts))
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"ENR: {convert_linear_to_dB(enr_linear)} dB")
         logger.debug(f"ENBW: {enbw_hz} Hz")
-        # logger.debug(f"Mean power on: {mean_on_dBm:.2f} dBm")
-        # logger.debug(f"Mean power off: {mean_off_dBm:.2f} dBm")
-    # y = pwr_noise_on_watts / pwr_noise_off_watts
+        logger.debug(f"Mean power on: {mean_on_dBm:.2f} dBm")
+        logger.debug(f"Mean power off: {mean_off_dBm:.2f} dBm")
     y = convert_dB_to_linear(mean_on_dBm - mean_off_dBm)
-    noise_factor = np.mean(enr_linear / (y - 1.0))
+    noise_factor = enr_linear / (y - 1.0)
     gain_dB = convert_watts_to_dBm(np.mean(pwr_noise_on_watts)) - convert_watts_to_dBm(Boltzmann * temp_kelvins * enbw_hz * (enr_linear + noise_factor))
-    # Get mean values from arrays and convert to dB
-    noise_figure = convert_linear_to_dB(noise_factor)
-    # gain = convert_linear_to_dB(np.mean(gain_dB))
-    return noise_figure, gain_dB
+    noise_figure_dB = convert_linear_to_dB(noise_factor)
+    return noise_figure_dB, gain_dB
 
 
 def get_linear_enr(cal_source_idx: int = None) -> float:
