@@ -10,7 +10,7 @@ certifi==2021.10.8
     # via requests
 charset-normalizer==2.0.12
     # via requests
-django==3.2.12
+django==3.2.15
     # via -r requirements.in
 idna==3.3
     # via requests
@@ -40,7 +40,8 @@ ruamel-yaml-clib==0.2.6
     # via ruamel-yaml
 scipy==1.7.3
     # via -r requirements.in
-sigmf @ git+https://github.com/NTIA/SigMF.git@multi-recording-archive
+sigmf==1.0.0
+# sigmf @ git+https://github.com/NTIA/SigMF.git@multi-recording-archive
     # via -r requirements.in
 six==1.16.0
     # via
