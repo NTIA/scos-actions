@@ -56,8 +56,8 @@ def y_factor(
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"ENR: {convert_linear_to_dB(enr_linear)} dB")
         logger.debug(f"ENBW: {enbw_hz} Hz")
-        logger.debug(f"Mean power on: {mean_on_dBm:.2f} dBm")
-        logger.debug(f"Mean power off: {mean_off_dBm:.2f} dBm")
+        # logger.debug(f"Mean power on: {mean_on_dBm:.2f} dBm")
+        # logger.debug(f"Mean power off: {mean_off_dBm:.2f} dBm")
     # y = pwr_noise_on_watts / pwr_noise_off_watts
     y = convert_dB_to_linear(mean_on_dBm - mean_off_dBm)
     noise_factor = enr_linear / (y - 1.0)
