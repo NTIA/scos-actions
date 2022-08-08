@@ -101,7 +101,8 @@ ruamel-yaml-clib==0.2.6
     #   ruamel-yaml
 scipy==1.7.3
     # via -r requirements.txt
-sigmf @ git+https://github.com/NTIA/SigMF.git@multi-recording-archive
+# sigmf @ git+https://github.com/NTIA/SigMF.git@multi-recording-archive
+sigmf==1.0.0
     # via -r requirements.txt
 six==1.16.0
     # via
