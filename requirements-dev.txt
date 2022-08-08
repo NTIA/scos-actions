@@ -22,7 +22,7 @@ charset-normalizer==2.0.12
     #   requests
 distlib==0.3.4
     # via virtualenv
-django==3.2.12
+django==3.2.15
     # via -r requirements.txt
 filelock==3.6.0
     # via
