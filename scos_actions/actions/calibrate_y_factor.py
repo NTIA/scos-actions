@@ -19,51 +19,53 @@
 r"""Perform a Y-Factor Calibration.
 Supports calibration of gain and noise figure for one or more channels.
 For each center frequency, sets the preselector to the noise diode path, turns
-noise diode on, performs a mean FFT measurement, turns the noise diode off and
-performs another mean FFT measurement. The mean power on and mean power off
-data are used to compute the noise figure and gain. For each measurement, the
-mean detector is applied over {nffts} {fft_size}-pt FFTs at {frequencies} MHz.
+noise diode on, performs a mean power measurement, turns the noise diode off and
+performs another mean power measurement. The mean power on and mean power off
+data are used to compute the noise figure and gain. Mean power is calculated in the
+time domain{filtering_suffix}.
 
 # {name}
 
 ## Signal analyzer setup and sample acquisition
 
-Each time this task runs, the following process is followed:
+Each time this task runs, the following process is followed to take measurements
+separately with the noise diode off and on:
 {acquisition_plan}
 
 ## Time-domain processing
 
-First, the ${nffts} \times {fft_size}$ continuous samples are acquired from
-the signal analyzer. If specified, a voltage scaling factor is applied to the complex
-time-domain signals. Then, the data is reshaped into a ${nffts} \times
-{fft_size}$ matrix:
+{filtering_description}
 
-$$
-\begin{{pmatrix}}
-a_{{1,1}}      & a_{{1,2}}     & \cdots  & a_{{1,fft\_size}}     \\\\
-a_{{2,1}}      & a_{{2,2}}     & \cdots  & a_{{2,fft\_size}}     \\\\
-\vdots         & \vdots        & \ddots  & \vdots                \\\\
-a_{{nffts,1}}  & a_{{nfts,2}}  & \cdots  & a_{{nfts,fft\_size}}  \\\\
-\end{{pmatrix}}
-$$
-
-where $a_{{i,j}}$ is a complex time-domain sample.
-
-At that point, a Flat Top window, defined as
-
-$$w(n) = &0.2156 - 0.4160 \cos{{(2 \pi n / M)}} + 0.2781 \cos{{(4 \pi n / M)}} -
-         &0.0836 \cos{{(6 \pi n / M)}} + 0.0069 \cos{{(8 \pi n / M)}}$$
-
-where $M = {fft_size}$ is the number of points in the window, is applied to
-each row of the matrix.
-
-## Frequency-domain processing
-
-### To-do: add details of FFT processing
+Next, mean power calculations are performed. Sample amplitudes are divided by two
+to account for the power difference between RF and complex baseband samples. Then,
+power is calculated element-wise from the complex time-domain samples. The power of
+each sample is defined by the square of the magnitude of the complex sample, divided by
+the system impedance, which is taken to be 50 Ohms.
 
 ## Y-Factor Method
 
-### To-do: add details of Y-Factor method
+The mean power for the noise diode on and off captures are calculated by taking the
+mean of each array of power samples. Next, the Y-factor is calculated by:
+
+$$ y = P_{on} / P_{off} $$
+
+Where $P_{on}$ is the mean power measured with the noise diode on, and $P_{off}$
+is the mean power measured with the noise diode off. The linear noise factor is then
+calculated by:
+
+$$ NF = \frac{ENR}{y - 1} $$
+
+Where $ENR$ is the excess noise ratio, in linear units, of the noise diode used for
+the power measurements. Next, the linear gain is calculated by:
+
+$$ G = \frac{P_{on}}{k_B T B_{eq} (ENR + NF)} $$
+
+Where $k_B$ is Boltzmann's constant, $T$ is the calibration temperature in Kelvins,
+and $B_{eq}$ is the sensor's equivalent noise bandwidth. Finally, the noise factor
+and linear gain are converted to noise figure $F_N$ and decibel gain $G_{dB}$:
+
+$$ G_{dB} = 10 \log_{10}(G) $$
+$$ F_N = 10 \log_{10}(NF) $$
 """
 
 import logging
@@ -86,7 +88,6 @@ from scos_actions.signal_processing.calibration import (
     y_factor,
 )
 from scos_actions.signal_processing.power_analysis import (
-    apply_power_detector,
     calculate_power_watts,
     create_power_detector,
 )
@@ -128,7 +129,6 @@ class YFactorCalibration(Action):
         fft_size: number of points in FFT (some 2^n)
         nffts: number of consecutive FFTs to pass to detector
 
-
     For the parameters required by the signal analyzer, see the
     documentation from the Python package for the signal analyzer
     being used.
@@ -150,10 +150,11 @@ class YFactorCalibration(Action):
             logger.info("Config parameter 'iir_apply' not provided. "
                         + "No IIR filtering will be used during calibration.")
             self.iir_apply = False
+
+        if isinstance(self.iir_apply, list):
+            raise ParameterException("Only one set of IIR filter parameters may be specified.")
         
         if self.iir_apply is True:
-            # If any parameters are multiply-specified, generate the filter
-            # in the calibration loop instead of here.
             self.iir_rp_dB = get_parameter(IIR_RP, parameters)
             self.iir_rs_dB = get_parameter(IIR_RS, parameters)
             self.iir_cutoff_Hz = get_parameter(IIR_CUTOFF, parameters)
@@ -164,25 +165,22 @@ class YFactorCalibration(Action):
                 self.iir_sos = generate_elliptic_iir_low_pass_filter(
                     self.iir_rp_dB, self.iir_rs_dB, self.iir_cutoff_Hz, self.iir_width_Hz, self.sample_rate
                 )
-                self.regenerate_iir = False
             else:
-                self.regenerate_iir = True
+                raise ParameterException("Only one set of IIR filter parameters may be specified (including sample rate).")
 
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
-        iteration_params = utils.get_iterable_parameters(self.parameters)
+        self.iteration_params = utils.get_iterable_parameters(self.parameters)
         detail = ''
         
         # Run calibration routine
-        for i, p in enumerate(iteration_params):
+        for i, p in enumerate(self.iteration_params):
             if i == 0:
                 detail += self.calibrate(p)
             else:
                 detail += os.linesep + self.calibrate(p)
-
         return detail
-
 
     def calibrate(self, params):
         # Configure signal analyzer
@@ -195,10 +193,6 @@ class YFactorCalibration(Action):
         duration_ms = get_parameter(DURATION_MS, params)
         num_samples = int(sample_rate * duration_ms * 1e-3)
         nskip = get_parameter(NUM_SKIP, params)
-        if self.iir_apply is not False:
-            iir_apply = get_parameter(IIR_APPLY, params)
-        else:
-            iir_apply = False
         
         # Set noise diode on
         logger.debug('Setting noise diode on')
@@ -225,51 +219,42 @@ class YFactorCalibration(Action):
         assert sample_rate == noise_off_measurement_result["sample_rate"], "Sample rate mismatch"
 
         # Apply IIR filtering to both captures if configured
-        if iir_apply:
-            if self.regenerate_iir:
-                logger.debug("Generating IIR filter")
-                rp_dB = get_parameter(IIR_RP, params)
-                rs_dB = get_parameter(IIR_RS, params)
-                cutoff_Hz = get_parameter(IIR_CUTOFF, params)
-                width_Hz = get_parameter(IIR_WIDTH, params)
-                iir_sos = generate_elliptic_iir_low_pass_filter(
-                    rp_dB, rs_dB, cutoff_Hz, width_Hz, sample_rate
-                )
-            else:
-                iir_sos = self.iir_sos
-                cutoff_Hz = self.iir_cutoff_Hz
-                width_Hz = self.iir_width_Hz
+        if self.iir_apply:
+            cutoff_Hz = self.iir_cutoff_Hz
+            width_Hz = self.iir_width_Hz
             enbw_hz = (cutoff_Hz + width_Hz) * 2.  # Roughly based on IIR filter
+            # TODO: Verify this is an appropriate way to specify ENBW
             logger.debug("Applying IIR filter to IQ captures")
-            noise_on_data = sosfilt(iir_sos, noise_on_measurement_result["data"])
-            noise_off_data = sosfilt(iir_sos, noise_off_measurement_result["data"])
+            noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
+            noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
         else:
-            enbw_hz = 11.607e6  # For RSA 507A #TODO REMOVE
             logger.debug('Skipping IIR filtering')
+            # Get ENBW from sensor calibration
+            enbw_hz = sensor_calibration["enbw_sensor"]
+            logger.debug(f"Got sensor ENBW: {enbw_hz} Hz")
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]
 
-        # Get power values in time domain
-        pwr_on_watts = self.get_mean_power(noise_on_data)
-        pwr_off_watts = self.get_mean_power(noise_off_data)
+        # Get power values in time domain (division by 2 for RF/baseband conversion)
+        pwr_on_watts = calculate_power_watts(noise_on_data / 2.)
+        pwr_off_watts = calculate_power_watts(noise_off_data / 2.)
 
         # Y-Factor
         enr_linear = get_linear_enr(cal_source_idx)
         temp_k, temp_c, _ = get_temperature(temp_sensor_idx)
-
         noise_figure, gain = y_factor(
             pwr_on_watts, pwr_off_watts, enr_linear, enbw_hz, temp_k
         )
 
-        # Don't update the sensor calibration while testing
-        # sensor_calibration.update(
-        #     params,
-        #     utils.get_datetime_str_now(),
-        #     gain,
-        #     noise_figure,
-        #     temp_c,
-        #     SENSOR_CALIBRATION_FILE,
-        # )
+        # Update sensor calibration with results
+        sensor_calibration.update(
+            params,
+            utils.get_datetime_str_now(),
+            gain,
+            noise_figure,
+            temp_c,
+            SENSOR_CALIBRATION_FILE,
+        )
 
         # Debugging
         noise_floor_dBm = convert_watts_to_dBm(Boltzmann * temp_k * enbw_hz)
@@ -280,45 +265,77 @@ class YFactorCalibration(Action):
         # Detail results contain only FFT version of result for now
         return 'Noise Figure: {}, Gain: {}'.format(noise_figure, gain)
 
-    def get_mean_power(self, iqdata: np.ndarray) -> np.ndarray:
-        # Reshape data
-        # iq = np.reshape(iqdata[:block_size * n_blocks], (n_blocks, block_size))
-        iqdata /= 2 # RF/baseband conversion
-        iq_pwr = calculate_power_watts(iqdata)
-        # mean_result = apply_power_detector(iq_pwr, self.power_detector)
-        # return mean_result
-        return iq_pwr
-
     @property
     def description(self):
         # Get parameters; they may be single values or lists
         frequencies = get_parameter(FREQUENCY, self.parameters)
-        # nffts = get_parameter(NUM_FFTS, self.parameters)
-        # fft_size = get_parameter(FFT_SIZE, self.parameters)
+        duration_ms = get_parameter(DURATION_MS, self.parameters)
+        sample_rate = get_parameter(SAMPLE_RATE, self.parameters)
 
-        # Convert parameter lists to strings if needed
-        if isinstance(frequencies, list):
-            frequencies = utils.list_to_string(
-                [f / 1e6 for f in get_parameter(FREQUENCY, self.parameters)]
+        if isinstance(duration_ms, list) and not isinstance(sample_rate, list):
+            sample_rate = sample_rate * np.ones_like(duration_ms)
+            sample_rate = sample_rate
+        elif isinstance(sample_rate, list) and not isinstance(duration_ms, list):
+            duration_ms = duration_ms * np.ones_like(sample_rate)
+            duration_ms = duration_ms
+
+        num_samples = duration_ms *  sample_rate * 1e-3
+        if len(num_samples) != 1:
+            num_samples = num_samples.tolist()
+        else:
+            num_samples = int(num_samples)
+
+        if self.iir_apply is True:
+            pb_edge = self.iir_cutoff_Hz / 1e6
+            sb_edge = (self.iir_cutoff_Hz + self.iir_width_Hz) / 1e6
+            filtering_suffix = ", after applying an IIR lowpass filter to the complex time-domain samples"
+            filter_description = (
+                """
+                ### Filtering
+                The acquired samples are then filtered using an elliptic IIR filter before
+                performing the rest of the time-domain Y-factor calculations. The filter
+                design produces the lowest order digital filter which loses no more than
+                {self.iir_rp_dB} dB in the passband and has at least {self.iir_rs_dB} dB attenuation
+                in the stopband. The filter has a defined passband edge at {pb_edge} MHz
+                and a stopband edge at {sb_edge} MHz. From this filter design, second-order filter
+                coefficients are generated in order to minimize numerical precision errors
+                when filtering the time domain samples. The filtering function is implemented
+                as a series of second-order filters with direct-form II transposed structure.
+
+                ### Power Calculation
+                """
             )
-        # if isinstance(nffts, list):
-        #     nffts = utils.list_to_string(get_parameter(NUM_FFTS, self.parameters))
-        # if isinstance(fft_size, list):
-        #     fft_size = utils.list_to_string(get_parameter(FFT_SIZE, self.parameters))
+        else:
+            filtering_suffix = ""
+            filter_description = ""
+
+        acquisition_plan = ""
+        acq_plan_template = "The signal analyzer is tuned to {center_frequency:.2f} MHz and the following parameters are set:\n"
+        acq_plan_template += "{parameters}"
+        acq_plan_template += "Then, acquire samples for {duration_ms} ms.\n"
+
+        used_keys = [FREQUENCY, DURATION_MS, "name"]
+        for params in self.iteration_params:
+            parameters = ""
+            for name, value in params.items():
+                if name not in used_keys:
+                    parameters += f"{name} = {value}\n"
+            acquisition_plan += acq_plan_template.format(
+                **{
+                    "center_frequency": params[FREQUENCY] / 1e6,
+                    "parameters": parameters,
+                    "duration_ms": params[DURATION_MS],
+                }
+            )
         
-        acq_plan = (
-            f"Performs a y-factor calibration at frequencies: "
-            # f"{frequencies}, nffts:{nffts}, fft_size: {fft_size}\n"
-        )
         definitions = {
             "name": self.name,
-            "frequencies": frequencies,
-            "acquisition_plan": acq_plan,
-            # "fft_size": fft_size,
-            # "nffts": nffts,
+            "filtering_suffix": filtering_suffix,
+            "filtering_description": filter_description,
+            "acquisition_plan": acquisition_plan,
         }
         # __doc__ refers to the module docstring at the top of the file
-        return __doc__ #.format(**definitions)
+        return __doc__ .format(**definitions)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
