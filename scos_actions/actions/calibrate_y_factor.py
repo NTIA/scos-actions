@@ -240,11 +240,14 @@ class YFactorCalibration(Action):
                 cutoff_Hz = self.iir_cutoff_Hz
                 width_Hz = self.iir_width_Hz
             enbw_hz = (cutoff_Hz + width_Hz) * 2.  # Roughly based on IIR filter
+            # TODO: Verify this is an appropriate way to specify ENBW
             logger.debug("Applying IIR filter to IQ captures")
             noise_on_data = sosfilt(iir_sos, noise_on_measurement_result["data"])
             noise_off_data = sosfilt(iir_sos, noise_off_measurement_result["data"])
         else:
-            enbw_hz = 11.607e6  # For RSA 507A #TODO REMOVE
+            # Get ENBW from sensor calibration
+            enbw_hz = sensor_calibration["enbw_sensor"]
+            logger.debug(f"Got sensor ENBW: {enbw_hz} Hz")
             logger.debug('Skipping IIR filtering')
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]
@@ -261,15 +264,15 @@ class YFactorCalibration(Action):
             pwr_on_watts, pwr_off_watts, enr_linear, enbw_hz, temp_k
         )
 
-        # Don't update the sensor calibration while testing
-        # sensor_calibration.update(
-        #     params,
-        #     utils.get_datetime_str_now(),
-        #     gain,
-        #     noise_figure,
-        #     temp_c,
-        #     SENSOR_CALIBRATION_FILE,
-        # )
+        # Update sensor calibration with results
+        sensor_calibration.update(
+            params,
+            utils.get_datetime_str_now(),
+            gain,
+            noise_figure,
+            temp_c,
+            SENSOR_CALIBRATION_FILE,
+        )
 
         # Debugging
         noise_floor_dBm = convert_watts_to_dBm(Boltzmann * temp_k * enbw_hz)
@@ -291,6 +294,7 @@ class YFactorCalibration(Action):
 
     @property
     def description(self):
+        # TODO: Update
         # Get parameters; they may be single values or lists
         frequencies = get_parameter(FREQUENCY, self.parameters)
         # nffts = get_parameter(NUM_FFTS, self.parameters)
