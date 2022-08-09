@@ -47,25 +47,25 @@ the system impedance, which is taken to be 50 Ohms.
 The mean power for the noise diode on and off captures are calculated by taking the
 mean of each array of power samples. Next, the Y-factor is calculated by:
 
-$$ y = P_{on} / P_{off} $$
+$$ y = P_{{on}} / P_{{off}} $$
 
-Where $P_{on}$ is the mean power measured with the noise diode on, and $P_{off}$
+Where $P_{{on}}$ is the mean power measured with the noise diode on, and $P_{{off}}$
 is the mean power measured with the noise diode off. The linear noise factor is then
 calculated by:
 
-$$ NF = \frac{ENR}{y - 1} $$
+$$ NF = \frac{{ENR}}{{y - 1}} $$
 
 Where $ENR$ is the excess noise ratio, in linear units, of the noise diode used for
 the power measurements. Next, the linear gain is calculated by:
 
-$$ G = \frac{P_{on}}{k_B T B_{eq} (ENR + NF)} $$
+$$ G = \frac{{P_{{on}}}}{{k_B T B_{{eq}} (ENR + NF)}} $$
 
 Where $k_B$ is Boltzmann's constant, $T$ is the calibration temperature in Kelvins,
-and $B_{eq}$ is the sensor's equivalent noise bandwidth. Finally, the noise factor
-and linear gain are converted to noise figure $F_N$ and decibel gain $G_{dB}$:
+and $B_{{eq}}$ is the sensor's equivalent noise bandwidth. Finally, the noise factor
+and linear gain are converted to noise figure $F_N$ and decibel gain $G_{{dB}}$:
 
-$$ G_{dB} = 10 \log_{10}(G) $$
-$$ F_N = 10 \log_{10}(NF) $$
+$$ G_{{dB}} = 10 \log_{{10}}(G) $$
+$$ F_N = 10 \log_{{10}}(NF) $$
 """
 
 import logging
@@ -141,6 +141,8 @@ class YFactorCalibration(Action):
     def __init__(self, parameters, sigan, gps=mock_gps):
         logger.debug('Initializing calibration action')
         super().__init__(parameters, sigan, gps)
+        self.sigan = sigan
+        self.iteration_params = utils.get_iterable_parameters(parameters)
         self.power_detector = create_power_detector("MeanDetector", ["mean"])
 
         # IIR Filter Setup
@@ -171,7 +173,6 @@ class YFactorCalibration(Action):
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
-        self.iteration_params = utils.get_iterable_parameters(self.parameters)
         detail = ''
         
         # Run calibration routine
@@ -184,7 +185,16 @@ class YFactorCalibration(Action):
 
     def calibrate(self, params):
         # Configure signal analyzer
-        super().configure_sigan(params)
+        sigan_params = params.copy()
+        # Suppress warnings during sigan configuration
+        for k in [DURATION_MS, NUM_SKIP, IIR_APPLY, IIR_RP, IIR_RS, IIR_CUTOFF, IIR_WIDTH, CAL_SOURCE_IDX, TEMP_SENSOR_IDX]:
+            try:
+                sigan_params.pop(k)
+            except KeyError:
+                continue
+        # sigan_params also used as calibration args for getting sensor ENBW
+        # if no IIR filtering is applied.
+        super().configure_sigan(sigan_params)
 
         # Get parameters from action config
         cal_source_idx = get_parameter(CAL_SOURCE_IDX, params)
@@ -230,8 +240,9 @@ class YFactorCalibration(Action):
         else:
             logger.debug('Skipping IIR filtering')
             # Get ENBW from sensor calibration
-            enbw_hz = sensor_calibration["enbw_sensor"]
-            logger.debug(f"Got sensor ENBW: {enbw_hz} Hz")
+            cal_args = [sigan_params[k] for k in sensor_calibration.calibration_parameters]
+            self.sigan.recompute_calibration_data(cal_args)
+            enbw_hz = self.sigan.sensor_calibration_data["enbw_sensor"]
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]
 
@@ -280,7 +291,8 @@ class YFactorCalibration(Action):
             duration_ms = duration_ms
 
         num_samples = duration_ms *  sample_rate * 1e-3
-        if len(num_samples) != 1:
+
+        if isinstance(num_samples, np.ndarray) and len(num_samples) != 1:
             num_samples = num_samples.tolist()
         else:
             num_samples = int(num_samples)
