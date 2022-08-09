@@ -280,7 +280,8 @@ class YFactorCalibration(Action):
             duration_ms = duration_ms
 
         num_samples = duration_ms *  sample_rate * 1e-3
-        if len(num_samples) != 1:
+
+        if isinstance(num_samples, np.ndarray) and len(num_samples) != 1:
             num_samples = num_samples.tolist()
         else:
             num_samples = int(num_samples)
