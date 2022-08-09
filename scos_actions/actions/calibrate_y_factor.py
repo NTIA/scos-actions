@@ -141,6 +141,7 @@ class YFactorCalibration(Action):
     def __init__(self, parameters, sigan, gps=mock_gps):
         logger.debug('Initializing calibration action')
         super().__init__(parameters, sigan, gps)
+        self.sigan = sigan
         self.iteration_params = utils.get_iterable_parameters(parameters)
         self.power_detector = create_power_detector("MeanDetector", ["mean"])
 
@@ -233,7 +234,7 @@ class YFactorCalibration(Action):
         else:
             logger.debug('Skipping IIR filtering')
             # Get ENBW from sensor calibration
-            enbw_hz = sensor_calibration["enbw_sensor"]
+            enbw_hz = self.sigan.sensor_calibration_data["enbw_sensor"]
             logger.debug(f"Got sensor ENBW: {enbw_hz} Hz")
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]
