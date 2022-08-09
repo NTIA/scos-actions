@@ -184,7 +184,10 @@ class YFactorCalibration(Action):
 
     def calibrate(self, params):
         # Configure signal analyzer
-        super().configure_sigan(params)
+        sigan_params = params.copy()
+        for k in [IIR_APPLY, IIR_RP, IIR_RS, IIR_CUTOFF, IIR_WIDTH, CAL_SOURCE_IDX, TEMP_SENSOR_IDX]:
+            sigan_params.pop(k)
+        super().configure_sigan(sigan_params)
 
         # Get parameters from action config
         cal_source_idx = get_parameter(CAL_SOURCE_IDX, params)
