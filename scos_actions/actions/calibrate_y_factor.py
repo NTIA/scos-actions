@@ -240,7 +240,8 @@ class YFactorCalibration(Action):
         else:
             logger.debug('Skipping IIR filtering')
             # Get ENBW from sensor calibration
-            calibration_args = [sigan_params[k] for k in sigan_params.keys()]
+            # TODO: Remove this hard-coded fix
+            calibration_args = [sigan_params[k] for k in [SAMPLE_RATE, FREQUENCY, "reference_level"]]
             logger.debug(f"Using calibration args: {calibration_args}")
             self.sigan.recompute_calibration_data(calibration_args)
             enbw_hz = self.sigan.sensor_calibration_data["enbw_sensor"]
