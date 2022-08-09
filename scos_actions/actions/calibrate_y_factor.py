@@ -141,6 +141,7 @@ class YFactorCalibration(Action):
     def __init__(self, parameters, sigan, gps=mock_gps):
         logger.debug('Initializing calibration action')
         super().__init__(parameters, sigan, gps)
+        self.iteration_params = utils.get_iterable_parameters(parameters)
         self.power_detector = create_power_detector("MeanDetector", ["mean"])
 
         # IIR Filter Setup
@@ -171,7 +172,6 @@ class YFactorCalibration(Action):
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
-        self.iteration_params = utils.get_iterable_parameters(self.parameters)
         detail = ''
         
         # Run calibration routine
