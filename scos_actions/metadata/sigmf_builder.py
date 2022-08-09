@@ -3,7 +3,7 @@ from enum import Enum
 from sigmf import SigMFFile
 
 GLOBAL_INFO = {
-    "core:version": "v1.0.0",
+    "core:version": "v0.0.2",
     "core:extensions": {
         "ntia-algorithm": "v1.0.0",
         "ntia-core": "v1.0.0",
