@@ -47,25 +47,25 @@ the system impedance, which is taken to be 50 Ohms.
 The mean power for the noise diode on and off captures are calculated by taking the
 mean of each array of power samples. Next, the Y-factor is calculated by:
 
-$$ y = P_{on} / P_{off} $$
+$$ y = P_{{on}} / P_{{off}} $$
 
-Where $P_{on}$ is the mean power measured with the noise diode on, and $P_{off}$
+Where $P_{{on}}$ is the mean power measured with the noise diode on, and $P_{{off}}$
 is the mean power measured with the noise diode off. The linear noise factor is then
 calculated by:
 
-$$ NF = \frac{ENR}{y - 1} $$
+$$ NF = \frac{{ENR}}{{y - 1}} $$
 
 Where $ENR$ is the excess noise ratio, in linear units, of the noise diode used for
 the power measurements. Next, the linear gain is calculated by:
 
-$$ G = \frac{P_{on}}{k_B T B_{eq} (ENR + NF)} $$
+$$ G = \frac{{P_{{on}}}}{{k_B T B_{{eq}} (ENR + NF)}} $$
 
 Where $k_B$ is Boltzmann's constant, $T$ is the calibration temperature in Kelvins,
-and $B_{eq}$ is the sensor's equivalent noise bandwidth. Finally, the noise factor
-and linear gain are converted to noise figure $F_N$ and decibel gain $G_{dB}$:
+and $B_{{eq}}$ is the sensor's equivalent noise bandwidth. Finally, the noise factor
+and linear gain are converted to noise figure $F_N$ and decibel gain $G_{{dB}}$:
 
-$$ G_{dB} = 10 \log_{10}(G) $$
-$$ F_N = 10 \log_{10}(NF) $$
+$$ G_{{dB}} = 10 \log_{{10}}(G) $$
+$$ F_N = 10 \log_{{10}}(NF) $$
 """
 
 import logging
