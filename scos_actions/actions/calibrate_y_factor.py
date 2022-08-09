@@ -19,10 +19,11 @@
 r"""Perform a Y-Factor Calibration.
 Supports calibration of gain and noise figure for one or more channels.
 For each center frequency, sets the preselector to the noise diode path, turns
-noise diode on, performs a mean FFT measurement, turns the noise diode off and
-performs another mean FFT measurement. The mean power on and mean power off
+noise diode on, performs a mean power measurement, turns the noise diode off and
+performs another mean power measurement. The mean power on and mean power off
 data are used to compute the noise figure and gain. For each measurement, the
-mean detector is applied over {nffts} {fft_size}-pt FFTs at {frequencies} MHz.
+mean detector is applied over {num_samples} samples at {frequencies} MHz.
+Mean power is calculated in the time domain{filtering_suffix}.
 
 # {name}
 
@@ -34,32 +35,10 @@ Each time this task runs, the following process is followed:
 ## Time-domain processing
 
 First, the ${nffts} \times {fft_size}$ continuous samples are acquired from
-the signal analyzer. If specified, a voltage scaling factor is applied to the complex
-time-domain signals. Then, the data is reshaped into a ${nffts} \times
-{fft_size}$ matrix:
+the signal analyzer. If specified, an IIR lowpass filter is used to filter
+the complex time-domain samples before mean power calculations are performed.
 
-$$
-\begin{{pmatrix}}
-a_{{1,1}}      & a_{{1,2}}     & \cdots  & a_{{1,fft\_size}}     \\\\
-a_{{2,1}}      & a_{{2,2}}     & \cdots  & a_{{2,fft\_size}}     \\\\
-\vdots         & \vdots        & \ddots  & \vdots                \\\\
-a_{{nffts,1}}  & a_{{nfts,2}}  & \cdots  & a_{{nfts,fft\_size}}  \\\\
-\end{{pmatrix}}
-$$
-
-where $a_{{i,j}}$ is a complex time-domain sample.
-
-At that point, a Flat Top window, defined as
-
-$$w(n) = &0.2156 - 0.4160 \cos{{(2 \pi n / M)}} + 0.2781 \cos{{(4 \pi n / M)}} -
-         &0.0836 \cos{{(6 \pi n / M)}} + 0.0069 \cos{{(8 \pi n / M)}}$$
-
-where $M = {fft_size}$ is the number of points in the window, is applied to
-each row of the matrix.
-
-## Frequency-domain processing
-
-### To-do: add details of FFT processing
+{filter_description}
 
 ## Y-Factor Method
 
@@ -86,7 +65,6 @@ from scos_actions.signal_processing.calibration import (
     y_factor,
 )
 from scos_actions.signal_processing.power_analysis import (
-    apply_power_detector,
     calculate_power_watts,
     create_power_detector,
 )
@@ -128,7 +106,6 @@ class YFactorCalibration(Action):
         fft_size: number of points in FFT (some 2^n)
         nffts: number of consecutive FFTs to pass to detector
 
-
     For the parameters required by the signal analyzer, see the
     documentation from the Python package for the signal analyzer
     being used.
@@ -150,10 +127,11 @@ class YFactorCalibration(Action):
             logger.info("Config parameter 'iir_apply' not provided. "
                         + "No IIR filtering will be used during calibration.")
             self.iir_apply = False
+
+        if isinstance(self.iir_apply, list):
+            raise ParameterException("Only one set of IIR filter parameters may be specified.")
         
         if self.iir_apply is True:
-            # If any parameters are multiply-specified, generate the filter
-            # in the calibration loop instead of here.
             self.iir_rp_dB = get_parameter(IIR_RP, parameters)
             self.iir_rs_dB = get_parameter(IIR_RS, parameters)
             self.iir_cutoff_Hz = get_parameter(IIR_CUTOFF, parameters)
@@ -164,9 +142,8 @@ class YFactorCalibration(Action):
                 self.iir_sos = generate_elliptic_iir_low_pass_filter(
                     self.iir_rp_dB, self.iir_rs_dB, self.iir_cutoff_Hz, self.iir_width_Hz, self.sample_rate
                 )
-                self.regenerate_iir = False
             else:
-                self.regenerate_iir = True
+                raise ParameterException("Only one set of IIR filter parameters may be specified (including sample rate).")
 
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
@@ -195,10 +172,6 @@ class YFactorCalibration(Action):
         duration_ms = get_parameter(DURATION_MS, params)
         num_samples = int(sample_rate * duration_ms * 1e-3)
         nskip = get_parameter(NUM_SKIP, params)
-        if self.iir_apply is not False:
-            iir_apply = get_parameter(IIR_APPLY, params)
-        else:
-            iir_apply = False
         
         # Set noise diode on
         logger.debug('Setting noise diode on')
@@ -225,25 +198,14 @@ class YFactorCalibration(Action):
         assert sample_rate == noise_off_measurement_result["sample_rate"], "Sample rate mismatch"
 
         # Apply IIR filtering to both captures if configured
-        if iir_apply:
-            if self.regenerate_iir:
-                logger.debug("Generating IIR filter")
-                rp_dB = get_parameter(IIR_RP, params)
-                rs_dB = get_parameter(IIR_RS, params)
-                cutoff_Hz = get_parameter(IIR_CUTOFF, params)
-                width_Hz = get_parameter(IIR_WIDTH, params)
-                iir_sos = generate_elliptic_iir_low_pass_filter(
-                    rp_dB, rs_dB, cutoff_Hz, width_Hz, sample_rate
-                )
-            else:
-                iir_sos = self.iir_sos
-                cutoff_Hz = self.iir_cutoff_Hz
-                width_Hz = self.iir_width_Hz
+        if self.iir_apply:
+            cutoff_Hz = self.iir_cutoff_Hz
+            width_Hz = self.iir_width_Hz
             enbw_hz = (cutoff_Hz + width_Hz) * 2.  # Roughly based on IIR filter
             # TODO: Verify this is an appropriate way to specify ENBW
             logger.debug("Applying IIR filter to IQ captures")
-            noise_on_data = sosfilt(iir_sos, noise_on_measurement_result["data"])
-            noise_off_data = sosfilt(iir_sos, noise_off_measurement_result["data"])
+            noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
+            noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
         else:
             # Get ENBW from sensor calibration
             enbw_hz = sensor_calibration["enbw_sensor"]
@@ -253,8 +215,8 @@ class YFactorCalibration(Action):
             noise_off_data = noise_off_measurement_result["data"]
 
         # Get power values in time domain
-        pwr_on_watts = self.get_mean_power(noise_on_data)
-        pwr_off_watts = self.get_mean_power(noise_off_data)
+        pwr_on_watts = self.get_td_power(noise_on_data)
+        pwr_off_watts = self.get_td_power(noise_off_data)
 
         # Y-Factor
         enr_linear = get_linear_enr(cal_source_idx)
@@ -283,33 +245,54 @@ class YFactorCalibration(Action):
         # Detail results contain only FFT version of result for now
         return 'Noise Figure: {}, Gain: {}'.format(noise_figure, gain)
 
-    def get_mean_power(self, iqdata: np.ndarray) -> np.ndarray:
+    def get_td_power(self, iqdata: np.ndarray) -> np.ndarray:
         # Reshape data
-        # iq = np.reshape(iqdata[:block_size * n_blocks], (n_blocks, block_size))
         iqdata /= 2 # RF/baseband conversion
         iq_pwr = calculate_power_watts(iqdata)
-        # mean_result = apply_power_detector(iq_pwr, self.power_detector)
-        # return mean_result
         return iq_pwr
 
     @property
     def description(self):
-        # TODO: Update
+        #TODO: provide num_samples
         # Get parameters; they may be single values or lists
         frequencies = get_parameter(FREQUENCY, self.parameters)
-        # nffts = get_parameter(NUM_FFTS, self.parameters)
-        # fft_size = get_parameter(FFT_SIZE, self.parameters)
+        duration_ms = get_parameter(DURATION_MS, self.parameters)
+        sample_rate = get_parameter(SAMPLE_RATE, self.parameters)
+
+        if isinstance(duration_ms, list) and not isinstance(sample_rate, list):
+            sample_rate = sample_rate * np.ones_like(duration_ms)
+            sample_rate = sample_rate
+        elif isinstance(sample_rate, list) and not isinstance(duration_ms, list):
+            duration_ms = duration_ms * np.ones_like(sample_rate)
+            duration_ms = duration_ms
+
+        num_samples = duration_ms *  sample_rate * 1e-3
+        if len(num_samples) != 1:
+            num_samples = num_samples.tolist()
+        else:
+            num_samples = int(num_samples)
+
+        # TODO: generate blank if no filtering, else filter details
+        if self.iir_apply is True:
+            filtering_suffix = ", after applying an IIR lowpass filter to the complex time-domain samples"
+            filter_description = (
+                """
+                ### Filtering
+                Optionally, IQ samples can be filtered using an elliptic IIR filter before
+                performing the rest of the time-domain Y-factor calculations. The filter
+                design produces the lowest order digital filter which loses no more than
+                {gpass}
+                """
+            )
+        else:
+            filter_description = "No filter is applied to the input samples before Y-factor calculations"
 
         # Convert parameter lists to strings if needed
         if isinstance(frequencies, list):
             frequencies = utils.list_to_string(
                 [f / 1e6 for f in get_parameter(FREQUENCY, self.parameters)]
             )
-        # if isinstance(nffts, list):
-        #     nffts = utils.list_to_string(get_parameter(NUM_FFTS, self.parameters))
-        # if isinstance(fft_size, list):
-        #     fft_size = utils.list_to_string(get_parameter(FFT_SIZE, self.parameters))
-        
+
         acq_plan = (
             f"Performs a y-factor calibration at frequencies: "
             # f"{frequencies}, nffts:{nffts}, fft_size: {fft_size}\n"
@@ -318,10 +301,11 @@ class YFactorCalibration(Action):
             "name": self.name,
             "frequencies": frequencies,
             "acquisition_plan": acq_plan,
-            # "fft_size": fft_size,
-            # "nffts": nffts,
+            "num_samples": num_samples,
+            
         }
         # __doc__ refers to the module docstring at the top of the file
+        # TODO uncomment fornat below
         return __doc__ #.format(**definitions)
 
     def test_required_components(self):
