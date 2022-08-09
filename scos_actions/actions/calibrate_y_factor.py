@@ -243,6 +243,8 @@ class YFactorCalibration(Action):
             # TODO: Remove this hard-coded fix
             calibration_args = [sigan_params[k] for k in [SAMPLE_RATE, FREQUENCY, "reference_level"]]
             logger.debug(f"Using calibration args: {calibration_args}")
+            test_cal_args = sensor_calibration.calibration_parameters
+            logger.debug(f"Testing calibration args: {test_cal_args}, {type(test_cal_args)}")
             self.sigan.recompute_calibration_data(calibration_args)
             enbw_hz = self.sigan.sensor_calibration_data["enbw_sensor"]
             logger.debug(f"Got sensor ENBW: {enbw_hz} Hz")
