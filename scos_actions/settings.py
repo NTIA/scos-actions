@@ -78,7 +78,7 @@ else:
     else:
         PRESELECTOR_MODULE = 'its_preselector.web_relay_preselector'
         PRESELECTOR_CLASS = 'WebRelayPreselector'
-    if settings.SWITCH_CONFIGS_DIR:
+    if hasattr(settings, "SWITCH_CONFIGS_DIR"):
         SWITCH_CONFIGS_DIR = settings.SWITCH_CONFIGS_DIR
 
 logger.info('Loading sensor cal file: ' + SENSOR_CALIBRATION_FILE)
