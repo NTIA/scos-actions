@@ -186,12 +186,14 @@ class YFactorCalibration(Action):
     def calibrate(self, params):
         # Configure signal analyzer
         sigan_params = params.copy()
-        for k in [IIR_RP, IIR_RS, IIR_CUTOFF, IIR_WIDTH, CAL_SOURCE_IDX, TEMP_SENSOR_IDX]:
+        # Suppress warnings during sigan configuration
+        for k in [DURATION_MS, NUM_SKIP, IIR_APPLY, IIR_RP, IIR_RS, IIR_CUTOFF, IIR_WIDTH, CAL_SOURCE_IDX, TEMP_SENSOR_IDX]:
             try:
                 sigan_params.pop(k)
             except KeyError:
                 continue
-        
+        # sigan_params also used as calibration args for getting sensor ENBW
+        # if no IIR filtering is applied.
         super().configure_sigan(sigan_params)
 
         # Get parameters from action config
@@ -238,6 +240,9 @@ class YFactorCalibration(Action):
         else:
             logger.debug('Skipping IIR filtering')
             # Get ENBW from sensor calibration
+            calibration_args = [sigan_params[k] for k in sigan_params.keys()]
+            logger.debug(f"Using calibration args: {calibration_args}")
+            self.sigan.recompute_calibration_data(calibration_args)
             enbw_hz = self.sigan.sensor_calibration_data["enbw_sensor"]
             logger.debug(f"Got sensor ENBW: {enbw_hz} Hz")
             noise_on_data = noise_on_measurement_result["data"]
