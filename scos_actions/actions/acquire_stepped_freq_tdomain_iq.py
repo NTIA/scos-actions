@@ -80,11 +80,10 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
 
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
-        self.sorted_measurement_parameters = []
         num_center_frequencies = len(parameters[FREQUENCY])
 
         # Create iterable parameter set
-        self.sorted_measurement_parameters = utils.get_iterable_parameters(parameters)
+        self.iterable_params = utils.get_iterable_parameters(parameters)
         
         self.sigan = sigan  # make instance variable to allow mocking
         self.num_center_frequencies = num_center_frequencies
@@ -94,7 +93,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         self.test_required_components()
 
         for recording_id, measurement_params in enumerate(
-            self.sorted_measurement_parameters, start=1
+            self.iterable_params, start=1
         ):
             start_time = utils.get_datetime_str_now()
             self.configure(measurement_params)
@@ -135,7 +134,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         acq_plan_template += "{parameters}"
         acq_plan_template += "Then, acquire samples for {duration_ms} ms.\n"
 
-        for measurement_params in self.sorted_measurement_parameters:
+        for measurement_params in self.iterable_params:
             parameters = ""
             for name, value in measurement_params.items():
                 if name not in used_keys:
@@ -148,7 +147,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                 }
             )
 
-        durations = [v[DURATION_MS] for v in self.sorted_measurement_parameters]
+        durations = [v[DURATION_MS] for v in self.iterable_params]
         min_duration_ms = np.sum(durations)
 
         defs = {
@@ -157,7 +156,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             "center_frequencies": ", ".join(
                 [
                     "{:.2f} MHz".format(param[FREQUENCY] / 1e6)
-                    for param in self.sorted_measurement_parameters
+                    for param in self.iterable_params
                 ]
             ),
             "acquisition_plan": acquisition_plan,
