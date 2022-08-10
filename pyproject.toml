@@ -5,7 +5,7 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "scos-actions"
 dynamic = ["version", "description"]
-readme = { file = "README.md" }
+readme = "README.md"
 requires-python = ">=3.8"
 license = { file = "LICENSE.md" }
 
