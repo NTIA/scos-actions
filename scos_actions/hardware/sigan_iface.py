@@ -4,6 +4,7 @@ from scos_actions.settings import sensor_calibration
 from scos_actions.settings import sigan_calibration
 from scos_actions.utils import convert_string_to_millisecond_iso_format
 from scos_actions.utils import get_datetime_str_now
+from scos_actions.actions.interfaces.signals import register_component_with_status
 
 
 class SignalAnalyzerInterface(ABC):
@@ -30,12 +31,13 @@ class SignalAnalyzerInterface(ABC):
         }
         self.sensor_calibration_data = copy.deepcopy(self.DEFAULT_SENSOR_CALIBRATION)
         self.sigan_calibration_data = copy.deepcopy(self.DEFAULT_SIGAN_CALIBRATION)
+        register_component_with_status(self.__class__, component=self)
 
     @property
     def last_calibration_time(self):
         """Returns the last calibration time from calibration data."""
         return convert_string_to_millisecond_iso_format(
-                sensor_calibration.calibration_datetime
+            sensor_calibration.calibration_datetime
         )
 
     @property
@@ -73,15 +75,20 @@ class SignalAnalyzerInterface(ABC):
         self.sensor_calibration_data = self.DEFAULT_SENSOR_CALIBRATION.copy()
         if sensor_calibration is not None:
             self.sensor_calibration_data.update(
-                    sensor_calibration.get_calibration_dict(cal_args)
+                sensor_calibration.get_calibration_dict(cal_args)
             )
 
         # Try and get the sigan calibration data
         self.sigan_calibration_data = self.DEFAULT_SIGAN_CALIBRATION.copy()
         if sigan_calibration is not None:
             self.sigan_calibration_data.update(
-                    sigan_calibration.get_calibration_dict(cal_args)
+                sigan_calibration.get_calibration_dict(cal_args)
             )
 
+    @property
+    @abstractmethod
+    def name(self):
+        pass
 
-    
+    def get_status(self):
+        return {'healthy': self.healthy}
