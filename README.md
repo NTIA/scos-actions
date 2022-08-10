@@ -151,47 +151,35 @@ if the new functionality can be supported by most signal analyzers.
 
 ### Requirements and Configuration
 
-Requires `pip>=18.1` and `python>=3.7`.
-
-It is highly recommended that you first initialize a virtual development environment
-using a tool such as [Conda](https://docs.conda.io/en/latest/) or [venv](https://docs.python.org/3/library/venv.html#module-venv).
-The following commands create a virtual environment using venv and install the required
-dependencies for development and testing.
+Set up a development environment using a tool like [Conda](https://docs.conda.io/en/latest/)
+or [venv](https://docs.python.org/3/library/venv.html#module-venv), with `python>=3.8`. Then,
+from the cloned directory, install the development dependencies by running:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip # upgrade to pip>=18.1
-python -m pip install -r requirements.txt
+pip install .[dev]
 ```
 
-#### Using pip-tools
-
-It is recommended to keep direct dependencies in a separate file. The direct
-dependencies are in the `requirements.in` and `requirements-dev.in` files. Then pip-tools
-can be used to generate files with all the dependencies and transitive dependencies
-(sub-dependencies). The files containing all the dependencies are in `requirements.txt` and
-`requirements-dev.txt`. Run the following in the virtual environment to install pip-tools:
+This will install the project itself, along with development dependencies for pre-commit
+hooks, building distributions, and running tests. Set up pre-commit, which runs auto-formatting
+and code-checking automatically when you make a commit, by running:
 
 ```bash
-python -m pip install pip-tools
+pre-commit install
 ```
 
-To update `requirements.txt` and `requirements-dev.txt` after modifying `requirements.in`
-or `requirements-dev.in`:
+The pre-commit tool will auto-format Python code using [Black](https://github.com/psf/black)
+and [isort](https://github.com/pycqa/isort). Other pre-commit hooks are also enabled, and
+can be found in [`.pre-commit-config.yaml`](.pre-commit-config.yaml).
+
+### Building New Releases
+
+This project uses [flit](https://github.com/pypa/flit) as a backend. To build a new release
+(both wheel and sdist/tarball), first update the version number in
+[`scos_actions/__init__.py`](scos_actions/__init__.py), then run:
 
 ```bash
-pip-compile requirements.in
-pip-compile requirements-dev.in
+flit build
 ```
-
-Use `pip-sync` to match virtual environment to `requirements-dev.txt`:
-
-```bash
-pip-sync requirements.txt requirements-dev.txt
-```
-
-For more information, see [pip-tools' documentation](https://pip-tools.readthedocs.io/en/latest).
 
 ### Running Tests
 
@@ -200,11 +188,10 @@ that, then running the included test suite is the easiest way to check that ever
 is working. In any case, all tests should be run after making any local modifications
 to ensure that you haven't caused a regression.
 
-scos-actions uses [pytest](https://docs.pytest.org/en/stable/) for testing.
-
-[tox](https://tox.readthedocs.io/en/latest/) is a tool that can run all available tests
-in a virtual environment against all supported versions of Python. Running `pytest`
-directly is faster but running `tox` is a more thorough test.
+The `scos_actions` package is tested using the [pytest](https://docs.pytest.org/en/stable/)
+framework. Additionally, [tox](https://tox.readthedocs.io/en/latest/) is used to run all
+available tests in a virtual environment against all supported versions of Python.
+Running `pytest` directly is faster but running `tox` is a more thorough test.
 
 The following commands can be used to run tests. Note, for tox to run with all Python
 versions listed in tox.ini, all those versions must be installed on your system.
@@ -215,33 +202,6 @@ tox             # tests code in clean virtualenv
 tox --recreate  # if you change `requirements.txt`
 tox -e coverage # check where test coverage lacks
 ```
-
-### Committing
-
-Besides running the test suite and ensuring that all tests are passed, we also expect
-all Python code that's checked in to have been run through an auto-formatter. This project
-uses a Python auto-formatter called [Black](https://github.com/psf/black). Additionally,
-import statement sorting is handled by [isort](https://github.com/pycqa/isort).
-
-There are several ways to auto-format your code before committing. First, IDE integration
-with on-save hooks is very useful. Second, if you already pip-installed the development
-requirements from the section above, you already have a utility called pre-commit that
-will automate setting up this project's pre-commit Git hooks. Simply type the following
-*once*, and each time you make a commit, it will be appropriately auto-formatted.
-
-```bash
-pre-commit install
-```
-
-You can also manually run the pre-commit hooks on the entire project:
-
-```bash
-pre-commit run --all-files
-```
-
-In addition to Black and isort, various other pre-commit tools are enabled including [markdownlint](https://github.com/DavidAnson/markdownlint).
-See [`.pre-commit-config.yaml`](.pre-commit-config.yaml) for the list of pre-commit
-tools enabled for this repository.
 
 ### Adding Actions
 
@@ -445,7 +405,7 @@ another signal analyzer with a Python API.
   abstract class. Add properties or class variables for the parameters needed to
   configure the signal analyzer.
 - Create YAML files with the parameters needed to run the actions imported from
-  scos-actions using the new signal analyzer. Put them in the new repository in
+  `scos_actions` using the new signal analyzer. Put them in the new repository in
   `configs/actions`. This should contain the parameters needed by the action as well as
   the signal analyzer settings based on which properties or class variables were
   implemented in the signal analyzer class in the previous step. The measurement actions
@@ -500,4 +460,4 @@ See [LICENSE](LICENSE.md).
 
 ## Contact
 
-For technical questions about scos-actions, contact Justin Haze, jhaze@ntia.gov
+For technical questions about SCOS Actions, contact Justin Haze, jhaze@ntia.gov
