@@ -4,7 +4,7 @@ from scos_actions.settings import sensor_calibration
 from scos_actions.settings import sigan_calibration
 from scos_actions.utils import convert_string_to_millisecond_iso_format
 from scos_actions.utils import get_datetime_str_now
-from scos_actions.actions.interfaces.signals import register_component_with_status
+
 
 
 class SignalAnalyzerInterface(ABC):
@@ -31,7 +31,7 @@ class SignalAnalyzerInterface(ABC):
         }
         self.sensor_calibration_data = copy.deepcopy(self.DEFAULT_SENSOR_CALIBRATION)
         self.sigan_calibration_data = copy.deepcopy(self.DEFAULT_SIGAN_CALIBRATION)
-        register_component_with_status(self.__class__, component=self)
+
 
     @property
     def last_calibration_time(self):
