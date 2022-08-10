@@ -86,9 +86,8 @@ class SignalAnalyzerInterface(ABC):
             )
 
     @property
-    @abstractmethod
     def name(self):
-        pass
+        return 'Signal Analyzer'
 
     def get_status(self):
-        return {'healthy': self.healthy}
+        return {'type': self.__class__,'healthy': self.healthy}
