@@ -1,25 +1,28 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["flit_core>=3.4,<4"]
+build-backend = "flit_core.buildapi"
 
 [project]
-name = "scos_actions"
-dynamic = ["version"]
-description = "Base plugin providing common actions and interfaces to be re-used by SCOS Sensor plugins."
-readme = "README.md"
+name = "scos-actions"
+dynamic = ["version", "description"]
+readme = { file = "README.md" }
 requires-python = ">=3.8"
 license = { file = "LICENSE.md" }
 
 authors = [
     { name = "The Institute for Telecommunication Sciences" },
-    { name="Anthony Romaniello", email="aromaniello@ntia.gov"}
+]
+
+maintainers = [
+    { name = "Doug Boulware", email = "dboulware@ntia.gov" },
+    { name = "Justin Haze", email = "jhaze@ntia.gov" },
+    { name = "Anthony Romaniello", email = "aromaniello@ntia.gov" },
 ]
 
 keywords = [
-    "scos", "sdr", "spectrum-analyzer", "spectrum",
-    "analyzer", "spectrum analyzer", "scos-sensor", "scos sensor",
-    "spectrum monitoring", "monitoring", "spectrum management", "docker",
-    "linux", "software defined radio", "radio"
+    "SCOS", "SDR", "spectrum monitoring", "radio", "sensor",
+    "spectrum", "monitoring", "remote", "distributed", "sensing",
+    "NTIA", "ITS", "telecommunications",
 ]
 
 classifiers = [
@@ -38,22 +41,22 @@ classifiers = [
 
 dependencies = [
     "django>3.2.14,<4.0",
-    # its_preselector @ ntia/preselector@1.0.0 not included
-    "numexpr>=2.8.3,<3.0",
-    "numpy>=1.22.0,<2.0",
-    "python-dateutil>=2.0,<3.0",
-    "ruamel.yaml>=0.15,<1.0",
-    "scipy>=1.6.0,<2.0",
-    # ntia/sigmf@multi-recording-archive not included
+    "its_preselector @ https://github.com/NTIA/Preselector/archive/refs/tags/1.0.0.zip",
+    "numexpr>=2.8.3",
+    "numpy>=1.22.0",
+    "python-dateutil>=2.0",
+    "ruamel.yaml>=0.15",
+    "scipy>=1.8.0",
+    "sigmf @ https://github.com/NTIA/SigMF/archive/refs/heads/multi-recording-archive.zip"
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pre-commit>=2.20.0,<3.0",
-    "pytest>=7.1.2,<8.0",
-    "pytest-cov>=3.0.0,<4.0",
-    "tox>=3.0,<4.0",
-    "twine>=4.0.1,<5.0",
+    "flit>=3.4,<4",
+    "pre-commit>=2.20.0",
+    "pytest>=7.1.2",
+    "pytest-cov>=3.0.0",
+    "tox>=3.0",
 ]
 
 [project.urls]
@@ -63,13 +66,5 @@ dev = [
 "NTIA GitHub" = "https://github.com/NTIA"
 "ITS Website" = "https://its.ntia.gov"
 
-[tool.hatch.version]
-path = "scos_actions/__about__.py"
-
-[tool.hatch.build]
-skip-excluded-dirs = true
-
-[tool.hatch.build.targets.wheel]
-packages = ["scos_actions"]
-
-[tool.hatch.build.targets.sdist]
+[tool.flit.module]
+name = "scos_actions"
