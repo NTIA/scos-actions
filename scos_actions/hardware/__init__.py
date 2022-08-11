@@ -47,7 +47,6 @@ def load_preselector(preselector_config_file):
 
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
 
-register_component_with_status.connect()
 sigan = MockSignalAnalyzer(randomize_values=True)
 gps = MockGPS()
 preselector = load_preselector(PRESELECTOR_CONFIG_FILE)
