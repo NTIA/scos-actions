@@ -12,13 +12,18 @@ from scos_actions.settings import SWITCH_CONFIGS_DIR
 from scos_actions.actions.interfaces.signals import register_component_with_status
 from its_preselector.controlbyweb_web_relay import ControlByWebWebRelay
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def load_switches(switch_dir):
     switch_dict = {}
     files = os.listdir(switch_dir)
     for f in files:
-        conf = utils.load_from_json(os.path.join(switch_dir, f))
+        file_path = os.path.join(switch_dir, f)
+        logger.info('loading switch config ' + file_path)
+        conf = utils.load_from_json(file_path)
         switch = ControlByWebWebRelay(conf)
         switch_dict[switch.id] = switch
         register_component_with_status.send(
@@ -47,7 +52,7 @@ sigan = MockSignalAnalyzer(randomize_values=True)
 gps = MockGPS()
 preselector = load_preselector(PRESELECTOR_CONFIG_FILE)
 register_component_with_status.send(
-            str(preselector.__class__),
-            component=preselector
+    str(preselector.__class__),
+    component=preselector
 )
 switches = load_switches(SWITCH_CONFIGS_DIR)
