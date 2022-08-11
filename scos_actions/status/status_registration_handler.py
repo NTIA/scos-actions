@@ -1,4 +1,4 @@
-from scos_actions import status_registrar
+from . import status_registrar
 
 import logging
 
