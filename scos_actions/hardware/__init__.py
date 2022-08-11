@@ -26,7 +26,7 @@ def load_switches(switch_dir):
         conf = utils.load_from_json(file_path)
         switch = ControlByWebWebRelay(conf)
         switch_dict[switch.id] = switch
-        register_component_with_status.send(__name__, switch)
+        register_component_with_status.send(__name__, compoenent=switch)
 
     return switch_dict
 
@@ -40,7 +40,7 @@ def load_preselector(preselector_config_file):
     preselector_module = importlib.import_module(PRESELECTOR_MODULE)
     preselector_class = getattr(preselector_module, PRESELECTOR_CLASS)
     preselector = preselector_class(capabilities['sensor'], preselector_config)
-    register_component_with_status.send(__name__, preselector)
+    register_component_with_status.send(__name__,component=preselector)
 
     return preselector
 
