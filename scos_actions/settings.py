@@ -55,13 +55,14 @@ else:
     SENSOR_CALIBRATION_FILE = settings.SENSOR_CALIBRATION_FILE
     logger.debug('SCOS_ACTIONS: SENSOR_CALIBRATION_FILE: ' + SENSOR_CALIBRATION_FILE)
 
-SWITCH_CONFIGS_DIR = path.join(CONFIG_DIR, 'switches')
+
 if not settings.configured:
     PRESELECTOR_CONFIG_FILE = None
     SENSOR_DEFINITION_FILE = None
     FQDN = None
     PRESELECTOR_MODULE = 'its_preselector.web_relay_preselector'
     PRESELECTOR_CLASS = 'WebRelayPreselector'
+    SWITCH_CONFIGS_DIR = path.join(CONFIG_DIR, 'switches')
 else:
     MOCK_SIGAN = settings.MOCK_SIGAN
     RUNNING_TESTS = settings.RUNNING_TESTS
