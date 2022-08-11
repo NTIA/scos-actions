@@ -64,11 +64,26 @@ def get_fft(
         normalization mode.
     """
     logger.debug("Computing FFTs")
+    # Make sure num_ffts and fft_size are integers
+    if isinstance(fft_size, int) and isinstance(num_ffts, int):
+        pass
+    else:
+        if isinstance(fft_size, float) and fft_size == int(fft_size):
+            fft_size = int(fft_size)
+        else:
+            raise ValueError("fft_size must be an integer.")
+        if isinstance(num_ffts, float) and num_ffts == int(num_ffts):
+            num_ffts = int(num_ffts)
+        else:
+            raise ValueError("num_ffts must be an integer.")
+
     # Get num_ffts for default case: as many as possible
     if num_ffts <= 0:
         logger.info("Number of FFTs not specified. Using as many as possible.")
         num_ffts = int(len(time_data) // fft_size)
-        logger.info(f"Number of FFTs set to {num_ffts} based on specified FFT size {fft_size}")
+        logger.info(
+            f"Number of FFTs set to {num_ffts} based on specified FFT size {fft_size}"
+        )
 
     # Determine if truncation will occur and raise a warning if so
     if len(time_data) != fft_size * num_ffts:
@@ -80,7 +95,9 @@ def get_fft(
 
     # Resize time data for FFTs
     time_data = np.reshape(time_data[: num_ffts * fft_size], (num_ffts, fft_size))
-    logger.debug(f"Num. FFTs: {num_ffts}, FFT Size: {fft_size}, Data shape: {time_data.shape}")
+    logger.debug(
+        f"Num. FFTs: {num_ffts}, FFT Size: {fft_size}, Data shape: {time_data.shape}"
+    )
 
     # Apply the FFT window if provided
     if fft_window is not None:
@@ -91,7 +108,7 @@ def get_fft(
 
     # Shift the frequencies if desired (only along second axis)
     if shift:
-        complex_fft = np.fft.fftshift(complex_fft) #, axes=(1,))
+        complex_fft = np.fft.fftshift(complex_fft)  # , axes=(1,))
     return complex_fft
 
 
