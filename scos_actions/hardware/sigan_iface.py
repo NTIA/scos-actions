@@ -1,10 +1,10 @@
 import copy
 from abc import ABC, abstractmethod
+from scos_actions.capabilities import capabilities
 from scos_actions.settings import sensor_calibration
 from scos_actions.settings import sigan_calibration
 from scos_actions.utils import convert_string_to_millisecond_iso_format
 from scos_actions.utils import get_datetime_str_now
-
 
 
 class SignalAnalyzerInterface(ABC):
@@ -31,7 +31,6 @@ class SignalAnalyzerInterface(ABC):
         }
         self.sensor_calibration_data = copy.deepcopy(self.DEFAULT_SENSOR_CALIBRATION)
         self.sigan_calibration_data = copy.deepcopy(self.DEFAULT_SIGAN_CALIBRATION)
-
 
     @property
     def last_calibration_time(self):
@@ -90,4 +89,13 @@ class SignalAnalyzerInterface(ABC):
         return 'Signal Analyzer'
 
     def get_status(self):
-        return {'type': str(self.__class__),'healthy': self.healthy}
+        sigan_model = str(self.__class__)
+        if 'signal_analyzer' in capabilities:
+            sigan = capabilities['signal_analyzer']
+            if 'sigan_spec' in sigan:
+                spec = sigan['sigan_spec']
+                if 'model' in spec:
+                    model = spec['model']
+                    if model != 'Default' and model != '':
+                        sigan_model = model
+        return {'type': sigan_model, 'healthy': self.healthy}

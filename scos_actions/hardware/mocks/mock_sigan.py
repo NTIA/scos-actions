@@ -146,3 +146,4 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
 
     def update_calibration(self, params):
         pass
+
