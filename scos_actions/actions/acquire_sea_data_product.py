@@ -21,57 +21,72 @@ r"""Acquire a NASCTN SEA data product.
 Currently in development.
 """
 import logging
-import numpy as np
-import numexpr as ne
 from time import perf_counter
 from typing import Tuple
+
+import numexpr as ne
+import numpy as np
 from scipy.signal import sosfilt
 
 from scos_actions import utils
-from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
-from scos_actions.actions.interfaces.measurement_action import MeasurementAction
+from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.hardware import gps as mock_gps
+from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
-from scos_actions.signal_processing.filtering import generate_elliptic_iir_low_pass_filter
-from scos_actions.signal_processing.fft import get_fft, get_fft_window, get_fft_window_correction
-from scos_actions.signal_processing.power_analysis import apply_power_detector, calculate_power_watts, create_power_detector, calculate_pseudo_power, filter_quantiles
-from scos_actions.signal_processing.unit_conversion import convert_linear_to_dB, convert_watts_to_dBm
+from scos_actions.signal_processing.fft import (
+    get_fft,
+    get_fft_window,
+    get_fft_window_correction,
+)
+from scos_actions.signal_processing.filtering import (
+    generate_elliptic_iir_low_pass_filter,
+)
+from scos_actions.signal_processing.power_analysis import (
+    apply_power_detector,
+    calculate_power_watts,
+    calculate_pseudo_power,
+    create_power_detector,
+    filter_quantiles,
+)
+from scos_actions.signal_processing.unit_conversion import (
+    convert_linear_to_dB,
+    convert_watts_to_dBm,
+)
 
 logger = logging.getLogger(__name__)
 
 # Define parameter keys
-IIR_APPLY = 'iir_apply'
-RP_DB = 'iir_rp_dB'
-RS_DB = 'iir_rs_dB'
-IIR_CUTOFF_HZ = 'iir_cutoff_Hz'
-IIR_WIDTH_HZ = 'iir_width_Hz'
-QFILT_APPLY = 'qfilt_apply'
-Q_LO = 'qfilt_qlo'
-Q_HI = 'qfilt_qhi'
+IIR_APPLY = "iir_apply"
+RP_DB = "iir_rp_dB"
+RS_DB = "iir_rs_dB"
+IIR_CUTOFF_HZ = "iir_cutoff_Hz"
+IIR_WIDTH_HZ = "iir_width_Hz"
+QFILT_APPLY = "qfilt_apply"
+Q_LO = "qfilt_qlo"
+Q_HI = "qfilt_qhi"
 FFT_SIZE = "fft_size"
-NUM_FFTS = 'nffts'
+NUM_FFTS = "nffts"
 FFT_WINDOW_TYPE = "fft_window_type"
-APD_BIN_SIZE_DB = 'apd_bin_size_dB'
-TD_BIN_SIZE_MS = 'td_bin_size_ms'
-ROUND_TO = 'round_to_places'
+APD_BIN_SIZE_DB = "apd_bin_size_dB"
+TD_BIN_SIZE_MS = "td_bin_size_ms"
+ROUND_TO = "round_to_places"
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
 
 
-class NasctnSeaDataProduct(MeasurementAction):
+class NasctnSeaDataProduct(Action):
     """Acquire a stepped-frequency NASCTN SEA data product.
 
     :param parameters: The dictionary of parameters needed for
         the action and the signal analyzer.
     :param sigan: Instance of SignalAnalyzerInterface.
     """
+
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters, sigan, gps)
-
-        self.sigan = sigan  # make instance variable to allow mocking
 
         # Setup/pull config parameters
         # TODO: All parameters in this section should end up hard-coded
@@ -96,21 +111,34 @@ class NasctnSeaDataProduct(MeasurementAction):
         self.sample_rate_Hz = utils.get_parameter(SAMPLE_RATE, self.parameters)
 
         # Construct IIR filter
-        self.iir_sos = generate_elliptic_iir_low_pass_filter(self.iir_rp_dB, self.iir_rs_dB, self.iir_cutoff_Hz, self.iir_width_Hz, self.sample_rate_Hz)
+        self.iir_sos = generate_elliptic_iir_low_pass_filter(
+            self.iir_rp_dB,
+            self.iir_rs_dB,
+            self.iir_cutoff_Hz,
+            self.iir_width_Hz,
+            self.sample_rate_Hz,
+        )
 
         # Generate FFT window and get its energy correction factor
         self.fft_window = get_fft_window(self.fft_window_type, self.fft_size)
-        self.fft_window_ecf = get_fft_window_correction(self.fft_window, 'energy')
+        self.fft_window_ecf = get_fft_window_correction(self.fft_window, "energy")
 
         # Create power detectors
         self.fft_detector = create_power_detector("FftMeanMaxDetector", ["mean", "max"])
         self.td_detector = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
 
-
     def __call__(self, schedule_entry, task_id):
         """This is the entrypoint function called by the scheduler."""
         # Temporary: remove config parameters which will be hard-coded eventually
-        for key in [RP_DB, RS_DB, IIR_CUTOFF_HZ, IIR_WIDTH_HZ, Q_LO, Q_HI, FFT_WINDOW_TYPE]:
+        for key in [
+            RP_DB,
+            RS_DB,
+            IIR_CUTOFF_HZ,
+            IIR_WIDTH_HZ,
+            Q_LO,
+            Q_HI,
+            FFT_WINDOW_TYPE,
+        ]:
             self.parameters.pop(key)
         self.test_required_components()
 
@@ -133,10 +161,12 @@ class NasctnSeaDataProduct(MeasurementAction):
                 sender=self.__class_,
                 task_id=task_id,
                 data=measurement_result["data"],
-                metadata=None # TODO: Add metadata
+                metadata=None,  # TODO: Add metadata
             )
         action_done = perf_counter()
-        logger.debug(f"IQ Capture and data processing completed in {action_done-start_action:.2f}")
+        logger.debug(
+            f"IQ Capture and data processing completed in {action_done-start_action:.2f}"
+        )
 
     def capture_iq(self, schedule_entry, task_id, recording_id, params) -> dict:
         start_time = utils.get_datetime_str_now()
@@ -149,7 +179,8 @@ class NasctnSeaDataProduct(MeasurementAction):
         nskip = utils.get_parameter(NUM_SKIP, params)
         num_samples = int(sample_rate * duration_ms * 1e-3)
         # Collect IQ data
-        measurement_result = super().acquire_data(num_samples, nskip)
+        # measurement_result = super().acquire_data(num_samples, nskip)
+        measurement_result = self.sigan.acquire_time_domain_samples(num_samples, nskip)
         end_time = utils.get_datetime_str_now()
         # Store some metadata with the IQ
         measurement_result.update(params)
@@ -161,7 +192,7 @@ class NasctnSeaDataProduct(MeasurementAction):
         toc = perf_counter()
         logger.debug(f"IQ Capture ({duration_ms} ms) completed in {toc-tic:.2f} s.")
         return measurement_result
-    
+
     def generate_data_product(self, measurement_result: dict) -> np.ndarray:
         # Load IQ, process, return data product, for single channel
         # TODO: Explore parallelizing computation tasks
@@ -178,7 +209,7 @@ class NasctnSeaDataProduct(MeasurementAction):
 
         # Filter IQ data
         if self.iir_apply:
-            logger.debug(f'Applying IIR low-pass filter to IQ data...')
+            logger.debug(f"Applying IIR low-pass filter to IQ data...")
             tic = perf_counter()
             iq = sosfilt(self.iir_sos, iq)
             toc = perf_counter()
@@ -208,7 +239,9 @@ class NasctnSeaDataProduct(MeasurementAction):
                 continue
             data.round(decimals=self.round_to, out=data)
         toc = perf_counter()
-        logger.debug(f"Data product rounded to {self.round_to} decimal places in {toc-tic:.2f} s")
+        logger.debug(
+            f"Data product rounded to {self.round_to} decimal places in {toc-tic:.2f} s"
+        )
 
         # Reduce data types to half-precision floats
         tic = perf_counter()
@@ -222,23 +255,27 @@ class NasctnSeaDataProduct(MeasurementAction):
     def get_fft_results(self, iqdata: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         # IQ data already scaled for calibrated gain
         fft_result = get_fft(
-            time_data = iqdata,
-            fft_size = self.fft_size,
-            norm = 'forward',
-            fft_window = self.fft_window,
-            num_ffts = self.nffts,
-            shift = False,
-            workers = 1  # Configurable for parallelization
+            time_data=iqdata,
+            fft_size=self.fft_size,
+            norm="forward",
+            fft_window=self.fft_window,
+            num_ffts=self.nffts,
+            shift=False,
+            workers=1,  # Configurable for parallelization
         )
         fft_result = calculate_pseudo_power(fft_result)
-        fft_result = apply_power_detector(fft_result, self.fft_detector)  # First array is mean, second is max
+        fft_result = apply_power_detector(
+            fft_result, self.fft_detector
+        )  # First array is mean, second is max
         ne.evaluate("fft_result/50", out=fft_result)  # Finish conversion to Watts
         # Shift frequencies of reduced result
         fft_result = np.fft.fftshift(fft_result, axes=(1,))
         fft_result = convert_watts_to_dBm(fft_result)
-        fft_result -= 3 # Baseband/RF power conversion
-        fft_result -= 10. * np.log10(self.sample_rate_Hz)  # PSD scaling # TODO: Assure this is the correct sample rate
-        fft_result += 20. * np.log10(self.fft_window_ecf)  # Window energy correction
+        fft_result -= 3  # Baseband/RF power conversion
+        fft_result -= 10.0 * np.log10(
+            self.sample_rate_Hz
+        )  # PSD scaling # TODO: Assure this is the correct sample rate
+        fft_result += 20.0 * np.log10(self.fft_window_ecf)  # Window energy correction
         return fft_result[0], fft_result[1]
 
     def get_apd_results(self, iqdata: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -247,17 +284,19 @@ class NasctnSeaDataProduct(MeasurementAction):
         # a = a * 2 : dBV --> dB(V^2)
         # a = a - impedance_dB : dB(V^2) --> dBW
         # a = a + 27 : dBW --> dBm (+30) and RF/baseband conversion (-3)
-        scale_factor = 27 - convert_linear_to_dB(50.)  # Hard-coded for 50 Ohms.
+        scale_factor = 27 - convert_linear_to_dB(50.0)  # Hard-coded for 50 Ohms.
         ne.evaluate("(a*2)+scale_factor", out=a)
         return p, a
 
     def get_td_power_results(self, iqdata: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         # Reshape IQ data into blocks
-        block_size = (self.td_bin_size_ms * self.sample_rate_Hz * 1e3)  # TODO: Assure this uses correct sample rate
+        block_size = (
+            self.td_bin_size_ms * self.sample_rate_Hz * 1e3
+        )  # TODO: Assure this uses correct sample rate
         n_blocks = len(iqdata) // block_size
         iqdata = iqdata.reshape(n_blocks, block_size)
 
-        iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.)
+        iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.0)
 
         if self.qfilt_apply:
             # Apply quantile filtering before computing power statistics
@@ -266,10 +305,12 @@ class NasctnSeaDataProduct(MeasurementAction):
             # Diagnostics
             num_nans = np.count_nonzero(np.isnan(iq_pwr))
             nan_pct = num_nans * 100 / len(iq_pwr.flatten())
-            logger.debug(f"Rejected {num_nans} samples ({nan_pct:.2f}% of total capture)")
+            logger.debug(
+                f"Rejected {num_nans} samples ({nan_pct:.2f}% of total capture)"
+            )
         else:
             logger.info("Quantile-filtering disabled. Skipping...")
-        
+
         # Apply mean/max detectors
         td_result = apply_power_detector(iq_pwr, self.td_detector, ignore_nan=True)
 
@@ -290,7 +331,7 @@ class NasctnSeaDataProduct(MeasurementAction):
     def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
         # TODO (low-priority)
         # Create metadata annotations for the data
-        return super().get_sigmf_builder(measurement_result)
+        return None
 
     def is_complex(self) -> bool:
         return False
