@@ -26,7 +26,7 @@ click==8.0.4
     # via black
 distlib==0.3.4
     # via virtualenv
-django==3.2.12
+django==3.2.15
     # via -r requirements.txt
 filelock==3.6.0
     # via
@@ -38,14 +38,6 @@ idna==3.3
     # via
     #   -r requirements.txt
     #   requests
-importlib-metadata==4.11.2
-    # via
-    #   click
-    #   pluggy
-    #   pre-commit
-    #   pytest
-    #   tox
-    #   virtualenv
 iniconfig==1.1.1
     # via pytest
 its-preselector @ git+https://github.com/NTIA/Preselector@1.0.0
@@ -126,14 +118,6 @@ tomli==2.0.1
     #   pytest
 tox==3.24.5
     # via -r requirements-dev.in
-typed-ast==1.5.2
-    # via black
-typing-extensions==4.1.1
-    # via
-    #   -r requirements.txt
-    #   asgiref
-    #   black
-    #   importlib-metadata
 urllib3==1.26.8
     # via
     #   -r requirements.txt
@@ -142,5 +126,3 @@ virtualenv==20.13.3
     # via
     #   pre-commit
     #   tox
-zipp==3.7.0
-    # via importlib-metadata
