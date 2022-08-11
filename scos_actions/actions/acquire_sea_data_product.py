@@ -151,6 +151,7 @@ class NasctnSeaDataProduct(Action):
 
         start_action = perf_counter()
         for i, p in enumerate(iteration_params, start=1):
+            print(f"Generating data product for parameters: {p}")
             # Capture IQ data
             measurement_result = self.capture_iq(schedule_entry, task_id, i, p)
             # Generate data product, overwrite IQ data
