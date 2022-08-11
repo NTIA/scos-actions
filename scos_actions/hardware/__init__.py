@@ -5,11 +5,11 @@ from scos_actions import utils
 from scos_actions.capabilities import capabilities
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
+from scos_actions.actions.interfaces.signals import register_component_with_status
 from scos_actions.settings import PRESELECTOR_CLASS
 from scos_actions.settings import PRESELECTOR_CONFIG_FILE
 from scos_actions.settings import PRESELECTOR_MODULE
 from scos_actions.settings import SWITCH_CONFIGS_DIR
-from scos_actions.actions.interfaces.signals import register_component_with_status
 from its_preselector.controlbyweb_web_relay import ControlByWebWebRelay
 
 import logging
@@ -26,10 +26,8 @@ def load_switches(switch_dir):
         conf = utils.load_from_json(file_path)
         switch = ControlByWebWebRelay(conf)
         switch_dict[switch.id] = switch
-        register_component_with_status.send(
-            str(switch.__class__),
-            component=switch
-        )
+        register_component_with_status.send(__name__, switch)
+
     return switch_dict
 
 
@@ -42,17 +40,15 @@ def load_preselector(preselector_config_file):
     preselector_module = importlib.import_module(PRESELECTOR_MODULE)
     preselector_class = getattr(preselector_module, PRESELECTOR_CLASS)
     preselector = preselector_class(capabilities['sensor'], preselector_config)
+    register_component_with_status.send(__name__, preselector)
 
     return preselector
 
 
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
 
+register_component_with_status.connect()
 sigan = MockSignalAnalyzer(randomize_values=True)
 gps = MockGPS()
 preselector = load_preselector(PRESELECTOR_CONFIG_FILE)
-register_component_with_status.send(
-    str(preselector.__class__),
-    component=preselector
-)
 switches = load_switches(SWITCH_CONFIGS_DIR)

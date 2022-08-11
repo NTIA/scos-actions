@@ -1,0 +1,6 @@
+from status_monitor import StatusMonitor
+from status_registration_handler import status_registration_handler
+from scos_actions.actions.interfaces.signals import register_component_with_status
+
+status_registrar = StatusMonitor()
+register_component_with_status.connect(status_registration_handler)
