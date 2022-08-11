@@ -86,8 +86,8 @@ class SignalAnalyzerInterface(ABC):
             )
 
     @property
-    def name(self):
+    def name(self) -> str:
         return 'Signal Analyzer'
 
     def get_status(self):
-        return {'type': self.__class__,'healthy': self.healthy}
+        return {'type': str(self.__class__),'healthy': self.healthy}
