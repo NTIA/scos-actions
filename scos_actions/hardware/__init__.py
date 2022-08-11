@@ -18,7 +18,7 @@ def load_switches(switch_dir):
     switch_dict = {}
     files = os.listdir(switch_dir)
     for f in files:
-        conf = utils.load_from_json(f)
+        conf = utils.load_from_json(os.path.join(switch_dir, f))
         switch = ControlByWebWebRelay(conf)
         switch_dict[switch.id] = switch
         register_component_with_status.send(
