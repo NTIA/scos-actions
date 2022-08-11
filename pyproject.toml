@@ -40,7 +40,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "django>3.2.14,<4.0",
+    "django>3.2.15,<4.0",
     "its_preselector @ https://github.com/NTIA/Preselector/archive/refs/tags/1.0.0.zip",
     "numexpr>=2.8.3",
     "numpy>=1.22.0",
