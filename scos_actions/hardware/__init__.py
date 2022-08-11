@@ -22,7 +22,7 @@ def load_switches(switch_dir):
         switch = ControlByWebWebRelay(conf)
         switch_dict[switch.id] = switch
         register_component_with_status.send(
-            switch.__class__,
+            str(switch.__class__),
             component=switch
         )
     return switch_dict
@@ -47,7 +47,7 @@ sigan = MockSignalAnalyzer(randomize_values=True)
 gps = MockGPS()
 preselector = load_preselector(PRESELECTOR_CONFIG_FILE)
 register_component_with_status.send(
-            preselector.__class__,
+            str(preselector.__class__),
             component=preselector
 )
 switches = load_switches(SWITCH_CONFIGS_DIR)
