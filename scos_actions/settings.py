@@ -39,7 +39,7 @@ CONFIG_DIR = path.join(
 ACTION_DEFINITIONS_DIR = path.join(
     path.dirname(path.abspath(__file__)), "configs/actions"
 )
-
+logger.debug("setting Configured: " + str(settings.configured))
 # set sigan_calibration file and sensor_calibration_file
 if not settings.configured or not hasattr(settings, "SIGAN_CALIBRATION_FILE"):
     logger.warning("Using default sigan cal file.")
