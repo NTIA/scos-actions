@@ -158,7 +158,7 @@ class NasctnSeaDataProduct(Action):
 
             # Send signal
             measurement_action_completed.send(
-                sender=self.__class_,
+                sender=self.__class__,
                 task_id=task_id,
                 data=measurement_result["data"],
                 metadata=None,  # TODO: Add metadata
@@ -321,6 +321,14 @@ class NasctnSeaDataProduct(Action):
         td_result -= 3
 
         return td_result[0], td_result[1]
+
+    def test_required_components(self):
+        """Fail acquisition if a required component is not available."""
+        if not self.sigan.is_available:
+            msg = "Acquisition failed: signal analyzer is not available"
+            raise RuntimeError(msg)
+        # TODO: Add additional health checks
+        return None
 
     @property
     def description(self):
