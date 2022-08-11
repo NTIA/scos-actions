@@ -101,13 +101,13 @@ class NasctnSeaDataProduct(Action):
 
         # TODO: These parameters should not be hard-coded
         # None of these should be lists - all single values
-        self.iir_apply = utils.get_parameter(IIR_APPLY, self.parameters)
-        self.qfilt_apply = utils.get_parameter(QFILT_APPLY, self.parameters)
+        # self.iir_apply = utils.get_parameter(IIR_APPLY, self.parameters)
+        # self.qfilt_apply = utils.get_parameter(QFILT_APPLY, self.parameters)
         self.fft_size = utils.get_parameter(FFT_SIZE, self.parameters)
-        self.nffts = utils.get_parameter(NUM_FFTS, self.parameters)
-        self.apd_bin_size_dB = utils.get_parameter(APD_BIN_SIZE_DB, self.parameters)
-        self.td_bin_size_ms = utils.get_parameter(TD_BIN_SIZE_MS, self.parameters)
-        self.round_to = utils.get_parameter(ROUND_TO, self.parameters)
+        # self.nffts = utils.get_parameter(NUM_FFTS, self.parameters)
+        # self.apd_bin_size_dB = utils.get_parameter(APD_BIN_SIZE_DB, self.parameters)
+        # self.td_bin_size_ms = utils.get_parameter(TD_BIN_SIZE_MS, self.parameters)
+        # self.round_to = utils.get_parameter(ROUND_TO, self.parameters)
         self.sample_rate_Hz = utils.get_parameter(SAMPLE_RATE, self.parameters)
 
         # Construct IIR filter
@@ -151,11 +151,13 @@ class NasctnSeaDataProduct(Action):
 
         start_action = perf_counter()
         for i, p in enumerate(iteration_params, start=1):
-            print(f"Generating data product for parameters: {p}")
+            logger.debug(f"Generating data product for parameters: {p}")
             # Capture IQ data
             measurement_result = self.capture_iq(schedule_entry, task_id, i, p)
             # Generate data product, overwrite IQ data
-            measurement_result["data"] = self.generate_data_product(measurement_result)
+            measurement_result["data"] = self.generate_data_product(
+                measurement_result, p
+            )
 
             # Send signal
             measurement_action_completed.send(
@@ -194,7 +196,9 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"IQ Capture ({duration_ms} ms) completed in {toc-tic:.2f} s.")
         return measurement_result
 
-    def generate_data_product(self, measurement_result: dict) -> np.ndarray:
+    def generate_data_product(
+        self, measurement_result: dict, params: dict
+    ) -> np.ndarray:
         # Load IQ, process, return data product, for single channel
         # TODO: Explore parallelizing computation tasks
         logger.debug(f'Generating data product for {measurement_result["task_id"]}')
@@ -204,7 +208,7 @@ class NasctnSeaDataProduct(Action):
         # Get FFT amplitudes using unfiltered data
         logger.debug("Getting FFT results...")
         tic = perf_counter()
-        data_product.extend(self.get_fft_results(iq))
+        data_product.extend(self.get_fft_results(iq, params))
         toc = perf_counter()
         logger.debug(f"FFT computation complete in {toc-tic:.2f} s")
 
@@ -220,7 +224,7 @@ class NasctnSeaDataProduct(Action):
 
         logger.debug("Calculating time-domain power statistics...")
         tic = perf_counter()
-        data_product.extend(self.get_td_power_results(iq))
+        data_product.extend(self.get_td_power_results(iq, params))
         toc = perf_counter()
         logger.debug(f"Time domain power statistics calculated in {toc-tic:.2f} s")
 
@@ -253,16 +257,21 @@ class NasctnSeaDataProduct(Action):
 
         return np.array(data_product, dtype=object)
 
-    def get_fft_results(self, iqdata: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def get_fft_results(
+        self, iqdata: np.ndarray, params: dict
+    ) -> Tuple[np.ndarray, np.ndarray]:
         # IQ data already scaled for calibrated gain
+        logger.debug(
+            f"FFT PARAMS: nffts {params[NUM_FFTS]}, fft_Size: {params[FFT_SIZE]}"
+        )
         fft_result = get_fft(
             time_data=iqdata,
-            fft_size=self.fft_size,
+            fft_size=params[FFT_SIZE],
             norm="forward",
             fft_window=self.fft_window,
-            num_ffts=self.nffts,
+            num_ffts=params[NUM_FFTS],
             shift=False,
-            workers=1,  # Configurable for parallelization
+            workers=1,  # TODO: Configure for parallelization
         )
         fft_result = calculate_pseudo_power(fft_result)
         fft_result = apply_power_detector(
@@ -289,17 +298,19 @@ class NasctnSeaDataProduct(Action):
         ne.evaluate("(a*2)+scale_factor", out=a)
         return p, a
 
-    def get_td_power_results(self, iqdata: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def get_td_power_results(
+        self, iqdata: np.ndarray, params: dict
+    ) -> Tuple[np.ndarray, np.ndarray]:
         # Reshape IQ data into blocks
         block_size = (
-            self.td_bin_size_ms * self.sample_rate_Hz * 1e3
+            params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e3
         )  # TODO: Assure this uses correct sample rate
         n_blocks = len(iqdata) // block_size
         iqdata = iqdata.reshape(n_blocks, block_size)
 
         iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.0)
 
-        if self.qfilt_apply:
+        if params[QFILT_APPLY]:
             # Apply quantile filtering before computing power statistics
             logger.info("Quantile-filtering time domain power data...")
             iq_pwr = filter_quantiles(iq_pwr, self.qfilt_qlo, self.qfilt_qhi)
