@@ -10,7 +10,7 @@ certifi==2022.6.15
     # via requests
 charset-normalizer==2.1.0
     # via requests
-django==3.2.14
+django==3.2.15
     # via -r requirements.in
 idna==3.3
     # via requests
@@ -23,7 +23,7 @@ numpy==1.23.1
     #   sigmf
 python-dateutil==2.8.2
     # via -r requirements.in
-pytz==2022.1
+pytz==2022.2
     # via django
 requests==2.28.1
     # via its-preselector
@@ -31,7 +31,7 @@ ruamel-yaml==0.17.21
     # via -r requirements.in
 ruamel-yaml-clib==0.2.6
     # via ruamel-yaml
-scipy==1.8.1
+scipy==1.9.0
     # via -r requirements.in
 sigmf @ git+https://github.com/NTIA/SigMF.git@python3.10_fix
     # via -r requirements.in
