@@ -90,7 +90,7 @@ class SignalAnalyzerInterface(ABC):
 
     def get_status(self):
         sigan_model = str(self.__class__)
-        if 'signal_analyzer' in capabilities:
+        if 'signal_analyzer' in capabilities['sensor']:
             sigan = capabilities['signal_analyzer']
             if 'sigan_spec' in sigan:
                 spec = sigan['sigan_spec']
