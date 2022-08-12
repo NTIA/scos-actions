@@ -11,6 +11,9 @@ from scos_actions.settings import PRESELECTOR_CONFIG_FILE
 from scos_actions.settings import PRESELECTOR_MODULE
 from scos_actions.settings import SWITCH_CONFIGS_DIR
 from its_preselector.controlbyweb_web_relay import ControlByWebWebRelay
+from scos_actions.status.status_registration_handler import status_registration_handler
+from scos_actions.actions.interfaces.signals import register_component_with_status
+
 
 import logging
 
@@ -49,6 +52,9 @@ def load_preselector(preselector_config_file):
 
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
 
+
+register_component_with_status.connect(status_registration_handler)
+logger.info('Connected status registration handler')
 sigan = MockSignalAnalyzer(randomize_values=True)
 gps = MockGPS()
 preselector = load_preselector(PRESELECTOR_CONFIG_FILE)
