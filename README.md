@@ -160,8 +160,8 @@ pip install .[dev]
 ```
 
 This will install the project itself, along with development dependencies for pre-commit
-hooks, building distributions, and running tests. Set up pre-commit, which runs auto-formatting
-and code-checking automatically when you make a commit, by running:
+hooks, building distributions, and running tests. Set up pre-commit, which runs
+auto-formatting and code-checking automatically when you make a commit, by running:
 
 ```bash
 pre-commit install
@@ -173,12 +173,21 @@ can be found in [`.pre-commit-config.yaml`](.pre-commit-config.yaml).
 
 ### Building New Releases
 
-This project uses [flit](https://github.com/pypa/flit) as a backend. To build a new release
-(both wheel and sdist/tarball), first update the version number in
-[`scos_actions/__init__.py`](scos_actions/__init__.py), then run:
+This project uses [Hatchling](https://github.com/pypa/hatch/tree/master/backend) as a
+backend. Hatchling makes versioning and building new releases easy. The package version can
+be updated easily by using any of the following commands.
 
 ```bash
-flit build
+hatchling version major   # 1.0.0 -> 2.0.0
+hatchling version minor   # 1.0.0 -> 1.1.0
+hatchling version micro   # 1.0.0 -> 1.0.1
+hatchling version "X.X.X" # 1.0.0 -> X.X.X
+```
+
+To build a new release (both wheel and sdist/tarball), run:
+
+```bash
+hatchling build
 ```
 
 ### Running Tests
