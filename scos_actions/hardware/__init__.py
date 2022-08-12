@@ -5,7 +5,6 @@ from scos_actions import utils
 from scos_actions.capabilities import capabilities
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
-from scos_actions.actions.interfaces.signals import register_component_with_status
 from scos_actions.settings import PRESELECTOR_CLASS
 from scos_actions.settings import PRESELECTOR_CONFIG_FILE
 from scos_actions.settings import PRESELECTOR_MODULE
@@ -22,16 +21,16 @@ logger = logging.getLogger(__name__)
 
 def load_switches(switch_dir):
     switch_dict = {}
-    files = os.listdir(switch_dir)
-    for f in files:
-        file_path = os.path.join(switch_dir, f)
-        logger.info('loading switch config ' + file_path)
-        conf = utils.load_from_json(file_path)
-        switch = ControlByWebWebRelay(conf)
-        switch_dict[switch.id] = switch
-        logger.info('Registering switch status for ' + switch.name)
-        register_component_with_status.send(__name__, component=switch)
-
+    if os.path.isdir(switch_dir):
+        files = os.listdir(switch_dir)
+        for f in files:
+            file_path = os.path.join(switch_dir, f)
+            logger.info('loading switch config ' + file_path)
+            conf = utils.load_from_json(file_path)
+            switch = ControlByWebWebRelay(conf)
+            switch_dict[switch.id] = switch
+            logger.info('Registering switch status for ' + switch.name)
+            register_component_with_status.send(__name__, component=switch)
     return switch_dict
 
 
