@@ -213,7 +213,7 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"FFT computation complete in {toc-tic:.2f} s")
 
         # Filter IQ data
-        if self.iir_apply:
+        if params[IIR_APPLY]:
             logger.debug(f"Applying IIR low-pass filter to IQ data...")
             tic = perf_counter()
             iq = sosfilt(self.iir_sos, iq)
@@ -261,9 +261,6 @@ class NasctnSeaDataProduct(Action):
         self, iqdata: np.ndarray, params: dict
     ) -> Tuple[np.ndarray, np.ndarray]:
         # IQ data already scaled for calibrated gain
-        logger.debug(
-            f"FFT PARAMS: nffts {params[NUM_FFTS]}, fft_Size: {params[FFT_SIZE]}"
-        )
         fft_result = get_fft(
             time_data=iqdata,
             fft_size=params[FFT_SIZE],
