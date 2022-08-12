@@ -1,10 +1,11 @@
 [build-system]
-requires = ["flit_core>=3.4,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "scos-actions"
-dynamic = ["version", "description"]
+dynamic = ["version"]
+description = "The base plugin providing common actions and interfaces for SCOS Sensor plugins"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { file = "LICENSE.md" }
@@ -41,22 +42,23 @@ classifiers = [
 
 dependencies = [
     "django>=3.2.15,<4.0",
-    "its_preselector @ https://github.com/NTIA/Preselector/archive/refs/tags/1.0.0.zip",
+    "its_preselector @ git+https://github.com/NTIA/Preselector@1.0.0",
     "numexpr>=2.8.3",
     "numpy>=1.22.0",
     "python-dateutil>=2.0",
     "ruamel.yaml>=0.15",
     "scipy>=1.8.0",
-    "sigmf @ https://github.com/NTIA/SigMF/archive/refs/heads/multi-recording-archive.zip"
+    "sigmf @ git+https://github.com/NTIA/SigMF@multi-recording-archive",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "flit>=3.4,<4",
+    "hatchling>=1.6.0,<2.0",
     "pre-commit>=2.20.0",
     "pytest>=7.1.2",
     "pytest-cov>=3.0.0",
     "tox>=3.0",
+    "twine>=4.0.1,<5.0",
 ]
 
 [project.urls]
@@ -66,5 +68,8 @@ dev = [
 "NTIA GitHub" = "https://github.com/NTIA"
 "ITS Website" = "https://its.ntia.gov"
 
-[tool.flit.module]
-name = "scos_actions"
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.version]
+path = "scos_actions/__init__.py"
