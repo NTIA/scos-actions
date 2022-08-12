@@ -299,8 +299,8 @@ class NasctnSeaDataProduct(Action):
         self, iqdata: np.ndarray, params: dict
     ) -> Tuple[np.ndarray, np.ndarray]:
         # Reshape IQ data into blocks
-        block_size = (
-            params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e3
+        block_size = int(
+            params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3
         )  # TODO: Assure this uses correct sample rate
         n_blocks = len(iqdata) // block_size
         iqdata = iqdata.reshape(n_blocks, block_size)
