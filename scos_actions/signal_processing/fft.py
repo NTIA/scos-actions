@@ -68,14 +68,14 @@ def get_fft(
     if isinstance(fft_size, int) and isinstance(num_ffts, int):
         pass
     else:
-        if isinstance(fft_size, float) and fft_size == int(fft_size):
+        if fft_size == int(fft_size):
             fft_size = int(fft_size)
         else:
-            raise ValueError("fft_size must be an integer.")
-        if isinstance(num_ffts, float) and num_ffts == int(num_ffts):
+            raise ValueError(f"fft_size must be an integer, not {type(fft_size)}.")
+        if num_ffts == int(num_ffts):
             num_ffts = int(num_ffts)
         else:
-            raise ValueError("num_ffts must be an integer.")
+            raise ValueError(f"num_ffts must be an integer, not {type(num_ffts)}.")
 
     # Get num_ffts for default case: as many as possible
     if num_ffts <= 0:
