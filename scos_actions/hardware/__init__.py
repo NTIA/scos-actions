@@ -41,6 +41,7 @@ def load_preselector(preselector_config_file):
     preselector_module = importlib.import_module(PRESELECTOR_MODULE)
     preselector_class = getattr(preselector_module, PRESELECTOR_CLASS)
     preselector = preselector_class(capabilities['sensor'], preselector_config)
+    logger.info('Registering ' + preselector.name + ' as status provider')
     register_component_with_status.send(__name__,component=preselector)
 
     return preselector
