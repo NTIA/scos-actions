@@ -30,7 +30,7 @@ def load_switches(switch_dir):
         switch = ControlByWebWebRelay(conf)
         switch_dict[switch.id] = switch
         logger.info('Registering switch status for ' + switch.name)
-        register_component_with_status.send(__name__, compoenent=switch)
+        register_component_with_status.send(__name__, component=switch)
 
     return switch_dict
 
