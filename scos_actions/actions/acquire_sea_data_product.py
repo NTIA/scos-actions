@@ -160,13 +160,13 @@ class NasctnSeaDataProduct(Action):
         # then generate all data products, or to parallelize captures/processing.
 
         start_action = perf_counter()
-        for i, p in enumerate(iteration_params, start=1):
-            logger.debug(f"Generating data product for parameters: {p}")
+        for recording_id, parameters in enumerate(iteration_params, start=1):
+            logger.debug(f"Generating data product for parameters: {parameters}")
             # Capture IQ data
-            measurement_result = self.capture_iq(schedule_entry, task_id, i, p)
+            measurement_result = self.capture_iq(task_id, parameters)
             # Generate data product, overwrite IQ data
             measurement_result["data"] = self.generate_data_product(
-                measurement_result, p
+                measurement_result, parameters
             )
             logger.debug(
                 f"Data product shapes: {[len(d) for d in measurement_result['data']]}"
@@ -174,7 +174,7 @@ class NasctnSeaDataProduct(Action):
             # Generate metadata
             sigmf_builder = self.get_sigmf_builder(measurement_result)
             self.create_metadata(
-                sigmf_builder, schedule_entry, measurement_result, recording=i
+                sigmf_builder, schedule_entry, measurement_result, recording_id
             )
 
             # Send signal
@@ -189,7 +189,7 @@ class NasctnSeaDataProduct(Action):
             f"IQ Capture and data processing completed in {action_done-start_action:.2f}"
         )
 
-    def capture_iq(self, schedule_entry, task_id, recording_id, params) -> dict:
+    def capture_iq(self, task_id, params) -> dict:
         """Acquire a single gap-free stream of IQ samples."""
         start_time = utils.get_datetime_str_now()
         tic = perf_counter()
@@ -284,7 +284,8 @@ class NasctnSeaDataProduct(Action):
         toc = perf_counter()
         logger.debug(f"Reduced data types to half-precision float in {toc-tic:.2f} s")
 
-        return np.array(data_product, dtype=object)
+        return data_product
+        # return np.array(data_product, dtype=object)
 
     def get_fft_results(
         self, iqdata: np.ndarray, params: dict
@@ -379,7 +380,11 @@ class NasctnSeaDataProduct(Action):
         return __doc__
 
     def create_metadata(
-        self, sigmf_builder, schedule_entry, measurement_result, recording=None
+        self,
+        sigmf_builder: SigMFBuilder,
+        schedule_entry,
+        measurement_result: dict,
+        recording=None,
     ):
         sigmf_builder.set_base_sigmf_global(
             schedule_entry,
