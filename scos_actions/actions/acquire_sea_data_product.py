@@ -285,8 +285,10 @@ class NasctnSeaDataProduct(Action):
         fft_result += 20.0 * np.log10(self.fft_window_ecf)  # Window energy correction
         return fft_result[0], fft_result[1]
 
-    def get_apd_results(self, iqdata: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        p, a = get_apd(iqdata, self.apd_bin_size_dB)
+    def get_apd_results(
+        self, iqdata: np.ndarray, params: dict
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        p, a = get_apd(iqdata, params[APD_BIN_SIZE_DB])
         # Convert dBV to dBm:
         # a = a * 2 : dBV --> dB(V^2)
         # a = a - impedance_dB : dB(V^2) --> dBW
