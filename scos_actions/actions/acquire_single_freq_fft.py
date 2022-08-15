@@ -252,6 +252,9 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
                 nffts=self.nffts,
                 units="dBm",
                 reference="preselector input",
+                frequency_start=measurement_result["frequency_start"],
+                frequency_stop=measurement_result["frequency_stop"],
+                frequency_step=measurement_result["frequency_step"],
             )
             sigmf_builder.add_metadata_generator(
                 type(fft_annotation).__name__ + "_" + detector.value, fft_annotation
