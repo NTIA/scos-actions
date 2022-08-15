@@ -250,7 +250,7 @@ class NasctnSeaDataProduct(Action):
 
         # Reduce data types to half-precision floats
         tic = perf_counter()
-        for i in len(data_product):
+        for i in range(len(data_product)):
             data_product[i] = data_product[i].astype(np.half)
         toc = perf_counter()
         logger.debug(f"Reduced data types to half-precision float in {toc-tic:.2f} s")
