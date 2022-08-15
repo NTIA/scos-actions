@@ -172,7 +172,9 @@ class NasctnSeaDataProduct(Action):
             )
             # Generate metadata
             sigmf_builder = self.get_sigmf_builder(measurement_result)
-            self.create_metadata(sigmf_builder, schedule_entry, measurement_result)
+            self.create_metadata(
+                sigmf_builder, schedule_entry, measurement_result, recording=i
+            )
 
             # Send signal
             measurement_action_completed.send(
