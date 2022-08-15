@@ -35,11 +35,13 @@ from scos_actions.hardware import gps as mock_gps
 from scos_actions.metadata.annotations.calibration_annotation import (
     CalibrationAnnotation,
 )
-
-# from scos_actions.metadata.annotations.fft_annotation import FrequencyDomainDetectionAnnotation
+from scos_actions.metadata.annotations.fft_annotation import (
+    FrequencyDomainDetectionAnnotation,
+)
 from scos_actions.metadata.annotations.sensor_annotation import SensorAnnotation
-
-# from scos_actions.metadata.annotations.time_domain_annotation import TimeDomainAnnotation
+from scos_actions.metadata.annotations.time_domain_annotation import (
+    TimeDomainAnnotation,
+)
 from scos_actions.metadata.measurement_global import MeasurementMetadata
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
@@ -373,12 +375,6 @@ class NasctnSeaDataProduct(Action):
         # TODO: Add additional health checks
         return None
 
-    @property
-    def description(self):
-        """Parameterize and return the module-level docstring."""
-        # TODO (low-priority)
-        return __doc__
-
     def create_metadata(
         self,
         sigmf_builder: SigMFBuilder,
@@ -403,19 +399,49 @@ class NasctnSeaDataProduct(Action):
         # Create metadata annotations for the data
         sigmf_builder = SigMFBuilder()
         self.received_samples = len(measurement_result["data"].flatten())
+
+        # Annotate calibration
         calibration_annotation = CalibrationAnnotation(0, self.received_samples)
         sigmf_builder.add_metadata_generator(
             type(calibration_annotation).__name__, calibration_annotation
         )
+
         measurement_metadata = MeasurementMetadata()
         sigmf_builder.add_metadata_generator(
             type(measurement_metadata).__name__, measurement_metadata
         )
+
+        # Annotate sensor settings
         sensor_annotation = SensorAnnotation(0, self.received_samples)
         sigmf_builder.add_metadata_generator(
             type(sensor_annotation).__name__, sensor_annotation
         )
+
+        # Annotate FFT
+        # for i, detector in enumerate(self.fft_detector):
+        #     fft_annotation = FrequencyDomainDetectionAnnotation(
+        #         detector.value, i * self.fft_size, self.fft_size
+        #     )
+        #     sigmf_builder.add_metadata_generator(
+        #         type(fft_annotation).__name__ + "_" + detector.value, fft_annotation
+        #     )
+
+        # Annotate time domain power statistics
+        # for i, detector in enumerate(self.td_detector):
+        #     td_annotation = TimeDomainAnnotation(
+        #         detector.value, i *
+        #     )
         return sigmf_builder
+
+    def transform_data(self, measurement_result: dict):
+        """Flatten data product result for saving"""
+        return measurement_result["data"]
 
     def is_complex(self) -> bool:
         return False
+
+    @property
+    def description(self):
+        """Parameterize and return the module-level docstring."""
+        # TODO (low-priority)
+        return __doc__
