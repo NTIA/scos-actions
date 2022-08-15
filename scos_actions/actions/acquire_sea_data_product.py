@@ -32,6 +32,15 @@ from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.hardware import gps as mock_gps
+from scos_actions.metadata.annotations.calibration_annotation import (
+    CalibrationAnnotation,
+)
+
+# from scos_actions.metadata.annotations.fft_annotation import FrequencyDomainDetectionAnnotation
+from scos_actions.metadata.annotations.sensor_annotation import SensorAnnotation
+
+# from scos_actions.metadata.annotations.time_domain_annotation import TimeDomainAnnotation
+from scos_actions.metadata.measurement_global import MeasurementMetadata
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
@@ -358,13 +367,19 @@ class NasctnSeaDataProduct(Action):
         # to avoid errors.
         # Create metadata annotations for the data
         sigmf_builder = SigMFBuilder()
-        # self.received_samples = len(measurement_result["data"].flatten())
-        # calibration_annotation = CalibrationAnnotation(0, self.received_samples)
-        # sigmf_builder.add_metadata_generator(type(calibration_annotation).__name__, calibration_annotation)
-        # measurement_metadata = MeasurementMetadata()
-        # sigmf_builder.add_metadata_generator(type(measurement_metadata).__name__, measurement_metadata)
-        # sensor_annotation = SensorAnnotation(0, self.received_samples)
-        # sigmf_builder.add_metadata_generator(type(sensor_annotation).__name__, sensor_annotation)
+        self.received_samples = len(measurement_result["data"].flatten())
+        calibration_annotation = CalibrationAnnotation(0, self.received_samples)
+        sigmf_builder.add_metadata_generator(
+            type(calibration_annotation).__name__, calibration_annotation
+        )
+        measurement_metadata = MeasurementMetadata()
+        sigmf_builder.add_metadata_generator(
+            type(measurement_metadata).__name__, measurement_metadata
+        )
+        sensor_annotation = SensorAnnotation(0, self.received_samples)
+        sigmf_builder.add_metadata_generator(
+            type(sensor_annotation).__name__, sensor_annotation
+        )
         return sigmf_builder
 
     def is_complex(self) -> bool:
