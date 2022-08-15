@@ -236,7 +236,18 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         sigmf_builder = super().get_sigmf_builder(measurement_result)
         for i, detector in enumerate(self.fft_detector):
             fft_annotation = FrequencyDomainDetectionAnnotation(
-                detector.value, i * self.fft_size, self.fft_size
+                start=i * self.fft_size,
+                count=self.fft_size,
+                fft_size=self.fft_size,
+                window=self.fft_window_type,
+                enbw=measurement_result["enbw"],
+                detector=detector.value,
+                nffts=self.nffts,
+                units="dBm",
+                reference="preselector input",
+                frequency_start=measurement_result["frequency_start"],
+                frequency_stop=measurement_result["frequency_stop"],
+                frequency_step=measurement_result["frequency_step"],
             )
             sigmf_builder.add_metadata_generator(
                 type(fft_annotation).__name__ + "_" + detector.value, fft_annotation

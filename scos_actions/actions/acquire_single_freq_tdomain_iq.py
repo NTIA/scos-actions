@@ -98,7 +98,13 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
 
     def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
-        time_domain_annotation = TimeDomainAnnotation(0, self.received_samples)
+        time_domain_annotation = TimeDomainAnnotation(
+            start=0,
+            count=self.received_samples,
+            detector="sample_iq",
+            units="volts",
+            reference="preselector input",
+        )
         sigmf_builder.add_metadata_generator(
             type(time_domain_annotation).__name__, time_domain_annotation
         )
@@ -132,3 +138,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
 
     def is_complex(self) -> bool:
         return True
+
+
+    
+
