@@ -242,10 +242,10 @@ class NasctnSeaDataProduct(Action):
             if i == 4:
                 # Do not round APD probability axis
                 continue
-            data.round(decimals=self.round_to, out=data)
+            data.round(decimals=params[ROUND_TO], out=data)
         toc = perf_counter()
         logger.debug(
-            f"Data product rounded to {self.round_to} decimal places in {toc-tic:.2f} s"
+            f"Data product rounded to {params[ROUND_TO]} decimal places in {toc-tic:.2f} s"
         )
 
         # Reduce data types to half-precision floats
