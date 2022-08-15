@@ -208,6 +208,12 @@ class NasctnSeaDataProduct(Action):
         measurement_result["domain"] = Domain.TIME.value
         measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result["task_id"] = task_id
+        measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
+            "calibration_datetime"
+        ]
+        measurement_result["description"] = self.description
+        measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
+        measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         toc = perf_counter()
         logger.debug(f"IQ Capture ({duration_ms} ms) completed in {toc-tic:.2f} s.")
         return measurement_result
