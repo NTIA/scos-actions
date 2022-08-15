@@ -169,6 +169,7 @@ class NasctnSeaDataProduct(Action):
             )
             # Generate metadata
             sigmf_builder = self.get_sigmf_builder(measurement_result)
+            self.create_metadata(sigmf_builder, schedule_entry, measurement_result)
 
             # Send signal
             measurement_action_completed.send(
@@ -360,6 +361,19 @@ class NasctnSeaDataProduct(Action):
         """Parameterize and return the module-level docstring."""
         # TODO (low-priority)
         return __doc__
+
+    def create_metadata(
+        self, sigmf_builder, schedule_entry, measurement_result, recording=None
+    ):
+        sigmf_builder.set_base_sigmf_global(
+            schedule_entry,
+            self.sensor_definition,
+            measurement_result,
+            recording,
+            self.is_complex(),
+        )
+        sigmf_builder.add_sigmf_capture(sigmf_builder, measurement_result)
+        sigmf_builder.build(measurement_result)
 
     def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
         # TODO: Finalize metadata
