@@ -7,9 +7,9 @@ class TimeDomainAnnotation(Metadata):
         self,
         start: int,
         count: int,
-        detector: str = "sample_iq",
-        units: str = "volts",
-        reference: str = "preselector input",
+        detector: str,
+        units: str,
+        reference: str,
     ):
         super().__init__(start, count)
         self.detector = detector
