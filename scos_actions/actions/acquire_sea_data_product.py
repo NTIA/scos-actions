@@ -230,7 +230,7 @@ class NasctnSeaDataProduct(Action):
 
         logger.debug("Generating APD...")
         tic = perf_counter()
-        data_product.extend(self.get_apd_results(iq))
+        data_product.extend(self.get_apd_results(iq, params))
         toc = perf_counter()
         logger.debug(f"APD result generated in {toc-tic:.2f} s")
 
