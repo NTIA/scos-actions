@@ -158,13 +158,15 @@ class NasctnSeaDataProduct(Action):
             measurement_result["data"] = self.generate_data_product(
                 measurement_result, p
             )
+            # Generate metadata
+            sigmf_builder = self.get_sigmf_builder(measurement_result)
 
             # Send signal
             measurement_action_completed.send(
                 sender=self.__class__,
                 task_id=task_id,
                 data=measurement_result["data"],
-                metadata=None,  # TODO: Add metadata
+                metadata=sigmf_builder.metadata,
             )
         action_done = perf_counter()
         logger.debug(
@@ -172,15 +174,19 @@ class NasctnSeaDataProduct(Action):
         )
 
     def capture_iq(self, schedule_entry, task_id, recording_id, params) -> dict:
+        """Acquire a single gap-free stream of IQ samples."""
         start_time = utils.get_datetime_str_now()
         tic = perf_counter()
         # Configure signal analyzer + preselector
         self.configure(params)
+        # Ensure sample rate is accurately applied
+        assert (
+            self.sigan.sample_rate == params[SAMPLE_RATE]
+        ), "Sample rate setting not applied."
         # Get IQ capture parameters
-        sample_rate = self.sigan.sample_rate
         duration_ms = utils.get_parameter(DURATION_MS, params)
         nskip = utils.get_parameter(NUM_SKIP, params)
-        num_samples = int(sample_rate * duration_ms * 1e-3)
+        num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
         # Collect IQ data
         # measurement_result = super().acquire_data(num_samples, nskip)
         measurement_result = self.sigan.acquire_time_domain_samples(num_samples, nskip)
@@ -199,7 +205,7 @@ class NasctnSeaDataProduct(Action):
     def generate_data_product(
         self, measurement_result: dict, params: dict
     ) -> np.ndarray:
-        # Load IQ, process, return data product, for single channel
+        """Process IQ data and generate the SEA data product."""
         # TODO: Explore parallelizing computation tasks
         logger.debug(f'Generating data product for {measurement_result["task_id"]}')
         iq = measurement_result["data"].astype(np.complex128)
@@ -260,6 +266,7 @@ class NasctnSeaDataProduct(Action):
     def get_fft_results(
         self, iqdata: np.ndarray, params: dict
     ) -> Tuple[np.ndarray, np.ndarray]:
+        """Compute data product mean/max FFT results from IQ samples."""
         # IQ data already scaled for calibrated gain
         fft_result = get_fft(
             time_data=iqdata,
@@ -279,15 +286,14 @@ class NasctnSeaDataProduct(Action):
         fft_result = np.fft.fftshift(fft_result, axes=(1,))
         fft_result = convert_watts_to_dBm(fft_result)
         fft_result -= 3  # Baseband/RF power conversion
-        fft_result -= 10.0 * np.log10(
-            self.sample_rate_Hz
-        )  # PSD scaling # TODO: Assure this is the correct sample rate
+        fft_result -= 10.0 * np.log10(params[SAMPLE_RATE])  # PSD scaling
         fft_result += 20.0 * np.log10(self.fft_window_ecf)  # Window energy correction
         return fft_result[0], fft_result[1]
 
     def get_apd_results(
         self, iqdata: np.ndarray, params: dict
     ) -> Tuple[np.ndarray, np.ndarray]:
+        """Generate downsampled APD result from IQ samples."""
         p, a = get_apd(iqdata, params[APD_BIN_SIZE_DB])
         # Convert dBV to dBm:
         # a = a * 2 : dBV --> dB(V^2)
@@ -300,10 +306,9 @@ class NasctnSeaDataProduct(Action):
     def get_td_power_results(
         self, iqdata: np.ndarray, params: dict
     ) -> Tuple[np.ndarray, np.ndarray]:
+        """Compute mean/max time domain power statistics from IQ samples, with optional quantile filtering."""
         # Reshape IQ data into blocks
-        block_size = int(
-            params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3
-        )  # TODO: Assure this uses correct sample rate
+        block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
         n_blocks = len(iqdata) // block_size
         iqdata = iqdata.reshape(n_blocks, block_size)
 
@@ -347,10 +352,20 @@ class NasctnSeaDataProduct(Action):
         # TODO (low-priority)
         return __doc__
 
-    def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
-        # TODO (low-priority)
+    def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
+        # TODO: Finalize metadata
+        # This doesn't do much right now, but we need to return some metadata
+        # to avoid errors.
         # Create metadata annotations for the data
-        return None
+        sigmf_builder = SigMFBuilder()
+        # self.received_samples = len(measurement_result["data"].flatten())
+        # calibration_annotation = CalibrationAnnotation(0, self.received_samples)
+        # sigmf_builder.add_metadata_generator(type(calibration_annotation).__name__, calibration_annotation)
+        # measurement_metadata = MeasurementMetadata()
+        # sigmf_builder.add_metadata_generator(type(measurement_metadata).__name__, measurement_metadata)
+        # sensor_annotation = SensorAnnotation(0, self.received_samples)
+        # sigmf_builder.add_metadata_generator(type(sensor_annotation).__name__, sensor_annotation)
+        return sigmf_builder
 
     def is_complex(self) -> bool:
         return False
