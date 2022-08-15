@@ -203,6 +203,7 @@ class NasctnSeaDataProduct(Action):
         end_time = utils.get_datetime_str_now()
         # Store some metadata with the IQ
         measurement_result.update(params)
+        measurement_result["name"] = self.name
         measurement_result["start_time"] = start_time
         measurement_result["end_time"] = end_time
         measurement_result["domain"] = Domain.TIME.value
