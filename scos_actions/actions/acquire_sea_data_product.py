@@ -168,7 +168,7 @@ class NasctnSeaDataProduct(Action):
                 measurement_result, p
             )
             logger.debug(
-                f"Data product shape: {np.shape(measurement_result['data'])}, flattened length: {len(measurement_result['data'].flatten())}"
+                f"Data product shapes: {len(d for d in measurement_result['data'])}"
             )
             # Generate metadata
             sigmf_builder = self.get_sigmf_builder(measurement_result)
