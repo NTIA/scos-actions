@@ -418,19 +418,37 @@ class NasctnSeaDataProduct(Action):
         )
 
         # Annotate FFT
-        # for i, detector in enumerate(self.fft_detector):
-        #     fft_annotation = FrequencyDomainDetectionAnnotation(
-        #         detector.value, i * self.fft_size, self.fft_size
-        #     )
-        #     sigmf_builder.add_metadata_generator(
-        #         type(fft_annotation).__name__ + "_" + detector.value, fft_annotation
-        #     )
+        for i, detector in enumerate(self.fft_detector):
+            fft_annotation = FrequencyDomainDetectionAnnotation(
+                start=0,  # TODO: Replace
+                count=0,  # TODO: Replace
+                fft_size=self.fft_size,
+                window=self.fft_window_type,
+                enbw=0,  # TODO: Replace
+                detector=detector.value,
+                nffts=0,  # TODO: Replace
+                units="dBm/Hz",
+                reference="preselector input",
+                frequency_start=0,  # TODO: Replace
+                frequency_stop=0,  # TODO: Replace
+                frequency_step=0,  # TODO: Replace
+            )
+            sigmf_builder.add_metadata_generator(
+                type(fft_annotation).__name__ + "_" + detector.value, fft_annotation
+            )
 
         # Annotate time domain power statistics
-        # for i, detector in enumerate(self.td_detector):
-        #     td_annotation = TimeDomainAnnotation(
-        #         detector.value, i *
-        #     )
+        for i, detector in enumerate(self.td_detector):
+            td_annotation = TimeDomainAnnotation(
+                start=0,  # TODO: Replace
+                count=0,  # TODO: Replace
+                detector=detector.value,
+                units="dBm",
+                reference="preselector input",
+            )
+            sigmf_builder.add_metadata_generator(
+                type(td_annotation).__name__ + "_" + detector.value, td_annotation
+            )
         return sigmf_builder
 
     def transform_data(self, measurement_result: dict):
