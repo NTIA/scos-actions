@@ -332,7 +332,10 @@ class NasctnSeaDataProduct(Action):
         # Reshape IQ data into blocks
         block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
         n_blocks = len(iqdata) // block_size
-        iqdata = iqdata.reshape(n_blocks, block_size)
+        iqdata = iqdata.reshape(block_size, n_blocks)
+        logger.debug(
+            f"Calculating time-domain power statistics on {n_blocks} blocks of {block_size} samples each"
+        )
 
         iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.0)
 
