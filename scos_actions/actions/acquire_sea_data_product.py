@@ -136,8 +136,6 @@ class NasctnSeaDataProduct(Action):
         self.fft_detector = create_power_detector("FftMeanMaxDetector", ["mean", "max"])
         self.td_detector = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
 
-    def __call__(self, schedule_entry, task_id):
-        """This is the entrypoint function called by the scheduler."""
         # Temporary: remove config parameters which will be hard-coded eventually
         for key in [
             RP_DB,
@@ -148,10 +146,10 @@ class NasctnSeaDataProduct(Action):
             Q_HI,
             FFT_WINDOW_TYPE,
         ]:
-            try:
-                self.parameters.pop(key)
-            except KeyError:
-                pass
+            self.parameters.pop(key)
+
+    def __call__(self, schedule_entry, task_id):
+        """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
 
         iteration_params = utils.get_iterable_parameters(self.parameters)
