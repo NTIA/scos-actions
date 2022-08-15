@@ -148,7 +148,10 @@ class NasctnSeaDataProduct(Action):
             Q_HI,
             FFT_WINDOW_TYPE,
         ]:
-            self.parameters.pop(key)
+            try:
+                self.parameters.pop(key)
+            except KeyError:
+                pass
         self.test_required_components()
 
         iteration_params = utils.get_iterable_parameters(self.parameters)
