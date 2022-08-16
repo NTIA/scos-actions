@@ -470,16 +470,3 @@ class NasctnSeaDataProduct(Action):
         """Parameterize and return the module-level docstring."""
         # TODO (low-priority)
         return __doc__
-
-
-if __name__ == "__main__":
-    test = np.array(
-        [[111, 2, 3], [400, 5], [90, 2, 4, 5], [20, 2, 3, 4, 5, 6, 7]], dtype=object
-    )
-    print(test)
-    idx = [0] + np.cumsum([len(d) for d in test][:-1]).tolist()
-    ty = np.hstack(test)
-    print(ty, ty.shape)
-    # print(np.cumsum(tx)[:-1], np.cumsum(tx))
-    for i in idx:
-        print(ty[i])
