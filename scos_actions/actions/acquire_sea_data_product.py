@@ -21,7 +21,6 @@ r"""Acquire a NASCTN SEA data product.
 Currently in development.
 """
 import logging
-from itertools import chain
 from time import perf_counter
 from typing import Tuple
 
@@ -164,18 +163,19 @@ class NasctnSeaDataProduct(Action):
 
         start_action = perf_counter()
         for recording_id, parameters in enumerate(iteration_params, start=1):
-            logger.debug(f"Generating data product for parameters: {parameters}")
             # Capture IQ data
             measurement_result = self.capture_iq(task_id, parameters)
+
             # Generate data product, overwrite IQ data
             measurement_result["data"] = self.generate_data_product(
                 measurement_result, parameters
             )
-            logger.debug(
-                f"Data product shapes: {[len(d) for d in measurement_result['data']]}"
-            )
+
+            # Flatten data product but retain indices of components
+            measurement_result, dp_idx = self.transform_data(measurement_result)
+
             # Generate metadata
-            sigmf_builder = self.get_sigmf_builder(measurement_result)
+            sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)
             self.create_metadata(
                 sigmf_builder, schedule_entry, measurement_result, recording_id
             )
@@ -287,8 +287,7 @@ class NasctnSeaDataProduct(Action):
         toc = perf_counter()
         logger.debug(f"Reduced data types to half-precision float in {toc-tic:.2f} s")
 
-        return data_product
-        # return np.array(data_product, dtype=object)
+        return np.array(data_product, dtype=object)
 
     def get_fft_results(
         self, iqdata: np.ndarray, params: dict
@@ -393,16 +392,13 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.add_sigmf_capture(sigmf_builder, measurement_result)
         sigmf_builder.build(measurement_result)
 
-    def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
+    def get_sigmf_builder(self, measurement_result: dict, dp_idx: list) -> SigMFBuilder:
         # TODO: Finalize metadata
         # This doesn't do much right now, but we need to return some metadata
         # to avoid errors.
         # Create metadata annotations for the data
         sigmf_builder = SigMFBuilder()
-        self.received_samples = len(
-            list(chain.from_iterable(measurement_result["data"]))
-        )
-        # self.received_samples = len(measurement_result["data"].flatten())
+        self.received_samples = len(measurement_result["data"])
 
         # Annotate calibration
         calibration_annotation = CalibrationAnnotation(0, self.received_samples)
@@ -424,8 +420,8 @@ class NasctnSeaDataProduct(Action):
         # Annotate FFT
         for i, detector in enumerate(self.fft_detector):
             fft_annotation = FrequencyDomainDetectionAnnotation(
-                start=0,  # TODO: Replace
-                count=0,  # TODO: Replace
+                start=dp_idx[i],
+                count=dp_idx[i + 1] - dp_idx[i],
                 fft_size=self.fft_size,
                 window=self.fft_window_type,
                 enbw=0,  # TODO: Replace
@@ -444,8 +440,8 @@ class NasctnSeaDataProduct(Action):
         # Annotate time domain power statistics
         for i, detector in enumerate(self.td_detector):
             td_annotation = TimeDomainAnnotation(
-                start=0,  # TODO: Replace
-                count=0,  # TODO: Replace
+                start=dp_idx[i + 2],
+                count=dp_idx[i + 3] - dp_idx[i + 2],
                 detector=detector.value,
                 units="dBm",
                 reference="preselector input",
@@ -457,7 +453,14 @@ class NasctnSeaDataProduct(Action):
 
     def transform_data(self, measurement_result: dict):
         """Flatten data product result for saving"""
-        return measurement_result["data"]
+        # Get indices for start of each component in flattened result
+        data_lengths = [len(d) for d in measurement_result["data"]]
+        logger.debug(f"Data product component lengths: {data_lengths}")
+        idx = [0] + np.cumsum(data_lengths[:-1]).tolist()
+        logger.debug(f"Data product start indices: {idx}")
+        # Flatten data product
+        measurement_result["data"] = np.hstack(measurement_result["data"])
+        return measurement_result["data"], idx
 
     def is_complex(self) -> bool:
         return False
@@ -467,3 +470,16 @@ class NasctnSeaDataProduct(Action):
         """Parameterize and return the module-level docstring."""
         # TODO (low-priority)
         return __doc__
+
+
+if __name__ == "__main__":
+    test = np.array(
+        [[111, 2, 3], [400, 5], [90, 2, 4, 5], [20, 2, 3, 4, 5, 6, 7]], dtype=object
+    )
+    print(test)
+    idx = [0] + np.cumsum([len(d) for d in test][:-1]).tolist()
+    ty = np.hstack(test)
+    print(ty, ty.shape)
+    # print(np.cumsum(tx)[:-1], np.cumsum(tx))
+    for i in idx:
+        print(ty[i])
