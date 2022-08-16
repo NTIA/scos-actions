@@ -21,6 +21,7 @@ r"""Acquire a NASCTN SEA data product.
 Currently in development.
 """
 import logging
+from itertools import chain
 from time import perf_counter
 from typing import Tuple
 
@@ -398,7 +399,10 @@ class NasctnSeaDataProduct(Action):
         # to avoid errors.
         # Create metadata annotations for the data
         sigmf_builder = SigMFBuilder()
-        self.received_samples = len(measurement_result["data"].flatten())
+        self.received_samples = len(
+            list(chain.from_iterable(measurement_result["data"]))
+        )
+        # self.received_samples = len(measurement_result["data"].flatten())
 
         # Annotate calibration
         calibration_annotation = CalibrationAnnotation(0, self.received_samples)
