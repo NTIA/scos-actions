@@ -244,7 +244,7 @@ class NasctnSeaDataProduct(Action):
         fft_results, measurement_result = self.get_fft_results(
             measurement_result, params
         )
-        data_product.extend(fft_results)  # (mean, max)
+        data_product.extend(fft_results)  # (max, mean)
         toc = perf_counter()
         logger.debug(f"FFT computation complete in {toc-tic:.2f} s")
 
@@ -260,7 +260,7 @@ class NasctnSeaDataProduct(Action):
 
         logger.debug("Calculating time-domain power statistics...")
         tic = perf_counter()
-        data_product.extend(self.get_td_power_results(iq, params))
+        data_product.extend(self.get_td_power_results(iq, params))  # (max, mean)
         toc = perf_counter()
         logger.debug(f"Time domain power statistics calculated in {toc-tic:.2f} s")
 
@@ -310,9 +310,7 @@ class NasctnSeaDataProduct(Action):
             workers=1,  # TODO: Configure for parallelization
         )
         fft_result = calculate_pseudo_power(fft_result)
-        fft_result = apply_power_detector(
-            fft_result, self.fft_detector
-        )  # First array is mean, second is max
+        fft_result = apply_power_detector(fft_result, self.fft_detector)  # (max, mean)
         ne.evaluate("fft_result/50", out=fft_result)  # Finish conversion to Watts
         # Shift frequencies of reduced result
         fft_result = np.fft.fftshift(fft_result, axes=(1,))
@@ -383,7 +381,7 @@ class NasctnSeaDataProduct(Action):
         # Account for RF/baseband power difference
         td_result -= 3
 
-        return (td_result[0], td_result[1])
+        return td_result[0], td_result[1]  # (max, mean)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
