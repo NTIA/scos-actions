@@ -8,11 +8,13 @@ class TimeDomainAnnotation(Metadata):
         start: int,
         count: int,
         detector: str,
+        num_samps: int,
         units: str,
         reference: str,
     ):
         super().__init__(start, count)
         self.detector = detector
+        self.num_samps = num_samps
         self.units = units
         self.reference = reference
 
@@ -20,7 +22,7 @@ class TimeDomainAnnotation(Metadata):
         metadata = {
             "ntia-core:annotation_type": "TimeDomainDetection",
             "ntia-algorithm:detector": self.detector,
-            "ntia-algorithm:number_of_samples": self.count,
+            "ntia-algorithm:number_of_samples": self.num_samps,
             "ntia-algorithm:units": self.units,
             "ntia-algorithm:reference": self.reference,
         }

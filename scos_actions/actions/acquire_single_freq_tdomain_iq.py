@@ -33,13 +33,16 @@ signals.
 
 import logging
 
-from scos_actions import utils
-from scos_actions.utils import get_parameter
-from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
-from scos_actions.hardware import gps as mock_gps
-from scos_actions.metadata.annotations.time_domain_annotation import TimeDomainAnnotation
 from numpy import complex64
+
+from scos_actions import utils
+from scos_actions.actions.interfaces.measurement_action import MeasurementAction
+from scos_actions.hardware import gps as mock_gps
+from scos_actions.metadata.annotations.time_domain_annotation import (
+    TimeDomainAnnotation,
+)
+from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.utils import get_parameter
 
 logger = logging.getLogger(__name__)
 
@@ -83,17 +86,19 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         sample_rate = self.sigan.sample_rate
         num_samples = int(sample_rate * self.duration_ms * 1e-3)
         measurement_result = self.acquire_data(num_samples, self.nskip)
-        measurement_result['start_time'] = start_time
+        measurement_result["start_time"] = start_time
         end_time = utils.get_datetime_str_now()
         measurement_result.update(self.parameters)
-        measurement_result['end_time'] = end_time
-        measurement_result['domain'] = Domain.TIME.value
-        measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
-        measurement_result['task_id'] = task_id
-        measurement_result['calibration_datetime'] = self.sigan.sensor_calibration_data['calibration_datetime']
-        measurement_result['description'] = self.description
-        measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
-        measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
+        measurement_result["end_time"] = end_time
+        measurement_result["domain"] = Domain.TIME.value
+        measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
+        measurement_result["task_id"] = task_id
+        measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
+            "calibration_datetime"
+        ]
+        measurement_result["description"] = self.description
+        measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
+        measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         return measurement_result
 
     def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
@@ -102,6 +107,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
             start=0,
             count=self.received_samples,
             detector="sample_iq",
+            num_samps=self.received_samples,
             units="volts",
             reference="preselector input",
         )
@@ -138,7 +144,3 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
 
     def is_complex(self) -> bool:
         return True
-
-
-    
-
