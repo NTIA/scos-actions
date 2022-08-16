@@ -47,6 +47,8 @@ from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBu
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
     get_fft,
+    get_fft_enbw,
+    get_fft_frequencies,
     get_fft_window,
     get_fft_window_correction,
 )
@@ -234,13 +236,15 @@ class NasctnSeaDataProduct(Action):
         """Process IQ data and generate the SEA data product."""
         # TODO: Explore parallelizing computation tasks
         logger.debug(f'Generating data product for {measurement_result["task_id"]}')
-        iq = measurement_result["data"].astype(np.complex128)
         data_product = []
 
         # Get FFT amplitudes using unfiltered data
         logger.debug("Getting FFT results...")
         tic = perf_counter()
-        data_product.extend(self.get_fft_results(iq, params))
+        fft_results, measurement_result = self.get_fft_results(
+            measurement_result, params
+        )
+        data_product.extend(fft_results)  # (mean, max)
         toc = perf_counter()
         logger.debug(f"FFT computation complete in {toc-tic:.2f} s")
 
@@ -248,7 +252,7 @@ class NasctnSeaDataProduct(Action):
         if params[IIR_APPLY]:
             logger.debug(f"Applying IIR low-pass filter to IQ data...")
             tic = perf_counter()
-            iq = sosfilt(self.iir_sos, iq)
+            iq = sosfilt(self.iir_sos, measurement_result["data"])
             toc = perf_counter()
             logger.debug(f"IIR filter applied to IQ samples in {toc-tic:.2f} s")
         else:
@@ -292,12 +296,12 @@ class NasctnSeaDataProduct(Action):
         return measurement_result
 
     def get_fft_results(
-        self, iqdata: np.ndarray, params: dict
+        self, measurement_result: dict, params: dict
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Compute data product mean/max FFT results from IQ samples."""
         # IQ data already scaled for calibrated gain
         fft_result = get_fft(
-            time_data=iqdata,
+            time_data=measurement_result["data"],
             fft_size=params[FFT_SIZE],
             norm="forward",
             fft_window=self.fft_window,
@@ -316,7 +320,19 @@ class NasctnSeaDataProduct(Action):
         fft_result -= 3  # Baseband/RF power conversion
         fft_result -= 10.0 * np.log10(params[SAMPLE_RATE])  # PSD scaling
         fft_result += 20.0 * np.log10(self.fft_window_ecf)  # Window energy correction
-        return fft_result[0], fft_result[1]
+        # Get FFT metadata for annotation: ENBW, frequency axis
+        fft_freqs_Hz = get_fft_frequencies(
+            params[FFT_SIZE], params[SAMPLE_RATE], params[FREQUENCY]
+        )
+        measurement_result["fft_enbw"] = get_fft_enbw(
+            self.fft_window, params[SAMPLE_RATE]
+        )
+        # measurement_result["nffts"] = params[NUM_FFTS]
+        measurement_result["fft_frequency_start"] = fft_freqs_Hz[0]
+        measurement_result["fft_frequency_stop"] = fft_freqs_Hz[-1]
+        measurement_result["fft_frequency_step"] = fft_freqs_Hz[1] - fft_freqs_Hz[0]
+        del fft_freqs_Hz
+        return (fft_result[0], fft_result[1]), measurement_result
 
     def get_apd_results(
         self, iqdata: np.ndarray, params: dict
@@ -367,7 +383,7 @@ class NasctnSeaDataProduct(Action):
         # Account for RF/baseband power difference
         td_result -= 3
 
-        return td_result[0], td_result[1]
+        return (td_result[0], td_result[1])
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
@@ -426,14 +442,14 @@ class NasctnSeaDataProduct(Action):
                 count=dp_idx[i + 1] - dp_idx[i],
                 fft_size=self.fft_size,
                 window=self.fft_window_type,
-                enbw=0,  # TODO: Replace
+                enbw=measurement_result["fft_enbw"],
                 detector=detector.value,
-                nffts=0,  # TODO: Replace
+                nffts=measurement_result[NUM_FFTS],
                 units="dBm/Hz",
                 reference="preselector input",
-                frequency_start=0,  # TODO: Replace
-                frequency_stop=0,  # TODO: Replace
-                frequency_step=0,  # TODO: Replace
+                frequency_start=measurement_result["fft_frequency_start"],
+                frequency_stop=measurement_result["fft_frequency_stop"],
+                frequency_step=measurement_result["fft_frequency_step"],
             )
             sigmf_builder.add_metadata_generator(
                 type(fft_annotation).__name__ + "_" + detector.value, fft_annotation
@@ -445,6 +461,11 @@ class NasctnSeaDataProduct(Action):
                 start=dp_idx[i + 2],
                 count=dp_idx[i + 3] - dp_idx[i + 2],
                 detector=detector.value,
+                num_samps=int(
+                    measurement_result[SAMPLE_RATE]
+                    * measurement_result[DURATION_MS]
+                    * 1e-3
+                ),
                 units="dBm",
                 reference="preselector input",
             )
