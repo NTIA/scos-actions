@@ -167,7 +167,7 @@ class NasctnSeaDataProduct(Action):
             measurement_result = self.capture_iq(task_id, parameters)
 
             # Generate data product, overwrite IQ data
-            measurement_result["data"] = self.generate_data_product(
+            measurement_result = self.generate_data_product(
                 measurement_result, parameters
             )
 
@@ -287,7 +287,9 @@ class NasctnSeaDataProduct(Action):
         toc = perf_counter()
         logger.debug(f"Reduced data types to half-precision float in {toc-tic:.2f} s")
 
-        return np.array(data_product, dtype=object)
+        measurement_result["data"] = np.array(data_product, dtype=object)
+
+        return measurement_result
 
     def get_fft_results(
         self, iqdata: np.ndarray, params: dict
@@ -460,7 +462,7 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Data product start indices: {idx}")
         # Flatten data product
         measurement_result["data"] = np.hstack(measurement_result["data"])
-        return measurement_result["data"], idx
+        return measurement_result, idx
 
     def is_complex(self) -> bool:
         return False
