@@ -233,7 +233,6 @@ class YFactorCalibration(Action):
             cutoff_Hz = self.iir_cutoff_Hz
             width_Hz = self.iir_width_Hz
             enbw_hz = (cutoff_Hz + width_Hz) * 2.  # Roughly based on IIR filter
-            # TODO: Verify this is an appropriate way to specify ENBW
             logger.debug("Applying IIR filter to IQ captures")
             noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
             noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
@@ -242,9 +241,7 @@ class YFactorCalibration(Action):
             # Get ENBW from sensor calibration
             cal_args = [sigan_params[k] for k in sensor_calibration.calibration_parameters]
             self.sigan.recompute_calibration_data(cal_args)
-            # TODO: Return this to be pulled from sensor cal file 
-            # enbw_hz = self.sigan.sensor_calibration_data["enbw_sensor"]
-            enbw_hz = 11.607e6
+            enbw_hz = self.sigan.sensor_calibration_data["enbw_sensor"]
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]
 
