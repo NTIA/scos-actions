@@ -273,23 +273,25 @@ class NasctnSeaDataProduct(Action):
         del iq
 
         # Quantize power results
-        tic = perf_counter()
-        for i, data in enumerate(data_product):
-            if i == 4:
-                # Do not round APD probability axis
-                continue
-            data.round(decimals=params[ROUND_TO], out=data)
-        toc = perf_counter()
-        logger.debug(
-            f"Data product rounded to {params[ROUND_TO]} decimal places in {toc-tic:.2f} s"
-        )
+        # tic = perf_counter()
+        # for i, data in enumerate(data_product):
+        #     if i == 4:
+        #         # Do not round APD probability axis
+        #         continue
+        #     data.round(decimals=params[ROUND_TO], out=data)
+        # toc = perf_counter()
+        # logger.debug(
+        #     f"Data product rounded to {params[ROUND_TO]} decimal places in {toc-tic:.2f} s"
+        # )
 
         # Reduce data types to half-precision floats
-        tic = perf_counter()
-        for i in range(len(data_product)):
-            data_product[i] = data_product[i].astype(np.single)
-        toc = perf_counter()
-        logger.debug(f"Reduced data types to half-precision float in {toc-tic:.2f} s")
+        # tic = perf_counter()
+        # for i in range(len(data_product)):
+        #     data_product[i] = data_product[i].astype(np.single)
+        # toc = perf_counter()
+        # logger.debug(f"Reduced data types to half-precision float in {toc-tic:.2f} s")
+
+        logger.debug(f"Data product dtypes: {[d.dtype for d in data_product]}")
 
         measurement_result["data"] = np.array(data_product, dtype=object)
 
