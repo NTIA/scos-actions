@@ -307,7 +307,7 @@ class NasctnSeaDataProduct(Action):
             fft_window=self.fft_window,
             num_ffts=params[NUM_FFTS],
             shift=False,
-            workers=1,  # TODO: Configure for parallelization
+            # workers=1,  # TODO: Configure for parallelization
         )
         fft_result = calculate_pseudo_power(fft_result)
         fft_result = apply_power_detector(fft_result, self.fft_detector)  # (max, mean)
@@ -317,7 +317,9 @@ class NasctnSeaDataProduct(Action):
         fft_result = convert_watts_to_dBm(fft_result)
         fft_result -= 3  # Baseband/RF power conversion
         fft_result -= 10.0 * np.log10(params[SAMPLE_RATE])  # PSD scaling
-        fft_result += 20.0 * np.log10(self.fft_window_ecf)  # Window energy correction
+        fft_result += 2.0 * convert_linear_to_dB(
+            self.fft_window_ecf
+        )  # Window energy correction
         # Get FFT metadata for annotation: ENBW, frequency axis
         fft_freqs_Hz = get_fft_frequencies(
             params[FFT_SIZE], params[SAMPLE_RATE], params[FREQUENCY]
@@ -325,6 +327,7 @@ class NasctnSeaDataProduct(Action):
         measurement_result["fft_enbw"] = get_fft_enbw(
             self.fft_window, params[SAMPLE_RATE]
         )
+        logger.debug(f"FFT window energy correction factor: {self.fft_window_ecf}")
         # measurement_result["nffts"] = params[NUM_FFTS]
         measurement_result["fft_frequency_start"] = fft_freqs_Hz[0]
         measurement_result["fft_frequency_stop"] = fft_freqs_Hz[-1]
