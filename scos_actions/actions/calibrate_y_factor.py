@@ -207,7 +207,7 @@ class YFactorCalibration(Action):
         # Set noise diode on
         logger.debug('Setting noise diode on')
         super().configure_preselector(NOISE_DIODE_ON)
-        time.sleep(.25)
+        time.sleep(1)
 
         # Get noise diode on IQ
         logger.debug("Acquiring IQ samples with noise diode ON")
@@ -219,7 +219,7 @@ class YFactorCalibration(Action):
         # Set noise diode off
         logger.debug('Setting noise diode off')
         self.configure_preselector(NOISE_DIODE_OFF)
-        time.sleep(.25)
+        time.sleep(1)
 
         # Get noise diode off IQ
         logger.debug('Acquiring IQ samples with noise diode OFF')
