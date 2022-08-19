@@ -50,7 +50,7 @@ routines which are used in actions.
 
 ## Running in SCOS Sensor
 
-Requires `git`, `python>=3.7`, `pip>=18.1`, and `pip-tools>=6.6.2`.
+Requires `git`, `python>=3.8`, `pip>=18.1`, and `pip-tools>=6.6.2`.
 
 1. Clone `scos-sensor`:
 
