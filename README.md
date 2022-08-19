@@ -50,89 +50,24 @@ routines which are used in actions.
 
 ## Running in SCOS Sensor
 
-Requires `git`, `python>=3.8`, `pip>=18.1`, and `pip-tools>=6.6.2`.
+Refer to the [SCOS Sensor documentation](https://github.com/NTIA/scos-sensor#readme) for
+detailed instructions. To run SCOS Actions in SCOS Sensor with a mock signal analyzer,
+set `MOCK_SIGAN` and `MOCK_SIGAN_RANDOM` equal to 1 in `docker-compose.yml` before
+starting SCOS Sensor:
 
-1. Clone `scos-sensor`:
-
-    ```bash
-    git clone https://github.com/NTIA/scos-sensor.git
-    ```
-
-1. Navigate to the cloned `scos-sensor` directory:
-
-    ```bash
-    cd scos-sensor
-    ```
-
-1. If testing locally, generate the necessary SSL certificates by running:
-
-    ```bash
-    cd scripts && ./create_localhost_cert.sh
-    ```
-
-1. While in the `scos-sensor` directory, create the `env` file by copying the template file:
-
-    ```bash
-    cp env.template ./env
-    ```
-
-1. In the newly-created `env` file, set the `BASE_IMAGE`:
-
-    ```bash
-    BASE_IMAGE=ubuntu:18.04
-    ```
-
-1. Get environment variables:
-
-    ```bash
-    source ./env
-    ```
-
-1. In `scos-sensor/src/requirements.in`, comment out any unnecessary dependencies (such
-as `scos_usrp`).
-
-1. Make sure the `scos_actions` dependency is present in
-`scos-sensor/src/requirements.in`, and add it if needed. If you are using a different
-branch than shown in `requirements.in`, edit the file to point SCOS Sensor to the correct
-branch of SCOS Actions. As an example, the following line in `requirements.in` would use
-SCOS Actions v2.0.0:
-
-    ```text
-    scos_actions @ git+https://github.com/NTIA/scos-actions@2.0.0
-    ```
-
-1. Compile requirements by running:
-
-    ```bash
-    cd src
-    pip-compile requirements.in
-    pip-compile requirements-dev.in
-    ```
-
-1. Set `MOCK_SIGAN` and `MOCK_SIGAN_RANDOM` equal to 1 in `docker-compose.yml`:
-
-    ```yaml
-    services:
+```yaml
+services:
+  ...
+  api:
+    ...
+    environment:
       ...
-      api:
-        ...
-        environment:
-          ...
-          - MOCK_SIGAN=1
-          - MOCK_SIGAN_RANDOM=1
-    ```
+      - MOCK_SIGAN=1
+      - MOCK_SIGAN_RANDOM=1
+```
 
-1. Build and start containers (and optionally, view logs):
-
-    ```bash
-    docker-compose build --no-cache
-    docker-compose up -d --force-recreate
-    docker-compose logs -f
-    ```
-
-If SCOS Actions is installed to SCOS Sensor as a plugin, the following
-parameterized actions are offered for testing using a mock signal analyzer; their
-parameters are defined in `scos_actions/configs/actions`.
+The following parameterized actions are offered for testing using a mock signal analyzer;
+their parameters are defined in `scos_actions/configs/actions`.
 
 - `test_multi_frequency_iq_action`
 - `test_multi_frequency_y_factor_action`
