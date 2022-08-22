@@ -30,6 +30,7 @@ def get_apd(
     :param time_data: Input complex baseband IQ samples.
     :param bin_size_dB: Amplitude granularity, in dB, for estimating the APD.
         If not specified, the APD will not be downsampled (default behavior).
+        Setting this to zero will also result in no downsampling.
     :return: A tuple (p, a) of NumPy arrays, where p contains the APD
         probabilities, and a contains the APD amplitudes.
     """
@@ -42,7 +43,7 @@ def get_apd(
     # Convert amplitudes from V to dBV
     all_amps = convert_linear_to_dB(all_amps)
 
-    if bin_size_dB is None:
+    if bin_size_dB is None or bin_size_dB == 0:
         # No downsampling
         a = np.sort(all_amps)
         p = 1 - ((np.arange(len(a)) + 1) / len(a))
