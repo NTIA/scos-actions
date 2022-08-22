@@ -194,6 +194,10 @@ class YFactorCalibration(Action):
                 continue
         # sigan_params also used as calibration args for getting sensor ENBW
         # if no IIR filtering is applied.
+        #### TESTING #####
+        sigan_params.pop("preamp_enable")
+        super().configure_sigan(params["preamp_enable"])
+        ####
         super().configure_sigan(sigan_params)
 
         # Get parameters from action config
