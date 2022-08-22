@@ -2,10 +2,11 @@ nasctn_sea_data_product:
   name: test_nasctn_sea_data_product
 # IIR filter settings
   iir_apply: True
-  iir_rp_dB: 0.1  # Max passband ripple below unity gain
-  iir_rs_dB: 40  # Minimum stopband attenuation
-  iir_cutoff_Hz: 5e6  # Transition frequency
-  iir_width_Hz: 8e3  # Transition width
+  iir_gpass_dB: 0.1  # Max passband ripple below unity gain
+  iir_gstop_dB: 40  # Minimum stopband attenuation
+  iir_pb_edge_Hz: 5e6  # Passband edge frequency
+  iir_sb_edge_Hz: 5.008e3  # Stopband edge frequency
+  iir_num_response_frequencies: 1000  # Number of frequency points used to compute filter response
 # Quantile filter settings
   qfilt_apply: True
   qfilt_qlo: 0.00015  # Lower quantile
