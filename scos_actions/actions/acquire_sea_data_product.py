@@ -71,10 +71,11 @@ logger = logging.getLogger(__name__)
 
 # Define parameter keys
 IIR_APPLY = "iir_apply"
-RP_DB = "iir_rp_dB"
-RS_DB = "iir_rs_dB"
-IIR_CUTOFF_HZ = "iir_cutoff_Hz"
-IIR_WIDTH_HZ = "iir_width_Hz"
+IIR_GPASS = "iir_rp_dB"
+IIR_GSTOP = "iir_rs_dB"
+IIR_PB_EDGE = "iir_pb_edge_Hz"
+IIR_SB_EDGE = "iir_sb_edge_Hz"
+IIR_RESP_FREQS = "iir_num_response_frequencies"
 QFILT_APPLY = "qfilt_apply"
 Q_LO = "qfilt_qlo"
 Q_HI = "qfilt_qhi"
@@ -104,10 +105,10 @@ class NasctnSeaDataProduct(Action):
         # Setup/pull config parameters
         # TODO: All parameters in this section should end up hard-coded
         # For now they are parameterized in the action config for testing
-        self.iir_rp_dB = utils.get_parameter(RP_DB, self.parameters)
-        self.iir_rs_dB = utils.get_parameter(RS_DB, self.parameters)
-        self.iir_cutoff_Hz = utils.get_parameter(IIR_CUTOFF_HZ, self.parameters)
-        self.iir_width_Hz = utils.get_parameter(IIR_WIDTH_HZ, self.parameters)
+        self.iir_gpass_dB = utils.get_parameter(IIR_GPASS, self.parameters)
+        self.iir_gstop_dB = utils.get_parameter(IIR_GSTOP, self.parameters)
+        self.iir_pb_edge_Hz = utils.get_parameter(IIR_PB_EDGE, self.parameters)
+        self.iir_sb_edge_Hz = utils.get_parameter(IIR_SB_EDGE, self.parameters)
         self.qfilt_qlo = utils.get_parameter(Q_LO, self.parameters)
         self.qfilt_qhi = utils.get_parameter(Q_HI, self.parameters)
         self.fft_window_type = utils.get_parameter(FFT_WINDOW_TYPE, self.parameters)
@@ -125,10 +126,10 @@ class NasctnSeaDataProduct(Action):
 
         # Construct IIR filter
         self.iir_sos = generate_elliptic_iir_low_pass_filter(
-            self.iir_rp_dB,
-            self.iir_rs_dB,
-            self.iir_cutoff_Hz,
-            self.iir_width_Hz,
+            self.iir_gpass_dB,
+            self.iir_gstop_dB,
+            self.iir_pb_edge_Hz,
+            self.iir_sb_edge_Hz,
             self.sample_rate_Hz,
         )
 
@@ -142,10 +143,11 @@ class NasctnSeaDataProduct(Action):
 
         # Temporary: remove config parameters which will be hard-coded eventually
         for key in [
-            RP_DB,
-            RS_DB,
-            IIR_CUTOFF_HZ,
-            IIR_WIDTH_HZ,
+            IIR_GPASS,
+            IIR_GSTOP,
+            IIR_PB_EDGE,
+            IIR_SB_EDGE,
+            IIR_RESP_FREQS,
             Q_LO,
             Q_HI,
             FFT_WINDOW_TYPE,
