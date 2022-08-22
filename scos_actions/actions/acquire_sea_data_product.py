@@ -71,8 +71,8 @@ logger = logging.getLogger(__name__)
 
 # Define parameter keys
 IIR_APPLY = "iir_apply"
-IIR_GPASS = "iir_rp_dB"
-IIR_GSTOP = "iir_rs_dB"
+IIR_GPASS = "iir_gpass_dB"
+IIR_GSTOP = "iir_gstop_dB"
 IIR_PB_EDGE = "iir_pb_edge_Hz"
 IIR_SB_EDGE = "iir_sb_edge_Hz"
 IIR_RESP_FREQS = "iir_num_response_frequencies"
