@@ -41,7 +41,7 @@ def load_from_json(fname):
         logger.exception("Unable to load JSON file {}".format(fname))
 
 
-def get_iterable_parameters(parameters: dict):
+def get_iterable_parameters(parameters: dict, sortby: str = "frequency"):
     """
     Convert parameter dictionary into iterable list.
     
@@ -58,10 +58,12 @@ def get_iterable_parameters(parameters: dict):
     to use the same gain value for all measurements in a stepped-frequency
     acquisition.
 
-    The output list is automatically sorted by frequency, but it can
-    be manually resorted by any key if desired.
+    The output list is automatically sorted by the key provided as the
+    ``sortby`` parameter. By default, ``sortby`` is "frequency".
 
     :param parameters: The parameter dictionary, as loaded by the action.
+    :param sortby: The key to sort the resulting list by, in ascending order.
+        Defaults to "frequency".
     :return: An iterable list of parameter dictionaries based on the input.
         If only single values are given for all parameters in the input, a
         list will still be returned, containing a single dictionary.
@@ -90,7 +92,7 @@ def get_iterable_parameters(parameters: dict):
                 raise ParameterException(msg)
     # Construct iterable parameter mapping
     result = [dict(zip(params, v)) for v in zip(*params.values())]
-    result.sort(key=lambda param: param["frequency"])
+    result.sort(key=lambda param: param[sortby])
     return result
 
 

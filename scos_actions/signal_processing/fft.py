@@ -106,9 +106,9 @@ def get_fft(
     # Take the FFT
     complex_fft = sp_fft(time_data, norm=norm, workers=workers)
 
-    # Shift the frequencies if desired (only along second axis)
+    # Shift the frequencies if desired
     if shift:
-        complex_fft = np.fft.fftshift(complex_fft)  # , axes=(1,))
+        complex_fft = np.fft.fftshift(complex_fft)
     return complex_fft
 
 

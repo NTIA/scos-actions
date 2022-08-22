@@ -37,26 +37,19 @@ class Action(ABC):
         self.gps = gps
         self.sensor_definition = capabilities['sensor']
 
-    def configure(self, measurement_params):
+    def configure(self, measurement_params: dict):
         self.configure_sigan(measurement_params)
         self.configure_preselector(measurement_params)
 
-    def configure_sigan(self, measurement_params):
-        if isinstance(measurement_params, list):
-            for item in measurement_params:
-                self.configure_sigan_with_dictionary(item)
-
-        elif isinstance(measurement_params, dict):
-            self.configure_sigan_with_dictionary(measurement_params)
-
-    def configure_sigan_with_dictionary(self, dictionary):
-        for key, value in dictionary.items():
+    def configure_sigan(self, measurement_params: dict):
+        for key, value in measurement_params.items():
             if hasattr(self.sigan, key):
+                logger.debug(f"Applying setting to sigan: {key}: {value}")
                 setattr(self.sigan, key, value)
             else:
-                logger.warning(f"radio does not have attribute {key}")
+                logger.warning(f"Sigan does not have attribute {key}")
 
-    def configure_preselector(self, measurement_params):
+    def configure_preselector(self, measurement_params: dict):
         if self.PRESELECTOR_PATH_KEY in measurement_params:
             path = measurement_params[self.PRESELECTOR_PATH_KEY]
             preselector.set_state(path)
