@@ -111,5 +111,6 @@ def get_parameter(p: str, params: dict):
     :raises ParameterException: If p is not a key in params.
     """
     if p not in params:
+        logger.debug(f"Available parameters:{params}")
         raise ParameterException(f"{p} missing from measurement parameters.")
     return params[p]
