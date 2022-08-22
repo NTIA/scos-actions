@@ -69,52 +69,52 @@ $$ F_N = 10 \log_{{10}}(NF) $$
 """
 
 import logging
+import os
 import time
-import numpy as np
 
+import numpy as np
 from scipy.constants import Boltzmann
 from scipy.signal import sosfilt
 
 from scos_actions import utils
-from scos_actions.hardware import gps as mock_gps
-from scos_actions.settings import sensor_calibration
-from scos_actions.settings import SENSOR_CALIBRATION_FILE
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.utils import ParameterException, get_parameter
-
+from scos_actions.hardware import gps as mock_gps
+from scos_actions.settings import SENSOR_CALIBRATION_FILE, sensor_calibration
 from scos_actions.signal_processing.calibration import (
     get_linear_enr,
     get_temperature,
     y_factor,
 )
+from scos_actions.signal_processing.filtering import (
+    generate_elliptic_iir_low_pass_filter,
+    get_iir_enbw,
+)
 from scos_actions.signal_processing.power_analysis import (
     calculate_power_watts,
     create_power_detector,
 )
-
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
-from scos_actions.signal_processing.filtering import generate_elliptic_iir_low_pass_filter
-
-import os
+from scos_actions.utils import ParameterException, get_parameter
 
 logger = logging.getLogger(__name__)
 
-RF_PATH = 'rf_path'
-NOISE_DIODE_ON = {RF_PATH: 'noise_diode_on'}
-NOISE_DIODE_OFF = {RF_PATH: 'noise_diode_off'}
+RF_PATH = "rf_path"
+NOISE_DIODE_ON = {RF_PATH: "noise_diode_on"}
+NOISE_DIODE_OFF = {RF_PATH: "noise_diode_off"}
 
 # Define parameter keys
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
-IIR_APPLY = 'iir_apply'
-IIR_RP = 'iir_rp_dB'
-IIR_RS = 'iir_rs_dB'
-IIR_CUTOFF = 'iir_cutoff_Hz'
-IIR_WIDTH = 'iir_width_Hz'
-CAL_SOURCE_IDX = 'cal_source_idx'
-TEMP_SENSOR_IDX = 'temp_sensor_idx'
+IIR_APPLY = "iir_apply"
+IIR_GPASS = "iir_gpass_dB"
+IIR_GSTOP = "iir_gstop_dB"
+IIR_PB_EDGE = "iir_pb_edge_Hz"
+IIR_SB_EDGE = "iir_sb_edge_Hz"
+IIR_RESP_FREQS = "iir_num_response_frequencies"
+CAL_SOURCE_IDX = "cal_source_idx"
+TEMP_SENSOR_IDX = "temp_sensor_idx"
 
 
 class YFactorCalibration(Action):
@@ -139,7 +139,7 @@ class YFactorCalibration(Action):
     """
 
     def __init__(self, parameters, sigan, gps=mock_gps):
-        logger.debug('Initializing calibration action')
+        logger.debug("Initializing calibration action")
         super().__init__(parameters, sigan, gps)
         self.sigan = sigan
         self.iteration_params = utils.get_iterable_parameters(parameters)
@@ -149,32 +149,56 @@ class YFactorCalibration(Action):
         try:
             self.iir_apply = get_parameter(IIR_APPLY, parameters)
         except ParameterException:
-            logger.info("Config parameter 'iir_apply' not provided. "
-                        + "No IIR filtering will be used during calibration.")
+            logger.info(
+                "Config parameter 'iir_apply' not provided. "
+                + "No IIR filtering will be used during calibration."
+            )
             self.iir_apply = False
 
         if isinstance(self.iir_apply, list):
-            raise ParameterException("Only one set of IIR filter parameters may be specified.")
-        
+            raise ParameterException(
+                "Only one set of IIR filter parameters may be specified."
+            )
+
         if self.iir_apply is True:
-            self.iir_rp_dB = get_parameter(IIR_RP, parameters)
-            self.iir_rs_dB = get_parameter(IIR_RS, parameters)
-            self.iir_cutoff_Hz = get_parameter(IIR_CUTOFF, parameters)
-            self.iir_width_Hz = get_parameter(IIR_WIDTH, parameters)
+            self.iir_gpass_dB = get_parameter(IIR_GPASS, parameters)
+            self.iir_gstop_dB = get_parameter(IIR_GSTOP, parameters)
+            self.iir_pb_edge_Hz = get_parameter(IIR_PB_EDGE, parameters)
+            self.iir_sb_edge_Hz = get_parameter(IIR_SB_EDGE, parameters)
+            self.iir_num_response_frequencies = get_parameter(
+                IIR_RESP_FREQS, parameters
+            )
             self.sample_rate = get_parameter(SAMPLE_RATE, parameters)
-            if not any([isinstance(v, list) for v in [self.iir_rp_dB, self.iir_rs_dB, self.iir_cutoff_Hz, self.iir_width_Hz, self.sample_rate]]):
+            if not any(
+                [
+                    isinstance(v, list)
+                    for v in [
+                        self.iir_gpass_dB,
+                        self.iir_gstop_dB,
+                        self.iir_pb_edge_Hz,
+                        self.iir_sb_edge_Hz,
+                        self.sample_rate,
+                    ]
+                ]
+            ):
                 # Generate single filter ahead of calibration loop
                 self.iir_sos = generate_elliptic_iir_low_pass_filter(
-                    self.iir_rp_dB, self.iir_rs_dB, self.iir_cutoff_Hz, self.iir_width_Hz, self.sample_rate
+                    self.iir_gpass_dB,
+                    self.iir_gstop_dB,
+                    self.iir_pb_edge_Hz,
+                    self.iir_sb_edge_Hz,
+                    self.sample_rate,
                 )
             else:
-                raise ParameterException("Only one set of IIR filter parameters may be specified (including sample rate).")
+                raise ParameterException(
+                    "Only one set of IIR filter parameters may be specified (including sample rate)."
+                )
 
     def __call__(self, schedule_entry_json, task_id):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
-        detail = ''
-        
+        detail = ""
+
         # Run calibration routine
         for i, p in enumerate(self.iteration_params):
             if i == 0:
@@ -187,7 +211,17 @@ class YFactorCalibration(Action):
         # Configure signal analyzer
         sigan_params = params.copy()
         # Suppress warnings during sigan configuration
-        for k in [DURATION_MS, NUM_SKIP, IIR_APPLY, IIR_RP, IIR_RS, IIR_CUTOFF, IIR_WIDTH, CAL_SOURCE_IDX, TEMP_SENSOR_IDX]:
+        for k in [
+            DURATION_MS,
+            NUM_SKIP,
+            IIR_APPLY,
+            IIR_GPASS,
+            IIR_GSTOP,
+            IIR_PB_EDGE,
+            IIR_SB_EDGE,
+            CAL_SOURCE_IDX,
+            TEMP_SENSOR_IDX,
+        ]:
             try:
                 sigan_params.pop(k)
             except KeyError:
@@ -203,11 +237,11 @@ class YFactorCalibration(Action):
         duration_ms = get_parameter(DURATION_MS, params)
         num_samples = int(sample_rate * duration_ms * 1e-3)
         nskip = get_parameter(NUM_SKIP, params)
-        
+
         # Set noise diode on
-        logger.debug('Setting noise diode on')
+        logger.debug("Setting noise diode on")
         super().configure_preselector(NOISE_DIODE_ON)
-        time.sleep(1)
+        time.sleep(0.25)
 
         # Get noise diode on IQ
         logger.debug("Acquiring IQ samples with noise diode ON")
@@ -217,37 +251,42 @@ class YFactorCalibration(Action):
         sample_rate = noise_on_measurement_result["sample_rate"]
 
         # Set noise diode off
-        logger.debug('Setting noise diode off')
+        logger.debug("Setting noise diode off")
         self.configure_preselector(NOISE_DIODE_OFF)
-        time.sleep(1)
+        time.sleep(0.25)
 
         # Get noise diode off IQ
-        logger.debug('Acquiring IQ samples with noise diode OFF')
+        logger.debug("Acquiring IQ samples with noise diode OFF")
         noise_off_measurement_result = self.sigan.acquire_time_domain_samples(
             num_samples, num_samples_skip=nskip, gain_adjust=False
         )
-        assert sample_rate == noise_off_measurement_result["sample_rate"], "Sample rate mismatch"
+        assert (
+            sample_rate == noise_off_measurement_result["sample_rate"]
+        ), "Sample rate mismatch"
 
         # Apply IIR filtering to both captures if configured
         if self.iir_apply:
-            cutoff_Hz = self.iir_cutoff_Hz
-            width_Hz = self.iir_width_Hz
-            enbw_hz = (cutoff_Hz + width_Hz) * 2.  # Roughly based on IIR filter
+            # Estimate of IIR filter ENBW does NOT account for passband ripple in sensor transfer function!
+            enbw_hz = get_iir_enbw(
+                self.iir_sos, self.iir_num_response_frequencies, sample_rate
+            )
             logger.debug("Applying IIR filter to IQ captures")
             noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
             noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
         else:
-            logger.debug('Skipping IIR filtering')
+            logger.debug("Skipping IIR filtering")
             # Get ENBW from sensor calibration
-            cal_args = [sigan_params[k] for k in sensor_calibration.calibration_parameters]
+            cal_args = [
+                sigan_params[k] for k in sensor_calibration.calibration_parameters
+            ]
             self.sigan.recompute_calibration_data(cal_args)
             enbw_hz = self.sigan.sensor_calibration_data["enbw_sensor"]
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]
 
         # Get power values in time domain (division by 2 for RF/baseband conversion)
-        pwr_on_watts = calculate_power_watts(noise_on_data / 2.)
-        pwr_off_watts = calculate_power_watts(noise_off_data / 2.)
+        pwr_on_watts = calculate_power_watts(noise_on_data / 2.0)
+        pwr_off_watts = calculate_power_watts(noise_off_data / 2.0)
 
         # Y-Factor
         enr_linear = get_linear_enr(cal_source_idx)
@@ -268,12 +307,12 @@ class YFactorCalibration(Action):
 
         # Debugging
         noise_floor_dBm = convert_watts_to_dBm(Boltzmann * temp_k * enbw_hz)
-        logger.debug(f'Noise floor: {noise_floor_dBm:.2f} dBm')
-        logger.debug(f'Noise figure: {noise_figure:.2f} dB')
+        logger.debug(f"Noise floor: {noise_floor_dBm:.2f} dBm")
+        logger.debug(f"Noise figure: {noise_figure:.2f} dB")
         logger.debug(f"Gain: {gain:.2f} dB")
-        
+
         # Detail results contain only FFT version of result for now
-        return 'Noise Figure: {}, Gain: {}'.format(noise_figure, gain)
+        return "Noise Figure: {}, Gain: {}".format(noise_figure, gain)
 
     @property
     def description(self):
@@ -289,7 +328,7 @@ class YFactorCalibration(Action):
             duration_ms = duration_ms * np.ones_like(sample_rate)
             duration_ms = duration_ms
 
-        num_samples = duration_ms *  sample_rate * 1e-3
+        num_samples = duration_ms * sample_rate * 1e-3
 
         if isinstance(num_samples, np.ndarray) and len(num_samples) != 1:
             num_samples = num_samples.tolist()
@@ -297,25 +336,22 @@ class YFactorCalibration(Action):
             num_samples = int(num_samples)
 
         if self.iir_apply is True:
-            pb_edge = self.iir_cutoff_Hz / 1e6
-            sb_edge = (self.iir_cutoff_Hz + self.iir_width_Hz) / 1e6
             filtering_suffix = ", after applying an IIR lowpass filter to the complex time-domain samples"
-            filter_description = (
-                """
+            filter_description = f"""
                 ### Filtering
                 The acquired samples are then filtered using an elliptic IIR filter before
                 performing the rest of the time-domain Y-factor calculations. The filter
                 design produces the lowest order digital filter which loses no more than
-                {self.iir_rp_dB} dB in the passband and has at least {self.iir_rs_dB} dB attenuation
-                in the stopband. The filter has a defined passband edge at {pb_edge} MHz
-                and a stopband edge at {sb_edge} MHz. From this filter design, second-order filter
-                coefficients are generated in order to minimize numerical precision errors
-                when filtering the time domain samples. The filtering function is implemented
-                as a series of second-order filters with direct-form II transposed structure.
+                {self.iir_gpass_dB} dB in the passband and has at least {self.iir_gstop_dB}
+                dB attenuation in the stopband. The filter has a defined passband edge at
+                {self.iir_pb_edge_Hz / 1e6} MHz and a stopband edge at {self.iir_sb_edge_Hz / 1e6}
+                MHz. From this filter design, second-order filter coefficients are generated in
+                order to minimize numerical precision errors when filtering the time domain samples.
+                The filtering function is implemented as a series of second-order filters with direct-
+                form II transposed structure.
 
                 ### Power Calculation
                 """
-            )
         else:
             filtering_suffix = ""
             filter_description = ""
@@ -338,7 +374,7 @@ class YFactorCalibration(Action):
                     "duration_ms": params[DURATION_MS],
                 }
             )
-        
+
         definitions = {
             "name": self.name,
             "filtering_suffix": filtering_suffix,
@@ -346,12 +382,10 @@ class YFactorCalibration(Action):
             "acquisition_plan": acquisition_plan,
         }
         # __doc__ refers to the module docstring at the top of the file
-        return __doc__ .format(**definitions)
+        return __doc__.format(**definitions)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
         if not self.sigan.is_available:
             msg = "acquisition failed: signal analyzer required but not available"
             raise RuntimeError(msg)
-
-
