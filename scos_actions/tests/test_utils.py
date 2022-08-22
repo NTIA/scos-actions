@@ -39,14 +39,6 @@ def test_parse_datetime_iso_format_str():
     assert parsed.microsecond == int(tstamp[20:23] + "000")
     assert type(parsed.tzinfo) is tz.tz.tzutc
 
-# def test_get_parameters():
-#     parameters = {"name": 'test_params', 'frequency': [100,200,300], 'gain': [0,10,40], 'sample_rate': [1, 2,3]}
-#     iteration_params = utils.get_iterable_parameters(parameters)
-#     assert len(iteration_params) == 3
-#     assert iteration_params[0]['frequency'] == 100
-#     assert iteration_params[0]['gain'] == 0
-#     assert iteration_params[0]['sample_rate'] == 1
-
 def test_get_iterable_parameters_no_lists(valid_params_no_lists):
     i_params = utils.get_iterable_parameters(valid_params_no_lists)
     assert type(i_params) is list
