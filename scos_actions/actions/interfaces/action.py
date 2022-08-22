@@ -42,6 +42,14 @@ class Action(ABC):
         self.configure_preselector(measurement_params)
 
     def configure_sigan(self, measurement_params: dict):
+        # List of attributes which must be set first
+        set_first = ["preamp_enable"]
+        for k in set_first:
+            if k in measurement_params.keys() and hasattr(self.sigan, k):
+                logger.debug(f"Applying setting to sigan: {k}: {measurement_params[k]}")
+                setattr(self.sigan, k, measurement_params[k])
+                measurement_params.pop(k)
+        # Set remaining attributes
         for key, value in measurement_params.items():
             if hasattr(self.sigan, key):
                 logger.debug(f"Applying setting to sigan: {key}: {value}")
