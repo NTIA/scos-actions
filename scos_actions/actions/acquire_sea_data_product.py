@@ -276,23 +276,24 @@ class NasctnSeaDataProduct(Action):
         del iq
 
         # Quantize power results
-        # tic = perf_counter()
-        # for i, data in enumerate(data_product):
-        #     if i == 4:
-        #         # Do not round APD probability axis
-        #         continue
-        #     data.round(decimals=params[ROUND_TO], out=data)
-        # toc = perf_counter()
-        # logger.debug(
-        #     f"Data product rounded to {params[ROUND_TO]} decimal places in {toc-tic:.2f} s"
-        # )
+        tic = perf_counter()
+        for i, data in enumerate(data_product):
+            if i == 4:
+                # Do not round APD probability axis
+                continue
+            data.round(decimals=params[ROUND_TO], out=data)
+        toc = perf_counter()
+        logger.debug(
+            f"Data product rounded to {params[ROUND_TO]} decimal places in {toc-tic:.2f} s"
+        )
 
         # Reduce data types to half-precision floats
-        # tic = perf_counter()
-        # for i in range(len(data_product)):
-        #     data_product[i] = data_product[i].astype(np.single)
-        # toc = perf_counter()
-        # logger.debug(f"Reduced data types to half-precision float in {toc-tic:.2f} s")
+        tic = perf_counter()
+        for i in range(len(data_product)):
+            # TODO: Update this to half-precision (currently single-precision for testing)
+            data_product[i] = data_product[i].astype(np.single)
+        toc = perf_counter()
+        logger.debug(f"Reduced data types to half-precision float in {toc-tic:.2f} s")
 
         logger.debug(f"Data product dtypes: {[d.dtype for d in data_product]}")
 
@@ -308,7 +309,7 @@ class NasctnSeaDataProduct(Action):
         fft_result = get_fft(
             time_data=measurement_result["data"],
             fft_size=params[FFT_SIZE],
-            norm="forward",
+            norm="backward",
             fft_window=self.fft_window,
             num_ffts=params[NUM_FFTS],
             shift=False,
@@ -321,7 +322,9 @@ class NasctnSeaDataProduct(Action):
         fft_result = np.fft.fftshift(fft_result, axes=(1,))
         fft_result = convert_watts_to_dBm(fft_result)
         fft_result -= 3  # Baseband/RF power conversion
-        fft_result -= 10.0 * np.log10(params[SAMPLE_RATE])  # PSD scaling
+        fft_result -= 10.0 * np.log10(
+            params[SAMPLE_RATE] * params[FFT_SIZE]
+        )  # PSD scaling
         fft_result += 2.0 * convert_linear_to_dB(
             self.fft_window_ecf
         )  # Window energy correction
