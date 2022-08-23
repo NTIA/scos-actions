@@ -138,8 +138,6 @@ class TestCalibrationFile:
         )
         cal_data["sensor_uid"] = "SAMPLE_CALIBRATION"
 
-
-
         # Add SR/CF lookup table
         cal_data["clock_rate_lookup_by_sample_rate"] = []
         for sr in self.sample_rates:
@@ -153,7 +151,7 @@ class TestCalibrationFile:
 
         # Create the JSON architecture for the calibration data
         cal_data["calibration_data"] = {}
-        cal_data['calibration_parameters']=['sample_rate', 'frequency', 'gain']
+        cal_data["calibration_parameters"] = ["sample_rate", "frequency", "gain"]
         for k in range(len(self.sample_rates)):
             cal_data_f = {}
             for i in range(len(frequencies)):
@@ -172,11 +170,10 @@ class TestCalibrationFile:
                     }
 
                     # Add the generated dicts to the parent lists
-                    cal_data_g[ gains[j]] = deepcopy(cal_data_point)
+                    cal_data_g[gains[j]] = deepcopy(cal_data_point)
                 cal_data_f[frequencies[i]] = deepcopy(cal_data_g)
 
-
-            cal_data["calibration_data"][ self.sample_rates[k]] = deepcopy(cal_data_f)
+            cal_data["calibration_data"][self.sample_rates[k]] = deepcopy(cal_data_f)
 
         # Write the new json file
         with open(self.calibration_file, "w+") as file:
@@ -197,44 +194,71 @@ class TestCalibrationFile:
         self.g_s = self.gi_s + [self.gain_max]
         self.f_s = self.fi_s + [self.frequency_max]
 
-
         # Don't repeat test setup
         self.setup_complete = True
 
     def test_filter_by_parameter_out_of_range(self):
-        calibrations = {200.0:{'some_cal_data'}, 300.0: {'more cal data'}}
+        calibrations = {200.0: {"some_cal_data"}, 300.0: {"more cal data"}}
         with pytest.raises(Exception) as e_info:
-            cal = calibration.filter_by_parameter(calibrations, 'frequency', 400.0)
-        assert e_info.value.args[0] == 'No calibration was performed with frequency at 400.0'
+            cal = calibration.filter_by_parameter(calibrations, "frequency", 400.0)
+        assert (
+            e_info.value.args[0]
+            == "No calibration was performed with frequency at 400.0"
+        )
 
     def test_filter_by_parameter_in_range_requires_match(self):
-        calibrations = {200.0: {'Gain': 'Gain at 200.0'}, 300.0: {'Gain': 'Gain at 300.0'}}
+        calibrations = {
+            200.0: {"Gain": "Gain at 200.0"},
+            300.0: {"Gain": "Gain at 300.0"},
+        }
         with pytest.raises(Exception) as e_info:
-            cal = calibration.filter_by_parameter(calibrations, 'frequency', 150.0)
-        assert e_info.value.args[0] == 'No calibration was performed with frequency at 150.0'
+            cal = calibration.filter_by_parameter(calibrations, "frequency", 150.0)
+        assert (
+            e_info.value.args[0]
+            == "No calibration was performed with frequency at 150.0"
+        )
 
     def test_get_calibration_dict_exact_match_lookup(self):
         calibration_datetime = datetime.datetime.now()
-        calibration_params = ['sample_rate', 'frequency']
-        calibration_data = {100.0 : {200.0: {'NF': 'NF at 100, 200'}, 'Gain': {'Gain at 100,200' }}, 200.0: {100.0: {'NF': 'NF at 200, 100'}, 'Gain': {'Gain at 200,100' }}}
+        calibration_params = ["sample_rate", "frequency"]
+        calibration_data = {
+            100.0: {200.0: {"NF": "NF at 100, 200"}, "Gain": {"Gain at 100,200"}},
+            200.0: {100.0: {"NF": "NF at 200, 100"}, "Gain": {"Gain at 200,100"}},
+        }
         clock_rate_lookup_by_sample_rate = {}
-        cal = Calibration(calibration_datetime, calibration_params, calibration_data, clock_rate_lookup_by_sample_rate)
+        cal = Calibration(
+            calibration_datetime,
+            calibration_params,
+            calibration_data,
+            clock_rate_lookup_by_sample_rate,
+        )
         cal_data = cal.get_calibration_dict([100.0, 200.0])
-        assert cal_data['NF'] == 'NF at 100, 200'
+        assert cal_data["NF"] == "NF at 100, 200"
 
     def test_get_calibration_dict_within_range(self):
         calibration_datetime = datetime.datetime.now()
-        calibration_params = calibration_params = ['sample_rate', 'frequency']
-        calibration_data = {100.0 : {200: {'NF': 'NF at 100, 200'}, 300.0: 'Cal data at 100,300'}, 200.0: {100.0: {'NF': 'NF at 200, 100'}}}
+        calibration_params = calibration_params = ["sample_rate", "frequency"]
+        calibration_data = {
+            100.0: {200: {"NF": "NF at 100, 200"}, 300.0: "Cal data at 100,300"},
+            200.0: {100.0: {"NF": "NF at 200, 100"}},
+        }
         clock_rate_lookup_by_sample_rate = {}
         calibration_frequency_divisions = []
-        cal = Calibration(calibration_datetime, calibration_params, calibration_data, clock_rate_lookup_by_sample_rate)
+        cal = Calibration(
+            calibration_datetime,
+            calibration_params,
+            calibration_data,
+            clock_rate_lookup_by_sample_rate,
+        )
         with pytest.raises(Exception) as e_info:
             cal_data = cal.get_calibration_dict([100.0, 250.0])
-        assert 'No calibration was performed with frequency at 250.0'
+        assert "No calibration was performed with frequency at 250.0"
 
     def test_convert_keys(self):
-        test_cal = {'100': {'2000':{'40':{'cal_data':5}}}, '200': {'2000':{'40':{'cal_data':6}}}}
+        test_cal = {
+            "100": {"2000": {"40": {"cal_data": 5}}},
+            "200": {"2000": {"40": {"cal_data": 6}}},
+        }
         converted_cal = calibration.convert_keys(test_cal)
         keys = list(test_cal.keys())
         assert keys[0] == 100.0
@@ -265,16 +289,23 @@ class TestCalibrationFile:
 
     def test_update(self):
         calibration_datetime = datetime.datetime.now()
-        calibration_params = ['sample_rate', 'frequency']
-        calibration_data = {100.0: {200.0: {'noise_figure_sensor': 0, 'gain_sensor': 0}}}
+        calibration_params = ["sample_rate", "frequency"]
+        calibration_data = {
+            100.0: {200.0: {"noise_figure_sensor": 0, "gain_sensor": 0}}
+        }
         clock_rate_lookup_by_sample_rate = {}
-        cal = Calibration(calibration_datetime, calibration_params, calibration_data, clock_rate_lookup_by_sample_rate)
-        action_params = {'sample_rate': 100.0, 'frequency': 200.0}
+        cal = Calibration(
+            calibration_datetime,
+            calibration_params,
+            calibration_data,
+            clock_rate_lookup_by_sample_rate,
+        )
+        action_params = {"sample_rate": 100.0, "frequency": 200.0}
         update_time = utils.get_datetime_str_now()
-        cal.update(action_params, update_time  , 30.0, 5.0,21, 'test_calibration.json')
-        cal_from_file = calibration.load_from_json('test_calibration.json')
-        os.remove('test_calibration.json')
-        local = timezone('US/Mountain')
+        cal.update(action_params, update_time, 30.0, 5.0, 21, "test_calibration.json")
+        cal_from_file = calibration.load_from_json("test_calibration.json")
+        os.remove("test_calibration.json")
+        local = timezone("US/Mountain")
         local_cal_time = local.localize(cal.calibration_datetime)
         file_utc_time = local_cal_time.astimezone(pytz.UTC)
         file_utc_time.isoformat(timespec="milliseconds")
@@ -285,10 +316,12 @@ class TestCalibrationFile:
         assert file_utc_time.day == cal_time_utc.day
         assert file_utc_time.hour == cal_time_utc.hour
         assert file_utc_time.minute == cal_time_utc.minute
-        assert cal.calibration_data[100.0][200.0]['gain_sensor'] == 30.0
-        assert cal.calibration_data[100.0][200.0]['noise_figure_sensor'] == 5.0
-        assert cal_from_file.calibration_data[100.0][200.0]['gain_sensor'] == 30.0
-        assert cal_from_file.calibration_data[100.0][200.0]['noise_figure_sensor'] == 5.0
+        assert cal.calibration_data[100.0][200.0]["gain_sensor"] == 30.0
+        assert cal.calibration_data[100.0][200.0]["noise_figure_sensor"] == 5.0
+        assert cal_from_file.calibration_data[100.0][200.0]["gain_sensor"] == 30.0
+        assert (
+            cal_from_file.calibration_data[100.0][200.0]["noise_figure_sensor"] == 5.0
+        )
 
     def test_default_sensor_cal(self):
         assert sensor_calibration is not None
@@ -297,11 +330,11 @@ class TestCalibrationFile:
         assert sigan_calibration is not None
 
     def test_filter_by_paramter_floor(self):
-        calibrations = {200.0: {'some_cal_data'}, 300.0: {'more cal data'}}
-        filtered_data = calibration.filter_by_parameter(calibrations, '', 200.1234567)
+        calibrations = {200.0: {"some_cal_data"}, 300.0: {"more cal data"}}
+        filtered_data = calibration.filter_by_parameter(calibrations, "", 200.1234567)
         assert filtered_data is not None
 
     def test_filter_by_parameter_ceil(self):
-        calibrations = {700.5e6: {'some_cal_data'}, 300.0: {'more cal data'}}
-        filtered_data = calibration.filter_by_parameter(calibrations, '', 700499999.999)
+        calibrations = {700.5e6: {"some_cal_data"}, 300.0: {"more cal data"}}
+        filtered_data = calibration.filter_by_parameter(calibrations, "", 700499999.999)
         assert filtered_data is not None

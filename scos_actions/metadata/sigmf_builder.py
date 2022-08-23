@@ -65,7 +65,7 @@ class SigMFBuilder:
         self.sigmf_md.set_global_field("ntia-scos:recording", recording_id)
 
     def set_measurement(
-            self, start_time, end_time, domain, measurement_type, frequency
+        self, start_time, end_time, domain, measurement_type, frequency
     ):
         self.sigmf_md.set_global_field(
             "ntia-core:measurement",
@@ -125,18 +125,18 @@ class SigMFBuilder:
         self.sigmf_md.set_global_field(key, value)
 
     def set_base_sigmf_global(
-            self,
-            schedule_entry_json,
-            sensor_def,
-            measurement_result,
-            recording_id=None,
-            is_complex=True,
+        self,
+        schedule_entry_json,
+        sensor_def,
+        measurement_result,
+        recording_id=None,
+        is_complex=True,
     ):
         sample_rate = measurement_result["sample_rate"]
-        if 'calibration_datetime' in measurement_result:
-            self.set_last_calibration_time(measurement_result['calibration_datetime'])
+        if "calibration_datetime" in measurement_result:
+            self.set_last_calibration_time(measurement_result["calibration_datetime"])
 
-        description = measurement_result['description']
+        description = measurement_result["description"]
         self.set_action(
             measurement_result["name"], description, description.splitlines()[0]
         )
@@ -145,7 +145,7 @@ class SigMFBuilder:
         self.set_sample_rate(sample_rate)
         self.set_schedule(schedule_entry_json)
         self.set_sensor(sensor_def)
-        self.set_task(measurement_result['task_id'])
+        self.set_task(measurement_result["task_id"])
         if recording_id:
             self.set_recording(recording_id)
 
@@ -158,7 +158,7 @@ class SigMFBuilder:
         self.metadata_generators[key] = generator
 
     def remove_metadata_generator(self, key):
-        self.metadata_generators.pop(key, '')
+        self.metadata_generators.pop(key, "")
 
     def build(self, measurement_result):
         for metadata_creator in self.metadata_generators.values():
