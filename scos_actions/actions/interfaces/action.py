@@ -2,11 +2,11 @@ import logging
 from abc import ABC, abstractmethod
 from copy import deepcopy
 
-from scos_actions.utils import get_parameter
-from scos_actions.hardware import gps as mock_gps
-from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.capabilities import capabilities
+from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import preselector
+from scos_actions.hardware import sigan as mock_sigan
+from scos_actions.utils import get_parameter
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +29,14 @@ class Action(ABC):
         added to the task result's detail field.
 
     """
-    PRESELECTOR_PATH_KEY='rf_path'
+
+    PRESELECTOR_PATH_KEY = "rf_path"
 
     def __init__(self, parameters, sigan=mock_sigan, gps=mock_gps):
         self.parameters = deepcopy(parameters)
         self.sigan = sigan
         self.gps = gps
-        self.sensor_definition = capabilities['sensor']
+        self.sensor_definition = capabilities["sensor"]
 
     def configure(self, measurement_params: dict):
         self.configure_sigan(measurement_params)
@@ -72,6 +73,3 @@ class Action(ABC):
     @abstractmethod
     def __call__(self, schedule_entry, task_id):
         pass
-
-
-

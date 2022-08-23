@@ -26,7 +26,7 @@ def calculate_power_watts(val_volts, impedance_ohms: float = 50.0):
         returned quantity is always real.
     """
     if np.isscalar(val_volts):
-        power = (np.abs(val_volts) ** 2.) / impedance_ohms
+        power = (np.abs(val_volts) ** 2.0) / impedance_ohms
     else:
         power = ne.evaluate("(abs(val_volts).real**2)/impedance_ohms")
     return power
@@ -52,7 +52,7 @@ def calculate_pseudo_power(val):
         squared). The returned quantity is always real.
     """
     if np.isscalar(val):
-        ps_pwr = np.abs(val) ** 2.
+        ps_pwr = np.abs(val) ** 2.0
     else:
         ps_pwr = ne.evaluate("abs(val).real**2")
     return ps_pwr
@@ -91,7 +91,10 @@ def create_power_detector(name: str, detectors: list) -> EnumMeta:
 
 
 def apply_power_detector(
-    data: np.ndarray, detector: EnumMeta, dtype: type = None, ignore_nan: bool = False,
+    data: np.ndarray,
+    detector: EnumMeta,
+    dtype: type = None,
+    ignore_nan: bool = False,
 ) -> np.ndarray:
     """
     Apply statistical detectors to a 1- or 2-D array of samples.
@@ -138,7 +141,7 @@ def apply_power_detector(
         detector_functions = [np.nanmin, np.nanmax, np.nanmean, np.nanmedian]
     else:
         detector_functions = [np.min, np.max, np.mean, np.median]
-        
+
     # Get functions based on specified detector
     logger.debug(f"Applying power detectors: {detectors}")
     applied_detectors = []

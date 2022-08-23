@@ -80,6 +80,8 @@ def sample_ccdf(a: np.ndarray, edges: np.ndarray, density: bool = True) -> np.nd
 
     if density:
         ccdf = ccdf.astype("float64")
-        ne.evaluate("ccdf/a_size", local_dict={'ccdf': ccdf, 'a_size': a.size}, out=ccdf)
+        ne.evaluate(
+            "ccdf/a_size", local_dict={"ccdf": ccdf, "a_size": a.size}, out=ccdf
+        )
 
     return ccdf
