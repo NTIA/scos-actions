@@ -1,9 +1,10 @@
-import django.dispatch
+from django.dispatch import Signal
 
-measurement_action_completed = django.dispatch.Signal(
-    providing_args=["task_id", "data", "metadata"]
-)
-location_action_completed = django.dispatch.Signal(
-    providing_args=["latitude", "longitude"]
-)
-monitor_action_completed = django.dispatch.Signal(providing_args=["sigan_healthy"])
+# Provides arguments 'task_id', 'data', 'metadata'
+measurement_action_completed = Signal()
+
+# Provides arguments: 'latitude', 'longitude'
+location_action_completed = Signal()
+
+# Provides arguments: 'sigan_healthy'
+monitor_action_completed = Signal()

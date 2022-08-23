@@ -5,10 +5,10 @@ from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.actions.metadata.annotations.calibration_annotation import CalibrationAnnotation
-from scos_actions.actions.metadata.measurement_global import MeasurementMetadata
-from scos_actions.actions.metadata.annotations.sensor_annotation import SensorAnnotation
-from scos_actions.actions.sigmf_builder import SigMFBuilder
+from scos_actions.metadata.annotations.calibration_annotation import CalibrationAnnotation
+from scos_actions.metadata.measurement_global import MeasurementMetadata
+from scos_actions.metadata.annotations.sensor_annotation import SensorAnnotation
+from scos_actions.metadata.sigmf_builder import SigMFBuilder
 
 logger = logging.getLogger(__name__)
 

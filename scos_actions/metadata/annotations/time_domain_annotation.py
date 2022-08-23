@@ -1,5 +1,5 @@
-from scos_actions.actions.metadata.metadata import Metadata
-from scos_actions.actions.sigmf_builder import SigMFBuilder
+from scos_actions.metadata.metadata import Metadata
+from scos_actions.metadata.sigmf_builder import SigMFBuilder
 
 class TimeDomainAnnotation(Metadata):
 

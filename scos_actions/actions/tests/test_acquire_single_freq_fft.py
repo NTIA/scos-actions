@@ -1,4 +1,3 @@
-from scos_actions.actions.fft import M4sDetector
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.tests.utils import SENSOR_DEFINITION, check_metadata_fields
 from scos_actions.discover import test_actions as actions
