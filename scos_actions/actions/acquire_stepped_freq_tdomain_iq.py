@@ -43,10 +43,10 @@ from scos_actions import utils
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     SingleFrequencyTimeDomainIqAcquisition,
 )
-from scos_actions.utils import get_parameter
 from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.metadata.sigmf_builder import Domain, MeasurementType
 from scos_actions.hardware import gps as mock_gps
+from scos_actions.metadata.sigmf_builder import Domain, MeasurementType
+from scos_actions.utils import get_parameter
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
 
         # Create iterable parameter set
         self.iterable_params = utils.get_iterable_parameters(parameters)
-        
+
         self.sigan = sigan  # make instance variable to allow mocking
         self.num_center_frequencies = num_center_frequencies
 
@@ -104,15 +104,17 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             measurement_result = super().acquire_data(num_samples, nskip)
             measurement_result.update(measurement_params)
             end_time = utils.get_datetime_str_now()
-            measurement_result['start_time'] = start_time
-            measurement_result['end_time'] = end_time
-            measurement_result['domain'] = Domain.TIME.value
-            measurement_result['measurement_type'] = MeasurementType.SINGLE_FREQUENCY.value
-            measurement_result['task_id'] = task_id
-            measurement_result['description'] = self.description
-            measurement_result['name'] = self.name
-            measurement_result['sigan_cal'] = self.sigan.sigan_calibration_data
-            measurement_result['sensor_cal'] = self.sigan.sensor_calibration_data
+            measurement_result["start_time"] = start_time
+            measurement_result["end_time"] = end_time
+            measurement_result["domain"] = Domain.TIME.value
+            measurement_result[
+                "measurement_type"
+            ] = MeasurementType.SINGLE_FREQUENCY.value
+            measurement_result["task_id"] = task_id
+            measurement_result["description"] = self.description
+            measurement_result["name"] = self.name
+            measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
+            measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
             sigmf_builder = self.get_sigmf_builder(measurement_result)
             self.create_metadata(
                 sigmf_builder, schedule_entry_json, measurement_result, recording_id

@@ -1,14 +1,16 @@
-import numpy as np
-from scipy.constants import Boltzmann
 import logging
 from typing import Tuple
+
+import numpy as np
+from scipy.constants import Boltzmann
+
 from scos_actions.hardware import preselector
 from scos_actions.signal_processing.unit_conversion import (
     convert_celsius_to_kelvins,
     convert_dB_to_linear,
     convert_fahrenheit_to_celsius,
     convert_linear_to_dB,
-    convert_watts_to_dBm
+    convert_watts_to_dBm,
 )
 
 logger = logging.getLogger(__name__)
@@ -56,7 +58,9 @@ def y_factor(
         logger.debug(f"Mean power off: {mean_off_dBm:.2f} dBm")
     y = convert_dB_to_linear(mean_on_dBm - mean_off_dBm)
     noise_factor = enr_linear / (y - 1.0)
-    gain_dB = convert_watts_to_dBm(np.mean(pwr_noise_on_watts)) - convert_watts_to_dBm(Boltzmann * temp_kelvins * enbw_hz * (enr_linear + noise_factor))
+    gain_dB = convert_watts_to_dBm(np.mean(pwr_noise_on_watts)) - convert_watts_to_dBm(
+        Boltzmann * temp_kelvins * enbw_hz * (enr_linear + noise_factor)
+    )
     noise_figure_dB = convert_linear_to_dB(noise_factor)
     return noise_figure_dB, gain_dB
 
