@@ -30,4 +30,3 @@ class Logger(Action):
         logger.log(
             level=self.loglvl, msg=msg.format(name=schedule_entry_name, tid=task_id)
         )
-

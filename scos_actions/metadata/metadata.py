@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
+
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 
 
 class Metadata(ABC):
-
     def __init__(self, start=None, count=None, recording=None):
         self.start = start
         self.count = count
