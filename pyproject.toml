@@ -1,0 +1,75 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scos-actions"
+dynamic = ["version"]
+description = "The base plugin providing common actions and interfaces for SCOS Sensor plugins"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE.md" }
+
+authors = [
+    { name = "The Institute for Telecommunication Sciences" },
+]
+
+maintainers = [
+    { name = "Doug Boulware", email = "dboulware@ntia.gov" },
+    { name = "Justin Haze", email = "jhaze@ntia.gov" },
+    { name = "Anthony Romaniello", email = "aromaniello@ntia.gov" },
+]
+
+keywords = [
+    "SCOS", "SDR", "spectrum monitoring", "radio", "sensor",
+    "spectrum", "monitoring", "remote", "distributed", "sensing",
+    "NTIA", "ITS", "telecommunications",
+]
+
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Telecommunications Industry",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Environment :: Plugins",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+
+dependencies = [
+    "django>=3.2.15,<4.0",
+    "its_preselector @ git+https://github.com/NTIA/Preselector@1.0.0",
+    "numexpr>=2.8.3",
+    "numpy>=1.22.0",
+    "python-dateutil>=2.0",
+    "ruamel.yaml>=0.15",
+    "scipy>=1.8.0",
+    "sigmf @ git+https://github.com/NTIA/SigMF@multi-recording-archive",
+]
+
+[project.optional-dependencies]
+dev = [
+    "hatchling>=1.6.0,<2.0",
+    "pre-commit>=2.20.0",
+    "pytest>=7.1.2",
+    "pytest-cov>=3.0.0",
+    "tox>=3.0",
+    "twine>=4.0.1,<5.0",
+]
+
+[project.urls]
+"Repository" = "https://github.com/NTIA/scos-actions"
+"Bug Tracker" = "https://github.com/NTIA/scos-actions/issues"
+"SCOS Sensor" = "https://github.com/NTIA/scos-sensor"
+"NTIA GitHub" = "https://github.com/NTIA"
+"ITS Website" = "https://its.ntia.gov"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.version]
+path = "scos_actions/__init__.py"

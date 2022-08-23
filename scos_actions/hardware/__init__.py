@@ -49,7 +49,7 @@ def load_preselector(preselector_config_file):
     return preselector
 
 
-from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
+
 
 
 register_component_with_status.connect(status_registration_handler)

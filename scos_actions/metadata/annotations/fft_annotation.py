@@ -1,5 +1,5 @@
-from scos_actions.actions.metadata.metadata import Metadata
-from scos_actions.actions.sigmf_builder import SigMFBuilder
+from scos_actions.metadata.metadata import Metadata
+from scos_actions.metadata.sigmf_builder import SigMFBuilder
 
 
 class FrequencyDomainDetectionAnnotation(Metadata):
@@ -14,7 +14,7 @@ class FrequencyDomainDetectionAnnotation(Metadata):
             "ntia-algorithm:number_of_samples_in_fft": measurement_result['fft_size'],
             "ntia-algorithm:window": measurement_result['window'],
             "ntia-algorithm:equivalent_noise_bandwidth": measurement_result['enbw'],
-            "ntia-algorithm:detector": self.detector,
+            "ntia-algorithm:detector": 'fft_' + self.detector,
             "ntia-algorithm:number_of_ffts": measurement_result['nffts'],
             "ntia-algorithm:units": 'dBm',
             "ntia-algorithm:reference": '"preselector input"',
