@@ -248,7 +248,6 @@ class NasctnSeaDataProduct(Action):
         )
         data_product.extend(fft_results)  # (max, mean)
         toc = perf_counter()
-        logger.debug(f"Max FFT amplitudes: {data_product[0]}")
         logger.debug(f"FFT computation complete in {toc-tic:.2f} s")
 
         # Filter IQ data
