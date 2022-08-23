@@ -5,13 +5,13 @@ import math
 logger = logging.getLogger(__name__)
 
 
-class Calibration(object):
+class Calibration:
     def __init__(
-            self,
-            calibration_datetime,
-            calibration_params,
-            calibration_data,
-            clock_rate_lookup_by_sample_rate
+        self,
+        calibration_datetime,
+        calibration_params,
+        calibration_data,
+        clock_rate_lookup_by_sample_rate,
     ):
         self.calibration_datetime = calibration_datetime
         self.calibration_parameters = calibration_params
@@ -35,10 +35,12 @@ class Calibration(object):
         for i in range(len(args)):
             setting_value = args[i]
             setting = self.calibration_parameters[i]
-            logger.debug('looking up calibration for {} at {}'.format(setting, setting_value))
+            logger.debug(
+                "looking up calibration for {} at {}".format(setting, setting_value)
+            )
             cal_data = filter_by_parameter(cal_data, setting, setting_value)
-            if 'calibration_datetime' not in cal_data:
-                cal_data['calibration_datetime'] = self.calibration_datetime
+            if "calibration_datetime" not in cal_data:
+                cal_data["calibration_datetime"] = self.calibration_datetime
         logger.info("Cal Data: " + str(cal_data))
         return cal_data
 
@@ -47,23 +49,27 @@ class Calibration(object):
         for parameter in self.calibration_parameters:
             if parameter in params:
                 value = params[parameter]
-                logger.debug('Updating calibration at {} = {}'.format(parameter, value))
+                logger.debug("Updating calibration at {} = {}".format(parameter, value))
                 cal_data = cal_data[value]
-        cal_data['calibration_datetime'] = calibration_datetime
-        if 'gain_sensor' in cal_data:
-            cal_data['gain_sensor'] = gain
+        cal_data["calibration_datetime"] = calibration_datetime
+        if "gain_sensor" in cal_data:
+            cal_data["gain_sensor"] = gain
         else:
-            raise Exception('Not enough parameters specified to update sensor gain')
-        if 'noise_figure_sensor' in cal_data:
-            cal_data['noise_figure_sensor'] = noise_figure
+            raise Exception("Not enough parameters specified to update sensor gain")
+        if "noise_figure_sensor" in cal_data:
+            cal_data["noise_figure_sensor"] = noise_figure
         else:
-            raise Exception('Not enough parameters specified to update sensor noise figure')
-        cal_data['temperature'] = temp
-        dict = {'calibration_datetime': str(self.calibration_datetime),
-                'calibration_parameters': self.calibration_parameters,
-                'clock_rate_lookup_by_sample_rate': self.clock_rate_lookup_by_sample_rate,
-                'calibration_data': self.calibration_data}
-        with open(file_path, 'w') as outfile:
+            raise Exception(
+                "Not enough parameters specified to update sensor noise figure"
+            )
+        cal_data["temperature"] = temp
+        dict = {
+            "calibration_datetime": str(self.calibration_datetime),
+            "calibration_parameters": self.calibration_parameters,
+            "clock_rate_lookup_by_sample_rate": self.clock_rate_lookup_by_sample_rate,
+            "calibration_data": self.calibration_data,
+        }
+        with open(file_path, "w") as outfile:
             outfile.write(json.dumps(dict))
 
 
@@ -80,11 +86,11 @@ def load_from_json(fname):
     assert "calibration_datetime" in calibration
     assert "calibration_data" in calibration
     assert "clock_rate_lookup_by_sample_rate" in calibration
-    calibration_data = convert_keys(calibration['calibration_data'])
+    calibration_data = convert_keys(calibration["calibration_data"])
     # Create and return the Calibration object
     return Calibration(
         calibration["calibration_datetime"],
-        calibration['calibration_parameters'],
+        calibration["calibration_parameters"],
         calibration_data,
         calibration["clock_rate_lookup_by_sample_rate"],
     )
@@ -116,11 +122,16 @@ def filter_by_parameter(calibrations, parameter, value):
         if filtered_data is None:
             filtered_data = check_ceiling_of_parameter(calibrations, parameter, value)
             if filtered_data is None:
-                raise Exception('No calibration was performed with {} at {}'.format(parameter, value))
+                raise Exception(
+                    "No calibration was performed with {} at {}".format(
+                        parameter, value
+                    )
+                )
     else:
         filtered_data = calibrations[value]
 
     return filtered_data
+
 
 def check_floor_of_parameter(calibrations, parameter, value):
     value = math.floor(value)
@@ -133,7 +144,7 @@ def check_floor_of_parameter(calibrations, parameter, value):
 
 def check_ceiling_of_parameter(calibrations, parameter, value):
     value = math.ceil(value)
-    logger.debug('Checking ceiling at: ' + str(value))
+    logger.debug("Checking ceiling at: " + str(value))
     if value in calibrations:
         return calibrations[value]
     else:
