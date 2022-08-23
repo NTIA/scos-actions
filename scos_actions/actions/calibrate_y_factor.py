@@ -285,8 +285,8 @@ class YFactorCalibration(Action):
             noise_off_data = noise_off_measurement_result["data"]
 
         # Get power values in time domain (division by 2 for RF/baseband conversion)
-        pwr_on_watts = calculate_power_watts(noise_on_data / 2.0)
-        pwr_off_watts = calculate_power_watts(noise_off_data / 2.0)
+        pwr_on_watts = calculate_power_watts(noise_on_data) / 2.0
+        pwr_off_watts = calculate_power_watts(noise_off_data) / 2.0
 
         # Y-Factor
         enr_linear = get_linear_enr(cal_source_idx)
