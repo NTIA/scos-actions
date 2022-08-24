@@ -1,8 +1,8 @@
 import copy
 from abc import ABC, abstractmethod
 
-from scos_actions.capabilities import capabilities
 from scos_actions.calibration import Calibration
+from scos_actions.capabilities import capabilities
 from scos_actions.settings import sensor_calibration, sigan_calibration
 from scos_actions.utils import (
     convert_string_to_millisecond_iso_format,
@@ -33,6 +33,7 @@ class SignalAnalyzerInterface(ABC):
         }
         self.sensor_calibration_data = copy.deepcopy(self.DEFAULT_SENSOR_CALIBRATION)
         self.sigan_calibration_data = copy.deepcopy(self.DEFAULT_SIGAN_CALIBRATION)
+        self.start_date = get_datetime_str_now()
 
     @property
     def last_calibration_time(self) -> str:
@@ -89,20 +90,18 @@ class SignalAnalyzerInterface(ABC):
                 sigan_calibration.get_calibration_dict(cal_args)
             )
 
-
     @property
     def name(self) -> str:
-        return 'Signal Analyzer'
+        return "Signal Analyzer"
 
     def get_status(self):
         sigan_model = str(self.__class__)
-        if 'signal_analyzer' in capabilities['sensor']:
-            sigan = capabilities['sensor']['signal_analyzer']
-            if 'sigan_spec' in sigan:
-                spec = sigan['sigan_spec']
-                if 'model' in spec:
-                    model = spec['model']
-                    if model != 'Default' and model != '':
+        if "signal_analyzer" in capabilities["sensor"]:
+            sigan = capabilities["sensor"]["signal_analyzer"]
+            if "sigan_spec" in sigan:
+                spec = sigan["sigan_spec"]
+                if "model" in spec:
+                    model = spec["model"]
+                    if model != "Default" and model != "":
                         sigan_model = model
-        return {'model': sigan_model, 'healthy': self.healthy}
-
+        return {"model": sigan_model, "healthy": self.healthy}
