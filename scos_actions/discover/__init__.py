@@ -1,24 +1,27 @@
-# from scos_actions.actions import action_classes
 from scos_actions.actions import action_classes
 from scos_actions.actions.interfaces.signals import register_component_with_status
+from scos_actions.actions.logger import Logger
 from scos_actions.actions.monitor_sigan import MonitorSignalAnalyzer
 from scos_actions.actions.sync_gps import SyncGps
-from scos_actions.actions.logger import Logger
 from scos_actions.discover.yaml import load_from_yaml
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.settings import ACTION_DEFINITIONS_DIR
 
-
 actions = {"logger": Logger()}
 test_actions = {
     "test_sync_gps": SyncGps(gps=mock_gps),
     "test_monitor_sigan": MonitorSignalAnalyzer(sigan=mock_sigan),
-    "logger": Logger()
+    "logger": Logger(),
 }
 
 
-def init(action_classes=action_classes, sigan=mock_sigan, gps=mock_gps, yaml_dir=ACTION_DEFINITIONS_DIR):
+def init(
+        action_classes=action_classes,
+        sigan=mock_sigan,
+        gps=mock_gps,
+        yaml_dir=ACTION_DEFINITIONS_DIR,
+):
     yaml_actions = {}
     yaml_test_actions = {}
     for key, value in load_from_yaml(
@@ -37,6 +40,3 @@ actions.update(yaml_actions)
 test_actions.update(yaml_test_actions)
 
 
-
-def get_last_calibration_time():
-    return None

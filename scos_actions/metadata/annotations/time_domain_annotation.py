@@ -1,10 +1,10 @@
 from scos_actions.metadata.metadata import Metadata
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 
-class TimeDomainAnnotation(Metadata):
 
+class TimeDomainAnnotation(Metadata):
     def __init__(self, start, count):
-        super().__init__(start,count)
+        super().__init__(start, count)
 
     def create_metadata(self, sigmf_builder: SigMFBuilder, measurement_result):
         time_domain_detection_md = {

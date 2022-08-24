@@ -5,14 +5,15 @@ from scos_actions import utils
 from scos_actions.capabilities import capabilities
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
-from scos_actions.settings import PRESELECTOR_CLASS
-from scos_actions.settings import PRESELECTOR_CONFIG_FILE
-from scos_actions.settings import PRESELECTOR_MODULE
-from scos_actions.settings import SWITCH_CONFIGS_DIR
 from its_preselector.controlbyweb_web_relay import ControlByWebWebRelay
 from scos_actions.status.status_registration_handler import status_registration_handler
 from scos_actions.actions.interfaces.signals import register_component_with_status
-
+from scos_actions.settings import (
+    PRESELECTOR_CLASS,
+    PRESELECTOR_CONFIG_FILE,
+    PRESELECTOR_MODULE,
+    SWITCH_CONFIGS_DIR
+)
 
 import logging
 
@@ -42,14 +43,10 @@ def load_preselector(preselector_config_file):
 
     preselector_module = importlib.import_module(PRESELECTOR_MODULE)
     preselector_class = getattr(preselector_module, PRESELECTOR_CLASS)
-    preselector = preselector_class(capabilities['sensor'], preselector_config)
+    ps = preselector_class(capabilities['sensor'], preselector_config)
     logger.info('Registering ' + preselector.name + ' as status provider')
-    register_component_with_status.send(__name__,component=preselector)
-
-    return preselector
-
-
-
+    register_component_with_status.send(__name__, component=preselector)
+    return ps
 
 
 register_component_with_status.connect(status_registration_handler)

@@ -2,14 +2,15 @@ import copy
 from abc import ABC, abstractmethod
 
 from scos_actions.capabilities import capabilities
-from scos_actions.settings import sensor_calibration
-from scos_actions.settings import sigan_calibration
-from scos_actions.utils import convert_string_to_millisecond_iso_format
-from scos_actions.utils import get_datetime_str_now
+from scos_actions.calibration import Calibration
+from scos_actions.settings import sensor_calibration, sigan_calibration
+from scos_actions.utils import (
+    convert_string_to_millisecond_iso_format,
+    get_datetime_str_now,
+)
 
 
 class SignalAnalyzerInterface(ABC):
-
     def __init__(self):
         # Define the default calibration dicts
         self.DEFAULT_SIGAN_CALIBRATION = {
@@ -17,7 +18,7 @@ class SignalAnalyzerInterface(ABC):
             "enbw_sigan": None,  # Defaults to sample rate
             "noise_figure_sigan": 0,
             "1db_compression_sigan": 100,
-            'calibration_datetime': get_datetime_str_now()
+            "calibration_datetime": get_datetime_str_now(),
         }
 
         self.DEFAULT_SENSOR_CALIBRATION = {
@@ -28,7 +29,7 @@ class SignalAnalyzerInterface(ABC):
             "gain_preselector": 0,
             "noise_figure_preselector": 0,
             "1db_compression_preselector": 100,
-            'calibration_datetime': get_datetime_str_now()
+            "calibration_datetime": get_datetime_str_now(),
         }
         self.sensor_calibration_data = copy.deepcopy(self.DEFAULT_SENSOR_CALIBRATION)
         self.sigan_calibration_data = copy.deepcopy(self.DEFAULT_SIGAN_CALIBRATION)
@@ -48,7 +49,11 @@ class SignalAnalyzerInterface(ABC):
 
     @abstractmethod
     def acquire_time_domain_samples(
-            self, num_samples: int, num_samples_skip: int = 0, retries: int = 5, gain_adjust: bool = True
+        self,
+        num_samples: int,
+        num_samples_skip: int = 0,
+        retries: int = 5,
+        gain_adjust: bool = True,
     ) -> dict:
         """
         Acquire time domain IQ samples
@@ -84,6 +89,7 @@ class SignalAnalyzerInterface(ABC):
                 sigan_calibration.get_calibration_dict(cal_args)
             )
 
+
     @property
     def name(self) -> str:
         return 'Signal Analyzer'
@@ -99,3 +105,4 @@ class SignalAnalyzerInterface(ABC):
                     if model != 'Default' and model != '':
                         sigan_model = model
         return {'model': sigan_model, 'healthy': self.healthy}
+

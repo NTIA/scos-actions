@@ -1,8 +1,9 @@
-from os import path
-from django.conf import settings
-from scos_actions import calibration
-
 import logging
+from os import path
+
+from django.conf import settings
+
+from scos_actions import calibration
 
 logger = logging.getLogger(__name__)
 
@@ -23,18 +24,14 @@ def get_sensor_calibration(sensor_cal_file):
     try:
         sensor_cal = calibration.load_from_json(sensor_cal_file)
     except Exception as err:
-        logger.error(
-            "Unable to load sensor calibration data, reverting to none"
-        )
+        logger.error("Unable to load sensor calibration data, reverting to none")
         logger.exception(err)
         sensor_cal = None
     return sensor_cal
 
 
-logger.info('Initializing scos-actions settings')
-CONFIG_DIR = path.join(
-    path.dirname(path.abspath(__file__)), "configs"
-)
+logger.info("Initializing scos-actions settings")
+CONFIG_DIR = path.join(path.dirname(path.abspath(__file__)), "configs")
 
 ACTION_DEFINITIONS_DIR = path.join(
     path.dirname(path.abspath(__file__)), "configs/actions"
@@ -43,17 +40,17 @@ logger.debug("setting Configured: " + str(settings.configured))
 # set sigan_calibration file and sensor_calibration_file
 if not settings.configured or not hasattr(settings, "SIGAN_CALIBRATION_FILE"):
     logger.warning("Using default sigan cal file.")
-    SIGAN_CALIBRATION_FILE = path.join(CONFIG_DIR, 'sigan_calibration_example.json')
+    SIGAN_CALIBRATION_FILE = path.join(CONFIG_DIR, "sigan_calibration_example.json")
     sigan_calibration = None
 else:
     SIGAN_CALIBRATION_FILE = settings.SIGAN_CALIBRATION_FILE
 if not settings.configured or not hasattr(settings, "SENSOR_CALIBRATION_FILE"):
-    logger.warning('Using default sensor cal file.')
-    SENSOR_CALIBRATION_FILE = path.join(CONFIG_DIR, 'sensor_calibration_example.json')
+    logger.warning("Using default sensor cal file.")
+    SENSOR_CALIBRATION_FILE = path.join(CONFIG_DIR, "sensor_calibration_example.json")
     sensor_calibration = None
 else:
     SENSOR_CALIBRATION_FILE = settings.SENSOR_CALIBRATION_FILE
-    logger.debug('SCOS_ACTIONS: SENSOR_CALIBRATION_FILE: ' + SENSOR_CALIBRATION_FILE)
+    logger.debug("SCOS_ACTIONS: SENSOR_CALIBRATION_FILE: " + SENSOR_CALIBRATION_FILE)
 
 
 if not settings.configured:
@@ -82,9 +79,10 @@ else:
     if hasattr(settings, "SWITCH_CONFIGS_DIR"):
         SWITCH_CONFIGS_DIR = settings.SWITCH_CONFIGS_DIR
 
-logger.info('Loading sensor cal file: ' + SENSOR_CALIBRATION_FILE)
+
+logger.info("Loading sensor cal file: " + SENSOR_CALIBRATION_FILE)
 sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
-logger.info('Loading sigan cal file: ' + SIGAN_CALIBRATION_FILE)
+logger.info("Loading sigan cal file: " + SIGAN_CALIBRATION_FILE)
 sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
 if sensor_calibration:
     logger.info("last sensor cal: " + sensor_calibration.calibration_datetime)
