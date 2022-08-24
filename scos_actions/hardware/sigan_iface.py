@@ -104,4 +104,8 @@ class SignalAnalyzerInterface(ABC):
                     model = spec["model"]
                     if model != "Default" and model != "":
                         sigan_model = model
-        return {"model": sigan_model, "healthy": self.healthy}
+        return {
+            "model": sigan_model,
+            "healthy": self.healthy,
+            "started": self.start_date,
+        }
