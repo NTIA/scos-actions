@@ -23,6 +23,7 @@ Currently in development.
 import logging
 from time import perf_counter
 from typing import Tuple
+from xml.etree.ElementPath import get_parent_map
 
 import numexpr as ne
 import numpy as np
@@ -70,6 +71,7 @@ from scos_actions.signal_processing.unit_conversion import (
 logger = logging.getLogger(__name__)
 
 # Define parameter keys
+RF_PATH = "rf_path"
 IIR_APPLY = "iir_apply"
 IIR_GPASS = "iir_gpass_dB"
 IIR_GSTOP = "iir_gstop_dB"
@@ -101,6 +103,9 @@ class NasctnSeaDataProduct(Action):
 
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters, sigan, gps)
+        # Assume preselector is present
+        rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
+        self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
 
         # Setup/pull config parameters
         # TODO: All parameters in this section should end up hard-coded
@@ -166,6 +171,8 @@ class NasctnSeaDataProduct(Action):
         # then generate all data products, or to parallelize captures/processing.
 
         start_action = perf_counter()
+        logger.debug(f"Setting RF path to {self.rf_path}")
+        self.configure_preselector(self.rf_path)
         for recording_id, parameters in enumerate(iteration_params, start=1):
             # Capture IQ data
             measurement_result = self.capture_iq(task_id, parameters)
