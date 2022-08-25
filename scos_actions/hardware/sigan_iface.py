@@ -33,7 +33,6 @@ class SignalAnalyzerInterface(ABC):
         }
         self.sensor_calibration_data = copy.deepcopy(self.DEFAULT_SENSOR_CALIBRATION)
         self.sigan_calibration_data = copy.deepcopy(self.DEFAULT_SIGAN_CALIBRATION)
-        self.start_date = get_datetime_str_now()
 
     @property
     def last_calibration_time(self) -> str:
@@ -104,8 +103,4 @@ class SignalAnalyzerInterface(ABC):
                     model = spec["model"]
                     if model != "Default" and model != "":
                         sigan_model = model
-        return {
-            "model": sigan_model,
-            "healthy": self.healthy,
-            "started": self.start_date,
-        }
+        return {"model": sigan_model, "healthy": self.healthy}
