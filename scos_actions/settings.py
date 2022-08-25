@@ -84,7 +84,10 @@ if sensor_calibration:
     logger.info("last sensor cal: " + sensor_calibration.calibration_datetime)
 
 # Check if a preselector is present in the sensor definition
-if "preselector" in SENSOR_DEFINITION_FILE:
-    HAS_PRESELECTOR = True
-else:
+if SENSOR_DEFINITION_FILE is None:
     HAS_PRESELECTOR = False
+else:
+    if "preselector" in SENSOR_DEFINITION_FILE:
+        HAS_PRESELECTOR = True
+    else:
+        HAS_PRESELECTOR = False
