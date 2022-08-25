@@ -1,8 +1,9 @@
-from scos_actions.metadata.metadata import Metadata
+from scos_actions.metadata.annotation_segment import AnnotationSegment
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 
 
-class MeasurementMetadata(Metadata):
+# TODO: Decouple this from AnnotationSegment
+class MeasurementMetadata(AnnotationSegment):
     def __init__(self):
         super().__init__()
 

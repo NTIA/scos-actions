@@ -93,9 +93,7 @@ from numpy import float32, ndarray
 from scos_actions import utils
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware import gps as mock_gps
-from scos_actions.metadata.annotations.fft_annotation import (
-    FrequencyDomainDetectionAnnotation,
-)
+from scos_actions.metadata.annotations import FrequencyDomainDetection
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.signal_processing.fft import (
     get_fft,
@@ -243,7 +241,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
         for i, detector in enumerate(self.fft_detector):
-            fft_annotation = FrequencyDomainDetectionAnnotation(
+            fft_annotation = FrequencyDomainDetection(
                 start=i * self.fft_size,
                 count=self.fft_size,
                 fft_size=self.fft_size,
