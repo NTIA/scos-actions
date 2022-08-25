@@ -42,11 +42,13 @@ from scos_actions.metadata.annotations.time_domain_annotation import (
     TimeDomainAnnotation,
 )
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.settings import HAS_PRESELECTOR
 from scos_actions.utils import get_parameter
 
 logger = logging.getLogger(__name__)
 
 # Define parameter keys
+RF_PATH = "rf_path"
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 DURATION_MS = "duration_ms"
@@ -76,12 +78,18 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
         # Pull parameters from action config
+        if HAS_PRESELECTOR:
+            rf_path_name = get_parameter(RF_PATH, self.parameters)
+            self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
         self.nskip = get_parameter(NUM_SKIP, self.parameters)
         self.duration_ms = get_parameter(DURATION_MS, self.parameters)
         self.frequency_Hz = get_parameter(FREQUENCY, self.parameters)
 
     def execute(self, schedule_entry, task_id) -> dict:
         start_time = utils.get_datetime_str_now()
+        if HAS_PRESELECTOR:
+            logger.debug(f"Setting RF path to {self.rf_path}")
+            self.configure_preselector(self.rf_path)
         # Use the sigan's actual reported instead of requested sample rate
         sample_rate = self.sigan.sample_rate
         num_samples = int(sample_rate * self.duration_ms * 1e-3)

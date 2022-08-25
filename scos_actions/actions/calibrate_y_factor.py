@@ -98,10 +98,6 @@ from scos_actions.utils import ParameterException, get_parameter
 
 logger = logging.getLogger(__name__)
 
-RF_PATH = "rf_path"
-NOISE_DIODE_ON = {RF_PATH: "noise_diode_on"}
-NOISE_DIODE_OFF = {RF_PATH: "noise_diode_off"}
-
 # Define parameter keys
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
@@ -142,6 +138,8 @@ class YFactorCalibration(Action):
         logger.debug("Initializing calibration action")
         super().__init__(parameters, sigan, gps)
         self.sigan = sigan
+        self.noise_diode_on_path = {self.PRESELECTOR_PATH_KEY: "noise_diode_on"}
+        self.noise_diode_off_path = {self.PRESELECTOR_PATH_KEY: "noise_diode_off"}
         self.iteration_params = utils.get_iterable_parameters(parameters)
         self.power_detector = create_power_detector("MeanDetector", ["mean"])
 
@@ -240,7 +238,7 @@ class YFactorCalibration(Action):
 
         # Set noise diode on
         logger.debug("Setting noise diode on")
-        super().configure_preselector(NOISE_DIODE_ON)
+        super().configure_preselector(self.noise_diode_on_path)
         time.sleep(0.25)
 
         # Get noise diode on IQ
@@ -252,7 +250,7 @@ class YFactorCalibration(Action):
 
         # Set noise diode off
         logger.debug("Setting noise diode off")
-        self.configure_preselector(NOISE_DIODE_OFF)
+        self.configure_preselector(self.noise_diode_off_path)
         time.sleep(0.25)
 
         # Get noise diode off IQ
