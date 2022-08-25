@@ -2,6 +2,7 @@ import importlib
 import logging
 import os
 
+from its_preselector.configuration_exception import ConfigurationException
 from its_preselector.controlbyweb_web_relay import ControlByWebWebRelay
 
 from scos_actions import utils
@@ -28,10 +29,14 @@ def load_switches(switch_dir):
             file_path = os.path.join(switch_dir, f)
             logger.info("loading switch config " + file_path)
             conf = utils.load_from_json(file_path)
-            switch = ControlByWebWebRelay(conf)
-            switch_dict[switch.id] = switch
-            logger.info("Registering switch status for " + switch.name)
-            register_component_with_status.send(__name__, component=switch)
+            try:
+                switch = ControlByWebWebRelay(conf)
+                switch_dict[switch.id] = switch
+                logger.info("Registering switch status for " + switch.name)
+                register_component_with_status.send(__name__, component=switch)
+            except (ConfigurationException):
+                logger.error("Unable to configure switch defined in: " + file_path)
+
     return switch_dict
 
 
@@ -43,11 +48,16 @@ def load_preselector(preselector_config_file):
 
     preselector_module = importlib.import_module(PRESELECTOR_MODULE)
     preselector_class = getattr(preselector_module, PRESELECTOR_CLASS)
-    ps = preselector_class(capabilities["sensor"], preselector_config)
-    if ps and ps.name:
-        logger.info("Registering " + ps.name + " as status provider")
-    register_component_with_status.send(__name__, component=ps)
-    return ps
+    try:
+        ps = preselector_class(capabilities["sensor"], preselector_config)
+        if ps and ps.name:
+            logger.info("Registering " + ps.name + " as status provider")
+            register_component_with_status.send(__name__, component=ps)
+        return ps
+    except (ConfigurationException):
+        logger.error(
+            "Unable to create preselector defined in: " + preselector_config_file
+        )
 
 
 register_component_with_status.connect(status_registration_handler)
