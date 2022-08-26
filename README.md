@@ -1,131 +1,129 @@
 # NTIA/ITS SCOS Actions Plugin
 
-This repository contains common actions and interfaces to be re-used by scos-sensor
-plugins. See the [scos-sensor README](
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/NTIA/scos-actions?display_name=tag&sort=semver)
+![GitHub all releases](https://img.shields.io/github/downloads/NTIA/scos-actions/total)
+![GitHub issues](https://img.shields.io/github/issues/NTIA/scos-actions)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+This repository contains common actions and interfaces to be re-used by SCOS Sensor
+plugins. See the [SCOS Sensor documentation](
 https://github.com/NTIA/scos-sensor/blob/master/README.md)
-for more information about scos-sensor, especially the [Architecture](
+for more information about SCOS Sensor, especially the [Architecture](
 https://github.com/NTIA/scos-sensor/blob/master/README.md#architecture
 ) and the [Actions and Hardware Support](
 https://github.com/NTIA/scos-sensor/blob/master/README.md#actions-and-hardware-support
-) sections which explain how scos-actions is used in the scos-sensor plugin
+) sections which explain how SCOS Actions is used in the SCOS plugin
 architecture.
 
 ## Table of Contents
 
 - [Overview of Repo Structure](#overview-of-repo-structure)
-- [Running in scos-sensor](#running-in-scos-sensor)
+- [Running in SCOS Sensor](#running-in-scos-sensor)
 - [Development](#development)
 - [License](#license)
 - [Contact](#contact)
 
 ## Overview of Repo Structure
 
-- scos_actions/actions: This includes the base Action class, signals, and the following
+- `scos_actions/actions`: This includes the base Action class, signals, and the following
   common action classes:
-  - acquire_single_freq_fft: performs FFTs and calculates mean, median, min, max, and
+  - `acquire_single_freq_fft`: performs FFTs and calculates mean, median, min, max, and
     sample statistics at a single center frequency.
-  - acquire_single_freq_tdomain_iq: acquires IQ data at a single center frequency.
-  - acquire_stepped_freq_tdomain_iq: acquires IQ data at multiple center frequencies.
-  - sync_gps: gets GPS location and syncs the host to GPS time
-  - monitor_sigan: ensures a signal analyzer is available and is able to maintain a
+  - `acquire_single_freq_tdomain_iq`: acquires IQ data at a single center frequency.
+  - `acquire_stepped_freq_tdomain_iq`: acquires IQ data at multiple center frequencies.
+  - `calibrate_y_facvtor`: performs calibration using the Y-Factor method.
+  - `sync_gps`: gets GPS location and syncs the host to GPS time
+  - `monitor_sigan`: ensures a signal analyzer is available and is able to maintain a
     connection to the computer.
-- scos_actions/configs/actions: This folder contains the yaml files with the parameters
+- `scos_actions/configs/actions`: This folder contains the YAML files with the parameters
   used to initialize the actions described above.
-- scos_actions/discover: This includes the code to read yaml files and make actions
+- `scos_actions/discover`: This includes the code to read YAML files and make actions
   available to scos-sensor.
-- scos_actions/hardware: This includes the signal analyzer interface and GPS interface
+- `scos_actions/hardware`: This includes the signal analyzer interface and GPS interface
   used by the actions and the mock signal analyzer. The signal analyzer interface is
   intended to represent universal functionality that is common across all signal
   analyzers. The specific implementations of the signal analyzer interface for
   particular signal analyzers are provided in separate repositories like
   [scos-usrp](https://github.com/NTIA/scos-usrp).
+- `scos_actions/signal_processing`: This contains various common signal processing
+routines which are used in actions.
 
-## Running in scos-sensor
+## Running in SCOS Sensor
 
-Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`) and
-python>=3.7.
+Refer to the [SCOS Sensor documentation](https://github.com/NTIA/scos-sensor#readme) for
+detailed instructions. To run SCOS Actions in SCOS Sensor with a mock signal analyzer,
+set `MOCK_SIGAN` and `MOCK_SIGAN_RANDOM` equal to 1 in `docker-compose.yml` before
+starting SCOS Sensor:
 
-1. Clone scos-sensor: git clone <https://github.com/NTIA/scos-sensor.git>
-1. Navigate to scos-sensor: `cd scos-sensor`
-1. In scos-sensor/src/requirements.txt, comment out the following line:
-   `scos_usrp @ git+ https://github.com/NTIA/scos-usrp@master#egg=scos_usrp`
-1. Make sure `scos_actions` dependency is added to `scos-sensor/src/requirements.txt`.
-   If you are using a different branch than master, change master in the following line
-   to the branch you are using:
-   `scos_actions @ git+https://github.com/NTIA/scos-actions@master#egg=scos_actions`
-1. If it does not exist, create env file while in the root scos-sensor directory:
-   `cp env.template ./env`
-1. In env file, change `BASE_IMAGE=ubuntu:18.04` (at the bottom of the file)
-1. Set `MOCK_SIGAN` and `MOCK_SIGAN_RANDOM` equal to 1 in docker-compose.yml
-1. Get environment variables: `source ./env`
-1. Build and start containers: `docker-compose up -d --build --force-recreate`
+```yaml
+services:
+  ...
+  api:
+    ...
+    environment:
+      ...
+      - MOCK_SIGAN=1
+      - MOCK_SIGAN_RANDOM=1
+```
 
-If scos-actions is installed to scos-sensor as a plugin, the following three
-parameterized actions are offered for testing using a mock signal analyzer; their
-parameters are defined in scos_actions/configs/actions.
+The following parameterized actions are offered for testing using a mock signal analyzer;
+their parameters are defined in `scos_actions/configs/actions`.
 
-- test_multi_frequency_iq_action
-- test_single_frequency_iq_action
-- test_single_frequency_m4s_action
+- `test_multi_frequency_iq_action`
+- `test_multi_frequency_y_factor_action`
+- `test_single_frequency_iq_action`
+- `test_single_frequency_m4s_action`
+- `test_single_frequency_y_factor_action`
 
 ## Development
 
-This repository is intended to be used by all scos-sensor plugins. Therefore, only
+This repository is intended to be used by all SCOS Sensor plugins. Therefore, only
 universal actions that apply to most RF measurement systems should be added to
-scos-actions. Custom actions for specific hardware should be added to plugins in
-repositories supporting that specific hardware. New functionality could be added to the
-[signal analyzer interface defined in this repository](scos_actions/hardware/sigan_iface.py)
-if it is something that can be supported by most signal analyzers.
+SCOS Actions. Custom actions for specific hardware should be added to plugins in
+repositories supporting that specific hardware. New functionality should only be
+added to the [signal analyzer interface defined in this repository](scos_actions/hardware/sigan_iface.py)
+if the new functionality can be supported by most signal analyzers.
 
 ### Requirements and Configuration
 
-Requires pip>=18.1 (upgrade using `python3 -m pip install --upgrade pip`) and
-python>=3.7.
-
-It is highly recommended that you first initialize a virtual development environment
-using a tool such a `conda` or `venv`. The following commands create a virtual
-environment using `venv` and install the required dependencies for development and
-testing.
+Set up a development environment using a tool like [Conda](https://docs.conda.io/en/latest/)
+or [venv](https://docs.python.org/3/library/venv.html#module-venv), with `python>=3.8`. Then,
+from the cloned directory, install the development dependencies by running:
 
 ```bash
-python3 -m venv ./venv
-source venv/bin/activate
-python3 -m pip install --upgrade pip # upgrade to pip>=18.1
-python3 -m pip install -r requirements-dev.txt
+pip install .[dev]
 ```
 
-#### Using pip-tools
-
-It is recommended to keep direct dependencies in a separate file. The direct
-dependencies are in the requirements.in and requirements-dev.in files. Then pip-tools
-can be used to generate files with all the dependencies and transitive dependencies
-(sub-dependencies). The files containing all the dependencies are in requirements.txt
-and requirements-dev.txt. Run the following in the virtual environment to install
-pip-tools.
+This will install the project itself, along with development dependencies for pre-commit
+hooks, building distributions, and running tests. Set up pre-commit, which runs
+auto-formatting and code-checking automatically when you make a commit, by running:
 
 ```bash
-python -m pip install pip-tools
+pre-commit install
 ```
 
-To update requirements.txt after modifying requirements.in:
+The pre-commit tool will auto-format Python code using [Black](https://github.com/psf/black)
+and [isort](https://github.com/pycqa/isort). Other pre-commit hooks are also enabled, and
+can be found in [`.pre-commit-config.yaml`](.pre-commit-config.yaml).
+
+### Building New Releases
+
+This project uses [Hatchling](https://github.com/pypa/hatch/tree/master/backend) as a
+backend. Hatchling makes versioning and building new releases easy. The package version can
+be updated easily by using any of the following commands.
 
 ```bash
-pip-compile requirements.in
+hatchling version major   # 1.0.0 -> 2.0.0
+hatchling version minor   # 1.0.0 -> 1.1.0
+hatchling version micro   # 1.0.0 -> 1.0.1
+hatchling version "X.X.X" # 1.0.0 -> X.X.X
 ```
 
-To update requirements-dev.txt after modifying requirements.in or requirements-dev.in:
+To build a new release (both wheel and sdist/tarball), run:
 
 ```bash
-pip-compile requirements-dev.in
+hatchling build
 ```
-
-Use pip-sync to match virtual environment to requirements-dev.txt:
-
-```bash
-pip-sync requirements.txt requirements-dev.txt
-```
-
-For more information about pip-tools, see <https://pip-tools.readthedocs.io/en/latest/#>
 
 ### Running Tests
 
@@ -134,11 +132,10 @@ that, then running the included test suite is the easiest way to check that ever
 is working. In any case, all tests should be run after making any local modifications
 to ensure that you haven't caused a regression.
 
-scos-actions uses [pytest](https://docs.pytest.org/en/stable/) for testing.
-
-[tox](https://tox.readthedocs.io/en/latest/) is a tool that can run all available tests
-in a virtual environment against all supported versions of Python. Running `pytest`
-directly is faster but running `tox` is a more thorough test.
+The `scos_actions` package is tested using the [pytest](https://docs.pytest.org/en/stable/)
+framework. Additionally, [tox](https://tox.readthedocs.io/en/latest/) is used to run all
+available tests in a virtual environment against all supported versions of Python.
+Running `pytest` directly is faster but running `tox` is a more thorough test.
 
 The following commands can be used to run tests. Note, for tox to run with all Python
 versions listed in tox.ini, all those versions must be installed on your system.
@@ -150,53 +147,21 @@ tox --recreate  # if you change `requirements.txt`
 tox -e coverage # check where test coverage lacks
 ```
 
-### Committing
-
-Besides running the test suite and ensuring that all tests are passed, we also expect
-all Python code that is checked in to have been run through an auto-formatter.
-
-This project uses a Python auto-formatter called Black. Additionally, import statement
-sorting is handled by isort.
-
-There are several ways to autoformat your code before committing. First, IDE
-integration with on-save hooks is very useful. Second, if you've already pip-installed
-the dev requirements from the section above, you already have a utility called
-`pre-commit` installed that will automate setting up this project's git pre-commit
-hooks. Simply type the following *once*, and each time you make a commit, it will be
-appropriately autoformatted.
-
-```bash
-pre-commit install
-```
-
-You can manually run the pre-commit hooks using the following command.
-
-```bash
-pre-commit run --all-files
-```
-
-In addition to Black and isort, various other pre-commit tools are enabled including
-markdownlint. Markdownlint will show an error message if it detects any style issues in
-markdown files. See [.pre-commit-config.yaml](.pre-commit-config.yaml) for a list of
-pre-commit tools enabled for this repository.
-
 ### Adding Actions
 
-To expose a new action to the API, check out the available [action classes](
-    scos_actions/actions/__init__.py). An *action* is a parameterized implementation of
-an action class. If an existing class covers your needs, you can simply create yaml
-configs and use the `init` method in `scos_actions.discover` to make these actions
-available.
+To expose a new action to the API, check out the available
+[action classes](scos_actions/actions/__init__.py). An *action* is a parameterized
+implementation of an action class. If an existing class covers your needs, you can
+simply create YAML configs and use the `init` method in
+[`scos_actions.discover`](scos_actions/discover/__init__.py) to make these actions available.
 
 ```python
 from scos_actions.discover import init
 from scos_usrp.hardware import gps, sigan
 
 actions = {
-
-"monitor_usrp": MonitorSignalAnalyzer(sigan),
-"sync_gps": SyncGps(gps),
-
+  "monitor_usrp": MonitorSignalAnalyzer(sigan),
+  "sync_gps": SyncGps(gps),
 }
 
 yaml_actions, yaml_test_actions = init(sigan=sigan, yaml_dir=ACTION_DEFINITIONS_DIR)
@@ -205,21 +170,21 @@ actions.update(yaml_actions)
 ```
 
 Pass the implementation of the signal analyzer interface and the directory where the
-yaml files are located to the `init` method.
+YAML files are located to the `init` method.
 
 If no existing action class meets your needs, see [Writing Custom Actions](
     #writing-custom-actions).
 
-#### Creating a yaml config file for an action
+#### Creating a YAML config file for an action
 
 Actions can be manually initialized in `discover/__init__.py`, but an easier method for
-non-developers and configuration-management software is to place a yaml file in the
+non-developers and configuration-management software is to place a YAML file in the
 `configs/actions` directory which contains the action class name and parameter
 definitions.
 
-The file name can be anything. Files must end in .yml.
+The file name can be anything. File extensions must be `.yml`.
 
-The action initialization logic parses all yaml files in this directory and registers
+The action initialization logic parses all YAML files in this directory and registers
 the requested actions in the API.
 
 Let's look at an example.
@@ -228,7 +193,7 @@ Let's look at an example.
 
 Let's say we want to make an instance of the `SingleFrequencyFftAcquisition`.
 
-First, create a new yaml file in the
+First, create a new YAML file in the
 `scos_actions/configs/actions` directory. In this example we're going to create
 an acquisition for the LTE 700 C band downlink, so we'll call it `acquire_700c_dl.yml`.
 
@@ -260,19 +225,25 @@ up [actions/acquire_single_freq_fft.py](
 the class to see what parameters are available and what units to use, etc.
 
 ```python
-class SingleFrequencyFftAcquisition(SingleFrequencyTimeDomainIqAcquisition):
-    """Perform m4s detection over requested number of single-frequency FFTs.
+class SingleFrequencyFftAcquisition(MeasurementAction):
+    """Perform M4S detection over requested number of single-frequency FFTs.
 
-    :param parameters: The dictionary of parameters needed for the action and the
-    signal analyzer.
-
-    The action will set any matching attributes found in the signal analyzer object.
-    The following parameters are required by the action:
+    The action will set any matching attributes found in the signal
+    analyzer object. The following parameters are required by the action:
 
         name: name of the action
         frequency: center frequency in Hz
         fft_size: number of points in FFT (some 2^n)
         nffts: number of consecutive FFTs to pass to detector
+
+    For the parameters required by the signal analyzer, see the
+    documentation from the Python package for the signal analyzer being
+    used.
+
+    :param parameters: The dictionary of parameters needed for the
+        action and the signal analyzer.
+    :param sigan: Instance of SignalAnalyzerInterface.
+    """
 ```
 
 Then look at the docstring for the signal analyzer class being used. This example will
@@ -291,10 +262,10 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     """
 ```
 
-Lastly, simply modify the yaml file to define any required parameters from the action
-and signal analyzer. Note that the sigan parameter is a special parameter that will get
-passed in separately when the action is initialized from the yaml. Therefore, it does
-not need to be defined in the yaml file.
+Lastly, simply modify the YAML file to define any required parameters from the action
+and signal analyzer. Note that the `sigan` parameter is a special parameter that will get
+passed in separately when the action is initialized from the YAML. Therefore, it does
+not need to be defined in the YAML file.
 
 ```yaml
 # File: acquire_700c_dl.yml
@@ -312,29 +283,30 @@ You're done.
 
 #### Writing Custom Actions
 
-"Actions" are one of the main concepts used by [scos-sensor](
+"Actions" are one of the main concepts used by [SCOS Sensor](
 https://github.com/NTIA/scos-sensor). At a high level, they are the things that the
 sensor owner wants the sensor to be able to *do*. At a lower level, they are simply
 Python classes with a special method `__call__`. Actions use [Django Signals](
 https://docs.djangoproject.com/en/3.1/topics/signals/) to provide data and results to
 scos-sensor.
 
-Start by looking at the [Action base class](scos_actions/actions/interfaces/action.py).
+Start by looking at the [`Action` base class](scos_actions/actions/interfaces/action.py).
 It includes some logic to parse a description and summary out of the action class's
 docstring, and a `__call__` method that must be overridden.
 
 A new custom action can inherit from the existing action classes to reuse and build
-upon existing functionality. For example, the `SingleFrequencyFftAcquisition` and
-`SteppedFrequencyTimeDomainIqAcquisition` classes inherit from the
-`SingleFrequencyTimeDomainIqAcquisition` class.
+upon existing functionality. A [`MeasurementAction` base class](scos_actions/actions/interfaces/measurement_action.py),
+which inherits from the `Action` class, is also useful for building new actions.
+For example, [`SingleFrequencyTimeDomainIqAcquisition`](scos_actions/actions/acquire_single_freq_tdomain_iq.py)
+inherits from `MeasurementAction`, while [`SteppedFrequencyTimeDomainIqAcquisition`](scos_actions/actions/acquire_stepped_freq_tdomain_iq.py)
+inherits from `SingleFrequencyTimeDomainIqAcquisition`.
 
 Depending on the type of action, a signal should be sent upon action completion. This
-enables scos-sensor to do something with the results of the action. This could range
-from storing measurement data to recycling a docker container or to fixing an unhealthy
+enables SCOS Sensor to do something with the results of the action. This could range
+from storing measurement data to recycling a Docker container or to fixing an unhealthy
 connection to the signal analyzer. You can see the available signals in
-[scos_actions/actions/interfaces/signals.py](
-    scos_actions/actions/interfaces/signals.py). The following signals are currently
-offered:
+[`scos_actions/actions/interfaces/signals.py`](scos_actions/actions/interfaces/signals.py).
+The following signals are currently offered:
 
 - `measurement_action_completed` - signal expects task_id, data, and metadata
 - `location_action_completed` - signal expects latitude and longitude
@@ -344,22 +316,22 @@ is healthy
 New signals can be added. However, corresponding signal handlers must be added to
 scos-sensor to receive the signals and process the results.
 
-##### Adding custom action to scos-actions
+##### Adding custom action to SCOS Actions
 
-A custom action meant to be re-used by other plugins can live in scos-actions. It can
-be instantiated using a yaml file, or directly in the `actions` dictionary in the
-`discover/__init__.py` module. This can be done in scos-actions with a mock signal
+A custom action meant to be re-used by other plugins can live in SCOS Actions. It can
+be instantiated using a YAML file, or directly in the `actions` dictionary in the
+`discover/__init__.py` module. This can be done in SCOS Actions with a mock signal
 analyzer. Plugins supporting other hardware would need to import the action from
-scos-actions. Then it can be instantiated in that plugin’s actions dictionary in its
-discover module, or in a yaml file living in that plugin (as long as its discover
-module includes the required code to parse the yaml files).
+SCOS Actions. Then it can be instantiated in that plugin’s actions dictionary in its
+discover module, or in a YAML file living in that plugin (as long as its discover
+module includes the required code to parse the YAML files).
 
 ##### Adding system or hardware specific custom action
 
 In the repository that provides the plugin to support the hardware being used, add the
 action to the `actions` dictionary in the `discover/__init__.py` file. Optionally,
-initialize the action using a yaml file by importing the yaml initialization code from
-scos-actions. For an example of this, see [Adding Actions subsection](#adding-actions)
+initialize the action using a YAML file by importing the YAML initialization code from
+SCOS Actions. For an example of this, see the [Adding Actions subsection](#adding-actions)
 above.
 
 ### Supporting a Different Signal Analyzer
@@ -370,28 +342,28 @@ another signal analyzer with a Python API.
 
 - Create a new repository called `scos-[signal analyzer name]`.
 - Create a new virtual environment and activate it:
-  `python3 -m venv ./venv && source venv/bin/activate`.
-  Upgrade pip: `python3 -m pip install --upgrade pip`.
-- In the new repository, add this scos-actions repository as a dependency and create a
+  `python -m venv ./venv && source venv/bin/activate`.
+  Upgrade pip: `python -m pip install --upgrade pip`.
+- In the new repository, add this repository as a dependency and create a
   class that inherits from the [SignalAnalyzerInterface](scos_actions/hardware/sigan_iface.py)
   abstract class. Add properties or class variables for the parameters needed to
   configure the signal analyzer.
-- Create .yml files with the parameters needed to run the actions imported from
-  scos-actions using the new signal analyzer. Put them in the new repository in
+- Create YAML files with the parameters needed to run the actions imported from
+  `scos_actions` using the new signal analyzer. Put them in the new repository in
   `configs/actions`. This should contain the parameters needed by the action as well as
   the signal analyzer settings based on which properties or class variables were
   implemented in the signal analyzer class in the previous step. The measurement actions
-  in scos-actions are configured to check if any yaml parameters are available as
-  attributes in the signal analyzer object, and to set them to the given yaml value if
+  in SCOS Actions are configured to check if any YAML parameters are available as
+  attributes in the signal analyzer object, and to set them to the given YAML value if
   available. For example, if the new signal analyzer class has a bandwidth property,
-  simply add a bandwidth parameter to the yaml file. Alternatively, you can create
+  simply add a bandwidth parameter to the YAML file. Alternatively, you can create
   custom actions that are unique to the hardware. See [Adding Actions](#adding-actions)
   subsection above.
 - In the new repository, add a `discover/__init__.py` file. This should contain a
   dictionary called `actions` with a key of action name and a value of action object.
   You can use the [init()](scos_actions/discover/__init__.py) and/or the
   [load_from_yaml()](scos_actions/discover/yaml.py) methods provided in this repository
-  to look for yaml files and initialize actions. These methods allow you to pass your
+  to look for YAML files and initialize actions. These methods allow you to pass your
   new signal analyzer object to the action's constructor. You can use the existing
   action classes [defined in this repository](scos_actions/actions/__init__.py) or
   [create custom actions](#writing-custom-actions). If the signal analyzer supports
@@ -415,10 +387,10 @@ The final step would be to add a `setup.py` to allow for installation of the new
 repository as a Python package. You can use the [setup.py](setup.py) in this repository
 as a reference. You can find more information about Python packaging [here](
 https://packaging.python.org/tutorials/packaging-projects/). Then add the new
-repository as a dependency to [scos-sensor requirements.txt](
+repository as a dependency to [SCOS Sensor's requirements.txt](
 https://github.com/NTIA/scos-sensor/blob/master/src/requirements.txt)
 using the following format:
-`<package_name> @ git+<link_to_github_repo>@<branch_name>#egg=<package_name>`. If
+`<package_name> @ git+<link_to_github_repo>@<branch_name>`. If
 specific drivers are required for your signal analyzer, you can attempt to link to them
 within the package or create a docker image with the necessary files. You can host the
 docker image as a [GitHub package](
@@ -432,4 +404,4 @@ See [LICENSE](LICENSE.md).
 
 ## Contact
 
-For technical questions about scos-actions, contact Justin Haze, jhaze@ntia.gov
+For technical questions about SCOS Actions, contact Justin Haze, jhaze@ntia.gov

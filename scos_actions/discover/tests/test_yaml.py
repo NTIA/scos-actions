@@ -5,8 +5,7 @@ from ruamel.yaml.scanner import ScannerError
 
 from scos_actions import actions
 from scos_actions.discover.yaml import load_from_yaml
-from scos_actions.hardware import gps
-from scos_actions.hardware import sigan
+from scos_actions.hardware import gps, sigan
 
 INVALID_YAML = b"""\
 single_frequency_fft:
@@ -38,7 +37,7 @@ def _test_load_from_yaml_check_error(yaml_to_write, expected_error):
             tmpfile.seek(0)
             # Now try to load the invalid yaml file, expecting an error
             with pytest.raises(expected_error):
-                load_from_yaml(actions.action_classes, sigan,gps=gps, yaml_dir=tmpdir)
+                load_from_yaml(actions.action_classes, sigan, gps=gps, yaml_dir=tmpdir)
 
 
 def test_load_from_yaml_parse_error():
