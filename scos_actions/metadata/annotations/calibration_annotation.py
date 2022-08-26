@@ -31,8 +31,8 @@ class CalibrationAnnotation(AnnotationSegment):
         e.g. ``"signal analyzer input"``, ``"preselector input"``, ``"antenna terminal"``.
     """
 
-    sigan_cal = Optional[dict] = None
-    sensor_cal = Optional[dict] = None
+    sigan_cal: Optional[dict] = None
+    sensor_cal: Optional[dict] = None
     mean_noise_power_sensor: Optional[float] = None
     mean_noise_power_units: Optional[str] = None
     mean_noise_power_reference: Optional[str] = None
