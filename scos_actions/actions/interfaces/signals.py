@@ -1,12 +1,13 @@
 from django.dispatch import Signal
 
+# Provides arguments 'task_id', 'data', 'metadata'
+measurement_action_completed = Signal()
 
-measurement_action_completed = Signal(
-    providing_args=["task_id", "data", "metadata"]
-)
-location_action_completed = Signal(
-    providing_args=["latitude", "longitude"]
-)
-monitor_action_completed = Signal(providing_args=["sigan_healthy"])
+# Provides arguments: 'latitude', 'longitude'
+location_action_completed = Signal()
 
-register_component_with_status = Signal(providing_args=["component"])
+# Provides arguments: 'sigan_healthy'
+monitor_action_completed = Signal()
+
+# Provides argument: 'component'
+register_component_with_status = Signal()
