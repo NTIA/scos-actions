@@ -7,6 +7,28 @@ from scos_actions.metadata.sigmf_builder import SigMFBuilder
 
 @dataclass
 class MeasurementMetadata:
+    """
+    Interface for generating SigMF ntia-core Measurement objects.
+
+    The parameters ``domain``, ``measurement_type``, ``time_start``,
+    ``time_stop``, ``frequency_tuned_low``, ``frequency_tuned_high``, and
+    ``classification`` are required. Refer to the documentation for the
+    ``ntia-core`` extension of SigMF for more information.
+
+    :param domain: Measurement domain, generally ``"time"`` or ``"frequency"``.
+    :param measurement_type: Method by which the signal analyzer acquires data:
+        ``"single-frequency"`` or ``"scan"``.
+    :param time_start: When the action began execution.
+    :param time_stop: When the action finished execution.
+    :param frequency_tuned_low: Lowest tuned frequency (Hz).
+    :param frequency_tuned_high: Highest tuned frequency (Hz).
+    :param frequency_tuned_step: Step between tuned frequencies of a ``"scan"``
+        measurement. Either ``frequency_tuned_step`` or ``frequencies_tuned``
+        SHOULD be included for ``"scan"`` measurements.
+    :param classification: The classification markings for the acquisition, e.g.
+        ``"UNCLASSIFIED"``, ``"CONTROLLED//FEDCON"``, ``"SECRET"``, etc.
+    """
+
     domain: Optional[str]
     measurement_type: Optional[str]
     time_start: Optional[datetime]
