@@ -1,11 +1,9 @@
-from scos_actions.metadata.annotation_segment import AnnotationSegment
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 
 
-# TODO: Decouple this from AnnotationSegment
-class MeasurementMetadata(AnnotationSegment):
+class MeasurementMetadata:
     def __init__(self):
-        super().__init__()
+        pass
 
     def create_metadata(self, sigmf_builder: SigMFBuilder, measurement_result: dict):
         freq_low = None
