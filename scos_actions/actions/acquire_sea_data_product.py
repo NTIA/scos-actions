@@ -327,6 +327,17 @@ class NasctnSeaDataProduct(Action):
         fft_result += 2.0 * convert_linear_to_dB(
             self.fft_window_ecf
         )  # Window energy correction
+
+        # Truncate FFT result
+        # TODO These parameters can be hardcoded
+        logger.debug(f"Pre-truncated FFT result shape: {fft_result.shape}")
+        bw_trim = (params[SAMPLE_RATE] / 1.4) / 5
+        delta_f = params[SAMPLE_RATE] / params[FFT_SIZE]
+        bin_start = int(bw_trim / delta_f)
+        bin_end = params[FFT_SIZE] - bin_start
+        fft_result = fft_result[:, bin_start:bin_end]
+        logger.debug(f"Truncated FFT result length: {fft_result.shape}")
+
         # Get FFT metadata for annotation: ENBW, frequency axis
         fft_freqs_Hz = get_fft_frequencies(
             params[FFT_SIZE], params[SAMPLE_RATE], params[FREQUENCY]
@@ -335,7 +346,8 @@ class NasctnSeaDataProduct(Action):
             self.fft_window, params[SAMPLE_RATE]
         )
         logger.debug(f"FFT window energy correction factor: {self.fft_window_ecf}")
-        # measurement_result["nffts"] = params[NUM_FFTS]
+
+        # TODO make these correct for truncated FFT result
         measurement_result["fft_frequency_start"] = fft_freqs_Hz[0]
         measurement_result["fft_frequency_stop"] = fft_freqs_Hz[-1]
         measurement_result["fft_frequency_step"] = fft_freqs_Hz[1] - fft_freqs_Hz[0]
@@ -404,24 +416,23 @@ class NasctnSeaDataProduct(Action):
     def create_metadata(
         self,
         sigmf_builder: SigMFBuilder,
-        schedule_entry,
+        schedule_entry: dict,
         measurement_result: dict,
         recording=None,
     ):
-        sigmf_builder.set_base_sigmf_global(
-            schedule_entry,
-            self.sensor_definition,
-            measurement_result,
-            recording,
-            self.is_complex(),
+        sigmf_builder.set_last_calibration_time(
+            measurement_result["calibration_datetime"]
         )
+        sigmf_builder.set_data_type(self.is_complex())  # Incorrectly says 32 bit float
+        sigmf_builder.set_sample_rate(measurement_result["sample_rate"])
+        sigmf_builder.set_schedule(schedule_entry)
+        sigmf_builder.set_task(measurement_result["task_id"])
+        sigmf_builder.set_recording(recording)
         sigmf_builder.add_sigmf_capture(sigmf_builder, measurement_result)
-        sigmf_builder.build(measurement_result)
+        sigmf_builder.build()
 
     def get_sigmf_builder(self, measurement_result: dict, dp_idx: list) -> SigMFBuilder:
         # TODO: Finalize metadata
-        # This doesn't do much right now, but we need to return some metadata
-        # to avoid errors.
         # Create metadata annotations for the data
         sigmf_builder = SigMFBuilder()
         self.received_samples = len(measurement_result["data"])
@@ -485,6 +496,7 @@ class NasctnSeaDataProduct(Action):
             sigmf_builder.add_metadata_generator(
                 type(td_annotation).__name__ + "_" + detector.value, td_annotation
             )
+
         return sigmf_builder
 
     def transform_data(self, measurement_result: dict):
