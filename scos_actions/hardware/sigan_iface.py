@@ -89,10 +89,6 @@ class SignalAnalyzerInterface(ABC):
                 sigan_calibration.get_calibration_dict(cal_args)
             )
 
-    @property
-    def name(self) -> str:
-        return "Signal Analyzer"
-
     def get_status(self):
         sigan_model = str(self.__class__)
         if "signal_analyzer" in capabilities["sensor"]:
