@@ -138,12 +138,13 @@ available tests in a virtual environment against all supported versions of Pytho
 Running `pytest` directly is faster but running `tox` is a more thorough test.
 
 The following commands can be used to run tests. Note, for tox to run with all Python
-versions listed in tox.ini, all those versions must be installed on your system.
+versions listed in the tox configuration (in [pyproject.toml](pyproject.toml)), all
+those versions must be installed on your system. Any missing versions will be skipped.
 
 ```bash
 pytest          # faster, but less thorough
-tox             # tests code in clean virtualenv
-tox --recreate  # if you change `requirements.txt`
+tox             # tests code in clean virtual environments, with multiple versions of python
+tox --recreate  # forces recreation of tox virtual environments
 tox -e coverage # check where test coverage lacks
 ```
 
