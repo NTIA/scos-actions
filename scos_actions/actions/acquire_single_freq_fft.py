@@ -196,6 +196,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
+        measurement_result["classification"] = "UNCLASSIFIED"
         return measurement_result
 
     def apply_m4s(self, measurement_result: dict) -> ndarray:

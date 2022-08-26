@@ -105,6 +105,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         measurement_result["description"] = self.description
         measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
+        measurement_result["classification"] = "UNCLASSIFIED"
         return measurement_result
 
     def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
