@@ -1,10 +1,9 @@
-from scos_actions.metadata.metadata import Metadata
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 
 
-class MeasurementMetadata(Metadata):
+class MeasurementMetadata:
     def __init__(self):
-        super().__init__()
+        pass
 
     def create_metadata(self, sigmf_builder: SigMFBuilder, measurement_result: dict):
         freq_low = None

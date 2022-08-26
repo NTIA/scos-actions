@@ -38,9 +38,7 @@ from numpy import complex64
 from scos_actions import utils
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware import gps as mock_gps
-from scos_actions.metadata.annotations.time_domain_annotation import (
-    TimeDomainAnnotation,
-)
+from scos_actions.metadata.annotations import TimeDomainDetection
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.settings import HAS_PRESELECTOR
 from scos_actions.utils import get_parameter
@@ -111,11 +109,11 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
 
     def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
-        time_domain_annotation = TimeDomainAnnotation(
-            start=0,
-            count=self.received_samples,
+        time_domain_annotation = TimeDomainDetection(
+            sample_start=0,
+            sample_count=self.received_samples,
             detector="sample_iq",
-            num_samps=self.received_samples,
+            number_of_samples=self.received_samples,
             units="volts",
             reference="preselector input",
         )

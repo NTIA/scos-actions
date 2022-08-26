@@ -92,9 +92,7 @@ from numpy import float32, ndarray
 
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware import gps as mock_gps
-from scos_actions.metadata.annotations.fft_annotation import (
-    FrequencyDomainDetectionAnnotation,
-)
+from scos_actions.metadata.annotations import FrequencyDomainDetection
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.settings import HAS_PRESELECTOR
 from scos_actions.signal_processing.fft import (
@@ -250,14 +248,14 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
         for i, detector in enumerate(self.fft_detector):
-            fft_annotation = FrequencyDomainDetectionAnnotation(
-                start=i * self.fft_size,
-                count=self.fft_size,
-                fft_size=self.fft_size,
-                window=self.fft_window_type,
-                enbw=measurement_result["enbw"],
+            fft_annotation = FrequencyDomainDetection(
+                sample_start=i * self.fft_size,
+                sample_count=self.fft_size,
                 detector=detector.value,
-                nffts=self.nffts,
+                number_of_ffts=self.nffts,
+                number_of_samples_in_fft=self.fft_size,
+                window=self.fft_window_type,
+                equivalent_noise_bandwidth=measurement_result["enbw"],
                 units="dBm",
                 reference="preselector input",
                 frequency_start=measurement_result["frequency_start"],

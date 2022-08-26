@@ -1,14 +1,12 @@
 import logging
 from abc import abstractmethod
+from typing import overload
 
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import sigan as mock_sigan
-from scos_actions.metadata.annotations.calibration_annotation import (
-    CalibrationAnnotation,
-)
-from scos_actions.metadata.annotations.sensor_annotation import SensorAnnotation
+from scos_actions.metadata.annotations import CalibrationAnnotation, SensorAnnotation
 from scos_actions.metadata.measurement_global import MeasurementMetadata
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 
@@ -39,7 +37,12 @@ class MeasurementAction(Action):
     def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
         sigmf_builder = SigMFBuilder()
         self.received_samples = len(measurement_result["data"].flatten())
-        calibration_annotation = CalibrationAnnotation(0, self.received_samples)
+        calibration_annotation = CalibrationAnnotation(
+            sample_start=0,
+            sample_count=self.received_samples,
+            sigan_cal=measurement_result["sigan_cal"],
+            sensor_cal=measurement_result["sensor_cal"],
+        )
         sigmf_builder.add_metadata_generator(
             type(calibration_annotation).__name__, calibration_annotation
         )
@@ -47,7 +50,20 @@ class MeasurementAction(Action):
         sigmf_builder.add_metadata_generator(
             type(measurement_metadata).__name__, measurement_metadata
         )
-        sensor_annotation = SensorAnnotation(0, self.received_samples)
+
+        sensor_annotation = SensorAnnotation(
+            sample_start=0,
+            sample_count=self.received_samples,
+            overload=measurement_result["overload"]
+            if "overload" in measurement_result
+            else None,
+            attenuation_setting_sigan=measurement_result["attenuation"]
+            if "attenuation" in measurement_result
+            else None,
+            gain_setting_sigan=measurement_result["gain"]
+            if "gain" in measurement_result
+            else None,
+        )
         sigmf_builder.add_metadata_generator(
             type(sensor_annotation).__name__, sensor_annotation
         )
