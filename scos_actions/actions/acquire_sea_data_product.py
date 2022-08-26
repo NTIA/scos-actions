@@ -33,15 +33,11 @@ from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.hardware import gps as mock_gps
-from scos_actions.metadata.annotations.calibration_annotation import (
+from scos_actions.metadata.annotations import (
     CalibrationAnnotation,
-)
-from scos_actions.metadata.annotations.fft_annotation import (
-    FrequencyDomainDetectionAnnotation,
-)
-from scos_actions.metadata.annotations.sensor_annotation import SensorAnnotation
-from scos_actions.metadata.annotations.time_domain_annotation import (
-    TimeDomainAnnotation,
+    FrequencyDomainDetection,
+    SensorAnnotation,
+    TimeDomainDetection,
 )
 from scos_actions.metadata.measurement_global import MeasurementMetadata
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
@@ -433,32 +429,37 @@ class NasctnSeaDataProduct(Action):
         self.received_samples = len(measurement_result["data"])
 
         # Annotate calibration
-        calibration_annotation = CalibrationAnnotation(0, self.received_samples)
+        calibration_annotation = CalibrationAnnotation(
+            sample_start=0,
+            sample_count=self.received_samples,
+            sigan_cal=measurement_result["sigan_cal"],
+            sensor_cal=measurement_result["sensor_cal"],
+        )
         sigmf_builder.add_metadata_generator(
             type(calibration_annotation).__name__, calibration_annotation
         )
 
-        measurement_metadata = MeasurementMetadata()
-        sigmf_builder.add_metadata_generator(
-            type(measurement_metadata).__name__, measurement_metadata
-        )
-
         # Annotate sensor settings
-        sensor_annotation = SensorAnnotation(0, self.received_samples)
+        sensor_annotation = SensorAnnotation(
+            sample_start=0,
+            sample_count=self.received_samples,
+            overload=measurement_result["overload"],
+            attenuation_setting_sigan=self.parameters["attenuation"],
+        )
         sigmf_builder.add_metadata_generator(
             type(sensor_annotation).__name__, sensor_annotation
         )
 
         # Annotate FFT
         for i, detector in enumerate(self.fft_detector):
-            fft_annotation = FrequencyDomainDetectionAnnotation(
-                start=dp_idx[i],
-                count=dp_idx[i + 1] - dp_idx[i],
-                fft_size=self.fft_size,
-                window=self.fft_window_type,
-                enbw=measurement_result["fft_enbw"],
+            fft_annotation = FrequencyDomainDetection(
+                sample_start=dp_idx[i],
+                sample_count=dp_idx[i + 1] - dp_idx[i],
                 detector=detector.value,
-                nffts=measurement_result[NUM_FFTS],
+                number_of_ffts=measurement_result[NUM_FFTS],
+                number_of_samples_in_fft=self.fft_size,
+                window=self.fft_window_type,
+                equivalent_noise_bandwidth=measurement_result["fft_enbw"],
                 units="dBm/Hz",
                 reference="preselector input",
                 frequency_start=measurement_result["fft_frequency_start"],
@@ -471,11 +472,11 @@ class NasctnSeaDataProduct(Action):
 
         # Annotate time domain power statistics
         for i, detector in enumerate(self.td_detector):
-            td_annotation = TimeDomainAnnotation(
-                start=dp_idx[i + 2],
-                count=dp_idx[i + 3] - dp_idx[i + 2],
+            td_annotation = TimeDomainDetection(
+                sample_start=dp_idx[i + 2],
+                sample_count=dp_idx[i + 3] - dp_idx[i + 2],
                 detector=detector.value,
-                num_samps=int(
+                number_of_samples=int(
                     measurement_result[SAMPLE_RATE]
                     * measurement_result[DURATION_MS]
                     * 1e-3
