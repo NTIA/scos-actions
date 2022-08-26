@@ -31,7 +31,7 @@ architecture.
     sample statistics at a single center frequency.
   - `acquire_single_freq_tdomain_iq`: acquires IQ data at a single center frequency.
   - `acquire_stepped_freq_tdomain_iq`: acquires IQ data at multiple center frequencies.
-  - `calibrate_y_facvtor`: performs calibration using the Y-Factor method.
+  - `calibrate_y_factor`: performs calibration using the Y-Factor method.
   - `sync_gps`: gets GPS location and syncs the host to GPS time
   - `monitor_sigan`: ensures a signal analyzer is available and is able to maintain a
     connection to the computer.
