@@ -23,7 +23,6 @@ Currently in development.
 import logging
 from time import perf_counter
 from typing import Tuple
-from xml.etree.ElementPath import get_parent_map
 
 import numexpr as ne
 import numpy as np
@@ -39,7 +38,6 @@ from scos_actions.metadata.annotations import (
     SensorAnnotation,
     TimeDomainDetection,
 )
-from scos_actions.metadata.measurement_global import MeasurementMetadata
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
