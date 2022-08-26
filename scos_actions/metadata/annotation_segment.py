@@ -26,7 +26,7 @@ class AnnotationSegment(ABC):
 
     sample_start: Optional[int] = None
     sample_count: Optional[int] = None
-    generator: Optional[str] = "SCOS Sensor"
+    generator: Optional[str] = None
     label: Optional[str] = None
     comment: Optional[str] = None
     freq_lower_edge: Optional[float] = None
