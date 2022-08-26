@@ -242,13 +242,13 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         sigmf_builder = super().get_sigmf_builder(measurement_result)
         for i, detector in enumerate(self.fft_detector):
             fft_annotation = FrequencyDomainDetection(
-                start=i * self.fft_size,
-                count=self.fft_size,
-                fft_size=self.fft_size,
-                window=self.fft_window_type,
-                enbw=measurement_result["enbw"],
+                sample_start=i * self.fft_size,
+                sample_count=self.fft_size,
                 detector=detector.value,
-                nffts=self.nffts,
+                number_of_ffts=self.nffts,
+                number_of_samples_in_fft=self.fft_size,
+                window=self.fft_window_type,
+                equivalent_noise_bandwidth=measurement_result["enbw"],
                 units="dBm",
                 reference="preselector input",
                 frequency_start=measurement_result["frequency_start"],
