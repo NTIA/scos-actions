@@ -82,3 +82,12 @@ logger.info("Loading sigan cal file: " + SIGAN_CALIBRATION_FILE)
 sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
 if sensor_calibration:
     logger.info("last sensor cal: " + sensor_calibration.calibration_datetime)
+
+# Check if a preselector is present in the sensor definition
+if SENSOR_DEFINITION_FILE is None:
+    HAS_PRESELECTOR = False
+else:
+    if "preselector" in SENSOR_DEFINITION_FILE:
+        HAS_PRESELECTOR = True
+    else:
+        HAS_PRESELECTOR = False
