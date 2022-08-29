@@ -40,29 +40,33 @@ def load_switches(switch_dir):
     return switch_dict
 
 
-def load_preselector(preselector_config_file):
+def load_preslector_from_file(preselector_config_file):
     if preselector_config_file is None:
-        preselector_config = {}
+        return None
     else:
-        preselector_config = utils.load_from_json(preselector_config_file)
+        try:
+            preselector_config = utils.load_from_json(preselector_config_file)
+            return load_preselector(preselector_config)
+        except ConfigurationException:
+            logger.error(
+                "Unable to create preselector defined in: " + preselector_config_file
+            )
+    return None
 
+
+def load_preselector(preselector_config):
     preselector_module = importlib.import_module(PRESELECTOR_MODULE)
     preselector_class = getattr(preselector_module, PRESELECTOR_CLASS)
-    try:
-        ps = preselector_class(capabilities["sensor"], preselector_config)
-        if ps and ps.name:
-            logger.info("Registering " + ps.name + " as status provider")
-            register_component_with_status.send(__name__, component=ps)
-        return ps
-    except (ConfigurationException):
-        logger.error(
-            "Unable to create preselector defined in: " + preselector_config_file
-        )
+    ps = preselector_class(capabilities["sensor"], preselector_config)
+    if ps and ps.name:
+        logger.info("Registering " + ps.name + " as status provider")
+        register_component_with_status.send(__name__, component=ps)
+    return ps
 
 
 register_component_with_status.connect(status_registration_handler)
 logger.info("Connected status registration handler")
 sigan = MockSignalAnalyzer(randomize_values=True)
 gps = MockGPS()
-preselector = load_preselector(PRESELECTOR_CONFIG_FILE)
+preselector = load_preslector_from_file(PRESELECTOR_CONFIG_FILE)
 switches = load_switches(SWITCH_CONFIGS_DIR)
