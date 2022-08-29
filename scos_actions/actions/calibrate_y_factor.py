@@ -99,6 +99,7 @@ from scos_actions.utils import ParameterException, get_parameter
 logger = logging.getLogger(__name__)
 
 # Define parameter keys
+RF_PATH = Action.PRESELECTOR_PATH_KEY
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 DURATION_MS = "duration_ms"
@@ -138,8 +139,8 @@ class YFactorCalibration(Action):
         logger.debug("Initializing calibration action")
         super().__init__(parameters, sigan, gps)
         self.sigan = sigan
-        self.noise_diode_on_path = {self.PRESELECTOR_PATH_KEY: "noise_diode_on"}
-        self.noise_diode_off_path = {self.PRESELECTOR_PATH_KEY: "noise_diode_off"}
+        self.noise_diode_on_path = {RF_PATH: "noise_diode_on"}
+        self.noise_diode_off_path = {RF_PATH: "noise_diode_off"}
         self.iteration_params = utils.get_iterable_parameters(parameters)
         self.power_detector = create_power_detector("MeanDetector", ["mean"])
 

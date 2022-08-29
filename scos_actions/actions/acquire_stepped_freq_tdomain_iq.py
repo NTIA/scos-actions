@@ -46,13 +46,12 @@ from scos_actions.actions.acquire_single_freq_tdomain_iq import (
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType
-from scos_actions.settings import HAS_PRESELECTOR
 from scos_actions.utils import get_parameter
 
 logger = logging.getLogger(__name__)
 
 # Define parameter keys
-RF_PATH = "rf_path"
+RF_PATH = SingleFrequencyTimeDomainIqAcquisition.PRESELECTOR_PATH_KEY
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 DURATION_MS = "duration_ms"
@@ -98,14 +97,6 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             self.iterable_params, start=1
         ):
             start_time = utils.get_datetime_str_now()
-            if HAS_PRESELECTOR:
-                rf_path = {
-                    self.PRESELECTOR_PATH_KEY: get_parameter(
-                        RF_PATH, measurement_params
-                    )
-                }
-                logger.debug(f"Setting RF path to {rf_path}")
-                self.configure_preselector(rf_path)
             self.configure(measurement_params)
             duration_ms = get_parameter(DURATION_MS, measurement_params)
             nskip = get_parameter(NUM_SKIP, measurement_params)
