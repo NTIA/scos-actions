@@ -6,7 +6,8 @@ from scos_actions.capabilities import capabilities
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import preselector
 from scos_actions.hardware import sigan as mock_sigan
-from scos_actions.utils import get_parameter
+from scos_actions.settings import HAS_PRESELECTOR
+from scos_actions.utils import ParameterException, get_parameter
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,22 @@ class Action(ABC):
         if self.PRESELECTOR_PATH_KEY in measurement_params:
             path = measurement_params[self.PRESELECTOR_PATH_KEY]
             preselector.set_state(path)
+        elif HAS_PRESELECTOR:
+            # Set RF path automatically if only one exists.
+            if len(preselector.__get_rf_paths()) != 1:
+                logger.debug(
+                    f"No {self.PRESELECTOR_PATH_KEY} specified, but only one is "
+                    + f" available. Setting the {self.PRESELECTOR_PATH_KEY} to "
+                    + f"{preselector.__get_rf_paths()[0]}."
+                )
+            else:
+                # Otherwise, require the RF path to be specified.
+                raise ParameterException(
+                    f"No {self.PRESELECTOR_PATH_KEY} value specified in the YAML config."
+                )
+        else:
+            # No preselector in use, so do not require an RF path
+            pass
 
     @property
     def summary(self):
