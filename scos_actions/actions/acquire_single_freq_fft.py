@@ -164,9 +164,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def execute(self, schedule_entry, task_id) -> dict:
         # Acquire IQ data and generate M4S result
         start_time = get_datetime_str_now()
-        if HAS_PRESELECTOR:
-            logger.debug(f"Setting RF path to {self.rf_path}")
-            self.configure_preselector(self.rf_path)
         measurement_result = self.acquire_data(self.num_samples, self.nskip)
         # Actual sample rate may differ from configured value
         sample_rate_Hz = measurement_result["sample_rate"]

@@ -83,9 +83,6 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
 
     def execute(self, schedule_entry, task_id) -> dict:
         start_time = utils.get_datetime_str_now()
-        if HAS_PRESELECTOR:
-            logger.debug(f"Setting RF path to {self.rf_path}")
-            self.configure_preselector(self.rf_path)
         # Use the sigan's actual reported instead of requested sample rate
         sample_rate = self.sigan.sample_rate
         num_samples = int(sample_rate * self.duration_ms * 1e-3)
