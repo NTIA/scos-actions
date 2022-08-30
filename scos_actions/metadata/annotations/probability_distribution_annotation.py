@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from scos_actions.metadata.annotation_segment import AnnotationSegment
-from scos_actions.metadata.sigmf_builder import SigMFBuilder
 
 
 @dataclass
