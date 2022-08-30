@@ -37,7 +37,7 @@ class SensorAnnotation(AnnotationSegment):
             {
                 "rf_path_index": "ntia-sensor:rf_path_index",
                 "overload": "ntia-sensor:overload",
-                "attenuation_setting_sigan": "ntia-sensor:attenutation_setting_sigan",
+                "attenuation_setting_sigan": "ntia-sensor:attenuation_setting_sigan",
                 "gain_setting_sigan": "ntia-sensor:gain_setting_sigan",
                 "gps_nmea": "ntia-sensor:gps_nmea",
             }

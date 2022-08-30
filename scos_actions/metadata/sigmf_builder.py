@@ -160,6 +160,6 @@ class SigMFBuilder:
     def remove_metadata_generator(self, key):
         self.metadata_generators.pop(key, "")
 
-    def build(self, measurement_result: dict):
+    def build(self):
         for metadata_creator in self.metadata_generators.values():
             metadata_creator.create_metadata(self)

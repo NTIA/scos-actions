@@ -96,7 +96,7 @@ class MeasurementAction(Action):
             self.is_complex(),
         )
         sigmf_builder.add_sigmf_capture(sigmf_builder, measurement_result)
-        sigmf_builder.build(measurement_result)
+        sigmf_builder.build()
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
