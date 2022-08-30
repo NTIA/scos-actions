@@ -94,7 +94,6 @@ from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.metadata.annotations import FrequencyDomainDetection
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
-from scos_actions.settings import HAS_PRESELECTOR
 from scos_actions.signal_processing.fft import (
     get_fft,
     get_fft_enbw,
@@ -116,7 +115,7 @@ from scos_actions.utils import get_datetime_str_now, get_parameter
 logger = logging.getLogger(__name__)
 
 # Define parameter keys
-RF_PATH = "rf_path"
+RF_PATH = MeasurementAction.PRESELECTOR_PATH_KEY
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 NUM_SKIP = "nskip"
@@ -147,9 +146,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters, sigan, gps)
         # Pull parameters from action config
-        if HAS_PRESELECTOR:
-            rf_path_name = get_parameter(RF_PATH, self.parameters)
-            self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
         self.fft_size = get_parameter(FFT_SIZE, self.parameters)
         self.nffts = get_parameter(NUM_FFTS, self.parameters)
         self.nskip = get_parameter(NUM_SKIP, self.parameters)
@@ -166,9 +162,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def execute(self, schedule_entry, task_id) -> dict:
         # Acquire IQ data and generate M4S result
         start_time = get_datetime_str_now()
-        if HAS_PRESELECTOR:
-            logger.debug(f"Setting RF path to {self.rf_path}")
-            self.configure_preselector(self.rf_path)
         measurement_result = self.acquire_data(self.num_samples, self.nskip)
         # Actual sample rate may differ from configured value
         sample_rate_Hz = measurement_result["sample_rate"]
