@@ -54,6 +54,7 @@ class Action(ABC):
     def configure_preselector(self, measurement_params: dict):
         if self.PRESELECTOR_PATH_KEY in measurement_params:
             path = measurement_params[self.PRESELECTOR_PATH_KEY]
+            logger.debug(f"Setting preselector RF path: {path}")
             preselector.set_state(path)
         elif HAS_PRESELECTOR:
             # Set RF path automatically if only one exists.
