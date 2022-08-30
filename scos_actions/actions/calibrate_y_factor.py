@@ -100,6 +100,8 @@ logger = logging.getLogger(__name__)
 
 # Define parameter keys
 RF_PATH = Action.PRESELECTOR_PATH_KEY
+ND_ON_STATE = "noise_diode_on"
+ND_OFF_STATE = "noise_diode_off"
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 DURATION_MS = "duration_ms"
@@ -139,8 +141,6 @@ class YFactorCalibration(Action):
         logger.debug("Initializing calibration action")
         super().__init__(parameters, sigan, gps)
         self.sigan = sigan
-        self.noise_diode_on_path = {RF_PATH: "noise_diode_on"}
-        self.noise_diode_off_path = {RF_PATH: "noise_diode_off"}
         self.iteration_params = utils.get_iterable_parameters(parameters)
         self.power_detector = create_power_detector("MeanDetector", ["mean"])
 
@@ -236,10 +236,12 @@ class YFactorCalibration(Action):
         duration_ms = get_parameter(DURATION_MS, params)
         num_samples = int(sample_rate * duration_ms * 1e-3)
         nskip = get_parameter(NUM_SKIP, params)
+        nd_on_state = get_parameter(ND_ON_STATE)
+        nd_off_state = get_parameter(ND_OFF_STATE)
 
         # Set noise diode on
         logger.debug("Setting noise diode on")
-        super().configure_preselector(self.noise_diode_on_path)
+        super().configure_preselector({RF_PATH: nd_on_state})
         time.sleep(0.25)
 
         # Get noise diode on IQ
@@ -251,7 +253,7 @@ class YFactorCalibration(Action):
 
         # Set noise diode off
         logger.debug("Setting noise diode off")
-        self.configure_preselector(self.noise_diode_off_path)
+        self.configure_preselector({RF_PATH: nd_off_state})
         time.sleep(0.25)
 
         # Get noise diode off IQ
