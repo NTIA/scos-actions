@@ -236,8 +236,8 @@ class YFactorCalibration(Action):
         duration_ms = get_parameter(DURATION_MS, params)
         num_samples = int(sample_rate * duration_ms * 1e-3)
         nskip = get_parameter(NUM_SKIP, params)
-        nd_on_state = get_parameter(ND_ON_STATE)
-        nd_off_state = get_parameter(ND_OFF_STATE)
+        nd_on_state = get_parameter(ND_ON_STATE, params)
+        nd_off_state = get_parameter(ND_OFF_STATE, params)
 
         # Set noise diode on
         logger.debug("Setting noise diode on")
