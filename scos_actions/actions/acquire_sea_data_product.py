@@ -342,6 +342,8 @@ class NasctnSeaDataProduct(Action):
         fft_freqs_Hz = get_fft_frequencies(
             params[FFT_SIZE], params[SAMPLE_RATE], params[FREQUENCY]
         )
+        # Truncate frequency axis
+        fft_freqs_Hz = fft_freqs_Hz[bin_start:bin_end]
         measurement_result["fft_enbw"] = get_fft_enbw(
             self.fft_window, params[SAMPLE_RATE]
         )
