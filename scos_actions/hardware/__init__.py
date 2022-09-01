@@ -46,7 +46,9 @@ def load_preslector_from_file(preselector_config_file):
     else:
         try:
             preselector_config = utils.load_from_json(preselector_config_file)
-            return load_preselector(preselector_config)
+            return load_preselector(
+                preselector_config, PRESELECTOR_MODULE, PRESELECTOR_CLASS
+            )
         except ConfigurationException:
             logger.error(
                 "Unable to create preselector defined in: " + preselector_config_file
@@ -71,7 +73,5 @@ register_component_with_status.connect(status_registration_handler)
 logger.info("Connected status registration handler")
 sigan = MockSignalAnalyzer(randomize_values=True)
 gps = MockGPS()
-preselector = load_preslector_from_file(
-    PRESELECTOR_CONFIG_FILE, PRESELECTOR_MODULE, PRESELECTOR_CLASS
-)
+preselector = load_preslector_from_file(PRESELECTOR_CONFIG_FILE)
 switches = load_switches(SWITCH_CONFIGS_DIR)
