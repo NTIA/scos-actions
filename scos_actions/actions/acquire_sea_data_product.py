@@ -20,7 +20,9 @@ r"""Acquire a NASCTN SEA data product.
 
 Currently in development.
 """
+import gc
 import logging
+import lzma
 from time import perf_counter
 from typing import Tuple
 
@@ -85,6 +87,9 @@ FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
+
+# Constants
+DATA_TYPE = np.half
 
 
 class NasctnSeaDataProduct(Action):
@@ -162,13 +167,13 @@ class NasctnSeaDataProduct(Action):
             # Capture IQ data
             measurement_result = self.capture_iq(task_id, parameters)
 
-            # Generate data product, overwrite IQ data
-            measurement_result = self.generate_data_product(
+            # Generate data product (overwrites IQ data)
+            measurement_result, dp_idx = self.generate_data_product(
                 measurement_result, parameters
             )
 
             # Flatten data product but retain indices of components
-            measurement_result, dp_idx = self.transform_data(measurement_result)
+            # measurement_result, dp_idx = self.transform_data(measurement_result)
 
             # Generate metadata
             sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)
@@ -265,31 +270,28 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"APD result generated in {toc-tic:.2f} s")
 
         del iq
+        # TODO: Optimize memory usage
+        # gc.collect()  # Computationally expensive!
 
+        # Skip rounding for now
         # Quantize power results
-        tic = perf_counter()
-        for i, data in enumerate(data_product):
-            if i == 4:
-                # Do not round APD probability axis
-                continue
-            data.round(decimals=params[ROUND_TO], out=data)
-        toc = perf_counter()
-        logger.debug(
-            f"Data product rounded to {params[ROUND_TO]} decimal places in {toc-tic:.2f} s"
-        )
-
-        # Reduce data types to half-precision floats
-        tic = perf_counter()
-        for i in range(len(data_product)):
-            data_product[i] = data_product[i].astype(np.half)
-        toc = perf_counter()
-        logger.debug(f"Reduced data types to half-precision float in {toc-tic:.2f} s")
+        # tic = perf_counter()
+        # for i, data in enumerate(data_product):
+        #     if i == 4:
+        #         # Do not round APD probability axis
+        #         continue
+        #     data.round(decimals=params[ROUND_TO], out=data)
+        # toc = perf_counter()
+        # logger.debug(
+        #     f"Data product rounded to {params[ROUND_TO]} decimal places in {toc-tic:.2f} s"
+        # )
 
         logger.debug(f"Data product dtypes: {[d.dtype for d in data_product]}")
 
-        measurement_result["data"] = np.array(data_product, dtype=object)
+        # Flatten and compress data product
+        measurement_result, dp_idx = self.transform_data()
 
-        return measurement_result
+        return measurement_result, dp_idx
 
     def get_fft_results(
         self, measurement_result: dict, params: dict
@@ -329,6 +331,9 @@ class NasctnSeaDataProduct(Action):
         fft_result = fft_result[:, bin_start:bin_end]
         logger.debug(f"Truncated FFT result length: {fft_result.shape}")
 
+        # Reduce data type
+        fft_result = self.reduce_dtype(fft_result)
+
         # Get FFT metadata for annotation: ENBW, frequency axis
         fft_freqs_Hz = get_fft_frequencies(
             params[FFT_SIZE], params[SAMPLE_RATE], params[FREQUENCY]
@@ -353,6 +358,7 @@ class NasctnSeaDataProduct(Action):
         # a = a + 27 : dBW --> dBm (+30) and RF/baseband conversion (-3)
         scale_factor = 27 - convert_linear_to_dB(50.0)  # Hard-coded for 50 Ohms.
         ne.evaluate("(a*2)+scale_factor", out=a)
+        p, a = (self.reduce_dtype(x) for x in (p, a))
         return p, a
 
     def get_td_power_results(
@@ -390,6 +396,9 @@ class NasctnSeaDataProduct(Action):
 
         # Account for RF/baseband power difference
         td_result -= 3
+
+        # Reduce data type
+        td_result = self.reduce_dtype(td_result)
 
         return td_result[0], td_result[1]  # (max, mean)
 
@@ -487,15 +496,20 @@ class NasctnSeaDataProduct(Action):
 
         return sigmf_builder
 
+    def reduce_dtype(self, data_array: np.ndarray, data_type=DATA_TYPE) -> np.ndarray:
+        return data_array.astype(data_type)
+
     def transform_data(self, measurement_result: dict):
-        """Flatten data product result for saving"""
+        """Flatten data product list of arrays, convert to byte array, then compress."""
         # Get indices for start of each component in flattened result
         data_lengths = [len(d) for d in measurement_result["data"]]
         logger.debug(f"Data product component lengths: {data_lengths}")
         idx = [0] + np.cumsum(data_lengths[:-1]).tolist()
         logger.debug(f"Data product start indices: {idx}")
-        # Flatten data product
-        measurement_result["data"] = np.hstack(measurement_result["data"])
+        # Flatten data product and convert to byte array
+        measurement_result["data"] = np.hstack(measurement_result["data"]).tobytes()
+        # Compress data
+        # TODO
         return measurement_result, idx
 
     def is_complex(self) -> bool:
