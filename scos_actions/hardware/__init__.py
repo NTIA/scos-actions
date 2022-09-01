@@ -71,5 +71,7 @@ register_component_with_status.connect(status_registration_handler)
 logger.info("Connected status registration handler")
 sigan = MockSignalAnalyzer(randomize_values=True)
 gps = MockGPS()
-preselector = load_preslector_from_file(PRESELECTOR_CONFIG_FILE)
+preselector = load_preslector_from_file(
+    PRESELECTOR_CONFIG_FILE, PRESELECTOR_MODULE, PRESELECTOR_CLASS
+)
 switches = load_switches(SWITCH_CONFIGS_DIR)
