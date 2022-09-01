@@ -102,8 +102,8 @@ class NasctnSeaDataProduct(Action):
         self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
 
         # Setup/pull config parameters
-        # TODO: All parameters in this section should end up hard-coded
-        # For now they are parameterized in the action config for testing
+        # TODO: Some parameters in this section should end up hard-coded
+        # For now they are all parameterized in the action config for testing
         self.iir_gpass_dB = utils.get_parameter(IIR_GPASS, self.parameters)
         self.iir_gstop_dB = utils.get_parameter(IIR_GSTOP, self.parameters)
         self.iir_pb_edge_Hz = utils.get_parameter(IIR_PB_EDGE, self.parameters)
@@ -111,16 +111,7 @@ class NasctnSeaDataProduct(Action):
         self.qfilt_qlo = utils.get_parameter(Q_LO, self.parameters)
         self.qfilt_qhi = utils.get_parameter(Q_HI, self.parameters)
         self.fft_window_type = utils.get_parameter(FFT_WINDOW_TYPE, self.parameters)
-
-        # TODO: These parameters should not be hard-coded
-        # None of these should be lists - all single values
-        # self.iir_apply = utils.get_parameter(IIR_APPLY, self.parameters)
-        # self.qfilt_apply = utils.get_parameter(QFILT_APPLY, self.parameters)
         self.fft_size = utils.get_parameter(FFT_SIZE, self.parameters)
-        # self.nffts = utils.get_parameter(NUM_FFTS, self.parameters)
-        # self.apd_bin_size_dB = utils.get_parameter(APD_BIN_SIZE_DB, self.parameters)
-        # self.td_bin_size_ms = utils.get_parameter(TD_BIN_SIZE_MS, self.parameters)
-        # self.round_to = utils.get_parameter(ROUND_TO, self.parameters)
         self.sample_rate_Hz = utils.get_parameter(SAMPLE_RATE, self.parameters)
 
         # Construct IIR filter
@@ -342,17 +333,12 @@ class NasctnSeaDataProduct(Action):
         fft_freqs_Hz = get_fft_frequencies(
             params[FFT_SIZE], params[SAMPLE_RATE], params[FREQUENCY]
         )
-        # Truncate frequency axis
-        fft_freqs_Hz = fft_freqs_Hz[bin_start:bin_end]
+        measurement_result["fft_frequency_start"] = fft_freqs_Hz[bin_start]
+        measurement_result["fft_frequency_stop"] = fft_freqs_Hz[bin_end - 1]
+        measurement_result["fft_frequency_step"] = fft_freqs_Hz[1] - fft_freqs_Hz[0]
         measurement_result["fft_enbw"] = get_fft_enbw(
             self.fft_window, params[SAMPLE_RATE]
         )
-        logger.debug(f"FFT window energy correction factor: {self.fft_window_ecf}")
-
-        # TODO make these correct for truncated FFT result
-        measurement_result["fft_frequency_start"] = fft_freqs_Hz[0]
-        measurement_result["fft_frequency_stop"] = fft_freqs_Hz[-1]
-        measurement_result["fft_frequency_step"] = fft_freqs_Hz[1] - fft_freqs_Hz[0]
         del fft_freqs_Hz
         return (fft_result[0], fft_result[1]), measurement_result
 
