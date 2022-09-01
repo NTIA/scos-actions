@@ -61,6 +61,7 @@ if not settings.configured:
     PRESELECTOR_MODULE = env("PRESELECTOR_MODULE", default=None)
     PRESELECTOR_CLASS = env("PRESELECTOR_CLASS", default=None)
     SIGAN_POWER_CYCLE_STATES = env("SIGAN_POWER_CYCLE_STATES", default=None)
+    SIGAN_POWER_SWITCH = env("SIGAN_POWER_SWITCH", default=None)
 
 else:
     MOCK_SIGAN = settings.MOCK_SIGAN
