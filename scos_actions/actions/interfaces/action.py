@@ -6,7 +6,6 @@ from scos_actions.capabilities import capabilities
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import preselector
 from scos_actions.hardware import sigan as mock_sigan
-from scos_actions.settings import HAS_PRESELECTOR
 from scos_actions.utils import ParameterException, get_parameter
 
 logger = logging.getLogger(__name__)
@@ -38,6 +37,9 @@ class Action(ABC):
         self.sigan = sigan
         self.gps = gps
         self.sensor_definition = capabilities["sensor"]
+        self.has_preselector = (
+            True if "preselector" in self.sensor_definition else False
+        )
 
     def configure(self, measurement_params: dict):
         self.configure_sigan(measurement_params)
@@ -56,7 +58,7 @@ class Action(ABC):
             path = measurement_params[self.PRESELECTOR_PATH_KEY]
             logger.debug(f"Setting preselector RF path: {path}")
             preselector.set_state(path)
-        elif HAS_PRESELECTOR:
+        elif self.has_preselector:
             # Set RF path automatically if only one exists.
             if len(preselector.rf_paths) != 1:
                 logger.debug(
