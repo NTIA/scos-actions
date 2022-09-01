@@ -51,7 +51,6 @@ from scos_actions.utils import get_parameter
 logger = logging.getLogger(__name__)
 
 # Define parameter keys
-RF_PATH = SingleFrequencyTimeDomainIqAcquisition.PRESELECTOR_PATH_KEY
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 DURATION_MS = "duration_ms"

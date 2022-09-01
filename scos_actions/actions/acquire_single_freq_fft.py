@@ -117,7 +117,6 @@ from scos_actions.utils import get_datetime_str_now, get_parameter
 logger = logging.getLogger(__name__)
 
 # Define parameter keys
-RF_PATH = MeasurementAction.PRESELECTOR_PATH_KEY
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 NUM_SKIP = "nskip"
