@@ -58,7 +58,7 @@ class Action(ABC):
             preselector.set_state(path)
         elif HAS_PRESELECTOR:
             # Set RF path automatically if only one exists.
-            if len(preselector.__get_rf_paths()) != 1:
+            if len(preselector.rf_paths) != 1:
                 logger.debug(
                     f"No {self.PRESELECTOR_PATH_KEY} specified, but only one is "
                     + f" available. Setting the {self.PRESELECTOR_PATH_KEY} to "
