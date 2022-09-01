@@ -6,7 +6,7 @@ from scos_actions.actions.sync_gps import SyncGps
 from scos_actions.discover.yaml import load_from_yaml
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import sigan as mock_sigan
-from scos_actions.settings import ACTION_DEFINITIONS_DIR
+from scos_actions.settings import ACTION_DEFINITIONS_DIR, MOCK_SIGAN
 
 actions = {"logger": Logger()}
 test_actions = {
@@ -17,26 +17,25 @@ test_actions = {
 
 
 def init(
-        action_classes=action_classes,
-        sigan=mock_sigan,
-        gps=mock_gps,
-        yaml_dir=ACTION_DEFINITIONS_DIR,
+    action_classes=action_classes,
+    sigan=mock_sigan,
+    gps=mock_gps,
+    yaml_dir=ACTION_DEFINITIONS_DIR,
 ):
     yaml_actions = {}
     yaml_test_actions = {}
     for key, value in load_from_yaml(
-            action_classes, sigan=sigan, gps=gps, yaml_dir=yaml_dir
+        action_classes, sigan=sigan, gps=gps, yaml_dir=yaml_dir
     ).items():
         if key.startswith("test_"):
             yaml_test_actions[key] = value
         else:
             yaml_actions[key] = value
-    register_component_with_status.send(sigan.__class__, component=sigan)
+    if MOCK_SIGAN:
+        register_component_with_status.send(sigan.__class__, component=sigan)
     return yaml_actions, yaml_test_actions
 
 
 yaml_actions, yaml_test_actions = init()
 actions.update(yaml_actions)
 test_actions.update(yaml_test_actions)
-
-
