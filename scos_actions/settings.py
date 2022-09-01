@@ -57,9 +57,9 @@ if not settings.configured:
     PRESELECTOR_CONFIG_FILE = None
     SENSOR_DEFINITION_FILE = None
     FQDN = None
-    PRESELECTOR_MODULE = 'its_preselector.web_relay_preselector'
-    PRESELECTOR_CLASS = 'WebRelayPreselector'
-    SWITCH_CONFIGS_DIR = path.join(CONFIG_DIR, 'switches')
+    PRESELECTOR_MODULE = "its_preselector.web_relay_preselector"
+    PRESELECTOR_CLASS = "WebRelayPreselector"
+    SWITCH_CONFIGS_DIR = path.join(CONFIG_DIR, "switches")
 else:
     MOCK_SIGAN = settings.MOCK_SIGAN
     RUNNING_TESTS = settings.RUNNING_TESTS
@@ -74,11 +74,15 @@ else:
         PRESELECTOR_MODULE = settings.PRESELECTOR_MODULE
         PRESELECTOR_CLASS = settings.PRESELECTOR_CLASS
     else:
-        PRESELECTOR_MODULE = 'its_preselector.web_relay_preselector'
-        PRESELECTOR_CLASS = 'WebRelayPreselector'
+        PRESELECTOR_MODULE = "its_preselector.web_relay_preselector"
+        PRESELECTOR_CLASS = "WebRelayPreselector"
     if hasattr(settings, "SWITCH_CONFIGS_DIR"):
         SWITCH_CONFIGS_DIR = settings.SWITCH_CONFIGS_DIR
 
+    if hasattr(settings, "SIGAN_POWER_SWITCH"):
+        SIGAN_POWER_SWITCH = settings.SIGAN_POWER_SWITCH
+    if hasattr(settings, "SIGAN_POWER_CYCLE_STATES"):
+        SIGAN_POWER_CYCLE_STATES = settings.SIGAN_POWER_CYCLE_STATES
 
 logger.info("Loading sensor cal file: " + SENSOR_CALIBRATION_FILE)
 sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
