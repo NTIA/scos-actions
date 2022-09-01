@@ -2,10 +2,12 @@ import logging
 from os import path
 
 from django.conf import settings
+from environs import Env
 
 from scos_actions import calibration
 
 logger = logging.getLogger(__name__)
+env = Env()
 
 
 def get_sigan_calibration(sigan_cal_file):
@@ -52,14 +54,14 @@ else:
     SENSOR_CALIBRATION_FILE = settings.SENSOR_CALIBRATION_FILE
     logger.debug("SCOS_ACTIONS: SENSOR_CALIBRATION_FILE: " + SENSOR_CALIBRATION_FILE)
 
-
 if not settings.configured:
     PRESELECTOR_CONFIG_FILE = None
     SENSOR_DEFINITION_FILE = None
     FQDN = None
-    PRESELECTOR_MODULE = "its_preselector.web_relay_preselector"
-    PRESELECTOR_CLASS = "WebRelayPreselector"
-    SWITCH_CONFIGS_DIR = path.join(CONFIG_DIR, "switches")
+    PRESELECTOR_MODULE = env("PRESELECTOR_MODULE", default=None)
+    PRESELECTOR_CLASS = env("PRESELECTOR_CLASS", default=None)
+    SIGAN_POWER_CYCLE_STATES = env("SIGAN_POWER_CYCLE_STATES", default=None)
+
 else:
     MOCK_SIGAN = settings.MOCK_SIGAN
     RUNNING_TESTS = settings.RUNNING_TESTS
@@ -79,10 +81,13 @@ else:
     if hasattr(settings, "SWITCH_CONFIGS_DIR"):
         SWITCH_CONFIGS_DIR = settings.SWITCH_CONFIGS_DIR
 
+    SIGAN_POWER_SWITCH = None
+    SIGAN_POWER_CYCLE_STATES = None
     if hasattr(settings, "SIGAN_POWER_SWITCH"):
         SIGAN_POWER_SWITCH = settings.SIGAN_POWER_SWITCH
     if hasattr(settings, "SIGAN_POWER_CYCLE_STATES"):
         SIGAN_POWER_CYCLE_STATES = settings.SIGAN_POWER_CYCLE_STATES
+
 
 logger.info("Loading sensor cal file: " + SENSOR_CALIBRATION_FILE)
 sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
