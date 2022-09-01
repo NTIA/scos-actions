@@ -2,7 +2,7 @@ from scos_actions.hardware import switches
 from scos_actions.settings import SIGAN_POWER_CYCLE_STATES, SIGAN_POWER_SWITCH
 
 
-def power_cycle_sigan(self):
+def power_cycle_sigan():
     """
     Performs a hard power cycle of the signal analyzer. This method requires power to the signal analyzer is
     controlled by a Web_Relay (see https://www.github.com/ntia/Preselector) and that the switch id of that
