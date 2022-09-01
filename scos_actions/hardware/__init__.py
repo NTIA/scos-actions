@@ -11,6 +11,7 @@ from scos_actions.capabilities import capabilities
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
 from scos_actions.settings import (
+    MOCK_SIGAN,
     PRESELECTOR_CLASS,
     PRESELECTOR_CONFIG_FILE,
     PRESELECTOR_MODULE,
@@ -21,7 +22,7 @@ from scos_actions.status.status_registration_handler import status_registration_
 logger = logging.getLogger(__name__)
 
 
-def load_switches(switch_dir):
+def load_switches(switch_dir) -> dict:
     switch_dict = {}
     if os.path.isdir(switch_dir):
         files = os.listdir(switch_dir)
@@ -71,7 +72,10 @@ def load_preselector(preselector_config, module, preselector_class_name):
 
 register_component_with_status.connect(status_registration_handler)
 logger.info("Connected status registration handler")
-sigan = MockSignalAnalyzer(randomize_values=True)
+if MOCK_SIGAN:
+    sigan = MockSignalAnalyzer(randomize_values=True)
+else:
+    sigan = None
 gps = MockGPS()
 preselector = load_preslector_from_file(PRESELECTOR_CONFIG_FILE)
 switches = load_switches(SWITCH_CONFIGS_DIR)
