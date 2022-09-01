@@ -1,5 +1,9 @@
+import logging
+
 from scos_actions.hardware import switches
 from scos_actions.settings import SIGAN_POWER_CYCLE_STATES, SIGAN_POWER_SWITCH
+
+logger = logging.getLogger(__name__)
 
 
 def power_cycle_sigan():
@@ -25,3 +29,7 @@ def power_cycle_sigan():
                 states = SIGAN_POWER_CYCLE_STATES.split(",")
                 for state in states:
                     power_switch.set_state(state)
+    else:
+        logger.error(
+            "Call to power cycle sigan, but no power switch or power cycle states specified "
+        )
