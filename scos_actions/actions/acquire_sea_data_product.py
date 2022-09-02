@@ -423,7 +423,7 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_last_calibration_time(
             measurement_result["calibration_datetime"]
         )
-        sigmf_builder.set_data_type(self.is_complex())  # Incorrectly says 32 bit float
+        sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
         sigmf_builder.set_sample_rate(measurement_result["sample_rate"])
         sigmf_builder.set_schedule(schedule_entry)
         sigmf_builder.set_task(measurement_result["task_id"])
