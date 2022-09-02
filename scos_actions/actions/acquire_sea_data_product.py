@@ -524,7 +524,8 @@ class NasctnSeaDataProduct(Action):
         )
         return measurement_result, idx
 
-    def compress_bytes_date(data: bytes) -> bytes:
+    @staticmethod
+    def compress_bytes_data(data: bytes) -> bytes:
         """Compress some <bytes> data and return the compressed version"""
         # TODO: Explore alternate compression methods.
         return lzma.compress(data)
