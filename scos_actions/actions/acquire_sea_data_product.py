@@ -435,12 +435,11 @@ class NasctnSeaDataProduct(Action):
         # TODO: Finalize metadata
         # Create metadata annotations for the data
         sigmf_builder = SigMFBuilder()
-        self.received_samples = len(measurement_result["data"])
 
         # Annotate calibration
         calibration_annotation = CalibrationAnnotation(
             sample_start=0,
-            sample_count=self.received_samples,
+            sample_count=self.total_samples,  # Set when transform_data is called
             sigan_cal=measurement_result["sigan_cal"],
             sensor_cal=measurement_result["sensor_cal"],
         )
@@ -451,7 +450,7 @@ class NasctnSeaDataProduct(Action):
         # Annotate sensor settings
         sensor_annotation = SensorAnnotation(
             sample_start=0,
-            sample_count=self.received_samples,
+            sample_count=self.total_samples,
             overload=measurement_result["overload"],
             attenuation_setting_sigan=self.parameters["attenuation"],
         )
@@ -510,7 +509,9 @@ class NasctnSeaDataProduct(Action):
         idx = [0] + np.cumsum(data_lengths[:-1]).tolist()
         logger.debug(f"Data product start indices: {idx}")
         # Flatten data product and convert to byte array
-        measurement_result["data"] = np.hstack(measurement_result["data"]).tobytes()
+        measurement_result["data"] = np.hstack(measurement_result["data"])
+        self.total_samples = len(measurement_result["data"])
+        measurement_result["data"] = measurement_result["data"].tobytes()
         # Compress data
         # TODO
         return measurement_result, idx
