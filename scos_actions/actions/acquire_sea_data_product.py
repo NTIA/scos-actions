@@ -289,7 +289,7 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Data product dtypes: {[d.dtype for d in data_product]}")
 
         # Flatten and compress data product
-        measurement_result, dp_idx = self.transform_data()
+        measurement_result, dp_idx = self.transform_data(measurement_result)
 
         return measurement_result, dp_idx
 
