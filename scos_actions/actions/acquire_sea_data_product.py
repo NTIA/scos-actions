@@ -439,7 +439,7 @@ class NasctnSeaDataProduct(Action):
         # Remove unnecessary metadata from calibration annotation
         sensor_cal = {
             k: v
-            for k, v in measurement_result["sigan_cal"].items()
+            for k, v in measurement_result["sensor_cal"].items()
             if k in {"gain_sensor", "noise_figure_sensor", "enbw_sensor", "temperature"}
         }
 
@@ -447,7 +447,7 @@ class NasctnSeaDataProduct(Action):
         calibration_annotation = CalibrationAnnotation(
             sample_start=0,
             sample_count=self.total_samples,  # Set when transform_data is called
-            sigan_cal={},
+            sigan_cal=None,
             sensor_cal=sensor_cal,
         )
         sigmf_builder.add_metadata_generator(
