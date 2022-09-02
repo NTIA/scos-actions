@@ -25,7 +25,7 @@ def power_cycle_sigan():
                     power_switch.set_state(state)
         else:
             raise Exception(
-                "Switch {switch_id} does not exist. Unable to restart signal analyzer"
+                f"Switch {SIGAN_POWER_SWITCH} does not exist. Unable to restart signal analyzer"
             )
     else:
         logger.error(

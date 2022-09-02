@@ -32,6 +32,7 @@ def load_switches(switch_dir) -> dict:
             conf = utils.load_from_json(file_path)
             try:
                 switch = ControlByWebWebRelay(conf)
+                logger.info("Adding {switch_id}".format(switch.id))
                 switch_dict[switch.id] = switch
                 logger.info("Registering switch status for " + switch.name)
                 register_component_with_status.send(__name__, component=switch)
@@ -79,3 +80,4 @@ else:
 gps = MockGPS()
 preselector = load_preslector_from_file(PRESELECTOR_CONFIG_FILE)
 switches = load_switches(SWITCH_CONFIGS_DIR)
+logger.info("Loaded {switch_count} switches.".format(str(len(switches))))
