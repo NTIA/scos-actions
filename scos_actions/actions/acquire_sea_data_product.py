@@ -436,12 +436,19 @@ class NasctnSeaDataProduct(Action):
         # Create metadata annotations for the data
         sigmf_builder = SigMFBuilder()
 
+        # Remove unnecessary metadata from calibration annotation
+        sensor_cal = {
+            k: v
+            for k, v in measurement_result["sigan_cal"].items()
+            if k in {"gain_sensor", "noise_figure_sensor", "enbw_sensor", "temperature"}
+        }
+
         # Annotate calibration
         calibration_annotation = CalibrationAnnotation(
             sample_start=0,
             sample_count=self.total_samples,  # Set when transform_data is called
-            sigan_cal=measurement_result["sigan_cal"],
-            sensor_cal=measurement_result["sensor_cal"],
+            sigan_cal={},
+            sensor_cal=sensor_cal,
         )
         sigmf_builder.add_metadata_generator(
             type(calibration_annotation).__name__, calibration_annotation
@@ -464,10 +471,10 @@ class NasctnSeaDataProduct(Action):
                 sample_start=dp_idx[i],
                 sample_count=dp_idx[i + 1] - dp_idx[i],
                 detector=detector.value,
-                number_of_ffts=measurement_result[NUM_FFTS],
+                number_of_ffts=int(measurement_result[NUM_FFTS]),
                 number_of_samples_in_fft=self.fft_size,
                 window=self.fft_window_type,
-                equivalent_noise_bandwidth=measurement_result["fft_enbw"],
+                # equivalent_noise_bandwidth=measurement_result["fft_enbw"],
                 units="dBm/Hz",
                 reference="preselector input",
                 frequency_start=measurement_result["fft_frequency_start"],
