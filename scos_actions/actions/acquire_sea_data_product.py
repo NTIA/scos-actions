@@ -270,6 +270,8 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"APD result generated in {toc-tic:.2f} s")
 
         del iq
+        measurement_result["data"] = data_product
+
         # TODO: Optimize memory usage
         # gc.collect()  # Computationally expensive!
 
@@ -289,6 +291,7 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Data product dtypes: {[d.dtype for d in data_product]}")
 
         # Flatten and compress data product
+        measurement_result["data"] = data_product
         measurement_result, dp_idx = self.transform_data(measurement_result)
 
         return measurement_result, dp_idx
