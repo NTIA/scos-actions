@@ -48,15 +48,57 @@ class SigMFBuilder:
     def metadata(self):
         return self.sigmf_md._metadata
 
-    def set_data_type(self, is_complex):
-        if is_complex:
-            self.sigmf_md.set_global_field(
-                "core:datatype", "cf32_le"
-            )  # 2x 32-bit float, Little Endian
+    def set_data_type(
+        self,
+        is_complex: bool,
+        sample_type: str = "floating-point",
+        bit_width: int = 32,
+        endianness: str = "little",
+    ):
+        """
+        Set the global ``core:datatype`` field of a SigMF metadata file.
+
+        Defaults to "cf32_le" for complex 32 bit little-endian floating point.
+
+        :param is_complex: True if the data is complex, False if the data is real.
+        :param sample_type: The sample type, defaults to "floating-point"
+        :param bit_width: The bit-width of the data, defaults to 32
+        :param endianness: Data endianness, defaults to "little". Provide an empty
+            string if the data is saved as bytes.
+        :raises ValueError: If ``bit_width`` is not an integer.
+        :raises ValueError: If ``sample_type`` is not one of: "floating-point",
+            "signed-integer", or "unsigned-integer".
+        :raises ValueError: If the endianness is not one of: "big", "little", or
+            "" (an empty string).
+        """
+        if not isinstance(bit_width, int):
+            raise ValueError("Bit-width must be an integer.")
+
+        dset_fmt = "c" if is_complex else "r"
+
+        if sample_type == "floating-point":
+            dset_fmt += "f"
+        elif sample_type == "signed-integer":
+            dset_fmt += "i"
+        elif sample_type == "unsigned-integer":
+            dset_fmt += "u"
         else:
-            self.sigmf_md.set_global_field(
-                "core:datatype", "rf32_le"
-            )  # 32-bit float, Little Endian
+            raise ValueError(
+                'Sample type must be one of: "floating-point", "signed-integer", or "unsigned-integer"'
+            )
+
+        dset_fmt += str(bit_width)
+
+        if endianness == "little":
+            dset_fmt += "_le"
+        elif endianness == "big":
+            dset_fmt += "_be"
+        elif endianness != "":
+            raise ValueError(
+                'Endianness must be either "big", "little", or "" (for saving bytes)'
+            )
+
+        self.sigmf_md.set_global_field("core:datatype", dset_fmt)
 
     def set_sample_rate(self, sample_rate):
         self.sigmf_md.set_global_field("core:sample_rate", sample_rate)
