@@ -502,7 +502,7 @@ class NasctnSeaDataProduct(Action):
         return data_array.astype(data_type)
 
     def transform_data(self, measurement_result: dict):
-        """Flatten data product list of arrays, convert to byte array, then compress."""
+        """Flatten data product list of arrays, convert to bytes object, then compress"""
         # Get indices for start of each component in flattened result
         data_lengths = [len(d) for d in measurement_result["data"]]
         logger.debug(f"Data product component lengths: {data_lengths}")
@@ -512,9 +512,15 @@ class NasctnSeaDataProduct(Action):
         measurement_result["data"] = np.hstack(measurement_result["data"])
         self.total_samples = len(measurement_result["data"])
         measurement_result["data"] = measurement_result["data"].tobytes()
-        # Compress data
-        measurement_result["data"] = lzma.compress(measurement_result["data"])
+        measurement_result["data"] = self.compress_bytes_data(
+            measurement_result["data"]
+        )
         return measurement_result, idx
+
+    def compress_bytes_date(data: bytes) -> bytes:
+        """Compress some <bytes> data and return the compressed version"""
+        # TODO: Explore alternate compression methods.
+        return lzma.compress(data)
 
     def is_complex(self) -> bool:
         return False
