@@ -29,6 +29,7 @@ def power_cycle_sigan():
             else:
                 states = SIGAN_POWER_CYCLE_STATES.split(",")
                 for state in states:
+                    logger.debug("Setting state: " + state + " in power switch")
                     power_switch.set_state(state)
         else:
             raise Exception(
