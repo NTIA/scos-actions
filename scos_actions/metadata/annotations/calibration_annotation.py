@@ -40,27 +40,35 @@ class CalibrationAnnotation(AnnotationSegment):
     def __post_init__(self):
         super().__post_init__()
         # Load values from sensor and sigan calibrations
-        self.gain_sigan = self.get_cal_value_if_exists(self.sigan_cal, "gain_sigan")
-        self.noise_figure_sigan = self.get_cal_value_if_exists(
-            self.sigan_cal, "noise_figure_sigan"
-        )
-        self.compression_point_sigan = self.get_cal_value_if_exists(
-            self.sigan_cal, "1db_compression_sigan"
-        )
-        self.enbw_sigan = self.get_cal_value_if_exists(self.sigan_cal, "enbw_sigan")
-        self.gain_preselector = self.get_cal_value_if_exists(
-            self.sensor_cal, "gain_preselector"
-        )
-        self.noise_figure_sensor = self.get_cal_value_if_exists(
-            self.sensor_cal, "noise_figure_sensor"
-        )
-        self.compression_point_sensor = self.get_cal_value_if_exists(
-            self.sensor_cal, "1db_compression_sensor"
-        )
-        self.enbw_sensor = self.get_cal_value_if_exists(self.sensor_cal, "enbw_sensor")
-        self.temperature = self.get_cal_value_if_exists(self.sensor_cal, "temperature")
-        # Additional key gain_sensor is not in SigMF ntia-sensor spec but is included
-        self.gain_sensor = self.get_cal_value_if_exists(self.sensor_cal, "gain_sensor")
+        if self.sigan_cal is not None:
+            self.gain_sigan = self.get_cal_value_if_exists(self.sigan_cal, "gain_sigan")
+            self.noise_figure_sigan = self.get_cal_value_if_exists(
+                self.sigan_cal, "noise_figure_sigan"
+            )
+            self.compression_point_sigan = self.get_cal_value_if_exists(
+                self.sigan_cal, "1db_compression_sigan"
+            )
+            self.enbw_sigan = self.get_cal_value_if_exists(self.sigan_cal, "enbw_sigan")
+        if self.sensor_cal is not None:
+            self.gain_preselector = self.get_cal_value_if_exists(
+                self.sensor_cal, "gain_preselector"
+            )
+            self.noise_figure_sensor = self.get_cal_value_if_exists(
+                self.sensor_cal, "noise_figure_sensor"
+            )
+            self.compression_point_sensor = self.get_cal_value_if_exists(
+                self.sensor_cal, "1db_compression_sensor"
+            )
+            self.enbw_sensor = self.get_cal_value_if_exists(
+                self.sensor_cal, "enbw_sensor"
+            )
+            self.temperature = self.get_cal_value_if_exists(
+                self.sensor_cal, "temperature"
+            )
+            # Additional key gain_sensor is not in SigMF ntia-sensor spec but is included
+            self.gain_sensor = self.get_cal_value_if_exists(
+                self.sensor_cal, "gain_sensor"
+            )
         # Define SigMF key names
         self.sigmf_keys.update(
             {
