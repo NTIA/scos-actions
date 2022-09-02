@@ -513,7 +513,7 @@ class NasctnSeaDataProduct(Action):
         self.total_samples = len(measurement_result["data"])
         measurement_result["data"] = measurement_result["data"].tobytes()
         # Compress data
-        # TODO
+        measurement_result["data"] = lzma.compress(measurement_result["data"])
         return measurement_result, idx
 
     def is_complex(self) -> bool:
