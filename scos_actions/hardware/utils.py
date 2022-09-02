@@ -13,6 +13,13 @@ def power_cycle_sigan():
     switch is specified in scos-sensor settings as SIGAN_POWER_SWITCH and the sequence of states is specified as
     a comma delimited list of states in SIGAN_POWER_CYCLE_STATES. This method will raise Excwptions if the nn
     """
+    if switches is None:
+        logger.debug("SWITCHES IS NONE")
+    else:
+        logger.debug(f"hardware utils has {len(switches)}")
+        for key, value in switches.items():
+            logger.debug(key + ": " + str(value))
+
     if SIGAN_POWER_SWITCH and SIGAN_POWER_CYCLE_STATES:
         logger.debug(f"searching for {SIGAN_POWER_SWITCH}")
         if SIGAN_POWER_SWITCH in switches:
