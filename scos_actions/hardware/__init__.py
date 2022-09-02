@@ -80,4 +80,4 @@ else:
 gps = MockGPS()
 preselector = load_preslector_from_file(PRESELECTOR_CONFIG_FILE)
 switches = load_switches(SWITCH_CONFIGS_DIR)
-logger.info("Loaded {switch_count} switches.".format(str(len(switches))))
+logger.info("Loaded {switch_count} switches.".format(switch_count=(len(switches))))
