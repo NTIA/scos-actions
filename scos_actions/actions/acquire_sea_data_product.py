@@ -87,9 +87,11 @@ FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
+PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
 
 # Constants
 DATA_TYPE = np.half
+PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
 
 
 class NasctnSeaDataProduct(Action):
@@ -208,7 +210,6 @@ class NasctnSeaDataProduct(Action):
         nskip = utils.get_parameter(NUM_SKIP, params)
         num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
         # Collect IQ data
-        # measurement_result = super().acquire_data(num_samples, nskip)
         measurement_result = self.sigan.acquire_time_domain_samples(num_samples, nskip)
         end_time = utils.get_datetime_str_now()
         # Store some metadata with the IQ
@@ -263,6 +264,19 @@ class NasctnSeaDataProduct(Action):
         toc = perf_counter()
         logger.debug(f"Time domain power statistics calculated in {toc-tic:.2f} s")
 
+        logger.debug("Computing periodic frame power...")
+        tic = perf_counter()
+        data_product.extend(
+            self.get_periodic_frame_power(
+                iq,
+                self.sigan.sample_rate,
+                PFP_FRAME_RESOLUTION_S,
+                1e-3 * params[PFP_FRAME_PERIOD_MS],
+            )
+        )
+        toc = perf_counter()
+        logger.debug(f"Periodic frame power computed in {toc-tic:.2f} s")
+
         logger.debug("Generating APD...")
         tic = perf_counter()
         data_product.extend(self.get_apd_results(iq, params))
@@ -287,8 +301,6 @@ class NasctnSeaDataProduct(Action):
         # logger.debug(
         #     f"Data product rounded to {params[ROUND_TO]} decimal places in {toc-tic:.2f} s"
         # )
-
-        logger.debug(f"Data product dtypes: {[d.dtype for d in data_product]}")
 
         # Flatten and compress data product
         measurement_result["data"] = data_product
@@ -405,70 +417,78 @@ class NasctnSeaDataProduct(Action):
 
         return td_result[0], td_result[1]  # (max, mean)
 
+    def get_periodic_frame_power(
+        self,
+        iqdata: np.ndarray,
+        sampling_rate_Hz: float,
+        detector_period_s: float,
+        frame_period_s: float,
+    ) -> dict:
+        """
+        Compute a time series of periodic frame power statistics.
 
-def get_periodic_frame_power(
-    iqdata: np.ndarray,
-    sampling_rate_Hz: float,
-    detector_period_s: float,
-    frame_period_s: float,
-) -> dict:
-    """
-    Compute a time series of periodic frame power statistics.
+        The time axis on the frame time elapsed spans [0, frame_period) binned with step size
+        `detector_period`, for a total of `int(frame_period/detector_period)` samples.
+        RMS and peak power detector data are returned. For each type of detector, a time
+        series is returned for (min, mean, max) statistics, which are computed across the
+        number of frames (`frame_period/Ts`).
 
-    The time axis on the frame time elapsed spans [0, frame_period) binned with step size
-    `detector_period`, for a total of `int(frame_period/detector_period)` samples.
-    RMS and peak power detector data are returned. For each type of detector, a time
-    series is returned for (min, mean, max) statistics, which are computed across the
-    number of frames (`frame_period/Ts`).
+        :param iqdata: Complex-valued input waveform samples.
+        :param sampling_rate_Hz: Sampling rate (Hz) of the IQ waveform.
+        :param detector_period_s: Sampling period (s) within the frame.
+        :param frame_period_s: Frame period (s) to analyze.
+        :return: A dict with keys "rms" and "peak", each with values (min: np.ndarray, mean: np.ndarray,
+            max: np.ndarray)
+        :raises ValueError: if detector_period%Ts != 0 or frame_period%detector_period != 0
+        """
+        sampling_period_s = 1.0 / sampling_rate_Hz
+        if not np.isclose(frame_period_s % sampling_period_s, 0, 1e-6):
+            raise ValueError(
+                "frame period must be positive integer multiple of the sampling period"
+            )
 
-    :param iqdata: Complex-valued input waveform samples.
-    :param sampling_rate_Hz: Sampling rate (Hz) of the IQ waveform.
-    :param detector_period_s: Sampling period (s) within the frame.
-    :param frame_period_s: Frame period (s) to analyze.
-    :return: A dict with keys "rms" and "peak", each with values (min: np.ndarray, mean: np.ndarray,
-        max: np.ndarray)
-    :raises ValueError: if detector_period%Ts != 0 or frame_period%detector_period != 0
-    """
-    sampling_period_s = 1.0 / sampling_rate_Hz
-    if not np.isclose(frame_period_s % sampling_period_s, 0, 1e-6):
-        raise ValueError(
-            "frame period must be positive integer multiple of the sampling period"
+        if not np.isclose(detector_period_s % sampling_period_s, 0, 1e-6):
+            raise ValueError(
+                "detector_period period must be positive integer multiple of the sampling period"
+            )
+
+        Nframes = int(np.round(frame_period_s / sampling_period_s))
+        Npts = int(np.round(frame_period_s / detector_period_s))
+
+        # set up dimensions to make the statistics fast
+        chunked_shape = (iqdata.shape[0] // Nframes, Npts, Nframes // Npts) + tuple(
+            [iqdata.shape[1]] if iqdata.ndim == 2 else []
         )
 
-    if not np.isclose(detector_period_s % sampling_period_s, 0, 1e-6):
-        raise ValueError(
-            "detector_period period must be positive integer multiple of the sampling period"
+        iq_bins = iqdata.reshape(chunked_shape)
+
+        power_bins = calculate_pseudo_power(iq_bins)
+
+        # compute statistics first by cycle
+        rms_power = power_bins.mean(axis=0)
+        peak_power = power_bins.max(axis=0)
+
+        # Finish conversion to power
+        ne.evaluate("rms_power/50", out=rms_power)
+        ne.evaluate("peak_power/50", out=peak_power)
+
+        # then do the detector
+        pfp = self.reduce_dtype(
+            np.array(
+                [
+                    # RMS
+                    rms_power.min(axis=1),
+                    rms_power.mean(axis=1),
+                    rms_power.max(axis=1),
+                    # Peak
+                    peak_power.min(axis=1),
+                    peak_power.mean(axis=1),
+                    peak_power.max(axis=1),
+                ]
+            )
         )
-
-    Nframes = int(np.round(frame_period_s / sampling_period_s))
-    Npts = int(np.round(frame_period_s / detector_period_s))
-
-    # set up dimensions to make the statistics fast
-    chunked_shape = (iqdata.shape[0] // Nframes, Npts, Nframes // Npts) + tuple(
-        [iqdata.shape[1]] if iqdata.ndim == 2 else []
-    )
-
-    iq_bins = iqdata.reshape(chunked_shape)
-
-    power_bins = calculate_pseudo_power(iq_bins)
-
-    # compute statistics first by cycle
-    rms_power = power_bins.mean(axis=0)
-    peak_power = power_bins.max(axis=0)
-
-    # Finish conversion to power
-    ne.evaluate("rms_power/50", out=rms_power)
-    ne.evaluate("peak_power/50", out=peak_power)
-
-    # then do the detector
-    return {
-        "rms": (rms_power.min(axis=1), rms_power.mean(axis=1), rms_power.max(axis=1)),
-        "peak": (
-            peak_power.min(axis=1),
-            peak_power.mean(axis=1),
-            peak_power.max(axis=1),
-        ),
-    }
+        logger.debug(f"PFP result shape: {pfp.shape}")
+        return tuple(pfp)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
