@@ -9,9 +9,7 @@ from scos_actions import utils
 from scos_actions.actions.interfaces.signals import register_component_with_status
 from scos_actions.capabilities import capabilities
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
 from scos_actions.settings import (
-    MOCK_SIGAN,
     PRESELECTOR_CLASS,
     PRESELECTOR_CONFIG_FILE,
     PRESELECTOR_MODULE,
@@ -33,6 +31,7 @@ def load_switches(switch_dir) -> dict:
             try:
                 switch = ControlByWebWebRelay(conf)
                 logger.info(f"Adding {switch.id}")
+
                 switch_dict[switch.id] = switch
                 logger.info("Registering switch status for " + switch.name)
                 register_component_with_status.send(__name__, component=switch)
@@ -73,7 +72,6 @@ def load_preselector(preselector_config, module, preselector_class_name):
 
 register_component_with_status.connect(status_registration_handler)
 logger.info("Connected status registration handler")
-sigan = MockSignalAnalyzer(randomize_values=True)
 gps = MockGPS()
 preselector = load_preslector_from_file(PRESELECTOR_CONFIG_FILE)
 switches = load_switches(SWITCH_CONFIGS_DIR)

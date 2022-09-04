@@ -4,7 +4,6 @@ from abc import abstractmethod
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.hardware import gps as mock_gps
-from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.metadata.annotations.calibration_annotation import (
     CalibrationAnnotation,
 )
@@ -23,7 +22,7 @@ class MeasurementAction(Action):
 
     """
 
-    def __init__(self, parameters, sigan=mock_sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=mock_gps):
         super().__init__(parameters, sigan, gps)
         self.received_samples = 0
 
