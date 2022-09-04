@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def load_switches(switch_dir) -> dict:
     switch_dict = {}
-    if os.path.isdir(switch_dir):
+    if switch_dir is not None and os.path.isdir(switch_dir):
         files = os.listdir(switch_dir)
         for f in files:
             file_path = os.path.join(switch_dir, f)
@@ -73,10 +73,7 @@ def load_preselector(preselector_config, module, preselector_class_name):
 
 register_component_with_status.connect(status_registration_handler)
 logger.info("Connected status registration handler")
-if MOCK_SIGAN:
-    sigan = MockSignalAnalyzer(randomize_values=True)
-else:
-    sigan = None
+sigan = MockSignalAnalyzer(randomize_values=True)
 gps = MockGPS()
 preselector = load_preslector_from_file(PRESELECTOR_CONFIG_FILE)
 switches = load_switches(SWITCH_CONFIGS_DIR)

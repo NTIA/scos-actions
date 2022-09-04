@@ -1,9 +1,9 @@
 import copy
 from abc import ABC, abstractmethod
 
-from scos_actions.calibration import Calibration
+from scos_actions.calibration import sensor_calibration, sigan_calibration
+from scos_actions.calibration.calibration import Calibration
 from scos_actions.capabilities import capabilities
-from scos_actions.settings import sensor_calibration, sigan_calibration
 from scos_actions.utils import (
     convert_string_to_millisecond_iso_format,
     get_datetime_str_now,
