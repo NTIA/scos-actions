@@ -467,15 +467,18 @@ class NasctnSeaDataProduct(Action):
 
         power_bins = calculate_pseudo_power(iq_bins)
         logger.debug(f"PFP Sample pseudo power shape {power_bins.shape}")
+        logger.debug(f"PFP pseudo power sample: {power_bins[0][:10][0]}")
 
         # compute statistics first by cycle
         rms_power = power_bins.mean(axis=0)
         peak_power = power_bins.max(axis=0)
-        logger.debug(f"PFP RMS power sample shape: {rms_power.shape}")
+        logger.debug(f"PFP RMS power shape: {rms_power.shape}")
+        logger.debug(f"PFP RMS power sample: {rms_power[:10][0]}")
 
         # Finish conversion to power
         ne.evaluate("rms_power/50", out=rms_power)
         ne.evaluate("peak_power/50", out=peak_power)
+        logger.debug(f"RMS power scaled sample: {rms_power[:10][0]}")
 
         # then do the detector
         pfp = self.reduce_dtype(
@@ -492,6 +495,7 @@ class NasctnSeaDataProduct(Action):
                 ]
             )
         )
+        logger.debug(f"PFP watts sample: {pfp[0][:10]}")
 
         # Convert to dBm
         pfp = convert_watts_to_dBm(pfp)
