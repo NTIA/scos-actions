@@ -287,7 +287,10 @@ class NasctnSeaDataProduct(Action):
         measurement_result["data"] = data_product
 
         # TODO: Optimize memory usage
-        # gc.collect()  # Computationally expensive!
+        tic = perf_counter()
+        gc.collect()  # Computationally expensive!
+        toc = perf_counter()
+        print(f"Collected garbage in {toc-tic:.2f} s")
 
         # Skip rounding for now
         # Quantize power results
