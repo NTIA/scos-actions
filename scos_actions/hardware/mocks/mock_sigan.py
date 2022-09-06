@@ -4,7 +4,6 @@ from collections import namedtuple
 
 import numpy as np
 
-
 from scos_actions.hardware.sigan_iface import SignalAnalyzerInterface
 from scos_actions.utils import get_datetime_str_now
 
@@ -44,7 +43,6 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         self.randomize_values = randomize_values
         self.sensor_calibration_data = self.DEFAULT_SENSOR_CALIBRATION
         self.sigan_calibration_data = self.DEFAULT_SIGAN_CALIBRATION
-
 
     @property
     def is_available(self):
@@ -148,4 +146,3 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
 
     def update_calibration(self, params):
         pass
-
