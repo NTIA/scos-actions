@@ -284,30 +284,58 @@ class NasctnSeaDataProduct(Action):
         # else:
         #     logger.debug(f"Skipping IIR filtering of IQ data...")
 
-        logger.debug("Calculating time-domain power statistics...")
-        tic = perf_counter()
-        data_product.extend(self.get_td_power_results(iq, params))  # (max, mean)
-        toc = perf_counter()
-        logger.debug(f"Time domain power statistics calculated in {toc-tic:.2f} s")
+        # logger.debug("Calculating time-domain power statistics...")
+        # tic = perf_counter()
+        # data_product.extend(self.get_td_power_results(iq, params))  # (max, mean)
+        # toc = perf_counter()
+        # logger.debug(f"Time domain power statistics calculated in {toc-tic:.2f} s")
 
-        logger.debug("Computing periodic frame power...")
+        # logger.debug("Computing periodic frame power...")
+        # tic = perf_counter()
+        # data_product.extend(
+        #     self.get_periodic_frame_power(
+        #         iq,
+        #         self.sigan.sample_rate,
+        #         PFP_FRAME_RESOLUTION_S,
+        #         1e-3 * params[PFP_FRAME_PERIOD_MS],
+        #     )
+        # )
+        # toc = perf_counter()
+        # logger.debug(f"Periodic frame power computed in {toc-tic:.2f} s")
+
+        # logger.debug("Generating APD...")
+        # tic = perf_counter()
+        # data_product.extend(self.get_apd_results(iq, params))
+        # toc = perf_counter()
+        # logger.debug(f"APD result generated in {toc-tic:.2f} s")
+
+        # In parallel: TD power, APD, PFP
+        logger.debug("Computing time domain powers, APD, and PFP...")
         tic = perf_counter()
-        data_product.extend(
-            self.get_periodic_frame_power(
+        td_thread = ThreadWithResult(
+            target=self.get_td_power_results, args=(iq, params)
+        )
+        apd_thread = ThreadWithResult(target=self.get_apd_results, args=(iq, params))
+        pfp_thread = ThreadWithResult(
+            target=self.get_periodic_frame_power,
+            args=(
                 iq,
                 self.sigan.sample_rate,
                 PFP_FRAME_RESOLUTION_S,
                 1e-3 * params[PFP_FRAME_PERIOD_MS],
-            )
+            ),
         )
+        apd_thread.start()
+        pfp_thread.start()
+        td_thread.start()
+        pfp_thread.join()
+        td_thread.join()
+        apd_thread.join()
+        data_product.extend(td_thread.result)
+        data_product.extend(pfp_thread.result)
+        data_product.extend(apd_thread.result)
         toc = perf_counter()
-        logger.debug(f"Periodic frame power computed in {toc-tic:.2f} s")
-
-        logger.debug("Generating APD...")
-        tic = perf_counter()
-        data_product.extend(self.get_apd_results(iq, params))
-        toc = perf_counter()
-        logger.debug(f"APD result generated in {toc-tic:.2f} s")
+        logger.debug(f"TD power, APD, and PFP processing done in {toc-tic:.2f} s")
 
         del iq
         measurement_result["data"] = data_product
