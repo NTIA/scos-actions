@@ -174,9 +174,6 @@ class NasctnSeaDataProduct(Action):
                 measurement_result, parameters
             )
 
-            # Flatten data product but retain indices of components
-            # measurement_result, dp_idx = self.transform_data(measurement_result)
-
             # Generate metadata
             sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)
             self.create_metadata(
