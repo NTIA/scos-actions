@@ -90,13 +90,12 @@ class SignalAnalyzerInterface(ABC):
             )
 
     def get_status(self):
-        sigan_model = str(self.__class__)
-        if "signal_analyzer" in capabilities["sensor"]:
-            sigan = capabilities["sensor"]["signal_analyzer"]
-            if "sigan_spec" in sigan:
-                spec = sigan["sigan_spec"]
-                if "model" in spec:
-                    model = spec["model"]
-                    if model != "Default" and model != "":
-                        sigan_model = model
+        try:
+            sigan_model = capabilities["sensor"]["signal_analyzer"]["sigan_spec"][
+                "model"
+            ]
+            if sigan_model.lower() in ["default", ""]:
+                raise KeyError
+        except KeyError:
+            sigan_model = str(self.__class__)
         return {"model": sigan_model, "healthy": self.healthy}
