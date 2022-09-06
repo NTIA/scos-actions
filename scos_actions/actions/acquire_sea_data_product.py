@@ -166,54 +166,33 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Setting RF path to {self.rf_path}")
         self.configure_preselector(self.rf_path)
         for recording_id, parameters in enumerate(iteration_params, start=1):
-            self.full_action(recording_id, task_id, schedule_entry, parameters)
-            # # Capture IQ data
-            # measurement_result = self.capture_iq(task_id, parameters)
+            # Capture IQ data
+            measurement_result = self.capture_iq(task_id, parameters)
 
-            # # Generate data product (overwrites IQ data)
-            # measurement_result, dp_idx = self.generate_data_product(
-            #     measurement_result, parameters
-            # )
+            # Generate data product (overwrites IQ data)
+            measurement_result, dp_idx = self.generate_data_product(
+                measurement_result, parameters
+            )
 
-            # # Generate metadata
-            # sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)
-            # self.create_metadata(
-            #     sigmf_builder, schedule_entry, measurement_result, recording_id
-            # )
+            # Flatten data product but retain indices of components
+            # measurement_result, dp_idx = self.transform_data(measurement_result)
 
-            # # Send signal
-            # measurement_action_completed.send(
-            #     sender=self.__class__,
-            #     task_id=task_id,
-            #     data=measurement_result["data"],
-            #     metadata=sigmf_builder.metadata,
-            # )
+            # Generate metadata
+            sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)
+            self.create_metadata(
+                sigmf_builder, schedule_entry, measurement_result, recording_id
+            )
+
+            # Send signal
+            measurement_action_completed.send(
+                sender=self.__class__,
+                task_id=task_id,
+                data=measurement_result["data"],
+                metadata=sigmf_builder.metadata,
+            )
         action_done = perf_counter()
         logger.debug(
             f"IQ Capture and data processing completed in {action_done-start_action:.2f}"
-        )
-
-    def full_action(self, recording_id, task_id, schedule_entry, parameters):
-        # Capture IQ data
-        measurement_result = self.capture_iq(task_id, parameters)
-
-        # Generate data product (overwrites IQ data)
-        measurement_result, dp_idx = self.generate_data_product(
-            measurement_result, parameters
-        )
-
-        # Generate metadata
-        sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)
-        self.create_metadata(
-            sigmf_builder, schedule_entry, measurement_result, recording_id
-        )
-
-        # Send signal
-        measurement_action_completed.send(
-            sender=self.__class__,
-            task_id=task_id,
-            data=measurement_result["data"],
-            metadata=sigmf_builder.metadata,
         )
 
     def capture_iq(self, task_id, params) -> dict:
