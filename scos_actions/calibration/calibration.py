@@ -41,7 +41,7 @@ class Calibration:
             cal_data = filter_by_parameter(cal_data, setting, setting_value)
             if "calibration_datetime" not in cal_data:
                 cal_data["calibration_datetime"] = self.calibration_datetime
-        logger.info("Cal Data: " + str(cal_data))
+        logger.info(f"Cal Data: {cal_data}")
         return cal_data
 
     def update(self, params, calibration_datetime, gain, noise_figure, temp, file_path):
