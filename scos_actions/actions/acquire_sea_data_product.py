@@ -23,6 +23,7 @@ Currently in development.
 import gc
 import logging
 import lzma
+import threading
 from time import perf_counter
 from typing import Tuple
 
@@ -92,6 +93,16 @@ PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
 # Constants
 DATA_TYPE = np.half
 PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
+
+
+class ThreadWithResult(threading.Thread):
+    def __init__(
+        self, group=None, target=None, name=None, args=(), kwargs={}, *, daemon=None
+    ):
+        def function():
+            self.result = target(*args, **kwargs)
+
+        super().__init__(group=group, target=function, name=name, daemon=daemon)
 
 
 class NasctnSeaDataProduct(Action):
@@ -169,7 +180,7 @@ class NasctnSeaDataProduct(Action):
             # Capture IQ data
             measurement_result = self.capture_iq(task_id, parameters)
 
-            # Generate data product (overwrites IQ data)
+            # Generate data product (overwrites IQ data in measurement_result)
             measurement_result, dp_idx = self.generate_data_product(
                 measurement_result, parameters
             )
@@ -231,29 +242,47 @@ class NasctnSeaDataProduct(Action):
         self, measurement_result: dict, params: dict
     ) -> np.ndarray:
         """Process IQ data and generate the SEA data product."""
-        # TODO: Explore parallelizing computation tasks
         logger.debug(f'Generating data product for {measurement_result["task_id"]}')
         data_product = []
 
-        # Get FFT amplitudes using unfiltered data
-        logger.debug("Getting FFT results...")
+        # In parallel: FFTs and IIR filtering
+        logger.debug("Getting FFT results and IIR filtering IQ data in parallel...")
         tic = perf_counter()
-        fft_results, measurement_result = self.get_fft_results(
-            measurement_result, params
+        fft_thread = ThreadWithResult(
+            target=self.get_fft_results, args=(measurement_result, params)
         )
-        data_product.extend(fft_results)  # (max, mean)
+        iir_thread = ThreadWithResult(
+            target=sosfilt, args=(self.iir_sos, measurement_result["data"])
+        )
+        fft_thread.start()
+        iir_thread.start()
+        fft_thread.join()
+        iir_thread.join()
+        fft_results, measurement_result = fft_thread.result
+        iq = iir_thread.result
+        data_product.extend(fft_results)
         toc = perf_counter()
-        logger.debug(f"FFT computation complete in {toc-tic:.2f} s")
+        logger.debug(f"FFT and IIR done in {toc-tic:.2f} s")
 
-        # Filter IQ data
-        if params[IIR_APPLY]:
-            logger.debug(f"Applying IIR low-pass filter to IQ data...")
-            tic = perf_counter()
-            iq = sosfilt(self.iir_sos, measurement_result["data"])
-            toc = perf_counter()
-            logger.debug(f"IIR filter applied to IQ samples in {toc-tic:.2f} s")
-        else:
-            logger.debug(f"Skipping IIR filtering of IQ data...")
+        # Get FFT amplitudes using unfiltered data
+        # logger.debug("Getting FFT results...")
+        # tic = perf_counter()
+        # fft_results, measurement_result = self.get_fft_results(
+        #     measurement_result, params
+        # )
+        # data_product.extend(fft_results)  # (max, mean)
+        # toc = perf_counter()
+        # logger.debug(f"FFT computation complete in {toc-tic:.2f} s")
+
+        # # Filter IQ data
+        # if params[IIR_APPLY]:
+        #     logger.debug(f"Applying IIR low-pass filter to IQ data...")
+        #     tic = perf_counter()
+        #     iq = sosfilt(self.iir_sos, measurement_result["data"])
+        #     toc = perf_counter()
+        #     logger.debug(f"IIR filter applied to IQ samples in {toc-tic:.2f} s")
+        # else:
+        #     logger.debug(f"Skipping IIR filtering of IQ data...")
 
         logger.debug("Calculating time-domain power statistics...")
         tic = perf_counter()
