@@ -1,6 +1,9 @@
 import logging
 
 from scos_actions.hardware import switches
+from scos_actions.hardware.hardware_configuration_exception import (
+    HardwareConfigurationException,
+)
 from scos_actions.settings import SIGAN_POWER_CYCLE_STATES, SIGAN_POWER_SWITCH
 
 logger = logging.getLogger(__name__)
@@ -29,10 +32,10 @@ def power_cycle_sigan():
             else:
                 states = SIGAN_POWER_CYCLE_STATES.split(",")
                 for state in states:
-                    logger.debug("Setting state: " + state + " in power switch")
+                    logger.debug(f"Setting state: {state} in power switch")
                     power_switch.set_state(state)
         else:
-            raise Exception(
+            raise HardwareConfigurationException(
                 f"Switch {SIGAN_POWER_SWITCH} does not exist. Unable to restart signal analyzer"
             )
     else:
