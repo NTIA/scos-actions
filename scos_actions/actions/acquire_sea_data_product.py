@@ -466,14 +466,12 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"PFP IQ new shape: {iq_bins.shape}")
 
         power_bins = calculate_pseudo_power(iq_bins)
-        logger.debug(
-            f"PFP Sample pseudo power: {power_bins} (shape {power_bins.shape})"
-        )
+        logger.debug(f"PFP Sample pseudo power shape {power_bins.shape}")
 
         # compute statistics first by cycle
         rms_power = power_bins.mean(axis=0)
         peak_power = power_bins.max(axis=0)
-        logger.debug(f"PFP RMS power sample: {rms_power}")
+        logger.debug(f"PFP RMS power sample shape: {rms_power.shape}")
 
         # Finish conversion to power
         ne.evaluate("rms_power/50", out=rms_power)
