@@ -23,7 +23,6 @@ Currently in development.
 import gc
 import logging
 import lzma
-import threading
 from time import perf_counter
 from typing import Tuple
 
@@ -245,97 +244,50 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f'Generating data product for {measurement_result["task_id"]}')
         data_product = []
 
-        # In parallel: FFTs and IIR filtering
-        logger.debug("Getting FFT results and IIR filtering IQ data in parallel...")
-        tic = perf_counter()
-        fft_thread = ThreadWithResult(
-            target=self.get_fft_results, args=(measurement_result, params)
-        )
-        iir_thread = ThreadWithResult(
-            target=sosfilt, args=(self.iir_sos, measurement_result["data"])
-        )
-        fft_thread.start()
-        iir_thread.start()
-        fft_thread.join()
-        iir_thread.join()
-        fft_results, measurement_result = fft_thread.result
-        iq = iir_thread.result
-        data_product.extend(fft_results)
-        toc = perf_counter()
-        logger.debug(f"FFT and IIR done in {toc-tic:.2f} s")
-
         # Get FFT amplitudes using unfiltered data
-        # logger.debug("Getting FFT results...")
-        # tic = perf_counter()
-        # fft_results, measurement_result = self.get_fft_results(
-        #     measurement_result, params
-        # )
-        # data_product.extend(fft_results)  # (max, mean)
-        # toc = perf_counter()
-        # logger.debug(f"FFT computation complete in {toc-tic:.2f} s")
-
-        # # Filter IQ data
-        # if params[IIR_APPLY]:
-        #     logger.debug(f"Applying IIR low-pass filter to IQ data...")
-        #     tic = perf_counter()
-        #     iq = sosfilt(self.iir_sos, measurement_result["data"])
-        #     toc = perf_counter()
-        #     logger.debug(f"IIR filter applied to IQ samples in {toc-tic:.2f} s")
-        # else:
-        #     logger.debug(f"Skipping IIR filtering of IQ data...")
-
-        # logger.debug("Calculating time-domain power statistics...")
-        # tic = perf_counter()
-        # data_product.extend(self.get_td_power_results(iq, params))  # (max, mean)
-        # toc = perf_counter()
-        # logger.debug(f"Time domain power statistics calculated in {toc-tic:.2f} s")
-
-        # logger.debug("Computing periodic frame power...")
-        # tic = perf_counter()
-        # data_product.extend(
-        #     self.get_periodic_frame_power(
-        #         iq,
-        #         self.sigan.sample_rate,
-        #         PFP_FRAME_RESOLUTION_S,
-        #         1e-3 * params[PFP_FRAME_PERIOD_MS],
-        #     )
-        # )
-        # toc = perf_counter()
-        # logger.debug(f"Periodic frame power computed in {toc-tic:.2f} s")
-
-        # logger.debug("Generating APD...")
-        # tic = perf_counter()
-        # data_product.extend(self.get_apd_results(iq, params))
-        # toc = perf_counter()
-        # logger.debug(f"APD result generated in {toc-tic:.2f} s")
-
-        # In parallel: TD power, APD, PFP
-        logger.debug("Computing time domain powers, APD, and PFP...")
+        logger.debug("Getting FFT results...")
         tic = perf_counter()
-        td_thread = ThreadWithResult(
-            target=self.get_td_power_results, args=(iq, params)
+        fft_results, measurement_result = self.get_fft_results(
+            measurement_result, params
         )
-        apd_thread = ThreadWithResult(target=self.get_apd_results, args=(iq, params))
-        pfp_thread = ThreadWithResult(
-            target=self.get_periodic_frame_power,
-            args=(
+        data_product.extend(fft_results)  # (max, mean)
+        toc = perf_counter()
+        logger.debug(f"FFT computation complete in {toc-tic:.2f} s")
+
+        # Filter IQ data
+        if params[IIR_APPLY]:
+            logger.debug(f"Applying IIR low-pass filter to IQ data...")
+            tic = perf_counter()
+            iq = sosfilt(self.iir_sos, measurement_result["data"])
+            toc = perf_counter()
+            logger.debug(f"IIR filter applied to IQ samples in {toc-tic:.2f} s")
+        else:
+            logger.debug(f"Skipping IIR filtering of IQ data...")
+
+        logger.debug("Calculating time-domain power statistics...")
+        tic = perf_counter()
+        data_product.extend(self.get_td_power_results(iq, params))  # (max, mean)
+        toc = perf_counter()
+        logger.debug(f"Time domain power statistics calculated in {toc-tic:.2f} s")
+
+        logger.debug("Computing periodic frame power...")
+        tic = perf_counter()
+        data_product.extend(
+            self.get_periodic_frame_power(
                 iq,
                 self.sigan.sample_rate,
                 PFP_FRAME_RESOLUTION_S,
                 1e-3 * params[PFP_FRAME_PERIOD_MS],
-            ),
+            )
         )
-        apd_thread.start()
-        pfp_thread.start()
-        td_thread.start()
-        pfp_thread.join()
-        td_thread.join()
-        apd_thread.join()
-        data_product.extend(td_thread.result)
-        data_product.extend(pfp_thread.result)
-        data_product.extend(apd_thread.result)
         toc = perf_counter()
-        logger.debug(f"TD power, APD, and PFP processing done in {toc-tic:.2f} s")
+        logger.debug(f"Periodic frame power computed in {toc-tic:.2f} s")
+
+        logger.debug("Generating APD...")
+        tic = perf_counter()
+        data_product.extend(self.get_apd_results(iq, params))
+        toc = perf_counter()
+        logger.debug(f"APD result generated in {toc-tic:.2f} s")
 
         del iq
         measurement_result["data"] = data_product
