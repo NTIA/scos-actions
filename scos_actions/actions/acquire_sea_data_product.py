@@ -97,6 +97,10 @@ DATA_TYPE = np.half
 PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
 
 
+def unwrap_full_action(arg, **kwarg):
+    return NasctnSeaDataProduct.full_action(*arg, **kwarg)
+
+
 class NasctnSeaDataProduct(Action):
     """Acquire a stepped-frequency NASCTN SEA data product.
 
@@ -172,9 +176,13 @@ class NasctnSeaDataProduct(Action):
         #     self.full_action(recording_id, task_id, schedule_entry, parameters)
         pool = Pool(cpu_count() // 2)
         pool.starmap(
-            self.full_action,
-            enumerate(
-                zip(iteration_params, repeat(schedule_entry), repeat(task_id)), start=1
+            unwrap_full_action,
+            zip(
+                repeat(self),
+                enumerate(
+                    zip(iteration_params, repeat(schedule_entry), repeat(task_id)),
+                    start=1,
+                ),
             ),
         )
         action_done = perf_counter()
