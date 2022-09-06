@@ -460,25 +460,16 @@ class NasctnSeaDataProduct(Action):
         chunked_shape = (iqdata.shape[0] // Nframes, Npts, Nframes // Npts) + tuple(
             [iqdata.shape[1]] if iqdata.ndim == 2 else []
         )
-        logger.debug(f"PFP IQ Chunked shape: {chunked_shape}")
-
         iq_bins = iqdata.reshape(chunked_shape)
-        logger.debug(f"PFP IQ new shape: {iq_bins.shape}")
-
         power_bins = calculate_pseudo_power(iq_bins)
-        logger.debug(f"PFP Sample pseudo power shape {power_bins.shape}")
-        logger.debug(f"PFP pseudo power sample: {power_bins[0][:10][0]}")
 
         # compute statistics first by cycle
         rms_power = power_bins.mean(axis=0)
         peak_power = power_bins.max(axis=0)
-        logger.debug(f"PFP RMS power shape: {rms_power.shape}")
-        logger.debug(f"PFP RMS power sample: {rms_power[:10][0]}")
 
         # Finish conversion to power
         ne.evaluate("rms_power/50", out=rms_power)
         ne.evaluate("peak_power/50", out=peak_power)
-        logger.debug(f"RMS power scaled sample: {rms_power[:10][0]}")
 
         # then do the detector
         pfp = np.array(
@@ -493,14 +484,12 @@ class NasctnSeaDataProduct(Action):
                 peak_power.max(axis=1),
             ]
         )
-        logger.debug(f"PFP watts sample: {pfp[0][:10]}")
 
         # Convert to dBm
         pfp = convert_watts_to_dBm(pfp)
         pfp -= 3  # RF/baseband
         pfp = self.reduce_dtype(pfp)
         logger.debug(f"PFP result shape: {pfp.shape}")
-        logger.debug(f"PFP result: {pfp}")
         return tuple(pfp)
 
     def test_required_components(self):
