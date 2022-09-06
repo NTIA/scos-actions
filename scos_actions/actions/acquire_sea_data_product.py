@@ -488,6 +488,7 @@ class NasctnSeaDataProduct(Action):
             )
         )
         logger.debug(f"PFP result shape: {pfp.shape}")
+        logger.debug(f"PFP result: {pfp}")
         return tuple(pfp)
 
     def test_required_components(self):
