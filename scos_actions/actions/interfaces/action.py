@@ -59,18 +59,10 @@ class Action(ABC):
             logger.debug(f"Setting preselector RF path: {path}")
             preselector.set_state(path)
         elif self.has_preselector:
-            # Set RF path automatically if only one exists.
-            if len(preselector.rf_paths) != 1:
-                logger.debug(
-                    f"No {self.PRESELECTOR_PATH_KEY} specified, but only one is "
-                    + f" available. Setting the {self.PRESELECTOR_PATH_KEY} to "
-                    + f"{preselector.__get_rf_paths()[0]}."
-                )
-            else:
-                # Otherwise, require the RF path to be specified.
-                raise ParameterException(
-                    f"No {self.PRESELECTOR_PATH_KEY} value specified in the YAML config."
-                )
+            # Require the RF path to be specified if the sensor has a preselector.
+            raise ParameterException(
+                f"No {self.PRESELECTOR_PATH_KEY} value specified in the YAML config."
+            )
         else:
             # No preselector in use, so do not require an RF path
             pass
