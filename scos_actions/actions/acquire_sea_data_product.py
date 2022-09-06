@@ -23,6 +23,9 @@ Currently in development.
 import gc
 import logging
 import lzma
+from itertools import repeat
+from multiprocessing import Pool
+from os import cpu_count
 from time import perf_counter
 from typing import Tuple
 
@@ -165,35 +168,26 @@ class NasctnSeaDataProduct(Action):
         start_action = perf_counter()
         logger.debug(f"Setting RF path to {self.rf_path}")
         self.configure_preselector(self.rf_path)
-        for recording_id, parameters in enumerate(iteration_params, start=1):
-            self.full_action(recording_id, task_id, schedule_entry, parameters)
-            # # Capture IQ data
-            # measurement_result = self.capture_iq(task_id, parameters)
-
-            # # Generate data product (overwrites IQ data)
-            # measurement_result, dp_idx = self.generate_data_product(
-            #     measurement_result, parameters
-            # )
-
-            # # Generate metadata
-            # sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)
-            # self.create_metadata(
-            #     sigmf_builder, schedule_entry, measurement_result, recording_id
-            # )
-
-            # # Send signal
-            # measurement_action_completed.send(
-            #     sender=self.__class__,
-            #     task_id=task_id,
-            #     data=measurement_result["data"],
-            #     metadata=sigmf_builder.metadata,
-            # )
+        # for recording_id, parameters in enumerate(iteration_params, start=1):
+        #     self.full_action(recording_id, task_id, schedule_entry, parameters)
+        pool = Pool(cpu_count() // 2)
+        pool.starmap(
+            self.full_action,
+            enumerate(
+                zip(iteration_params, repeat(schedule_entry), repeat(task_id)), start=1
+            ),
+        )
         action_done = perf_counter()
         logger.debug(
             f"IQ Capture and data processing completed in {action_done-start_action:.2f}"
         )
 
-    def full_action(self, recording_id, task_id, schedule_entry, parameters):
+    def full_action(
+        self, recording_id, zip_params: tuple
+    ):  # task_id, schedule_entry, parameters):
+        parameters = zip_params[0]
+        schedule_entry = zip_params[1]
+        task_id = zip_params[2]
         # Capture IQ data
         measurement_result = self.capture_iq(task_id, parameters)
 
