@@ -23,6 +23,7 @@ Currently in development.
 import gc
 import logging
 import lzma
+import multiprocessing
 from time import perf_counter
 from typing import Tuple
 
@@ -94,14 +95,20 @@ DATA_TYPE = np.half
 PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
 
 
-class ThreadWithResult(threading.Thread):
-    def __init__(
-        self, group=None, target=None, name=None, args=(), kwargs={}, *, daemon=None
-    ):
-        def function():
-            self.result = target(*args, **kwargs)
+def unwrap_fft(arg, **kwarg):
+    return NasctnSeaDataProduct.get_fft_results(*arg, **kwarg)
 
-        super().__init__(group=group, target=function, name=name, daemon=daemon)
+
+def unwrap_tdpwr(arg, **kwarg):
+    return NasctnSeaDataProduct.get_td_power_results(*arg, **kwarg)
+
+
+def unwrap_apd(arg, **kwarg):
+    return NasctnSeaDataProduct.get_apd_results(*arg, **kwarg)
+
+
+def unwrap_pfp(arg, **kwarg):
+    return NasctnSeaDataProduct.get_periodic_frame_power(*arg, **kwarg)
 
 
 class NasctnSeaDataProduct(Action):
@@ -244,53 +251,64 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f'Generating data product for {measurement_result["task_id"]}')
         data_product = []
 
+        with multiprocessing.Pool() as pool:
+            logger.debug("Computing FFTs and applying IIR filter in parallel")
+            fft_proc = pool.apply_async(
+                unwrap_fft,
+                args=(self, measurement_result, params),
+                callback=data_product.extend,
+            )
+            iir_proc = pool.apply_async(
+                sosfilt, args=(self.iir_sos, measurement_result["data"])
+            )
+            iq = iir_proc.get()  # Waits for filtering to be done before proceeding
+            apd_proc = pool.apply_async(unwrap_apd, args=(self, iq, params))
+            td_proc = pool.apply_async(unwrap_tdpwr, args=(self, iq, params))
+            pfp_proc = pool.apply_async(unwrap_pfp, args=(self, iq, params))
+            data_product.extend(td_proc.get())
+            data_product.extend(pfp_proc.get())
+            data_product.extend(apd_proc.get())
+            del iq
+
         # Get FFT amplitudes using unfiltered data
-        logger.debug("Getting FFT results...")
-        tic = perf_counter()
-        fft_results, measurement_result = self.get_fft_results(
-            measurement_result, params
-        )
-        data_product.extend(fft_results)  # (max, mean)
-        toc = perf_counter()
-        logger.debug(f"FFT computation complete in {toc-tic:.2f} s")
+        # logger.debug("Getting FFT results...")
+        # tic = perf_counter()
+        # fft_results, measurement_result = self.get_fft_results(
+        #     measurement_result, params
+        # )
+        # data_product.extend(fft_results)  # (max, mean)
+        # toc = perf_counter()
+        # logger.debug(f"FFT computation complete in {toc-tic:.2f} s")
 
         # Filter IQ data
-        if params[IIR_APPLY]:
-            logger.debug(f"Applying IIR low-pass filter to IQ data...")
-            tic = perf_counter()
-            iq = sosfilt(self.iir_sos, measurement_result["data"])
-            toc = perf_counter()
-            logger.debug(f"IIR filter applied to IQ samples in {toc-tic:.2f} s")
-        else:
-            logger.debug(f"Skipping IIR filtering of IQ data...")
+        # if params[IIR_APPLY]:
+        #     logger.debug(f"Applying IIR low-pass filter to IQ data...")
+        #     tic = perf_counter()
+        #     iq = sosfilt(self.iir_sos, measurement_result["data"])
+        #     toc = perf_counter()
+        #     logger.debug(f"IIR filter applied to IQ samples in {toc-tic:.2f} s")
+        # else:
+        #     logger.debug(f"Skipping IIR filtering of IQ data...")
 
-        logger.debug("Calculating time-domain power statistics...")
-        tic = perf_counter()
-        data_product.extend(self.get_td_power_results(iq, params))  # (max, mean)
-        toc = perf_counter()
-        logger.debug(f"Time domain power statistics calculated in {toc-tic:.2f} s")
+        # logger.debug("Calculating time-domain power statistics...")
+        # tic = perf_counter()
+        # data_product.extend(self.get_td_power_results(iq, params))  # (max, mean)
+        # toc = perf_counter()
+        # logger.debug(f"Time domain power statistics calculated in {toc-tic:.2f} s")
 
-        logger.debug("Computing periodic frame power...")
-        tic = perf_counter()
-        data_product.extend(
-            self.get_periodic_frame_power(
-                iq,
-                self.sigan.sample_rate,
-                PFP_FRAME_RESOLUTION_S,
-                1e-3 * params[PFP_FRAME_PERIOD_MS],
-            )
-        )
-        toc = perf_counter()
-        logger.debug(f"Periodic frame power computed in {toc-tic:.2f} s")
+        # logger.debug("Computing periodic frame power...")
+        # tic = perf_counter()
+        # data_product.extend(self.get_periodic_frame_power(iq, params))
+        # toc = perf_counter()
+        # logger.debug(f"Periodic frame power computed in {toc-tic:.2f} s")
 
-        logger.debug("Generating APD...")
-        tic = perf_counter()
-        data_product.extend(self.get_apd_results(iq, params))
-        toc = perf_counter()
-        logger.debug(f"APD result generated in {toc-tic:.2f} s")
+        # logger.debug("Generating APD...")
+        # tic = perf_counter()
+        # data_product.extend(self.get_apd_results(iq, params))
+        # toc = perf_counter()
+        # logger.debug(f"APD result generated in {toc-tic:.2f} s")
 
-        del iq
-        measurement_result["data"] = data_product
+        # del iq
 
         # TODO: Optimize memory usage
         tic = perf_counter()
@@ -429,9 +447,8 @@ class NasctnSeaDataProduct(Action):
     def get_periodic_frame_power(
         self,
         iqdata: np.ndarray,
-        sampling_rate_Hz: float,
-        detector_period_s: float,
-        frame_period_s: float,
+        params: dict,
+        detector_period_s: float = PFP_FRAME_RESOLUTION_S,
     ) -> dict:
         """
         Compute a time series of periodic frame power statistics.
@@ -443,14 +460,14 @@ class NasctnSeaDataProduct(Action):
         number of frames (`frame_period/Ts`).
 
         :param iqdata: Complex-valued input waveform samples.
-        :param sampling_rate_Hz: Sampling rate (Hz) of the IQ waveform.
+        :param params:
         :param detector_period_s: Sampling period (s) within the frame.
-        :param frame_period_s: Frame period (s) to analyze.
         :return: A dict with keys "rms" and "peak", each with values (min: np.ndarray, mean: np.ndarray,
             max: np.ndarray)
         :raises ValueError: if detector_period%Ts != 0 or frame_period%detector_period != 0
         """
-        sampling_period_s = 1.0 / sampling_rate_Hz
+        sampling_period_s = 1.0 / params[SAMPLE_RATE]
+        frame_period_s = 1e-3 * params[PFP_FRAME_PERIOD_MS]
         if not np.isclose(frame_period_s % sampling_period_s, 0, 1e-6):
             raise ValueError(
                 "frame period must be positive integer multiple of the sampling period"
