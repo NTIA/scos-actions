@@ -481,25 +481,24 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"RMS power scaled sample: {rms_power[:10][0]}")
 
         # then do the detector
-        pfp = self.reduce_dtype(
-            np.array(
-                [
-                    # RMS
-                    rms_power.min(axis=1),
-                    rms_power.mean(axis=1),
-                    rms_power.max(axis=1),
-                    # Peak
-                    peak_power.min(axis=1),
-                    peak_power.mean(axis=1),
-                    peak_power.max(axis=1),
-                ]
-            )
+        pfp = np.array(
+            [
+                # RMS
+                rms_power.min(axis=1),
+                rms_power.mean(axis=1),
+                rms_power.max(axis=1),
+                # Peak
+                peak_power.min(axis=1),
+                peak_power.mean(axis=1),
+                peak_power.max(axis=1),
+            ]
         )
         logger.debug(f"PFP watts sample: {pfp[0][:10]}")
 
         # Convert to dBm
         pfp = convert_watts_to_dBm(pfp)
         pfp -= 3  # RF/baseband
+        pfp = self.reduce_dtype(pfp)
         logger.debug(f"PFP result shape: {pfp.shape}")
         logger.debug(f"PFP result: {pfp}")
         return tuple(pfp)
