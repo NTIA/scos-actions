@@ -135,7 +135,7 @@ def filter_by_parameter(calibrations, parameter, value):
 
 def check_floor_of_parameter(calibrations, parameter, value):
     value = math.floor(value)
-    logger.debug("Checking floor value of: " + str(value))
+    logger.debug(f"Checking floor value of: {value}")
     if value in calibrations:
         return calibrations[value]
     else:
@@ -144,7 +144,7 @@ def check_floor_of_parameter(calibrations, parameter, value):
 
 def check_ceiling_of_parameter(calibrations, parameter, value):
     value = math.ceil(value)
-    logger.debug("Checking ceiling at: " + str(value))
+    logger.debug(f"Checking ceiling at: {value}")
     if value in calibrations:
         return calibrations[value]
     else:

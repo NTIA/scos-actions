@@ -26,17 +26,17 @@ def load_switches(switch_dir) -> dict:
         files = os.listdir(switch_dir)
         for f in files:
             file_path = os.path.join(switch_dir, f)
-            logger.info("loading switch config " + file_path)
+            logger.info(f"loading switch config {file_path}")
             conf = utils.load_from_json(file_path)
             try:
                 switch = ControlByWebWebRelay(conf)
                 logger.info(f"Adding {switch.id}")
 
                 switch_dict[switch.id] = switch
-                logger.info("Registering switch status for " + switch.name)
+                logger.info(f"Registering switch status for {switch.name}")
                 register_component_with_status.send(__name__, component=switch)
             except (ConfigurationException):
-                logger.error("Unable to configure switch defined in: " + file_path)
+                logger.error(f"Unable to configure switch defined in: {file_path}")
 
     return switch_dict
 
@@ -52,7 +52,7 @@ def load_preslector_from_file(preselector_config_file):
             )
         except ConfigurationException:
             logger.error(
-                "Unable to create preselector defined in: " + preselector_config_file
+                f"Unable to create preselector defined in: {preselector_config_file}"
             )
     return None
 
@@ -63,7 +63,7 @@ def load_preselector(preselector_config, module, preselector_class_name):
         preselector_constructor = getattr(preselector_module, preselector_class_name)
         ps = preselector_constructor(capabilities["sensor"], preselector_config)
         if ps and ps.name:
-            logger.info("Registering " + ps.name + " as status provider")
+            logger.info(f"Registering {ps.name} as status provider")
             register_component_with_status.send(__name__, component=ps)
     else:
         ps = None

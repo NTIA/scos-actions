@@ -28,7 +28,7 @@ if not settings.configured or not hasattr(settings, "SENSOR_CALIBRATION_FILE"):
     sensor_calibration = None
 else:
     SENSOR_CALIBRATION_FILE = settings.SENSOR_CALIBRATION_FILE
-    logger.debug("SCOS_ACTIONS: SENSOR_CALIBRATION_FILE: " + SENSOR_CALIBRATION_FILE)
+    logger.debug(f"SCOS_ACTIONS: SENSOR_CALIBRATION_FILE: {SENSOR_CALIBRATION_FILE}")
 
 SWITCH_CONFIGS_DIR = env("SWITCH_CONFIGS_DIR", default=None)
 if not settings.configured:
