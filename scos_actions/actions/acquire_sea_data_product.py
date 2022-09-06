@@ -24,6 +24,7 @@ import gc
 import logging
 import lzma
 import multiprocessing
+from copy import deepcopy
 from time import perf_counter
 from typing import Tuple
 
@@ -253,18 +254,20 @@ class NasctnSeaDataProduct(Action):
 
         with multiprocessing.Pool() as pool:
             logger.debug("Computing FFTs and applying IIR filter in parallel")
+            self_no_sigan = deepcopy(self)
+            del self_no_sigan.sigan
             fft_proc = pool.apply_async(
                 unwrap_fft,
-                args=(self, measurement_result, params),
+                args=(self_no_sigan, measurement_result, params),
                 callback=data_product.extend,
             )
             iir_proc = pool.apply_async(
                 sosfilt, args=(self.iir_sos, measurement_result["data"])
             )
             iq = iir_proc.get()  # Waits for filtering to be done before proceeding
-            apd_proc = pool.apply_async(unwrap_apd, args=(self, iq, params))
-            td_proc = pool.apply_async(unwrap_tdpwr, args=(self, iq, params))
-            pfp_proc = pool.apply_async(unwrap_pfp, args=(self, iq, params))
+            apd_proc = pool.apply_async(unwrap_apd, args=(self_no_sigan, iq, params))
+            td_proc = pool.apply_async(unwrap_tdpwr, args=(self_no_sigan, iq, params))
+            pfp_proc = pool.apply_async(unwrap_pfp, args=(self_no_sigan, iq, params))
             data_product.extend(td_proc.get())
             data_product.extend(pfp_proc.get())
             data_product.extend(apd_proc.get())
