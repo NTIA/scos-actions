@@ -454,19 +454,26 @@ class NasctnSeaDataProduct(Action):
 
         Nframes = int(np.round(frame_period_s / sampling_period_s))
         Npts = int(np.round(frame_period_s / detector_period_s))
+        logger.debug(f"PFP Nframes: {Nframes}, Npts: {Npts}")
 
         # set up dimensions to make the statistics fast
         chunked_shape = (iqdata.shape[0] // Nframes, Npts, Nframes // Npts) + tuple(
             [iqdata.shape[1]] if iqdata.ndim == 2 else []
         )
+        logger.debug(f"PFP IQ Chunked shape: {chunked_shape}")
 
         iq_bins = iqdata.reshape(chunked_shape)
+        logger.debug(f"PFP IQ new shape: {iq_bins.shape}")
 
         power_bins = calculate_pseudo_power(iq_bins)
+        logger.debug(
+            f"PFP Sample pseudo power: {power_bins} (shape {power_bins.shape})"
+        )
 
         # compute statistics first by cycle
         rms_power = power_bins.mean(axis=0)
         peak_power = power_bins.max(axis=0)
+        logger.debug(f"PFP RMS power sample: {rms_power}")
 
         # Finish conversion to power
         ne.evaluate("rms_power/50", out=rms_power)
@@ -487,6 +494,10 @@ class NasctnSeaDataProduct(Action):
                 ]
             )
         )
+
+        # Convert to dBm
+        pfp = convert_watts_to_dBm(pfp)
+        pfp -= 3  # RF/baseband
         logger.debug(f"PFP result shape: {pfp.shape}")
         logger.debug(f"PFP result: {pfp}")
         return tuple(pfp)
