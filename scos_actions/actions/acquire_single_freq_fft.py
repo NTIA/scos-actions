@@ -90,7 +90,6 @@ import logging
 
 from numpy import float32, ndarray
 
-from scos_actions import utils
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.metadata.annotations import FrequencyDomainDetection
@@ -111,11 +110,11 @@ from scos_actions.signal_processing.unit_conversion import (
     convert_linear_to_dB,
     convert_watts_to_dBm,
 )
-from scos_actions.utils import get_parameter
+from scos_actions.utils import get_datetime_str_now, get_parameter
 
 logger = logging.getLogger(__name__)
 
-# Define paramter keys
+# Define parameter keys
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 NUM_SKIP = "nskip"
@@ -161,7 +160,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
 
     def execute(self, schedule_entry, task_id) -> dict:
         # Acquire IQ data and generate M4S result
-        start_time = utils.get_datetime_str_now()
+        start_time = get_datetime_str_now()
         measurement_result = self.acquire_data(self.num_samples, self.nskip)
         # Actual sample rate may differ from configured value
         sample_rate_Hz = measurement_result["sample_rate"]
@@ -170,7 +169,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         # Save measurement results
         measurement_result["data"] = m4s_result
         measurement_result["start_time"] = start_time
-        measurement_result["end_time"] = utils.get_datetime_str_now()
+        measurement_result["end_time"] = get_datetime_str_now()
         measurement_result["enbw"] = get_fft_enbw(self.fft_window, sample_rate_Hz)
         frequencies = get_fft_frequencies(
             self.fft_size, sample_rate_Hz, self.frequency_Hz
