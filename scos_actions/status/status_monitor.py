@@ -4,7 +4,6 @@ logger = logging.getLogger(__name__)
 
 
 class StatusMonitor:
-
     def __init__(self):
         logger.info("Initializing StatusMonitor")
         self.status_components = []

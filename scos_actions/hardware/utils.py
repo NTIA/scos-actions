@@ -21,7 +21,7 @@ def power_cycle_sigan():
     else:
         logger.debug(f"hardware utils has {len(switches)}")
         for key, value in switches.items():
-            logger.debug(key + ": " + str(value))
+            logger.debug(f"{key}: {value}")
 
     if SIGAN_POWER_SWITCH and SIGAN_POWER_CYCLE_STATES:
         logger.debug(f"searching for {SIGAN_POWER_SWITCH}")
