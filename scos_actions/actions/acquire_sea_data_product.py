@@ -255,7 +255,7 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f'Generating data product for {measurement_result["task_id"]}')
         data_product = []
 
-        with multiprocessing.Pool() as pool:
+        with multiprocessing.Pool(4) as pool:
             logger.debug("Computing FFTs and applying IIR filter in parallel")
             fft_proc = pool.apply_async(
                 unwrap_fft,
@@ -275,9 +275,11 @@ class NasctnSeaDataProduct(Action):
             pfp_proc = pool.apply_async(unwrap_pfp, args=(iq, params))
             logger.debug("APD, PFP, TD_PWR processes created")
             data_product.extend(td_proc.get())
+            logger.debug("Got TD power results")
             data_product.extend(pfp_proc.get())
+            logger.debug("Got PFP results")
             data_product.extend(apd_proc.get())
-            logger.debug("Got all results")
+            logger.debug("Got APD results")
             del iq
         logger.debug("Pool closed")
 
@@ -359,7 +361,7 @@ class NasctnSeaDataProduct(Action):
             fft_window=FFT_WINDOW,
             num_ffts=params[NUM_FFTS],
             shift=False,
-            # workers=1,  # TODO: Configure for parallelization
+            workers=1,  # TODO: Configure for parallelization
         )
         fft_result = calculate_pseudo_power(fft_result)
         fft_result = apply_power_detector(fft_result, FFT_DETECTOR)  # (max, mean)
