@@ -594,7 +594,7 @@ class NasctnSeaDataProduct(Action):
         )
 
         # Annotate FFT
-        for i, detector in enumerate(self.fft_detector):
+        for i, detector in enumerate(FFT_DETECTOR):
             fft_annotation = FrequencyDomainDetection(
                 sample_start=dp_idx[i],
                 sample_count=dp_idx[i + 1] - dp_idx[i],
