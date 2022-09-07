@@ -260,8 +260,10 @@ class NasctnSeaDataProduct(Action):
             fft_proc = pool.apply_async(
                 unwrap_fft,
                 args=(measurement_result, params),
-                callback=data_product.extend,
+                # callback=data_product.extend,
             )
+            data_product.extend(fft_proc.get())
+            logger.debug("Got FFT results")
             iir_proc = pool.apply_async(
                 sosfilt, args=(self.iir_sos, measurement_result["data"])
             )
