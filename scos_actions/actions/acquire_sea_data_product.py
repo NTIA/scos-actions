@@ -107,7 +107,9 @@ def iir_filter(iir_sos: np.ndarray, iqdata: np.ndarray) -> np.ndarray:
 
 
 @ray.remote
-def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
+def get_fft_results(
+    iqdata: np.ndarray, params: dict, logger: logging.Logger
+) -> Tuple[np.ndarray, np.ndarray]:
     """Compute data product mean/max FFT results from IQ samples."""
     # IQ data already scaled for calibrated gain
     fft_result = get_fft(
@@ -131,13 +133,13 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
 
     # Truncate FFT result
     # TODO These parameters can be hardcoded
-    # logger.debug(f"Pre-truncated FFT result shape: {fft_result.shape}")
+    logger.debug(f"Pre-truncated FFT result shape: {fft_result.shape}")
     bw_trim = (params[SAMPLE_RATE] / 1.4) / 5
     delta_f = params[SAMPLE_RATE] / FFT_SIZE
     bin_start = int(bw_trim / delta_f)
     bin_end = FFT_SIZE - bin_start
     fft_result = fft_result[:, bin_start:bin_end]
-    # logger.debug(f"Truncated FFT result length: {fft_result.shape}")
+    logger.debug(f"Truncated FFT result length: {fft_result.shape}")
 
     # Reduce data type
     fft_result = NasctnSeaDataProduct.reduce_dtype(fft_result)
@@ -156,7 +158,9 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
 
 
 @ray.remote
-def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
+def get_apd_results(
+    iqdata: np.ndarray, params: dict, logger: logging.Logger
+) -> Tuple[np.ndarray, np.ndarray]:
     """Generate downsampled APD result from IQ samples."""
     p, a = get_apd(iqdata, params[APD_BIN_SIZE_DB])
     # Convert dBV to dBm:
@@ -171,7 +175,7 @@ def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
 
 @ray.remote
 def get_td_power_results(
-    iqdata: np.ndarray, params: dict
+    iqdata: np.ndarray, params: dict, logger: logging.Logger
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Compute mean/max time domain power statistics from IQ samples, with optional quantile filtering."""
     # Reshape IQ data into blocks
@@ -214,6 +218,7 @@ def get_td_power_results(
 def get_periodic_frame_power(
     iqdata: np.ndarray,
     params: dict,
+    logger: logging.Logger,
     detector_period_s: float = PFP_FRAME_RESOLUTION_S,
 ) -> dict:
     """
@@ -429,15 +434,16 @@ class NasctnSeaDataProduct(Action):
         data_product = []
 
         logger.debug(f"Starting FFT process")  # Other tasks may proceed
-        fft_ray = get_fft_results.remote(measurement_result["data"], params)
+        fft_ray = get_fft_results.remote(measurement_result["data"], params, logger)
 
         logger.debug(f"Applying IIR filter")
-        iq = iir_filter.remote(self.iir_sos, measurement_result["data"])
+        iir_proc = iir_filter.remote(self.iir_sos, measurement_result["data"])
+        iq = ray.get(iir_proc)
 
         # Processes won't start until IIR filtering finishes
-        apd_ray = get_apd_results.remote(iq, params)
-        pfp_ray = get_periodic_frame_power.remote(iq, params)
-        td_ray = get_td_power_results.remote(iq, params)
+        apd_ray = get_apd_results.remote(iq, params, logger)
+        pfp_ray = get_periodic_frame_power.remote(iq, params, logger)
+        td_ray = get_td_power_results.remote(iq, params, logger)
 
         # Get process results and construct data product
         fft_data, fft_meta = ray.get(fft_ray)
