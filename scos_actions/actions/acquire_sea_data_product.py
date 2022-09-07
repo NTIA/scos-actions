@@ -77,11 +77,11 @@ IIR_PB_EDGE = "iir_pb_edge_Hz"
 IIR_SB_EDGE = "iir_sb_edge_Hz"
 IIR_RESP_FREQS = "iir_num_response_frequencies"
 QFILT_APPLY = "qfilt_apply"
-Q_LO = "qfilt_qlo"
-Q_HI = "qfilt_qhi"
-FFT_SIZE = "fft_size"
+# Q_LO = "qfilt_qlo"
+# Q_HI = "qfilt_qhi"
+# FFT_SIZE = "fft_size"
 NUM_FFTS = "nffts"
-FFT_WINDOW_TYPE = "fft_window_type"
+# FFT_WINDOW_TYPE = "fft_window_type"
 APD_BIN_SIZE_DB = "apd_bin_size_dB"
 TD_BIN_SIZE_MS = "td_bin_size_ms"
 ROUND_TO = "round_to_places"
@@ -112,6 +112,21 @@ def unwrap_pfp(arg, **kwarg):
     return NasctnSeaDataProduct.get_periodic_frame_power(*arg, **kwarg)
 
 
+# Hard-coded algorithm parameters
+QFILT_QLO = 0.00015
+QFILT_QHI = 0.99999
+FFT_SIZE = 875
+FFT_WINDOW_TYPE = "flattop"
+
+# Generate FFT window and correction factor
+FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
+FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
+
+# Create power detectors
+TD_DETECTOR = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
+FFT_DETECTOR = create_power_detector("FftMeanMaxDetector", ["mean", "max"])
+
+
 class NasctnSeaDataProduct(Action):
     """Acquire a stepped-frequency NASCTN SEA data product.
 
@@ -133,10 +148,6 @@ class NasctnSeaDataProduct(Action):
         self.iir_gstop_dB = utils.get_parameter(IIR_GSTOP, self.parameters)
         self.iir_pb_edge_Hz = utils.get_parameter(IIR_PB_EDGE, self.parameters)
         self.iir_sb_edge_Hz = utils.get_parameter(IIR_SB_EDGE, self.parameters)
-        self.qfilt_qlo = utils.get_parameter(Q_LO, self.parameters)
-        self.qfilt_qhi = utils.get_parameter(Q_HI, self.parameters)
-        self.fft_window_type = utils.get_parameter(FFT_WINDOW_TYPE, self.parameters)
-        self.fft_size = utils.get_parameter(FFT_SIZE, self.parameters)
         self.sample_rate_Hz = utils.get_parameter(SAMPLE_RATE, self.parameters)
 
         # Construct IIR filter
@@ -148,14 +159,6 @@ class NasctnSeaDataProduct(Action):
             self.sample_rate_Hz,
         )
 
-        # Generate FFT window and get its energy correction factor
-        self.fft_window = get_fft_window(self.fft_window_type, self.fft_size)
-        self.fft_window_ecf = get_fft_window_correction(self.fft_window, "energy")
-
-        # Create power detectors
-        self.fft_detector = create_power_detector("FftMeanMaxDetector", ["mean", "max"])
-        self.td_detector = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
-
         # Temporary: remove config parameters which will be hard-coded eventually
         for key in [
             IIR_GPASS,
@@ -163,9 +166,9 @@ class NasctnSeaDataProduct(Action):
             IIR_PB_EDGE,
             IIR_SB_EDGE,
             IIR_RESP_FREQS,
-            Q_LO,
-            Q_HI,
-            FFT_WINDOW_TYPE,
+            # Q_LO,
+            # Q_HI,
+            # FFT_WINDOW_TYPE,
         ]:
             self.parameters.pop(key)
 
@@ -254,20 +257,18 @@ class NasctnSeaDataProduct(Action):
 
         with multiprocessing.Pool() as pool:
             logger.debug("Computing FFTs and applying IIR filter in parallel")
-            self_no_sigan = deepcopy(self)
-            del self_no_sigan.sigan
             fft_proc = pool.apply_async(
                 unwrap_fft,
-                args=(self_no_sigan, measurement_result, params),
+                args=(measurement_result, params),
                 callback=data_product.extend,
             )
             iir_proc = pool.apply_async(
                 sosfilt, args=(self.iir_sos, measurement_result["data"])
             )
             iq = iir_proc.get()  # Waits for filtering to be done before proceeding
-            apd_proc = pool.apply_async(unwrap_apd, args=(self_no_sigan, iq, params))
-            td_proc = pool.apply_async(unwrap_tdpwr, args=(self_no_sigan, iq, params))
-            pfp_proc = pool.apply_async(unwrap_pfp, args=(self_no_sigan, iq, params))
+            apd_proc = pool.apply_async(unwrap_apd, args=(iq, params))
+            td_proc = pool.apply_async(unwrap_tdpwr, args=(iq, params))
+            pfp_proc = pool.apply_async(unwrap_pfp, args=(iq, params))
             data_product.extend(td_proc.get())
             data_product.extend(pfp_proc.get())
             data_product.extend(apd_proc.get())
@@ -338,8 +339,9 @@ class NasctnSeaDataProduct(Action):
 
         return measurement_result, dp_idx
 
+    @staticmethod
     def get_fft_results(
-        self, measurement_result: dict, params: dict
+        measurement_result: dict, params: dict
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Compute data product mean/max FFT results from IQ samples."""
         # IQ data already scaled for calibrated gain
@@ -347,13 +349,13 @@ class NasctnSeaDataProduct(Action):
             time_data=measurement_result["data"],
             fft_size=params[FFT_SIZE],
             norm="backward",
-            fft_window=self.fft_window,
+            fft_window=FFT_WINDOW,
             num_ffts=params[NUM_FFTS],
             shift=False,
             # workers=1,  # TODO: Configure for parallelization
         )
         fft_result = calculate_pseudo_power(fft_result)
-        fft_result = apply_power_detector(fft_result, self.fft_detector)  # (max, mean)
+        fft_result = apply_power_detector(fft_result, FFT_DETECTOR)  # (max, mean)
         ne.evaluate("fft_result/50", out=fft_result)  # Finish conversion to Watts
         # Shift frequencies of reduced result
         fft_result = np.fft.fftshift(fft_result, axes=(1,))
@@ -363,7 +365,7 @@ class NasctnSeaDataProduct(Action):
             params[SAMPLE_RATE] * params[FFT_SIZE]
         )  # PSD scaling
         fft_result += 2.0 * convert_linear_to_dB(
-            self.fft_window_ecf
+            FFT_WINDOW_ECF
         )  # Window energy correction
 
         # Truncate FFT result
@@ -377,7 +379,7 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Truncated FFT result length: {fft_result.shape}")
 
         # Reduce data type
-        fft_result = self.reduce_dtype(fft_result)
+        fft_result = NasctnSeaDataProduct.reduce_dtype(fft_result)
 
         # Get FFT metadata for annotation: ENBW, frequency axis
         fft_freqs_Hz = get_fft_frequencies(
@@ -386,14 +388,13 @@ class NasctnSeaDataProduct(Action):
         measurement_result["fft_frequency_start"] = fft_freqs_Hz[bin_start]
         measurement_result["fft_frequency_stop"] = fft_freqs_Hz[bin_end - 1]
         measurement_result["fft_frequency_step"] = fft_freqs_Hz[1] - fft_freqs_Hz[0]
-        measurement_result["fft_enbw"] = get_fft_enbw(
-            self.fft_window, params[SAMPLE_RATE]
-        )
+        measurement_result["fft_enbw"] = get_fft_enbw(FFT_WINDOW, params[SAMPLE_RATE])
         del fft_freqs_Hz
         return (fft_result[0], fft_result[1]), measurement_result
 
+    @staticmethod
     def get_apd_results(
-        self, iqdata: np.ndarray, params: dict
+        iqdata: np.ndarray, params: dict
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Generate downsampled APD result from IQ samples."""
         p, a = get_apd(iqdata, params[APD_BIN_SIZE_DB])
@@ -403,11 +404,12 @@ class NasctnSeaDataProduct(Action):
         # a = a + 27 : dBW --> dBm (+30) and RF/baseband conversion (-3)
         scale_factor = 27 - convert_linear_to_dB(50.0)  # Hard-coded for 50 Ohms.
         ne.evaluate("(a*2)+scale_factor", out=a)
-        p, a = (self.reduce_dtype(x) for x in (p, a))
+        p, a = (NasctnSeaDataProduct.reduce_dtype(x) for x in (p, a))
         return p, a
 
+    @staticmethod
     def get_td_power_results(
-        self, iqdata: np.ndarray, params: dict
+        iqdata: np.ndarray, params: dict
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Compute mean/max time domain power statistics from IQ samples, with optional quantile filtering."""
         # Reshape IQ data into blocks
@@ -423,7 +425,7 @@ class NasctnSeaDataProduct(Action):
         if params[QFILT_APPLY]:
             # Apply quantile filtering before computing power statistics
             logger.info("Quantile-filtering time domain power data...")
-            iq_pwr = filter_quantiles(iq_pwr, self.qfilt_qlo, self.qfilt_qhi)
+            iq_pwr = filter_quantiles(iq_pwr, QFILT_QLO, QFILT_QHI)
             # Diagnostics
             num_nans = np.count_nonzero(np.isnan(iq_pwr))
             nan_pct = num_nans * 100 / len(iq_pwr.flatten())
@@ -434,7 +436,7 @@ class NasctnSeaDataProduct(Action):
             logger.info("Quantile-filtering disabled. Skipping...")
 
         # Apply mean/max detectors
-        td_result = apply_power_detector(iq_pwr, self.td_detector, ignore_nan=True)
+        td_result = apply_power_detector(iq_pwr, TD_DETECTOR, ignore_nan=True)
 
         # Convert to dBm
         td_result = convert_watts_to_dBm(td_result)
@@ -443,12 +445,12 @@ class NasctnSeaDataProduct(Action):
         td_result -= 3
 
         # Reduce data type
-        td_result = self.reduce_dtype(td_result)
+        td_result = NasctnSeaDataProduct.reduce_dtype(td_result)
 
         return td_result[0], td_result[1]  # (max, mean)
 
+    @staticmethod
     def get_periodic_frame_power(
-        self,
         iqdata: np.ndarray,
         params: dict,
         detector_period_s: float = PFP_FRAME_RESOLUTION_S,
@@ -517,7 +519,7 @@ class NasctnSeaDataProduct(Action):
         # Convert to dBm
         pfp = convert_watts_to_dBm(pfp)
         pfp -= 3  # RF/baseband
-        pfp = self.reduce_dtype(pfp)
+        pfp = NasctnSeaDataProduct.reduce_dtype(pfp)
         logger.debug(f"PFP result shape: {pfp.shape}")
         return tuple(pfp)
 
@@ -588,7 +590,7 @@ class NasctnSeaDataProduct(Action):
                 sample_count=dp_idx[i + 1] - dp_idx[i],
                 detector=detector.value,
                 number_of_ffts=int(measurement_result[NUM_FFTS]),
-                number_of_samples_in_fft=self.fft_size,
+                number_of_samples_in_fft=FFT_SIZE,
                 window=self.fft_window_type,
                 # equivalent_noise_bandwidth=measurement_result["fft_enbw"],
                 units="dBm/Hz",
@@ -602,7 +604,7 @@ class NasctnSeaDataProduct(Action):
             )
 
         # Annotate time domain power statistics
-        for i, detector in enumerate(self.td_detector):
+        for i, detector in enumerate(TD_DETECTOR):
             td_annotation = TimeDomainDetection(
                 sample_start=dp_idx[i + 2],
                 sample_count=dp_idx[i + 3] - dp_idx[i + 2],
@@ -621,7 +623,8 @@ class NasctnSeaDataProduct(Action):
 
         return sigmf_builder
 
-    def reduce_dtype(self, data_array: np.ndarray, data_type=DATA_TYPE) -> np.ndarray:
+    @staticmethod
+    def reduce_dtype(data_array: np.ndarray, data_type=DATA_TYPE) -> np.ndarray:
         return data_array.astype(data_type)
 
     def transform_data(self, measurement_result: dict):
