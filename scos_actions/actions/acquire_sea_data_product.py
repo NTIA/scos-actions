@@ -265,14 +265,21 @@ class NasctnSeaDataProduct(Action):
             iir_proc = pool.apply_async(
                 sosfilt, args=(self.iir_sos, measurement_result["data"])
             )
+            logger.debug("IIR and FFT processes created")
             iq = iir_proc.get()  # Waits for filtering to be done before proceeding
+            logger.debug(
+                "Got IIR filtered IQ data. Creating APD, TD PWR, PFP processes"
+            )
             apd_proc = pool.apply_async(unwrap_apd, args=(iq, params))
             td_proc = pool.apply_async(unwrap_tdpwr, args=(iq, params))
             pfp_proc = pool.apply_async(unwrap_pfp, args=(iq, params))
+            logger.debug("APD, PFP, TD_PWR processes created")
             data_product.extend(td_proc.get())
             data_product.extend(pfp_proc.get())
             data_product.extend(apd_proc.get())
+            logger.debug("Got all results")
             del iq
+        logger.debug("Pool closed")
 
         # Get FFT amplitudes using unfiltered data
         # logger.debug("Getting FFT results...")
