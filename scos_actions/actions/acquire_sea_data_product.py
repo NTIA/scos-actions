@@ -96,8 +96,8 @@ PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
 
 
 # DSP tasks to parallelize
-ray.shutdown()
-ray.init()
+# ray.shutdown()
+ray.init(ignore_reinit_error=True)
 
 
 @ray.remote
@@ -131,13 +131,13 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
 
     # Truncate FFT result
     # TODO These parameters can be hardcoded
-    logger.debug(f"Pre-truncated FFT result shape: {fft_result.shape}")
+    # logger.debug(f"Pre-truncated FFT result shape: {fft_result.shape}")
     bw_trim = (params[SAMPLE_RATE] / 1.4) / 5
     delta_f = params[SAMPLE_RATE] / params[FFT_SIZE]
     bin_start = int(bw_trim / delta_f)
     bin_end = params[FFT_SIZE] - bin_start
     fft_result = fft_result[:, bin_start:bin_end]
-    logger.debug(f"Truncated FFT result length: {fft_result.shape}")
+    # logger.debug(f"Truncated FFT result length: {fft_result.shape}")
 
     # Reduce data type
     fft_result = NasctnSeaDataProduct.reduce_dtype(fft_result)
