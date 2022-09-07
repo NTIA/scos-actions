@@ -96,6 +96,8 @@ PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
 
 
 # DSP tasks to parallelize
+ray.shutdown()
+ray.init()
 
 
 @ray.remote
