@@ -112,7 +112,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     # IQ data already scaled for calibrated gain
     fft_result = get_fft(
         time_data=iqdata,
-        fft_size=params[FFT_SIZE],
+        fft_size=FFT_SIZE,
         norm="backward",
         fft_window=FFT_WINDOW,
         num_ffts=params[NUM_FFTS],
@@ -126,16 +126,16 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     fft_result = np.fft.fftshift(fft_result, axes=(1,))
     fft_result = convert_watts_to_dBm(fft_result)
     fft_result -= 3  # Baseband/RF power conversion
-    fft_result -= 10.0 * np.log10(params[SAMPLE_RATE] * params[FFT_SIZE])  # PSD scaling
+    fft_result -= 10.0 * np.log10(params[SAMPLE_RATE] * FFT_SIZE)  # PSD scaling
     fft_result += 2.0 * convert_linear_to_dB(FFT_WINDOW_ECF)  # Window energy correction
 
     # Truncate FFT result
     # TODO These parameters can be hardcoded
     # logger.debug(f"Pre-truncated FFT result shape: {fft_result.shape}")
     bw_trim = (params[SAMPLE_RATE] / 1.4) / 5
-    delta_f = params[SAMPLE_RATE] / params[FFT_SIZE]
+    delta_f = params[SAMPLE_RATE] / FFT_SIZE
     bin_start = int(bw_trim / delta_f)
-    bin_end = params[FFT_SIZE] - bin_start
+    bin_end = FFT_SIZE - bin_start
     fft_result = fft_result[:, bin_start:bin_end]
     # logger.debug(f"Truncated FFT result length: {fft_result.shape}")
 
@@ -143,9 +143,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     fft_result = NasctnSeaDataProduct.reduce_dtype(fft_result)
 
     # Get FFT metadata for annotation: ENBW, frequency axis
-    fft_freqs_Hz = get_fft_frequencies(
-        params[FFT_SIZE], params[SAMPLE_RATE], params[FREQUENCY]
-    )
+    fft_freqs_Hz = get_fft_frequencies(FFT_SIZE, params[SAMPLE_RATE], params[FREQUENCY])
     fft_freq_start = fft_freqs_Hz[bin_start]
     fft_freq_stop = fft_freqs_Hz[bin_end - 1]
     fft_freq_step = fft_freqs_Hz[1] - fft_freqs_Hz[0]
