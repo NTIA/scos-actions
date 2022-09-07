@@ -464,7 +464,6 @@ class NasctnSeaDataProduct(Action):
         )
         tic = perf_counter()
         logger.debug(f"Got all results {tic-toc:.2f} s after all processes started")
-        logger.debug(f"Type of IQ data: {type(iq)}, shape: {iq.shape}")
         tic = perf_counter()
         del iq
         toc = perf_counter()
