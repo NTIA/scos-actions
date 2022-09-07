@@ -15,6 +15,7 @@ parameters = {
     "sample_rate": 15.36e6,
     "fft_size": 1024,
     "nffts": 300,
+    "nskip": 15.36e4
 }
 schedule_entry_json = {
     "name": "test_m4s_multi_1",

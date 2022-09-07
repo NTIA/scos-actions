@@ -4,6 +4,9 @@ from os import path
 from django.conf import settings
 
 from scos_actions import calibration
+from environs import Env
+
+env = Env()
 
 logger = logging.getLogger(__name__)
 
@@ -56,8 +59,8 @@ if not settings.configured:
     PRESELECTOR_CONFIG_FILE = None
     SENSOR_DEFINITION_FILE = None
     FQDN = None
-    PRESELECTOR_MODULE = "its_preselector.web_relay_preselector"
-    PRESELECTOR_CLASS = "WebRelayPreselector"
+    PRESELECTOR_MODULE = env.str("PRESELECTOR_MODULE", "its_preselector.web_relay_preselector")
+    PRESELECTOR_CLASS = env.str("PRESELECTOR_CLASS", "WebRelayPreselector")
 else:
     MOCK_SIGAN = settings.MOCK_SIGAN
     RUNNING_TESTS = settings.RUNNING_TESTS
