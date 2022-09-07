@@ -393,6 +393,13 @@ class NasctnSeaDataProduct(Action):
 
     def capture_iq(self, task_id, params) -> dict:
         """Acquire a single gap-free stream of IQ samples."""
+        logger.debug(f"GC Count (IQ Cap): {gc.get_count()}")
+        tic = perf_counter()
+        gc.collect()  # Computationally expensive!
+        toc = perf_counter()
+        logger.debug(f"GC Count (IQ Cap) after collection: {gc.get_count()}")
+        print(f"Collected garbage in {toc-tic:.2f} s")
+
         start_time = utils.get_datetime_str_now()
         tic = perf_counter()
         # Configure signal analyzer + preselector
@@ -431,31 +438,43 @@ class NasctnSeaDataProduct(Action):
     ) -> np.ndarray:
         """Process IQ data and generate the SEA data product."""
         logger.debug(f'Generating data product for {measurement_result["task_id"]}')
-        data_product = []
 
         logger.debug(f"Starting FFT process")  # Other tasks may proceed
         fft_ray = get_fft_results.remote(measurement_result["data"], params, logger)
 
         logger.debug(f"Applying IIR filter")
-        iir_proc = iir_filter.remote(self.iir_sos, measurement_result["data"])
-        iq = ray.get(iir_proc)
+        iq = iir_filter.remote(self.iir_sos, measurement_result["data"])
 
         # Processes won't start until IIR filtering finishes
+        logger.debug("Starting APD, PFP, TDPWR processes")
+        tic = perf_counter()
         apd_ray = get_apd_results.remote(iq, params, logger)
         pfp_ray = get_periodic_frame_power.remote(iq, params, logger)
         td_ray = get_td_power_results.remote(iq, params, logger)
+        toc = perf_counter()
+        logger.debug(f"Processes started in {toc-tic:.2f} s")
 
         # Get process results and construct data product
-        fft_data, fft_meta = ray.get(fft_ray)
-        td_data = ray.get(td_ray)
-        pfp_data = ray.get(pfp_ray)
-        apd_data = ray.get(apd_ray)
+        # fft_data, fft_meta = ray.get(fft_ray)
+        # td_data = ray.get(td_ray)
+        # pfp_data = ray.get(pfp_ray)
+        # apd_data = ray.get(apd_ray)
+        fft_data, td_data, pfp_data, apd_data = (
+            ray.get(p) for p in [fft_ray, td_ray, pfp_ray, apd_ray]
+        )
+        tic = perf_counter()
+        logger.debug(f"Got all results {tic-toc:.2f} s after all processes started")
+        logger.debug(f"Type of IQ data: {type(iq)}, shape: {iq.shape}")
+        tic = perf_counter()
         del iq
+        toc = perf_counter()
+        logger.debug(f"Deleted IQ data in {toc-tic:.2f} s")
 
         # Construct single data product result
+        tic = perf_counter()
         data_product = [
-            fft_data[0],  # Mean FFT amplitudes
-            fft_data[1],  # Max FFT amplitudes
+            fft_data[0][0],  # Mean FFT amplitudes
+            fft_data[0][1],  # Max FFT amplitudes
             td_data[0],  # Mean TD power
             td_data[1],  # Max TD power
             pfp_data[0],  # Min RMS PFP
@@ -467,12 +486,17 @@ class NasctnSeaDataProduct(Action):
             apd_data[0],  # APD probabilities
             apd_data[1],  # APD amplitudes
         ]
+        toc = perf_counter()
+        logger.debug(f"Combined all results in {toc-tic:.2f} s")
 
         # Save FFT metadata to measurement_result
-        measurement_result["fft_frequency_start"] = fft_meta[0]
-        measurement_result["fft_frequency_stop"] = fft_meta[1]
-        measurement_result["fft_frequency_step"] = fft_meta[2]
-        measurement_result["fft_enbw"] = fft_meta[3]
+        tic = perf_counter()
+        measurement_result["fft_frequency_start"] = fft_data[1][0]
+        measurement_result["fft_frequency_stop"] = fft_data[1][1]
+        measurement_result["fft_frequency_step"] = fft_data[1][2]
+        measurement_result["fft_enbw"] = fft_data[1][3]
+        toc = perf_counter()
+        logger.debug(f"Saved FFT metadata in {toc-tic:.2f} s")
 
         # Get FFT amplitudes using unfiltered data
         # logger.debug("Getting FFT results...")
@@ -515,9 +539,11 @@ class NasctnSeaDataProduct(Action):
         # del iq
 
         # TODO: Optimize memory usage
+        logger.debug(f"GC Count: {gc.get_count()}")
         tic = perf_counter()
         gc.collect()  # Computationally expensive!
         toc = perf_counter()
+        logger.debug(f"GC Count after collection: {gc.get_count()}")
         print(f"Collected garbage in {toc-tic:.2f} s")
 
         # Skip rounding for now
