@@ -601,7 +601,7 @@ class NasctnSeaDataProduct(Action):
                 detector=detector.value,
                 number_of_ffts=int(measurement_result[NUM_FFTS]),
                 number_of_samples_in_fft=FFT_SIZE,
-                window=self.fft_window_type,
+                window=FFT_WINDOW_TYPE,
                 equivalent_noise_bandwidth=measurement_result["fft_enbw"],
                 units="dBm/Hz",
                 reference="preselector input",
@@ -630,6 +630,8 @@ class NasctnSeaDataProduct(Action):
             sigmf_builder.add_metadata_generator(
                 type(td_annotation).__name__ + "_" + detector.value, td_annotation
             )
+
+        # TODO: Annotate APD + PFP
 
         return sigmf_builder
 
