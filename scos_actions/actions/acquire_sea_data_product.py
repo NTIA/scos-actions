@@ -441,15 +441,32 @@ class NasctnSeaDataProduct(Action):
 
         # Get process results and construct data product
         fft_data, fft_meta = ray.get(fft_ray)
-        logger.debug(f"FFT results: data is {type(fft_data)} of len {len(fft_data)}")
-        logger.debug(f"Each fft result is {len(fft_data[0])} {len(fft_data[1])}")
         td_data = ray.get(td_ray)
         pfp_data = ray.get(pfp_ray)
         apd_data = ray.get(apd_ray)
-        logger.debug(td_data)
-        logger.debug(pfp_data)
-        logger.debug(apd_data)
-        # Return empty data product for now
+        del iq
+
+        # Construct single data product result
+        data_product = [
+            fft_data[0],  # Mean FFT amplitudes
+            fft_data[1],  # Max FFT amplitudes
+            td_data[0],  # Mean TD power
+            td_data[1],  # Max TD power
+            pfp_data[0],  # Min RMS PFP
+            pfp_data[1],  # Mean RMS PFP
+            pfp_data[2],  # Max RMS PFP
+            pfp_data[3],  # Min Peak PFP
+            pfp_data[4],  # Mean Peak PFP
+            pfp_data[5],  # Max Peak PFP
+            apd_data[0],  # APD probabilities
+            apd_data[1],  # APD amplitudes
+        ]
+
+        # Save FFT metadata to measurement_result
+        measurement_result["fft_frequency_start"] = fft_meta[0]
+        measurement_result["fft_frequency_stop"] = fft_meta[1]
+        measurement_result["fft_frequency_step"] = fft_meta[2]
+        measurement_result["fft_enbw"] = fft_meta[3]
 
         # Get FFT amplitudes using unfiltered data
         # logger.debug("Getting FFT results...")
@@ -585,7 +602,7 @@ class NasctnSeaDataProduct(Action):
                 number_of_ffts=int(measurement_result[NUM_FFTS]),
                 number_of_samples_in_fft=FFT_SIZE,
                 window=self.fft_window_type,
-                # equivalent_noise_bandwidth=measurement_result["fft_enbw"],
+                equivalent_noise_bandwidth=measurement_result["fft_enbw"],
                 units="dBm/Hz",
                 reference="preselector input",
                 frequency_start=measurement_result["fft_frequency_start"],
