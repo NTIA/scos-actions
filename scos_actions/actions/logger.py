@@ -21,7 +21,7 @@ class Logger(Action):
     """
 
     def __init__(self, loglvl=LOGLVL_INFO):
-
+        super().__init__(parameters={"name": "logger"}, sigan=None, gps=None)
         self.loglvl = loglvl
 
     def __call__(self, schedule_entry, task_id):
