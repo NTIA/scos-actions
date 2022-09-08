@@ -11,10 +11,15 @@ import pytest
 import pytz
 from pytz import timezone
 
-from scos_actions import calibration, utils
-from scos_actions.calibration import Calibration
-from scos_actions.settings import sensor_calibration, sigan_calibration
+from scos_actions.calibration import sensor_calibration, sigan_calibration
+from scos_actions.calibration.calibration import (
+    Calibration,
+    convert_keys,
+    filter_by_parameter,
+    load_from_json,
+)
 from scos_actions.tests.resources.utils import easy_gain
+from scos_actions.utils import get_datetime_str_now
 
 
 class TestCalibrationFile:
@@ -180,7 +185,7 @@ class TestCalibrationFile:
             json.dump(cal_data, file, indent=4)
 
         # Load the data back in
-        self.sample_cal = calibration.load_from_json(self.calibration_file)
+        self.sample_cal = load_from_json(self.calibration_file)
 
         # Create a list of previous points to ensure that we don't repeat
         self.pytest_points = []
@@ -200,7 +205,7 @@ class TestCalibrationFile:
     def test_filter_by_parameter_out_of_range(self):
         calibrations = {200.0: {"some_cal_data"}, 300.0: {"more cal data"}}
         with pytest.raises(Exception) as e_info:
-            cal = calibration.filter_by_parameter(calibrations, "frequency", 400.0)
+            cal = filter_by_parameter(calibrations, "frequency", 400.0)
         assert (
             e_info.value.args[0]
             == "No calibration was performed with frequency at 400.0"
@@ -212,7 +217,7 @@ class TestCalibrationFile:
             300.0: {"Gain": "Gain at 300.0"},
         }
         with pytest.raises(Exception) as e_info:
-            cal = calibration.filter_by_parameter(calibrations, "frequency", 150.0)
+            cal = filter_by_parameter(calibrations, "frequency", 150.0)
         assert (
             e_info.value.args[0]
             == "No calibration was performed with frequency at 150.0"
@@ -259,7 +264,7 @@ class TestCalibrationFile:
             "100": {"2000": {"40": {"cal_data": 5}}},
             "200": {"2000": {"40": {"cal_data": 6}}},
         }
-        converted_cal = calibration.convert_keys(test_cal)
+        converted_cal = convert_keys(test_cal)
         keys = list(test_cal.keys())
         assert keys[0] == 100.0
         second_level_keys = list(converted_cal[100.0].keys())
@@ -301,9 +306,9 @@ class TestCalibrationFile:
             clock_rate_lookup_by_sample_rate,
         )
         action_params = {"sample_rate": 100.0, "frequency": 200.0}
-        update_time = utils.get_datetime_str_now()
+        update_time = get_datetime_str_now()
         cal.update(action_params, update_time, 30.0, 5.0, 21, "test_calibration.json")
-        cal_from_file = calibration.load_from_json("test_calibration.json")
+        cal_from_file = load_from_json("test_calibration.json")
         os.remove("test_calibration.json")
         local = timezone("US/Mountain")
         local_cal_time = local.localize(cal.calibration_datetime)
@@ -331,10 +336,10 @@ class TestCalibrationFile:
 
     def test_filter_by_paramter_floor(self):
         calibrations = {200.0: {"some_cal_data"}, 300.0: {"more cal data"}}
-        filtered_data = calibration.filter_by_parameter(calibrations, "", 200.1234567)
+        filtered_data = filter_by_parameter(calibrations, "", 200.1234567)
         assert filtered_data is not None
 
     def test_filter_by_parameter_ceil(self):
         calibrations = {700.5e6: {"some_cal_data"}, 300.0: {"more cal data"}}
-        filtered_data = calibration.filter_by_parameter(calibrations, "", 700499999.999)
+        filtered_data = filter_by_parameter(calibrations, "", 700499999.999)
         assert filtered_data is not None
