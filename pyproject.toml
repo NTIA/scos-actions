@@ -41,8 +41,9 @@ classifiers = [
 ]
 
 dependencies = [
+    "environs>=9.5.0",
     "django>=3.2.15,<4.0",
-    "its_preselector @ git+https://github.com/NTIA/Preselector@1.0.0",
+    "its_preselector @ git+https://github.com/NTIA/Preselector@2.0.0",
     "numexpr>=2.8.3",
     "numpy>=1.22.0",
     "python-dateutil>=2.0",
@@ -73,3 +74,27 @@ allow-direct-references = true
 
 [tool.hatch.version]
 path = "scos_actions/__init__.py"
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py{38,39,310}
+skip_missing_interpreters = True
+skipsdist = True
+
+[testenv]
+commands =
+    pip install .[dev]
+    pytest
+
+[testenv:coverage]
+commands =
+    pip install .[dev]
+    pytest --cov --cov-append --cov-report=term-missing --no-cov-on-fail
+
+[coverage:run]
+omit =
+    .tox/*
+    */tests/*
+    scos_actions/settings.py
+"""
