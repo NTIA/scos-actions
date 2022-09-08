@@ -41,7 +41,7 @@ class Calibration:
             cal_data = filter_by_parameter(cal_data, setting, setting_value)
             if "calibration_datetime" not in cal_data:
                 cal_data["calibration_datetime"] = self.calibration_datetime
-        logger.info("Cal Data: " + str(cal_data))
+        logger.info(f"Cal Data: {cal_data}")
         return cal_data
 
     def update(self, params, calibration_datetime, gain, noise_figure, temp, file_path):
@@ -135,7 +135,7 @@ def filter_by_parameter(calibrations, parameter, value):
 
 def check_floor_of_parameter(calibrations, parameter, value):
     value = math.floor(value)
-    logger.debug("Checking floor value of: " + str(value))
+    logger.debug(f"Checking floor value of: {value}")
     if value in calibrations:
         return calibrations[value]
     else:
@@ -144,7 +144,7 @@ def check_floor_of_parameter(calibrations, parameter, value):
 
 def check_ceiling_of_parameter(calibrations, parameter, value):
     value = math.ceil(value)
-    logger.debug("Checking ceiling at: " + str(value))
+    logger.debug(f"Checking ceiling at: {value}")
     if value in calibrations:
         return calibrations[value]
     else:
