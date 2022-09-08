@@ -5,7 +5,8 @@ from ruamel.yaml.scanner import ScannerError
 
 from scos_actions import actions
 from scos_actions.discover.yaml import load_from_yaml
-from scos_actions.hardware import gps, sigan
+from scos_actions.hardware import gps
+from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
 
 INVALID_YAML = b"""\
 single_frequency_fft:
@@ -21,6 +22,8 @@ NONEXISTENT_ACTION_CLASS_NAME = b"""\
 this_doesnt_exist:
     name: test_expected_failure
 """
+
+sigan = MockSignalAnalyzer()
 
 
 def test_load_from_yaml_existing():

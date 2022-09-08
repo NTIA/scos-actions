@@ -5,7 +5,6 @@ from copy import deepcopy
 from scos_actions.capabilities import capabilities
 from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import preselector
-from scos_actions.hardware import sigan as mock_sigan
 from scos_actions.utils import get_parameter
 
 logger = logging.getLogger(__name__)
@@ -32,7 +31,7 @@ class Action(ABC):
 
     PRESELECTOR_PATH_KEY = "rf_path"
 
-    def __init__(self, parameters, sigan=mock_sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=mock_gps):
         self.parameters = deepcopy(parameters)
         self.sigan = sigan
         self.gps = gps
