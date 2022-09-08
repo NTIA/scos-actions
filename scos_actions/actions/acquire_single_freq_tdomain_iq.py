@@ -49,6 +49,7 @@ FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
+CLASSIFICATION = "classification"
 
 
 class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
@@ -77,6 +78,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         self.nskip = get_parameter(NUM_SKIP, self.parameters)
         self.duration_ms = get_parameter(DURATION_MS, self.parameters)
         self.frequency_Hz = get_parameter(FREQUENCY, self.parameters)
+        self.classification = get_parameter(CLASSIFICATION, self.parameters)
 
     def execute(self, schedule_entry, task_id) -> dict:
         start_time = utils.get_datetime_str_now()
@@ -97,7 +99,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         measurement_result["description"] = self.description
         measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
-        measurement_result["classification"] = "UNCLASSIFIED"
+        measurement_result["classification"] = self.classification
         return measurement_result
 
     def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:

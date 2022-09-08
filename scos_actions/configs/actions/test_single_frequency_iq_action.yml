@@ -5,3 +5,4 @@ single_frequency_time_domain_iq:
   sample_rate: 15.36e6
   duration_ms: 1000
   nskip: 15.36e4
+  classification: UNCLASSIFIED
