@@ -1,17 +1,24 @@
-# from scos_actions.actions import action_classes
 from scos_actions.actions import action_classes
+from scos_actions.actions.interfaces.signals import register_component_with_status
 from scos_actions.actions.logger import Logger
 from scos_actions.actions.monitor_sigan import MonitorSignalAnalyzer
 from scos_actions.actions.sync_gps import SyncGps
 from scos_actions.discover.yaml import load_from_yaml
 from scos_actions.hardware import gps as mock_gps
-from scos_actions.hardware import sigan as mock_sigan
-from scos_actions.settings import ACTION_DEFINITIONS_DIR
+from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
+from scos_actions.settings import ACTION_DEFINITIONS_DIR, MOCK_SIGAN
 
+mock_sigan = MockSignalAnalyzer(randomize_values=True)
+if MOCK_SIGAN:
+    register_component_with_status.send(mock_sigan.__class__, component=mock_sigan)
 actions = {"logger": Logger()}
 test_actions = {
-    "test_sync_gps": SyncGps(gps=mock_gps),
-    "test_monitor_sigan": MonitorSignalAnalyzer(sigan=mock_sigan),
+    "test_sync_gps": SyncGps(
+        parameters={"name": "test_sync_gps"}, sigan=mock_sigan, gps=mock_gps
+    ),
+    "test_monitor_sigan": MonitorSignalAnalyzer(
+        parameters={"name": "test_monitor_sigan"}, sigan=mock_sigan
+    ),
     "logger": Logger(),
 }
 
@@ -37,7 +44,3 @@ def init(
 yaml_actions, yaml_test_actions = init()
 actions.update(yaml_actions)
 test_actions.update(yaml_test_actions)
-
-
-def get_last_calibration_time():
-    return None

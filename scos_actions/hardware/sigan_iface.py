@@ -1,8 +1,9 @@
 import copy
 from abc import ABC, abstractmethod
 
-from scos_actions.calibration import Calibration
-from scos_actions.settings import sensor_calibration, sigan_calibration
+from scos_actions.calibration import sensor_calibration, sigan_calibration
+from scos_actions.calibration.calibration import Calibration
+from scos_actions.capabilities import capabilities
 from scos_actions.utils import (
     convert_string_to_millisecond_iso_format,
     get_datetime_str_now,
@@ -87,3 +88,14 @@ class SignalAnalyzerInterface(ABC):
             self.sigan_calibration_data.update(
                 sigan_calibration.get_calibration_dict(cal_args)
             )
+
+    def get_status(self):
+        try:
+            sigan_model = capabilities["sensor"]["signal_analyzer"]["sigan_spec"][
+                "model"
+            ]
+            if sigan_model.lower() in ["default", ""]:
+                raise KeyError
+        except KeyError:
+            sigan_model = str(self.__class__)
+        return {"model": sigan_model, "healthy": self.healthy}
