@@ -92,9 +92,7 @@ from numpy import float32, ndarray
 
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware import gps as mock_gps
-from scos_actions.metadata.annotations.fft_annotation import (
-    FrequencyDomainDetectionAnnotation,
-)
+from scos_actions.metadata.annotations import FrequencyDomainDetection
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.signal_processing.fft import (
     get_fft,
@@ -190,6 +188,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
+        measurement_result["classification"] = "UNCLASSIFIED"
         return measurement_result
 
     def apply_m4s(self, measurement_result: dict) -> ndarray:
@@ -242,8 +241,19 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
         for i, detector in enumerate(self.fft_detector):
-            fft_annotation = FrequencyDomainDetectionAnnotation(
-                detector.value, i * self.fft_size, self.fft_size
+            fft_annotation = FrequencyDomainDetection(
+                sample_start=i * self.fft_size,
+                sample_count=self.fft_size,
+                detector=detector.value,
+                number_of_ffts=self.nffts,
+                number_of_samples_in_fft=self.fft_size,
+                window=self.fft_window_type,
+                equivalent_noise_bandwidth=measurement_result["enbw"],
+                units="dBm",
+                reference="preselector input",
+                frequency_start=measurement_result["frequency_start"],
+                frequency_stop=measurement_result["frequency_stop"],
+                frequency_step=measurement_result["frequency_step"],
             )
             sigmf_builder.add_metadata_generator(
                 type(fft_annotation).__name__ + "_" + detector.value, fft_annotation
