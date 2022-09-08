@@ -1,19 +1,46 @@
-from scos_actions.metadata.metadata import Metadata
-from scos_actions.metadata.sigmf_builder import SigMFBuilder
+from dataclasses import dataclass
+from typing import Optional
+
+from scos_actions.metadata.annotation_segment import AnnotationSegment
 
 
-class SensorAnnotation(Metadata):
-    def __init__(self, start, count):
-        super().__init__(start, count)
+@dataclass
+class SensorAnnotation(AnnotationSegment):
+    """
+    Interface for generating SensorAnnotation segments.
 
-    def create_metadata(self, sigmf_builder: SigMFBuilder, measurement_result):
-        metadata = {"ntia-core:annotation_type": "SensorAnnotation"}
-        if "overload" in measurement_result:
-            metadata["ntia-sensor:overload"] = measurement_result["overload"]
-        if "gain" in measurement_result:
-            metadata["ntia-sensor:gain_setting_sigan"] = measurement_result["gain"]
-        if "attenuation" in measurement_result:
-            metadata["ntia-sensor:attenuation_setting_sigan"] = measurement_result[
-                "attenuation"
-            ]
-        sigmf_builder.add_annotation(self.start, self.count, metadata)
+    All parameters are optional. Attenuation, gain, and overload
+    values can generally be found in the measurement_result
+    dictionary.
+
+    Refer to the documentation of the ``ntia-sensor`` extension of
+    SigMF for more information.
+
+    :param rf_path_index: Index of the RF Path.
+    :param overload: Indicator of sensor overload.
+    :param attenuation_setting_sigan: Attenuation setting of the signal
+        analyzer.
+    :param gain_setting_sigan: Gain setting of the signal analyzer.
+    :param gps_nmea: NMEA message from a GPS receiver.
+    """
+
+    rf_path_index: Optional[int] = None
+    overload: Optional[bool] = None
+    attenuation_setting_sigan: Optional[float] = None
+    gain_setting_sigan: Optional[float] = None
+    gps_nmea: Optional[str] = None
+
+    def __post_init__(self):
+        super().__post_init__()
+        # Define SigMF key names
+        self.sigmf_keys.update(
+            {
+                "rf_path_index": "ntia-sensor:rf_path_index",
+                "overload": "ntia-sensor:overload",
+                "attenuation_setting_sigan": "ntia-sensor:attenuation_setting_sigan",
+                "gain_setting_sigan": "ntia-sensor:gain_setting_sigan",
+                "gps_nmea": "ntia-sensor:gps_nmea",
+            }
+        )
+        # Create annotation segment
+        super().create_annotation_segment()
