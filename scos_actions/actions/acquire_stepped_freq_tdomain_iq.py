@@ -41,6 +41,9 @@ import numpy as np
 
 from scos_actions import utils
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
+    DURATION_MS,
+    FREQUENCY,
+    NUM_SKIP,
     SingleFrequencyTimeDomainIqAcquisition,
 )
 from scos_actions.actions.interfaces.signals import measurement_action_completed
@@ -49,12 +52,6 @@ from scos_actions.metadata.sigmf_builder import Domain, MeasurementType
 from scos_actions.utils import get_parameter
 
 logger = logging.getLogger(__name__)
-
-# Define parameter keys
-FREQUENCY = "frequency"
-SAMPLE_RATE = "sample_rate"
-DURATION_MS = "duration_ms"
-NUM_SKIP = "nskip"
 
 
 class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisition):
@@ -115,7 +112,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             measurement_result["name"] = self.name
             measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
             measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
-            measurement_result["classification"] = "UNCLASSIFIED"
+            measurement_result["classification"] = self.classification
             sigmf_builder = self.get_sigmf_builder(measurement_result)
             self.create_metadata(
                 sigmf_builder, schedule_entry_json, measurement_result, recording_id

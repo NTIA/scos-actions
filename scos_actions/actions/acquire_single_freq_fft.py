@@ -120,6 +120,7 @@ SAMPLE_RATE = "sample_rate"
 NUM_SKIP = "nskip"
 NUM_FFTS = "nffts"
 FFT_SIZE = "fft_size"
+CLASSIFICATION = "classification"
 
 
 class SingleFrequencyFftAcquisition(MeasurementAction):
@@ -149,6 +150,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         self.nffts = get_parameter(NUM_FFTS, self.parameters)
         self.nskip = get_parameter(NUM_SKIP, self.parameters)
         self.frequency_Hz = get_parameter(FREQUENCY, self.parameters)
+        self.classification = get_parameter(CLASSIFICATION, self.parameters)
         # FFT setup
         self.fft_detector = create_power_detector(
             "M4sDetector", ["min", "max", "mean", "median", "sample"]
@@ -188,7 +190,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
-        measurement_result["classification"] = "UNCLASSIFIED"
+        measurement_result["classification"] = self.classification
         return measurement_result
 
     def apply_m4s(self, measurement_result: dict) -> ndarray:
