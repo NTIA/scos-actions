@@ -150,7 +150,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
 
     del fft_freqs_Hz
 
-    return (fft_result[0], fft_result[1]), fft_meta
+    return fft_result[0], fft_result[1], fft_meta
 
 
 @ray.remote
