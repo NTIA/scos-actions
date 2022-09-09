@@ -135,7 +135,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     delta_f = params[SAMPLE_RATE] / FFT_SIZE
     bin_start = int(bw_trim / delta_f)
     bin_end = FFT_SIZE - bin_start
-    fft_result = fft_result[:, bin_start:bin_end].astype(DATA_TYPE)
+    fft_result = fft_result[:, bin_start:bin_end]  # .astype(DATA_TYPE)
     # logger.debug(f"Truncated FFT result length: {fft_result.shape}")
 
     # Reduce data type
@@ -171,7 +171,8 @@ def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     # p, a = (NasctnSeaDataProduct.reduce_dtype(x) for x in (p, a))
     toc = perf_counter()
     logger.debug(f"Got APD result in {toc-tic:.2f} s")
-    return p.astype(DATA_TYPE), a.astype(DATA_TYPE)
+    return p, a
+    # return p.astype(DATA_TYPE), a.astype(DATA_TYPE)
 
 
 @ray.remote
@@ -211,7 +212,7 @@ def get_td_power_results(
     td_result -= 3
 
     # Reduce data type
-    td_result = td_result.astype(DATA_TYPE)
+    # td_result = td_result.astype(DATA_TYPE)
 
     toc = perf_counter()
     logger.debug(f"Got TD result in {toc-tic:.2f} s")
@@ -290,7 +291,7 @@ def get_periodic_frame_power(
     # Convert to dBm
     pfp = convert_watts_to_dBm(pfp)
     pfp -= 3  # RF/baseband
-    pfp = pfp.astype(DATA_TYPE)
+    # pfp = pfp.astype(DATA_TYPE)
     toc = perf_counter()
     logger.debug(f"Got PFP result in {toc-tic:.2f} s")
     # logger.debug(f"PFP result shape: {pfp.shape}")
@@ -400,6 +401,13 @@ class NasctnSeaDataProduct(Action):
             #     metadata=sigmf_builder.metadata,
             # )
         minimal_metadata = {"data_indices": all_idx}
+        all_data = self.compress_bytes_data(np.array(all_data).tobytes())
+        measurement_action_completed.send(
+            sender=self.__class__,
+            task_id=task_id,
+            data=all_data,
+            metadata=minimal_metadata,
+        )
         action_done = perf_counter()
         logger.debug(
             f"IQ Capture and data processing completed in {action_done-start_action:.2f}"
@@ -673,11 +681,13 @@ class NasctnSeaDataProduct(Action):
         measurement_result["data"] = np.hstack(measurement_result["data"]).astype(
             DATA_TYPE
         )
-        self.total_samples = len(measurement_result["data"])
-        measurement_result["data"] = measurement_result["data"].tobytes()
-        measurement_result["data"] = self.compress_bytes_data(
+        self.total_samples = len(
             measurement_result["data"]
-        )
+        )  # NO LONGER CORRECT WITH FLATTENED RESULT
+        # measurement_result["data"] = measurement_result["data"].tobytes()
+        # measurement_result["data"] = self.compress_bytes_data(
+        #     measurement_result["data"]
+        # )
         return measurement_result, np.array(idx)
 
     @staticmethod
