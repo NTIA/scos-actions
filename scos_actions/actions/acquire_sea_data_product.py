@@ -107,6 +107,7 @@ def iir_filter(iir_sos: np.ndarray, iqdata: np.ndarray) -> np.ndarray:
 @ray.remote
 def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
     """Compute data product mean/max FFT results from IQ samples."""
+    tic = perf_counter()
     # IQ data already scaled for calibrated gain
     fft_result = get_fft(
         time_data=iqdata,
@@ -115,7 +116,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
         fft_window=FFT_WINDOW,
         num_ffts=params[NUM_FFTS],
         shift=False,
-        workers=1,  # TODO: Configure for parallelization
+        workers=4,  # TODO: Configure for parallelization
     )
     fft_result = calculate_pseudo_power(fft_result)
     fft_result = apply_power_detector(fft_result, FFT_DETECTOR)  # (max, mean)
@@ -134,7 +135,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     delta_f = params[SAMPLE_RATE] / FFT_SIZE
     bin_start = int(bw_trim / delta_f)
     bin_end = FFT_SIZE - bin_start
-    fft_result = fft_result[:, bin_start:bin_end]
+    fft_result = fft_result[:, bin_start:bin_end].astype(DATA_TYPE)
     # logger.debug(f"Truncated FFT result length: {fft_result.shape}")
 
     # Reduce data type
@@ -150,12 +151,16 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
 
     del fft_freqs_Hz
 
+    toc = perf_counter()
+    logger.debug(f"Got FFT result in {toc-tic:.2f} s")
+
     return fft_result[0], fft_result[1], fft_meta
 
 
 @ray.remote
 def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
     """Generate downsampled APD result from IQ samples."""
+    tic = perf_counter()
     p, a = get_apd(iqdata, params[APD_BIN_SIZE_DB])
     # Convert dBV to dBm:
     # a = a * 2 : dBV --> dB(V^2)
@@ -164,7 +169,9 @@ def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     scale_factor = 27 - convert_linear_to_dB(50.0)  # Hard-coded for 50 Ohms.
     ne.evaluate("(a*2)+scale_factor", out=a)
     # p, a = (NasctnSeaDataProduct.reduce_dtype(x) for x in (p, a))
-    return p, a
+    toc = perf_counter()
+    logger.debug(f"Got APD result in {toc-tic:.2f} s")
+    return p.astype(DATA_TYPE), a.astype(DATA_TYPE)
 
 
 @ray.remote
@@ -172,6 +179,7 @@ def get_td_power_results(
     iqdata: np.ndarray, params: dict
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Compute mean/max time domain power statistics from IQ samples, with optional quantile filtering."""
+    tic = perf_counter()
     # Reshape IQ data into blocks
     block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
     n_blocks = len(iqdata) // block_size
@@ -184,11 +192,11 @@ def get_td_power_results(
 
     if params[QFILT_APPLY]:
         # Apply quantile filtering before computing power statistics
-        logger.info("Quantile-filtering time domain power data...")
+        # logger.info("Quantile-filtering time domain power data...")
         iq_pwr = filter_quantiles(iq_pwr, QFILT_QLO, QFILT_QHI)
         # Diagnostics
         num_nans = np.count_nonzero(np.isnan(iq_pwr))
-        nan_pct = num_nans * 100 / len(iq_pwr.flatten())
+        # nan_pct = num_nans * 100 / len(iq_pwr.flatten())
         # logger.debug(f"Rejected {num_nans} samples ({nan_pct:.2f}% of total capture)")
     # else:
     # logger.info("Quantile-filtering disabled. Skipping...")
@@ -203,7 +211,10 @@ def get_td_power_results(
     td_result -= 3
 
     # Reduce data type
-    # td_result = NasctnSeaDataProduct.reduce_dtype(td_result)
+    td_result = td_result.astype(DATA_TYPE)
+
+    toc = perf_counter()
+    logger.debug(f"Got TD result in {toc-tic:.2f} s")
 
     return td_result[0], td_result[1]  # (max, mean)
 
@@ -230,6 +241,7 @@ def get_periodic_frame_power(
         max: np.ndarray)
     :raises ValueError: if detector_period%Ts != 0 or frame_period%detector_period != 0
     """
+    tic = perf_counter()
     sampling_period_s = 1.0 / params[SAMPLE_RATE]
     frame_period_s = 1e-3 * params[PFP_FRAME_PERIOD_MS]
     if not np.isclose(frame_period_s % sampling_period_s, 0, 1e-6):
@@ -278,7 +290,9 @@ def get_periodic_frame_power(
     # Convert to dBm
     pfp = convert_watts_to_dBm(pfp)
     pfp -= 3  # RF/baseband
-    # pfp = NasctnSeaDataProduct.reduce_dtype(pfp)
+    pfp = pfp.astype(DATA_TYPE)
+    toc = perf_counter
+    logger.debug(f"Got PFP result in {toc-tic:.2f} s")
     # logger.debug(f"PFP result shape: {pfp.shape}")
     return tuple(pfp)
 
@@ -357,6 +371,9 @@ class NasctnSeaDataProduct(Action):
         start_action = perf_counter()
         logger.debug(f"Setting RF path to {self.rf_path}")
         self.configure_preselector(self.rf_path)
+        all_data = []
+        all_idx = []
+        last_data_len = 0
         for recording_id, parameters in enumerate(iteration_params, start=1):
             # Capture IQ data
             measurement_result = self.capture_iq(task_id, parameters)
@@ -367,18 +384,22 @@ class NasctnSeaDataProduct(Action):
             )
 
             # Generate metadata
-            sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)
-            self.create_metadata(
-                sigmf_builder, schedule_entry, measurement_result, recording_id
-            )
+            # sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)
+            # self.create_metadata(
+            #     sigmf_builder, schedule_entry, measurement_result, recording_id
+            # )
 
-            # Send signal
-            measurement_action_completed.send(
-                sender=self.__class__,
-                task_id=task_id,
-                data=measurement_result["data"],
-                metadata=sigmf_builder.metadata,
-            )
+            all_data.extend(measurement_result["data"])
+            all_idx.extend((dp_idx + last_data_len).tolist())
+
+            # # Send signal
+            # measurement_action_completed.send(
+            #     sender=self.__class__,
+            #     task_id=task_id,
+            #     data=measurement_result["data"],
+            #     metadata=sigmf_builder.metadata,
+            # )
+        minimal_metadata = {"data_indices": all_idx}
         action_done = perf_counter()
         logger.debug(
             f"IQ Capture and data processing completed in {action_done-start_action:.2f}"
@@ -657,7 +678,7 @@ class NasctnSeaDataProduct(Action):
         measurement_result["data"] = self.compress_bytes_data(
             measurement_result["data"]
         )
-        return measurement_result, idx
+        return measurement_result, np.array(idx)
 
     @staticmethod
     def compress_bytes_data(data: bytes) -> bytes:
