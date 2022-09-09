@@ -21,7 +21,6 @@ r"""Acquire a NASCTN SEA data product.
 Currently in development.
 """
 import gc
-import json
 import logging
 import lzma
 from time import perf_counter
@@ -97,8 +96,6 @@ PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
 
 
 # DSP tasks to parallelize
-# ray.shutdown()
-ray.init(ignore_reinit_error=True)
 
 
 @ray.remote

@@ -1,3 +1,5 @@
+import ray
+
 from .acquire_sea_data_product import NasctnSeaDataProduct
 from .acquire_single_freq_fft import SingleFrequencyFftAcquisition
 from .acquire_single_freq_tdomain_iq import SingleFrequencyTimeDomainIqAcquisition
@@ -13,3 +15,5 @@ action_classes = {
     "y_factor_cal": YFactorCalibration,
     "nasctn_sea_data_product": NasctnSeaDataProduct,
 }
+
+ray.init(ignore_reinit_error=False)
