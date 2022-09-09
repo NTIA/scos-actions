@@ -400,7 +400,10 @@ class NasctnSeaDataProduct(Action):
             #     data=measurement_result["data"],
             #     metadata=sigmf_builder.metadata,
             # )
-        minimal_metadata = {"data_indices": all_idx}
+        minimal_metadata = {
+            "data_indices": all_idx,
+            "global": {"ntia-scos:schedule": schedule_entry},
+        }
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
         measurement_action_completed.send(
             sender=self.__class__,
