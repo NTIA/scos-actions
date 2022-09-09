@@ -291,7 +291,7 @@ def get_periodic_frame_power(
     pfp = convert_watts_to_dBm(pfp)
     pfp -= 3  # RF/baseband
     pfp = pfp.astype(DATA_TYPE)
-    toc = perf_counter
+    toc = perf_counter()
     logger.debug(f"Got PFP result in {toc-tic:.2f} s")
     # logger.debug(f"PFP result shape: {pfp.shape}")
     return tuple(pfp)
