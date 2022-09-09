@@ -400,16 +400,17 @@ class NasctnSeaDataProduct(Action):
             #     data=measurement_result["data"],
             #     metadata=sigmf_builder.metadata,
             # )
-        minimal_metadata = {
-            "data_indices": all_idx,
-            "global": {"ntia-scos:schedule": schedule_entry},
-        }
+        sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)  # INCORRECT
+        self.create_metadata(
+            sigmf_builder, schedule_entry, measurement_result, 1, all_idx
+        )  # INCORRECT
+
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
         measurement_action_completed.send(
             sender=self.__class__,
             task_id=task_id,
             data=all_data,
-            metadata=minimal_metadata,
+            metadata=sigmf_builder.metadata,
         )
         action_done = perf_counter()
         logger.debug(
@@ -585,6 +586,7 @@ class NasctnSeaDataProduct(Action):
         schedule_entry: dict,
         measurement_result: dict,
         recording=None,
+        all_idx=None,
     ):
         sigmf_builder.set_last_calibration_time(
             measurement_result["calibration_datetime"]
@@ -595,6 +597,7 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_task(measurement_result["task_id"])
         sigmf_builder.set_recording(recording)
         sigmf_builder.add_sigmf_capture(sigmf_builder, measurement_result)
+        sigmf_builder.metadata["all_indices"] = all_idx
         sigmf_builder.build()
 
     def get_sigmf_builder(self, measurement_result: dict, dp_idx: list) -> SigMFBuilder:
