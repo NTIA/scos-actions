@@ -150,7 +150,7 @@ def get_fft_results(
     logger.debug(f"Truncated FFT result length: {fft_result.shape}")
 
     # Reduce data type
-    fft_result = NasctnSeaDataProduct.reduce_dtype(fft_result)
+    # fft_result = NasctnSeaDataProduct.reduce_dtype(fft_result)
 
     # Get FFT metadata for annotation: ENBW, frequency axis
     fft_freqs_Hz = get_fft_frequencies(FFT_SIZE, params[SAMPLE_RATE], params[FREQUENCY])
@@ -177,7 +177,7 @@ def get_apd_results(
     # a = a + 27 : dBW --> dBm (+30) and RF/baseband conversion (-3)
     scale_factor = 27 - convert_linear_to_dB(50.0)  # Hard-coded for 50 Ohms.
     ne.evaluate("(a*2)+scale_factor", out=a)
-    p, a = (NasctnSeaDataProduct.reduce_dtype(x) for x in (p, a))
+    # p, a = (NasctnSeaDataProduct.reduce_dtype(x) for x in (p, a))
     return p, a
 
 
@@ -217,7 +217,7 @@ def get_td_power_results(
     td_result -= 3
 
     # Reduce data type
-    td_result = NasctnSeaDataProduct.reduce_dtype(td_result)
+    # td_result = NasctnSeaDataProduct.reduce_dtype(td_result)
 
     return td_result[0], td_result[1]  # (max, mean)
 
@@ -293,7 +293,7 @@ def get_periodic_frame_power(
     # Convert to dBm
     pfp = convert_watts_to_dBm(pfp)
     pfp -= 3  # RF/baseband
-    pfp = NasctnSeaDataProduct.reduce_dtype(pfp)
+    # pfp = NasctnSeaDataProduct.reduce_dtype(pfp)
     logger.debug(f"PFP result shape: {pfp.shape}")
     return tuple(pfp)
 
@@ -568,7 +568,10 @@ class NasctnSeaDataProduct(Action):
 
         # Flatten and compress data product
         measurement_result["data"] = data_product
+        tic = perf_counter()
         measurement_result, dp_idx = self.transform_data(measurement_result)
+        toc = perf_counter()
+        print(f"Data transformed in {toc-tic:.2f} s")
 
         return measurement_result, dp_idx
 
@@ -685,8 +688,10 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Data product component lengths: {data_lengths}")
         idx = [0] + np.cumsum(data_lengths[:-1]).tolist()
         logger.debug(f"Data product start indices: {idx}")
-        # Flatten data product and convert to byte array
-        measurement_result["data"] = np.hstack(measurement_result["data"])
+        # Flatten data product, reduce dtype, and convert to byte array
+        measurement_result["data"] = np.hstack(measurement_result["data"]).astype(
+            DATA_TYPE
+        )
         self.total_samples = len(measurement_result["data"])
         measurement_result["data"] = measurement_result["data"].tobytes()
         measurement_result["data"] = self.compress_bytes_data(
