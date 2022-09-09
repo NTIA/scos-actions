@@ -105,9 +105,7 @@ def iir_filter(iir_sos: np.ndarray, iqdata: np.ndarray) -> np.ndarray:
 
 
 @ray.remote
-def get_fft_results(
-    iqdata: np.ndarray, params: dict, logger: logging.Logger
-) -> Tuple[np.ndarray, np.ndarray]:
+def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
     """Compute data product mean/max FFT results from IQ samples."""
     # IQ data already scaled for calibrated gain
     fft_result = get_fft(
@@ -131,13 +129,13 @@ def get_fft_results(
 
     # Truncate FFT result
     # TODO These parameters can be hardcoded
-    logger.debug(f"Pre-truncated FFT result shape: {fft_result.shape}")
+    # logger.debug(f"Pre-truncated FFT result shape: {fft_result.shape}")
     bw_trim = (params[SAMPLE_RATE] / 1.4) / 5
     delta_f = params[SAMPLE_RATE] / FFT_SIZE
     bin_start = int(bw_trim / delta_f)
     bin_end = FFT_SIZE - bin_start
     fft_result = fft_result[:, bin_start:bin_end]
-    logger.debug(f"Truncated FFT result length: {fft_result.shape}")
+    # logger.debug(f"Truncated FFT result length: {fft_result.shape}")
 
     # Reduce data type
     # fft_result = NasctnSeaDataProduct.reduce_dtype(fft_result)
@@ -156,9 +154,7 @@ def get_fft_results(
 
 
 @ray.remote
-def get_apd_results(
-    iqdata: np.ndarray, params: dict, logger: logging.Logger
-) -> Tuple[np.ndarray, np.ndarray]:
+def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
     """Generate downsampled APD result from IQ samples."""
     p, a = get_apd(iqdata, params[APD_BIN_SIZE_DB])
     # Convert dBV to dBm:
@@ -173,16 +169,16 @@ def get_apd_results(
 
 @ray.remote
 def get_td_power_results(
-    iqdata: np.ndarray, params: dict, logger: logging.Logger
+    iqdata: np.ndarray, params: dict
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Compute mean/max time domain power statistics from IQ samples, with optional quantile filtering."""
     # Reshape IQ data into blocks
     block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
     n_blocks = len(iqdata) // block_size
     iqdata = iqdata.reshape(block_size, n_blocks)
-    logger.debug(
-        f"Calculating time-domain power statistics on {n_blocks} blocks of {block_size} samples each"
-    )
+    # logger.debug(
+    # f"Calculating time-domain power statistics on {n_blocks} blocks of {block_size} samples each"
+    # )
 
     iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.0)
 
@@ -193,9 +189,9 @@ def get_td_power_results(
         # Diagnostics
         num_nans = np.count_nonzero(np.isnan(iq_pwr))
         nan_pct = num_nans * 100 / len(iq_pwr.flatten())
-        logger.debug(f"Rejected {num_nans} samples ({nan_pct:.2f}% of total capture)")
-    else:
-        logger.info("Quantile-filtering disabled. Skipping...")
+        # logger.debug(f"Rejected {num_nans} samples ({nan_pct:.2f}% of total capture)")
+    # else:
+    # logger.info("Quantile-filtering disabled. Skipping...")
 
     # Apply mean/max detectors
     td_result = apply_power_detector(iq_pwr, TD_DETECTOR, ignore_nan=True)
@@ -216,7 +212,6 @@ def get_td_power_results(
 def get_periodic_frame_power(
     iqdata: np.ndarray,
     params: dict,
-    logger: logging.Logger,
     detector_period_s: float = PFP_FRAME_RESOLUTION_S,
 ) -> dict:
     """
@@ -249,7 +244,7 @@ def get_periodic_frame_power(
 
     Nframes = int(np.round(frame_period_s / sampling_period_s))
     Npts = int(np.round(frame_period_s / detector_period_s))
-    logger.debug(f"PFP Nframes: {Nframes}, Npts: {Npts}")
+    # logger.debug(f"PFP Nframes: {Nframes}, Npts: {Npts}")
 
     # set up dimensions to make the statistics fast
     chunked_shape = (iqdata.shape[0] // Nframes, Npts, Nframes // Npts) + tuple(
@@ -284,7 +279,7 @@ def get_periodic_frame_power(
     pfp = convert_watts_to_dBm(pfp)
     pfp -= 3  # RF/baseband
     # pfp = NasctnSeaDataProduct.reduce_dtype(pfp)
-    logger.debug(f"PFP result shape: {pfp.shape}")
+    # logger.debug(f"PFP result shape: {pfp.shape}")
     return tuple(pfp)
 
 
@@ -438,60 +433,39 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f'Generating data product for {measurement_result["task_id"]}')
 
         logger.debug(f"Starting FFT process")  # Other tasks may proceed
-        fft_ray = get_fft_results.remote(measurement_result["data"], params, logger)
+        fft_ray = get_fft_results.remote(measurement_result["data"], params)
 
         logger.debug(f"Applying IIR filter")
         iq = iir_filter.remote(self.iir_sos, measurement_result["data"])
 
         # Processes won't start until IIR filtering finishes
         logger.debug("Starting APD, PFP, TDPWR processes")
+        apd_ray = get_apd_results.remote(iq, params)
+        pfp_ray = get_periodic_frame_power.remote(iq, params)
+        td_ray = get_td_power_results.remote(iq, params)
+
         tic = perf_counter()
-        apd_ray = get_apd_results.remote(iq, params, logger)
-        pfp_ray = get_periodic_frame_power.remote(iq, params, logger)
-        td_ray = get_td_power_results.remote(iq, params, logger)
-        toc = perf_counter()
-        logger.debug(f"Processes started in {toc-tic:.2f} s")
 
         # Get process results and construct data product
-        # fft_data, fft_meta = ray.get(fft_ray)
-        # td_data = ray.get(td_ray)
-        # pfp_data = ray.get(pfp_ray)
-        # apd_data = ray.get(apd_ray)
-        fft_data, td_data, pfp_data, apd_data = (
-            ray.get(p) for p in [fft_ray, td_ray, pfp_ray, apd_ray]
-        )
-        tic = perf_counter()
+        data_product = []
+        for r in [fft_ray, td_ray, pfp_ray, apd_ray]:
+            data_product.extend(ray.get(r))
+        fft_meta = data_product.pop(2)
+
+        toc = perf_counter()
         logger.debug(f"Got all results {tic-toc:.2f} s after all processes started")
+
         tic = perf_counter()
         del iq
         toc = perf_counter()
         logger.debug(f"Deleted IQ data in {toc-tic:.2f} s")
 
-        # Construct single data product result
-        tic = perf_counter()
-        data_product = [
-            fft_data[0][0],  # Mean FFT amplitudes
-            fft_data[0][1],  # Max FFT amplitudes
-            td_data[0],  # Mean TD power
-            td_data[1],  # Max TD power
-            pfp_data[0],  # Min RMS PFP
-            pfp_data[1],  # Mean RMS PFP
-            pfp_data[2],  # Max RMS PFP
-            pfp_data[3],  # Min Peak PFP
-            pfp_data[4],  # Mean Peak PFP
-            pfp_data[5],  # Max Peak PFP
-            apd_data[0],  # APD probabilities
-            apd_data[1],  # APD amplitudes
-        ]
-        toc = perf_counter()
-        logger.debug(f"Combined all results in {toc-tic:.2f} s")
-
         # Save FFT metadata to measurement_result
         tic = perf_counter()
-        measurement_result["fft_frequency_start"] = fft_data[1][0]
-        measurement_result["fft_frequency_stop"] = fft_data[1][1]
-        measurement_result["fft_frequency_step"] = fft_data[1][2]
-        measurement_result["fft_enbw"] = fft_data[1][3]
+        measurement_result["fft_frequency_start"] = fft_meta[0]
+        measurement_result["fft_frequency_stop"] = fft_meta[1]
+        measurement_result["fft_frequency_step"] = fft_meta[2]
+        measurement_result["fft_enbw"] = fft_meta[3]
         toc = perf_counter()
         logger.debug(f"Saved FFT metadata in {toc-tic:.2f} s")
 
@@ -666,10 +640,6 @@ class NasctnSeaDataProduct(Action):
         # TODO: Annotate APD + PFP
 
         return sigmf_builder
-
-    @staticmethod
-    def reduce_dtype(data_array: np.ndarray, data_type=DATA_TYPE) -> np.ndarray:
-        return data_array.astype(data_type)
 
     def transform_data(self, measurement_result: dict):
         """Flatten data product list of arrays, convert to bytes object, then compress"""
