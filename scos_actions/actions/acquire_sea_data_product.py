@@ -98,13 +98,13 @@ PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
 # DSP tasks to parallelize
 
 
-@ray.remote
+# @ray.remote
 def iir_filter(iir_sos: np.ndarray, iqdata: np.ndarray) -> np.ndarray:
     """Apply sosfilt"""
     return sosfilt(iir_sos, iqdata)
 
 
-@ray.remote
+# @ray.remote
 def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
     """Compute data product mean/max FFT results from IQ samples."""
     tic = perf_counter()
@@ -142,7 +142,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     return fft_result[0], fft_result[1]
 
 
-@ray.remote
+# @ray.remote
 def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
     """Generate downsampled APD result from IQ samples."""
     tic = perf_counter()
@@ -160,7 +160,7 @@ def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     # return p.astype(DATA_TYPE), a.astype(DATA_TYPE)
 
 
-@ray.remote
+# @ray.remote
 def get_td_power_results(
     iqdata: np.ndarray, params: dict
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -205,7 +205,7 @@ def get_td_power_results(
     return td_result[0], td_result[1]  # (max, mean)
 
 
-@ray.remote
+# @ray.remote
 def get_periodic_frame_power(
     iqdata: np.ndarray,
     params: dict,
@@ -289,25 +289,30 @@ def generate_data_product(
 ) -> np.ndarray:
     """Process IQ data and generate the SEA data product."""
     logger.debug("Generating data product...")
+    data_product = []
+    # logger.debug(f"Starting FFT process")  # Other tasks may proceed
+    # fft_ray = get_fft_results.remote(iqdata, params)
+    data_product.extend(get_fft_results(iqdata, params))
+    iq = sosfilt(iir_sos, iqdata)
+    data_product.extend(get_td_power_results(iq, params))
+    data_product.extend(get_periodic_frame_power(iq, params))
+    data_product.extend(get_apd_results(iq, params))
 
-    logger.debug(f"Starting FFT process")  # Other tasks may proceed
-    fft_ray = get_fft_results.remote(iqdata, params)
+    # logger.debug(f"Applying IIR filter")
+    # iq = iir_filter.remote(iir_sos, iqdata)
 
-    logger.debug(f"Applying IIR filter")
-    iq = iir_filter.remote(iir_sos, iqdata)
-
-    # Processes won't start until IIR filtering finishes
-    logger.debug("Starting APD, PFP, TDPWR processes")
-    apd_ray = get_apd_results.remote(iq, params)
-    pfp_ray = get_periodic_frame_power.remote(iq, params)
-    td_ray = get_td_power_results.remote(iq, params)
+    # # Processes won't start until IIR filtering finishes
+    # logger.debug("Starting APD, PFP, TDPWR processes")
+    # apd_ray = get_apd_results.remote(iq, params)
+    # pfp_ray = get_periodic_frame_power.remote(iq, params)
+    # td_ray = get_td_power_results.remote(iq, params)
 
     tic = perf_counter()
 
     # Get process results and construct data product
-    data_product = []
-    for r in [fft_ray, td_ray, pfp_ray, apd_ray]:
-        data_product.extend(ray.get(r))
+    # data_product = []
+    # for r in [fft_ray, td_ray, pfp_ray, apd_ray]:
+    #     data_product.extend(ray.get(r))
 
     toc = perf_counter()
     logger.debug(f"Got all results {tic-toc:.2f} s after all processes started")
