@@ -61,7 +61,9 @@ def load_preselector(preselector_config, module, preselector_class_name):
     if module is not None and preselector_class_name is not None:
         preselector_module = importlib.import_module(module)
         preselector_constructor = getattr(preselector_module, preselector_class_name)
-        ps = preselector_constructor(capabilities["sensor"], preselector_config)
+        ps = preselector_constructor(
+            capabilities["sensor"], preselector_config, timeout=3
+        )
         if ps and ps.name:
             logger.info(f"Registering {ps.name} as status provider")
             register_component_with_status.send(__name__, component=ps)
