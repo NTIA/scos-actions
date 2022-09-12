@@ -35,6 +35,7 @@ from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.hardware import gps as mock_gps
+from scos_actions.metadata.annotation_segment import AnnotationSegment
 from scos_actions.metadata.annotations import (
     CalibrationAnnotation,
     FrequencyDomainDetection,
@@ -223,23 +224,16 @@ def get_periodic_frame_power(
     rms_power = power_bins.mean(axis=0)
     peak_power = power_bins.max(axis=0)
 
-    # Finish conversion to power
-    ne.evaluate("rms_power/50", out=rms_power)
-    ne.evaluate("peak_power/50", out=peak_power)
-
     # then do the detector
     pfp = np.array(
         [
-            # RMS
-            rms_power.min(axis=1),
-            rms_power.mean(axis=1),
-            rms_power.max(axis=1),
-            # Peak
-            peak_power.min(axis=1),
-            peak_power.mean(axis=1),
-            peak_power.max(axis=1),
+            apply_power_detector(p, PFP_M3_DETECTOR, axis=1)
+            for p in [rms_power, peak_power]
         ]
     )
+
+    # Finish conversion to power
+    ne.evaluate("pfp/50", out=pfp)
 
     # Convert to dBm
     pfp = convert_watts_to_dBm(pfp)
@@ -325,6 +319,7 @@ FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
 # Create power detectors
 TD_DETECTOR = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
 FFT_DETECTOR = create_power_detector("FftMeanMaxDetector", ["mean", "max"])
+PFP_M3_DETECTOR = create_power_detector("PfpM3Detector", ["min", "max", "mean"])
 
 
 class NasctnSeaDataProduct(Action):
@@ -566,11 +561,55 @@ class NasctnSeaDataProduct(Action):
                 td_annotation,
             )
 
+        # dp_idx = [fft_mean, fft_max, td_mean, td_max, pfprms_min, pfp_rms]
+
         # PFP Annotation (custom, not in spec)
-        # TODO
+        for i, detector in enumerate(PFP_M3_DETECTOR):
+            # RMS result M3 detected
+            pfp_annotation = AnnotationSegment(
+                sample_start=dp_idx[i + 4] + cap_meta["sample_start"],
+                sample_count=dp_idx[i + 5] - dp_idx[i + 4],
+                label="pfp_rms_" + detector.value,
+            )
+            self.sigmf_builder.add_metadata_generator(
+                type(pfp_annotation).__name__ + "_rms_" + detector.value + f"_{rec_id}",
+                pfp_annotation,
+            )
+
+        for i, detector in enumerate(PFP_M3_DETECTOR):
+            # Peak result M3 detected
+            pfp_annotation = AnnotationSegment(
+                sample_start=dp_idx[i + 7] + cap_meta["sample_start"],
+                sample_count=dp_idx[i + 8] - dp_idx[i + 7],
+                label="pfp_peak_" + detector.value,
+            )
+            self.sigmf_builder.add_metadata_generator(
+                type(pfp_annotation).__name__
+                + "_peak_"
+                + detector.value
+                + f"_{rec_id}",
+                pfp_annotation,
+            )
 
         # APD Annotation
-        # TODO
+        apd_p_annotation = AnnotationSegment(
+            sample_start=dp_idx[i + 10] + cap_meta["sample_start"],
+            sample_count=dp_idx[i + 11] - dp_idx[i + 10],
+            label="apd_p_pct",
+        )
+        apd_a_annotation = AnnotationSegment(
+            sample_start=dp_idx[i + 11] + cap_meta["sample_start"],
+            sample_count=cap_meta["sample_count"] - dp_idx[i + 11],
+            label="apd_a_dBm",
+        )
+        self.sigmf_builder.add_metadata_generator(
+            type(apd_p_annotation).__name__ + f"_apd_p_{rec_id}",
+            apd_p_annotation,
+        )
+        self.sigmf_builder.add_metadata_generator(
+            type(apd_a_annotation).__name__ + f"_apd_a_{rec_id}",
+            apd_a_annotation,
+        )
 
     def get_sigmf_builder(
         self,
