@@ -428,7 +428,7 @@ class NasctnSeaDataProduct(Action):
 
             # Generate metadata for the capture
             self.create_channel_metadata(
-                iteration_params[rec_id], cap_meta[rec_id], dp_idx
+                rec_id, iteration_params[rec_id], cap_meta[rec_id], dp_idx
             )
 
             # Increment start sample
