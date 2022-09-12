@@ -579,12 +579,12 @@ class NasctnSeaDataProduct(Action):
                 number_of_ffts=int(measurement_result[NUM_FFTS]),
                 number_of_samples_in_fft=FFT_SIZE,
                 window=FFT_WINDOW_TYPE,
-                equivalent_noise_bandwidth=measurement_result["fft_enbw"],
+                # equivalent_noise_bandwidth=measurement_result["fft_enbw"],
                 units="dBm/Hz",
                 reference="preselector input",
-                frequency_start=measurement_result["fft_frequency_start"],
-                frequency_stop=measurement_result["fft_frequency_stop"],
-                frequency_step=measurement_result["fft_frequency_step"],
+                # frequency_start=measurement_result["fft_frequency_start"],
+                # frequency_stop=measurement_result["fft_frequency_stop"],
+                # frequency_step=measurement_result["fft_frequency_step"],
             )
             sigmf_builder.add_metadata_generator(
                 type(fft_annotation).__name__ + "_" + detector.value, fft_annotation
