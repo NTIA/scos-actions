@@ -412,8 +412,6 @@ class NasctnSeaDataProduct(Action):
             iteration_params[0][SAMPLE_RATE],
             task_id,
             schedule_entry,
-            1,
-            self.sigan.sensor_calibration_data["calibration_datetime"],
         )
 
         # Collect processed data product results
@@ -435,9 +433,6 @@ class NasctnSeaDataProduct(Action):
             last_data_len = len(all_data)
 
         # Build metadata
-        self.sigmf_builder.metadata[
-            "all_indices"
-        ] = all_idx  # TODO: Replace this with sufficient annotations
         self.sigmf_builder.build()
 
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
@@ -582,8 +577,6 @@ class NasctnSeaDataProduct(Action):
         sample_rate_Hz: float,
         task_id: int,
         schedule_entry: dict,
-        recording_id: int,
-        last_cal_time: str,
     ) -> SigMFBuilder:
         """Build SigMF that applies to the entire capture (all channels)"""
         sigmf_builder = SigMFBuilder()
@@ -591,9 +584,8 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_task(task_id)
         sigmf_builder.set_schedule(schedule_entry)
-        sigmf_builder.set_recording(recording_id)
         sigmf_builder.set_last_calibration_time(
-            last_cal_time
+            self.sigan.sensor_calibration_data["calibration_datetime"]
         )  # TODO: this is approximate since each channel is individually calibrated
         self.sigmf_builder = sigmf_builder
 
