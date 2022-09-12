@@ -57,6 +57,8 @@ class AnnotationSegment(ABC):
             "freq_upper_edge": "core:freq_upper_edge",
             "recording": "core:recording",
         }
+        # Create annotation segment
+        self.create_annotation_segment()
 
     def check_required(self, value: Any, keyname: str) -> None:
         assert value is not None, self.required_err_msg + keyname
