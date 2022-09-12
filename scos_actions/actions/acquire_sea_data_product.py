@@ -116,7 +116,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
         fft_window=FFT_WINDOW,
         num_ffts=params[NUM_FFTS],
         shift=False,
-        workers=4,  # TODO: Configure for parallelization
+        # workers=4,  # TODO: Configure for parallelization
     )
     fft_result = calculate_pseudo_power(fft_result)
     fft_result = apply_power_detector(fft_result, FFT_DETECTOR)  # (max, mean)
@@ -128,33 +128,18 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     fft_result -= 10.0 * np.log10(params[SAMPLE_RATE] * FFT_SIZE)  # PSD scaling
     fft_result += 2.0 * convert_linear_to_dB(FFT_WINDOW_ECF)  # Window energy correction
 
-    # Truncate FFT result
-    # TODO These parameters can be hardcoded
-    # logger.debug(f"Pre-truncated FFT result shape: {fft_result.shape}")
-    bw_trim = (params[SAMPLE_RATE] / 1.4) / 5
-    delta_f = params[SAMPLE_RATE] / FFT_SIZE
-    bin_start = int(bw_trim / delta_f)
-    bin_end = FFT_SIZE - bin_start
-    fft_result = fft_result[:, bin_start:bin_end]  # .astype(DATA_TYPE)
-    # logger.debug(f"Truncated FFT result length: {fft_result.shape}")
-
-    # Reduce data type
-    # fft_result = NasctnSeaDataProduct.reduce_dtype(fft_result)
-
-    # Get FFT metadata for annotation: ENBW, frequency axis
-    fft_freqs_Hz = get_fft_frequencies(FFT_SIZE, params[SAMPLE_RATE], params[FREQUENCY])
-    fft_freq_start = fft_freqs_Hz[bin_start]
-    fft_freq_stop = fft_freqs_Hz[bin_end - 1]
-    fft_freq_step = fft_freqs_Hz[1] - fft_freqs_Hz[0]
-    fft_enbw = get_fft_enbw(FFT_WINDOW, params[SAMPLE_RATE])
-    fft_meta = [fft_freq_start, fft_freq_stop, fft_freq_step, fft_enbw]
-
-    del fft_freqs_Hz
+    # Truncate FFT result to middle 625 samples (middle 10 MHz from 14 MHz)
+    # bw_trim = (params[SAMPLE_RATE] / 1.4) / 5  # Bandwidth to trim from each side: 2 MHz
+    # delta_f = params[SAMPLE_RATE] / FFT_SIZE  # 875 bins -> 16 kHz
+    # bin_start = int(bw_trim / delta_f)  # Bin 125
+    bin_start = int(FFT_SIZE / 7)  # See comments above: bin_start = 125
+    bin_end = FFT_SIZE - bin_start  # Bin 875-125 = bin 750
+    fft_result = fft_result[:, bin_start:bin_end]
 
     toc = perf_counter()
     logger.debug(f"Got FFT result in {toc-tic:.2f} s")
 
-    return fft_result[0], fft_result[1], fft_meta
+    return fft_result[0], fft_result[1]
 
 
 @ray.remote
@@ -298,6 +283,70 @@ def get_periodic_frame_power(
     return tuple(pfp)
 
 
+@ray.remote
+def generate_data_product(
+    iqdata: np.ndarray, params: dict, iir_sos: np.ndarray
+) -> np.ndarray:
+    """Process IQ data and generate the SEA data product."""
+    logger.debug("Generating data product...")
+
+    logger.debug(f"Starting FFT process")  # Other tasks may proceed
+    fft_ray = get_fft_results.remote(iqdata, params)
+
+    logger.debug(f"Applying IIR filter")
+    iq = iir_filter.remote(iir_sos, iqdata)
+
+    # Processes won't start until IIR filtering finishes
+    logger.debug("Starting APD, PFP, TDPWR processes")
+    apd_ray = get_apd_results.remote(iq, params)
+    pfp_ray = get_periodic_frame_power.remote(iq, params)
+    td_ray = get_td_power_results.remote(iq, params)
+
+    tic = perf_counter()
+
+    # Get process results and construct data product
+    data_product = []
+    for r in [fft_ray, td_ray, pfp_ray, apd_ray]:
+        data_product.extend(ray.get(r))
+
+    toc = perf_counter()
+    logger.debug(f"Got all results {tic-toc:.2f} s after all processes started")
+
+    tic = perf_counter()
+    del iq
+    toc = perf_counter()
+    logger.debug(f"Deleted IQ data in {toc-tic:.2f} s")
+
+    # TODO: Optimize memory usage
+    logger.debug(f"GC Count: {gc.get_count()}")
+    tic = perf_counter()
+    gc.collect()  # Computationally expensive!
+    toc = perf_counter()
+    logger.debug(f"GC Count after collection: {gc.get_count()}")
+    print(f"Collected garbage in {toc-tic:.2f} s")
+
+    # Skip rounding for now
+    # Quantize power results
+    # tic = perf_counter()
+    # for i, data in enumerate(data_product):
+    #     if i == 4:
+    #         # Do not round APD probability axis
+    #         continue
+    #     data.round(decimals=params[ROUND_TO], out=data)
+    # toc = perf_counter()
+    # logger.debug(
+    #     f"Data product rounded to {params[ROUND_TO]} decimal places in {toc-tic:.2f} s"
+    # )
+
+    # Flatten data product but retain component indices
+    tic = perf_counter()
+    data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
+    toc = perf_counter()
+    print(f"Data transformed in {toc-tic:.2f} s")
+
+    return data_product, dp_idx
+
+
 # Hard-coded algorithm parameters
 QFILT_QLO = 0.00015
 QFILT_QHI = 0.99999
@@ -345,7 +394,7 @@ class NasctnSeaDataProduct(Action):
             self.sample_rate_Hz,
         )
 
-        # Temporary: remove config parameters which will be hard-coded eventually
+        # TODO: remove config parameters which will be hard-coded eventually
         for key in [
             IIR_GPASS,
             IIR_GSTOP,
@@ -372,38 +421,36 @@ class NasctnSeaDataProduct(Action):
         start_action = perf_counter()
         logger.debug(f"Setting RF path to {self.rf_path}")
         self.configure_preselector(self.rf_path)
-        all_data = []
-        all_idx = []
-        last_data_len = 0
-        for recording_id, parameters in enumerate(iteration_params, start=1):
+
+        # Collect all IQ data and spawn data product computation processes
+        all_data, all_idx, dp_procs, start_times, end_times = ([] for _ in range(5))
+        for parameters in iteration_params:
             # Capture IQ data
             measurement_result = self.capture_iq(task_id, parameters)
 
-            # Generate data product (overwrites IQ data in measurement_result)
-            measurement_result, dp_idx = self.generate_data_product(
-                measurement_result, parameters
+            start_times.append(measurement_result["start_time"])
+            end_times.append(measurement_result["end_time"])
+
+            # Start data product processing but do not stall before next IQ capture
+            dp_procs.append(
+                generate_data_product.remote(
+                    measurement_result["data"], parameters, self.iir_sos
+                )
             )
 
-            # Generate metadata
-            # sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)
-            # self.create_metadata(
-            #     sigmf_builder, schedule_entry, measurement_result, recording_id
-            # )
-
-            all_data.extend(measurement_result["data"])
+        # Collect processed data product results
+        last_data_len = 0
+        for proc in dp_procs:
+            dp, dp_idx = ray.get(proc)
+            all_data.extend(dp)
             all_idx.extend((dp_idx + last_data_len).tolist())
+            last_data_len = len(dp)
 
-            # # Send signal
-            # measurement_action_completed.send(
-            #     sender=self.__class__,
-            #     task_id=task_id,
-            #     data=measurement_result["data"],
-            #     metadata=sigmf_builder.metadata,
-            # )
-        sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)  # INCORRECT
+        # TODO: Replace incorrect placeholder metadata
+        sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)
         self.create_metadata(
             sigmf_builder, schedule_entry, measurement_result, 1, all_idx
-        )  # INCORRECT
+        )
 
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
         measurement_action_completed.send(
@@ -414,7 +461,7 @@ class NasctnSeaDataProduct(Action):
         )
         action_done = perf_counter()
         logger.debug(
-            f"IQ Capture and data processing completed in {action_done-start_action:.2f}"
+            f"IQ Capture and all data processing completed in {action_done-start_action:.2f}"
         )
 
     def capture_iq(self, task_id, params) -> dict:
@@ -446,131 +493,20 @@ class NasctnSeaDataProduct(Action):
         measurement_result["name"] = self.name
         measurement_result["start_time"] = start_time
         measurement_result["end_time"] = end_time
-        measurement_result["domain"] = Domain.TIME.value
-        measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
+        # measurement_result["domain"] = Domain.TIME.value
+        # measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result["task_id"] = task_id
         measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
             "calibration_datetime"
         ]
-        measurement_result["description"] = self.description
+        # measurement_result["description"] = self.description
         measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         toc = perf_counter()
-        logger.debug(f"IQ Capture ({duration_ms} ms) completed in {toc-tic:.2f} s.")
+        logger.debug(
+            f"IQ Capture ({duration_ms} ms @ {(params[FREQUENCY]/1e6):.1f} MHz) completed in {toc-tic:.2f} s."
+        )
         return measurement_result
-
-    def generate_data_product(
-        self, measurement_result: dict, params: dict
-    ) -> np.ndarray:
-        """Process IQ data and generate the SEA data product."""
-        logger.debug(f'Generating data product for {measurement_result["task_id"]}')
-
-        logger.debug(f"Starting FFT process")  # Other tasks may proceed
-        fft_ray = get_fft_results.remote(measurement_result["data"], params)
-
-        logger.debug(f"Applying IIR filter")
-        iq = iir_filter.remote(self.iir_sos, measurement_result["data"])
-
-        # Processes won't start until IIR filtering finishes
-        logger.debug("Starting APD, PFP, TDPWR processes")
-        apd_ray = get_apd_results.remote(iq, params)
-        pfp_ray = get_periodic_frame_power.remote(iq, params)
-        td_ray = get_td_power_results.remote(iq, params)
-
-        tic = perf_counter()
-
-        # Get process results and construct data product
-        data_product = []
-        for r in [fft_ray, td_ray, pfp_ray, apd_ray]:
-            data_product.extend(ray.get(r))
-        fft_meta = data_product.pop(2)
-
-        toc = perf_counter()
-        logger.debug(f"Got all results {tic-toc:.2f} s after all processes started")
-
-        tic = perf_counter()
-        del iq
-        toc = perf_counter()
-        logger.debug(f"Deleted IQ data in {toc-tic:.2f} s")
-
-        # Save FFT metadata to measurement_result
-        tic = perf_counter()
-        measurement_result["fft_frequency_start"] = fft_meta[0]
-        measurement_result["fft_frequency_stop"] = fft_meta[1]
-        measurement_result["fft_frequency_step"] = fft_meta[2]
-        measurement_result["fft_enbw"] = fft_meta[3]
-        toc = perf_counter()
-        logger.debug(f"Saved FFT metadata in {toc-tic:.2f} s")
-
-        # Get FFT amplitudes using unfiltered data
-        # logger.debug("Getting FFT results...")
-        # tic = perf_counter()
-        # fft_results, measurement_result = self.get_fft_results(
-        #     measurement_result, params
-        # )
-        # data_product.extend(fft_results)  # (max, mean)
-        # toc = perf_counter()
-        # logger.debug(f"FFT computation complete in {toc-tic:.2f} s")
-
-        # Filter IQ data
-        # if params[IIR_APPLY]:
-        #     logger.debug(f"Applying IIR low-pass filter to IQ data...")
-        #     tic = perf_counter()
-        #     iq = sosfilt(self.iir_sos, measurement_result["data"])
-        #     toc = perf_counter()
-        #     logger.debug(f"IIR filter applied to IQ samples in {toc-tic:.2f} s")
-        # else:
-        #     logger.debug(f"Skipping IIR filtering of IQ data...")
-
-        # logger.debug("Calculating time-domain power statistics...")
-        # tic = perf_counter()
-        # data_product.extend(self.get_td_power_results(iq, params))  # (max, mean)
-        # toc = perf_counter()
-        # logger.debug(f"Time domain power statistics calculated in {toc-tic:.2f} s")
-
-        # logger.debug("Computing periodic frame power...")
-        # tic = perf_counter()
-        # data_product.extend(self.get_periodic_frame_power(iq, params))
-        # toc = perf_counter()
-        # logger.debug(f"Periodic frame power computed in {toc-tic:.2f} s")
-
-        # logger.debug("Generating APD...")
-        # tic = perf_counter()
-        # data_product.extend(self.get_apd_results(iq, params))
-        # toc = perf_counter()
-        # logger.debug(f"APD result generated in {toc-tic:.2f} s")
-
-        # del iq
-
-        # TODO: Optimize memory usage
-        logger.debug(f"GC Count: {gc.get_count()}")
-        tic = perf_counter()
-        gc.collect()  # Computationally expensive!
-        toc = perf_counter()
-        logger.debug(f"GC Count after collection: {gc.get_count()}")
-        print(f"Collected garbage in {toc-tic:.2f} s")
-
-        # Skip rounding for now
-        # Quantize power results
-        # tic = perf_counter()
-        # for i, data in enumerate(data_product):
-        #     if i == 4:
-        #         # Do not round APD probability axis
-        #         continue
-        #     data.round(decimals=params[ROUND_TO], out=data)
-        # toc = perf_counter()
-        # logger.debug(
-        #     f"Data product rounded to {params[ROUND_TO]} decimal places in {toc-tic:.2f} s"
-        # )
-
-        # Flatten and compress data product
-        measurement_result["data"] = data_product
-        tic = perf_counter()
-        measurement_result, dp_idx = self.transform_data(measurement_result)
-        toc = perf_counter()
-        print(f"Data transformed in {toc-tic:.2f} s")
-
-        return measurement_result, dp_idx
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
@@ -615,7 +551,7 @@ class NasctnSeaDataProduct(Action):
         # Annotate calibration
         calibration_annotation = CalibrationAnnotation(
             sample_start=0,
-            sample_count=self.total_samples,  # Set when transform_data is called
+            sample_count=0,  # TODO: Replace incorrect placeholder
             sigan_cal=None,
             sensor_cal=sensor_cal,
         )
@@ -676,25 +612,17 @@ class NasctnSeaDataProduct(Action):
 
         return sigmf_builder
 
-    def transform_data(self, measurement_result: dict):
-        """Flatten data product list of arrays, convert to bytes object, then compress"""
+    @staticmethod
+    def transform_data(data_product: list):
+        """Flatten data product list of arrays (single channel), convert to bytes object, then compress"""
         # Get indices for start of each component in flattened result
-        data_lengths = [len(d) for d in measurement_result["data"]]
+        data_lengths = [len(d) for d in data_product]
         logger.debug(f"Data product component lengths: {data_lengths}")
         idx = [0] + np.cumsum(data_lengths[:-1]).tolist()
         logger.debug(f"Data product start indices: {idx}")
         # Flatten data product, reduce dtype, and convert to byte array
-        measurement_result["data"] = np.hstack(measurement_result["data"]).astype(
-            DATA_TYPE
-        )
-        self.total_samples = len(
-            measurement_result["data"]
-        )  # NO LONGER CORRECT WITH FLATTENED RESULT
-        # measurement_result["data"] = measurement_result["data"].tobytes()
-        # measurement_result["data"] = self.compress_bytes_data(
-        #     measurement_result["data"]
-        # )
-        return measurement_result, np.array(idx)
+        data_product = np.hstack(data_product).astype(DATA_TYPE)
+        return data_product, np.array(idx)
 
     @staticmethod
     def compress_bytes_data(data: bytes) -> bytes:
