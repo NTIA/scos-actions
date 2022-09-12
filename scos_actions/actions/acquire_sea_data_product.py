@@ -361,9 +361,6 @@ class NasctnSeaDataProduct(Action):
             IIR_PB_EDGE,
             IIR_SB_EDGE,
             IIR_RESP_FREQS,
-            # Q_LO,
-            # Q_HI,
-            # FFT_WINDOW_TYPE,
         ]:
             self.parameters.pop(key)
 
@@ -378,7 +375,6 @@ class NasctnSeaDataProduct(Action):
         self.configure_preselector(self.rf_path)
 
         # Collect all IQ data and spawn data product computation processes
-        # all_data, all_idx, dp_procs, start_times, end_times, sensor_cals = ([] for _ in range(5))
         all_data, all_idx, dp_procs, cap_meta = ([] for _ in range(4))
         for parameters in iteration_params:
             # Capture IQ data
@@ -560,8 +556,6 @@ class NasctnSeaDataProduct(Action):
                 type(td_annotation).__name__ + "_" + detector.value + f"_{rec_id}",
                 td_annotation,
             )
-
-        # dp_idx = [fft_mean, fft_max, td_mean, td_max, pfprms_min, pfp_rms]
 
         # PFP Annotation (custom, not in spec)
         for i, detector in enumerate(PFP_M3_DETECTOR):
