@@ -551,7 +551,7 @@ class NasctnSeaDataProduct(Action):
         # Annotate calibration
         calibration_annotation = CalibrationAnnotation(
             sample_start=0,
-            sample_count=0,  # TODO: Replace incorrect placeholder
+            sample_count=2,  # TODO: Replace incorrect placeholder
             sigan_cal=None,
             sensor_cal=sensor_cal,
         )
@@ -562,7 +562,7 @@ class NasctnSeaDataProduct(Action):
         # Annotate sensor settings
         sensor_annotation = SensorAnnotation(
             sample_start=0,
-            sample_count=0,  # self.total_samples, # TODO: replace incorrect
+            sample_count=2,  # self.total_samples, # TODO: replace incorrect
             overload=measurement_result["overload"],
             attenuation_setting_sigan=self.parameters["attenuation"],
         )
