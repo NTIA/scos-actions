@@ -593,13 +593,13 @@ class NasctnSeaDataProduct(Action):
 
         # APD Annotation
         apd_p_annotation = AnnotationSegment(
-            sample_start=dp_idx[i + 10] + cap_meta["sample_start"],
-            sample_count=dp_idx[i + 11] - dp_idx[i + 10],
+            sample_start=dp_idx[10] + cap_meta["sample_start"],
+            sample_count=dp_idx[11] - dp_idx[10],
             label="apd_p_pct",
         )
         apd_a_annotation = AnnotationSegment(
-            sample_start=dp_idx[i + 11] + cap_meta["sample_start"],
-            sample_count=cap_meta["sample_count"] - dp_idx[i + 11],
+            sample_start=dp_idx[11] + cap_meta["sample_start"],
+            sample_count=cap_meta["sample_count"] - dp_idx[11],
             label="apd_a_dBm",
         )
         self.sigmf_builder.add_metadata_generator(
