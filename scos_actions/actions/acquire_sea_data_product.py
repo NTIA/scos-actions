@@ -230,7 +230,7 @@ def get_periodic_frame_power(
             apply_power_detector(p, PFP_M3_DETECTOR, axis=1)
             for p in [rms_power, peak_power]
         ]
-    )
+    ).reshape(6, Npts)
 
     # Finish conversion to power
     ne.evaluate("pfp/50", out=pfp)
