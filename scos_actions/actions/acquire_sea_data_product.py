@@ -41,12 +41,10 @@ from scos_actions.metadata.annotations import (
     SensorAnnotation,
     TimeDomainDetection,
 )
-from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
     get_fft,
-    get_fft_enbw,
-    get_fft_frequencies,
     get_fft_window,
     get_fft_window_correction,
 )
@@ -100,7 +98,6 @@ PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
 
 def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
     """Compute data product mean/max FFT results from IQ samples."""
-    tic = perf_counter()
     # IQ data already scaled for calibrated gain
     fft_result = get_fft(
         time_data=iqdata,
@@ -125,19 +122,15 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     # bw_trim = (params[SAMPLE_RATE] / 1.4) / 5  # Bandwidth to trim from each side: 2 MHz
     # delta_f = params[SAMPLE_RATE] / FFT_SIZE  # 875 bins -> 16 kHz
     # bin_start = int(bw_trim / delta_f)  # Bin 125
-    bin_start = int(FFT_SIZE / 7)  # See comments above: bin_start = 125
-    bin_end = FFT_SIZE - bin_start  # Bin 875-125 = bin 750
-    fft_result = fft_result[:, bin_start:bin_end]
-
-    toc = perf_counter()
-    logger.debug(f"Got FFT result in {toc-tic:.2f} s")
+    bin_start = int(FFT_SIZE / 7)  # bin_start = 125 with FFT_SIZE 875
+    bin_end = FFT_SIZE - bin_start  # bin_end = 750 with FFT_SIZE 875
+    fft_result = fft_result[:, bin_start:bin_end]  # See comments above
 
     return fft_result[0], fft_result[1]
 
 
 def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
     """Generate downsampled APD result from IQ samples."""
-    tic = perf_counter()
     p, a = get_apd(iqdata, params[APD_BIN_SIZE_DB])
     # Convert dBV to dBm:
     # a = a * 2 : dBV --> dB(V^2)
@@ -145,18 +138,13 @@ def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     # a = a + 27 : dBW --> dBm (+30) and RF/baseband conversion (-3)
     scale_factor = 27 - convert_linear_to_dB(50.0)  # Hard-coded for 50 Ohms.
     ne.evaluate("(a*2)+scale_factor", out=a)
-    # p, a = (NasctnSeaDataProduct.reduce_dtype(x) for x in (p, a))
-    toc = perf_counter()
-    logger.debug(f"Got APD result in {toc-tic:.2f} s")
     return p, a
-    # return p.astype(DATA_TYPE), a.astype(DATA_TYPE)
 
 
 def get_td_power_results(
     iqdata: np.ndarray, params: dict
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Compute mean/max time domain power statistics from IQ samples, with optional quantile filtering."""
-    tic = perf_counter()
     # Reshape IQ data into blocks
     block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
     n_blocks = len(iqdata) // block_size
@@ -187,12 +175,6 @@ def get_td_power_results(
     # Account for RF/baseband power difference
     td_result -= 3
 
-    # Reduce data type
-    # td_result = td_result.astype(DATA_TYPE)
-
-    toc = perf_counter()
-    logger.debug(f"Got TD result in {toc-tic:.2f} s")
-
     return td_result[0], td_result[1]  # (max, mean)
 
 
@@ -217,7 +199,6 @@ def get_periodic_frame_power(
         max: np.ndarray)
     :raises ValueError: if detector_period%Ts != 0 or frame_period%detector_period != 0
     """
-    tic = perf_counter()
     sampling_period_s = 1.0 / params[SAMPLE_RATE]
     frame_period_s = 1e-3 * params[PFP_FRAME_PERIOD_MS]
     if not np.isclose(frame_period_s % sampling_period_s, 0, 1e-6):
@@ -266,10 +247,6 @@ def get_periodic_frame_power(
     # Convert to dBm
     pfp = convert_watts_to_dBm(pfp)
     pfp -= 3  # RF/baseband
-    # pfp = pfp.astype(DATA_TYPE)
-    toc = perf_counter()
-    logger.debug(f"Got PFP result in {toc-tic:.2f} s")
-    # logger.debug(f"PFP result shape: {pfp.shape}")
     return tuple(pfp)
 
 
@@ -279,15 +256,34 @@ def generate_data_product(
 ) -> np.ndarray:
     """Process IQ data and generate the SEA data product."""
     logger.debug("Generating data product...")
-    tic = perf_counter()
+    tic1 = perf_counter()
     data_product = []
+
     data_product.extend(get_fft_results(iqdata, params))
+    toc = perf_counter()
+    logger.debug(f"Got FFT result in {toc-tic1:.2f} s")
+
+    tic = perf_counter()
     iqdata = sosfilt(iir_sos, iqdata)
+    toc = perf_counter()
+    logger.debug(f"Applied IIR filter to IQ data in {toc-tic:.2f} s")
+
+    tic = perf_counter()
     data_product.extend(get_td_power_results(iqdata, params))
+    toc = perf_counter()
+    logger.debug(f"Got TD result in {toc-tic:.2f} s")
+
+    tic = perf_counter()
     data_product.extend(get_periodic_frame_power(iqdata, params))
+    toc = perf_counter()
+    logger.debug(f"Got PFP result in {toc-tic:.2f} s")
+
+    tic = perf_counter()
     data_product.extend(get_apd_results(iqdata, params))
     toc = perf_counter()
-    logger.debug(f"Got all data product results in {toc-tic:.2f} s")
+    logger.debug(f"Got APD result in {toc-tic:.2f} s")
+
+    logger.debug(f"Got all data product results in {toc-tic1:.2f} s")
 
     # TODO: Further optimize memory usage
     logger.debug(f"GC Count: {gc.get_count()}")
