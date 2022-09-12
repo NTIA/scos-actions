@@ -74,8 +74,8 @@ IIR_PB_EDGE = "iir_pb_edge_Hz"
 IIR_SB_EDGE = "iir_sb_edge_Hz"
 IIR_RESP_FREQS = "iir_num_response_frequencies"
 QFILT_APPLY = "qfilt_apply"
-# Q_LO = "qfilt_qlo"
-# Q_HI = "qfilt_qhi"
+Q_LO = "qfilt_qlo"
+Q_HI = "qfilt_qhi"
 # FFT_SIZE = "fft_size"
 NUM_FFTS = "nffts"
 # FFT_WINDOW_TYPE = "fft_window_type"
@@ -91,9 +91,6 @@ PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
 # Constants
 DATA_TYPE = np.half
 PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
-
-
-# DSP tasks to parallelize
 
 
 def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
@@ -149,22 +146,22 @@ def get_td_power_results(
     block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
     n_blocks = len(iqdata) // block_size
     iqdata = iqdata.reshape(block_size, n_blocks)
-    # logger.debug(
-    # f"Calculating time-domain power statistics on {n_blocks} blocks of {block_size} samples each"
-    # )
+    print(
+        f"Calculating time-domain power statistics on {n_blocks} blocks of {block_size} samples each"
+    )
 
     iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.0)
 
     if params[QFILT_APPLY]:
         # Apply quantile filtering before computing power statistics
-        # logger.info("Quantile-filtering time domain power data...")
-        iq_pwr = filter_quantiles(iq_pwr, QFILT_QLO, QFILT_QHI)
+        print("Quantile-filtering time domain power data...")
+        iq_pwr = filter_quantiles(iq_pwr, params[Q_LO], params[Q_HI])
         # Diagnostics
         num_nans = np.count_nonzero(np.isnan(iq_pwr))
-        # nan_pct = num_nans * 100 / len(iq_pwr.flatten())
-        # logger.debug(f"Rejected {num_nans} samples ({nan_pct:.2f}% of total capture)")
-    # else:
-    # logger.info("Quantile-filtering disabled. Skipping...")
+        nan_pct = num_nans * 100 / len(iq_pwr.flatten())
+        print(f"Rejected {num_nans} samples ({nan_pct:.2f}% of total capture)")
+    else:
+        print("Quantile-filtering disabled. Skipping...")
 
     # Apply mean/max detectors
     td_result = apply_power_detector(iq_pwr, TD_DETECTOR, ignore_nan=True)
@@ -213,7 +210,7 @@ def get_periodic_frame_power(
 
     Nframes = int(np.round(frame_period_s / sampling_period_s))
     Npts = int(np.round(frame_period_s / detector_period_s))
-    # logger.debug(f"PFP Nframes: {Nframes}, Npts: {Npts}")
+    print(f"PFP Nframes: {Nframes}, Npts: {Npts}")
 
     # set up dimensions to make the statistics fast
     chunked_shape = (iqdata.shape[0] // Nframes, Npts, Nframes // Npts) + tuple(
@@ -255,46 +252,47 @@ def generate_data_product(
     iqdata: np.ndarray, params: dict, iir_sos: np.ndarray
 ) -> np.ndarray:
     """Process IQ data and generate the SEA data product."""
-    logger.debug("Generating data product...")
+    # Use print instead of logger.debug inside ray.remote function
+    print(f"Generating data product @ {params[FREQUENCY]}...")
     tic1 = perf_counter()
     data_product = []
 
     data_product.extend(get_fft_results(iqdata, params))
     toc = perf_counter()
-    logger.debug(f"Got FFT result in {toc-tic1:.2f} s")
+    print(f"Got FFT result @ {params[FREQUENCY]} in {toc-tic1:.2f} s")
 
     tic = perf_counter()
     iqdata = sosfilt(iir_sos, iqdata)
     toc = perf_counter()
-    logger.debug(f"Applied IIR filter to IQ data in {toc-tic:.2f} s")
+    print(f"Applied IIR filter to IQ data @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
     tic = perf_counter()
     data_product.extend(get_td_power_results(iqdata, params))
     toc = perf_counter()
-    logger.debug(f"Got TD result in {toc-tic:.2f} s")
+    print(f"Got TD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
     tic = perf_counter()
     data_product.extend(get_periodic_frame_power(iqdata, params))
     toc = perf_counter()
-    logger.debug(f"Got PFP result in {toc-tic:.2f} s")
+    print(f"Got PFP result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
     tic = perf_counter()
     data_product.extend(get_apd_results(iqdata, params))
     toc = perf_counter()
-    logger.debug(f"Got APD result in {toc-tic:.2f} s")
+    print(f"Got APD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
-    logger.debug(f"Got all data product results in {toc-tic1:.2f} s")
+    print(f"Got all data product @ {params[FREQUENCY]} results in {toc-tic1:.2f} s")
 
     # TODO: Further optimize memory usage
-    logger.debug(f"GC Count: {gc.get_count()}")
+    print(f"GC Count: {gc.get_count()}")
     tic = perf_counter()
     del iqdata
     gc.collect()
     toc = perf_counter()
-    logger.debug(f"GC Count after collection: {gc.get_count()}")
-    print(f"Deleted IQ and collected garbage in {toc-tic:.2f} s")
+    print(f"GC Count after collection: {gc.get_count()}")
+    print(f"Deleted IQ @ {params[FREQUENCY]} and collected garbage in {toc-tic:.2f} s")
 
-    # Skip rounding for now
+    # Skip rounding for now (may return to this if it benefits other compression methods)
     # Quantize power results
     # tic = perf_counter()
     # for i, data in enumerate(data_product):
@@ -311,14 +309,12 @@ def generate_data_product(
     tic = perf_counter()
     data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
     toc = perf_counter()
-    print(f"Data transformed in {toc-tic:.2f} s")
+    print(f"Data @ {params[FREQUENCY]} transformed in {toc-tic:.2f} s")
 
     return data_product, dp_idx
 
 
 # Hard-coded algorithm parameters
-QFILT_QLO = 0.00015
-QFILT_QHI = 0.99999
 FFT_SIZE = 875
 FFT_WINDOW_TYPE = "flattop"
 
