@@ -389,9 +389,6 @@ class NasctnSeaDataProduct(Action):
             # Capture IQ data
             measurement_result = self.capture_iq(parameters)
 
-            # start_times.append(measurement_result["start_time"])
-            # end_times.append(measurement_result["end_time"])
-            # sensor_cals.append(measurement_result["sensor_cal"])
             cap_meta.append(
                 {
                     "start_time": measurement_result["start_time"],
@@ -502,6 +499,7 @@ class NasctnSeaDataProduct(Action):
 
     def create_channel_metadata(
         self,
+        rec_id: int,
         params: dict,
         cap_meta: dict,
         dp_idx=None,
@@ -527,7 +525,7 @@ class NasctnSeaDataProduct(Action):
             sensor_cal=sensor_cal,
         )
         self.sigmf_builder.add_metadata_generator(
-            type(calibration_annotation).__name__, calibration_annotation
+            type(calibration_annotation).__name__ + f"_{rec_id}", calibration_annotation
         )
 
         # Sensor Annotation (contains overload indicator)
@@ -538,7 +536,7 @@ class NasctnSeaDataProduct(Action):
             attenuation_setting_sigan=params["attenuation"],
         )
         self.sigmf_builder.add_metadata_generator(
-            type(sensor_annotation).__name__, sensor_annotation
+            type(sensor_annotation).__name__ + f"_{rec_id}", sensor_annotation
         )
 
         # FFT Annotation
@@ -554,7 +552,8 @@ class NasctnSeaDataProduct(Action):
                 reference="preselector input",
             )
             self.sigmf_builder.add_metadata_generator(
-                type(fft_annotation).__name__ + "_" + detector.value, fft_annotation
+                type(fft_annotation).__name__ + "_" + detector.value + f"_{rec_id}",
+                fft_annotation,
             )
 
         # Time Domain Annotation
@@ -568,7 +567,8 @@ class NasctnSeaDataProduct(Action):
                 reference="preselector input",
             )
             self.sigmf_builder.add_metadata_generator(
-                type(td_annotation).__name__ + "_" + detector.value, td_annotation
+                type(td_annotation).__name__ + "_" + detector.value + f"_{rec_id}",
+                td_annotation,
             )
 
         # PFP Annotation (custom, not in spec)
@@ -590,9 +590,7 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_task(task_id)
-        sigmf_builder.set_schedule(
-            schedule_entry
-        )  # TODO: This is missing stop time + "interval" (?)
+        sigmf_builder.set_schedule(schedule_entry)
         sigmf_builder.set_recording(recording_id)
         sigmf_builder.set_last_calibration_time(
             last_cal_time
