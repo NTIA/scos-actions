@@ -103,7 +103,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
         fft_window=FFT_WINDOW,
         num_ffts=params[NUM_FFTS],
         shift=False,
-        workers=4,  # TODO: Configure for parallelization
+        workers=4,
     )
     fft_result = calculate_pseudo_power(fft_result)
     fft_result = apply_power_detector(fft_result, FFT_DETECTOR)  # (max, mean)
@@ -383,13 +383,23 @@ class NasctnSeaDataProduct(Action):
         self.configure_preselector(self.rf_path)
 
         # Collect all IQ data and spawn data product computation processes
-        all_data, all_idx, dp_procs, start_times, end_times = ([] for _ in range(5))
+        # all_data, all_idx, dp_procs, start_times, end_times, sensor_cals = ([] for _ in range(5))
+        all_data, all_idx, dp_procs, cap_meta = ([] for _ in range(4))
         for parameters in iteration_params:
             # Capture IQ data
-            measurement_result = self.capture_iq(task_id, parameters)
+            measurement_result = self.capture_iq(parameters)
 
-            start_times.append(measurement_result["start_time"])
-            end_times.append(measurement_result["end_time"])
+            # start_times.append(measurement_result["start_time"])
+            # end_times.append(measurement_result["end_time"])
+            # sensor_cals.append(measurement_result["sensor_cal"])
+            cap_meta.append(
+                {
+                    "start_time": measurement_result["start_time"],
+                    "end_time": measurement_result["end_time"],
+                    "sensor_cal": measurement_result["sensor_cal"],
+                    "overload": measurement_result["overload"],
+                }
+            )
 
             # Start data product processing but do not stall before next IQ capture
             dp_procs.append(
@@ -398,33 +408,54 @@ class NasctnSeaDataProduct(Action):
                 )
             )
 
+        # Initialize metadata object
+        # Assumes all sample rates are the same
+        # And uses a single "last calibration time"
+        self.sigmf_builder = self.get_sigmf_builder(
+            iteration_params[0][SAMPLE_RATE],
+            task_id,
+            schedule_entry,
+            1,
+            self.sigan.sensor_calibration_data["calibration_datetime"],
+        )
+
         # Collect processed data product results
         last_data_len = 0
-        for proc in dp_procs:
-            dp, dp_idx = ray.get(proc)
+        results = ray.get(dp_procs)  # Ordering is retained
+        for rec_id, (dp, dp_idx) in enumerate(results):
             all_data.extend(dp)
             all_idx.extend((dp_idx + last_data_len).tolist())
-            last_data_len = len(dp)
 
-        # TODO: Replace incorrect placeholder metadata
-        sigmf_builder = self.get_sigmf_builder(measurement_result, dp_idx)
-        self.create_metadata(
-            sigmf_builder, schedule_entry, measurement_result, 1, all_idx
-        )
+            cap_meta[rec_id]["sample_start"] = last_data_len
+            cap_meta[rec_id]["sample_count"] = len(dp)
+
+            # Generate metadata for the capture
+            self.create_channel_metadata(
+                iteration_params[rec_id], cap_meta[rec_id], dp_idx
+            )
+
+            # Increment start sample
+            last_data_len = len(all_data)
+
+        # Build metadata
+        self.sigmf_builder.metadata[
+            "all_indices"
+        ] = all_idx  # TODO: Replace this with sufficient annotations
+        self.sigmf_builder.build()
 
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
         measurement_action_completed.send(
             sender=self.__class__,
             task_id=task_id,
             data=all_data,
-            metadata=sigmf_builder.metadata,
+            metadata=self.sigmf_builder.metadata,
         )
         action_done = perf_counter()
         logger.debug(
             f"IQ Capture and all data processing completed in {action_done-start_action:.2f}"
         )
 
-    def capture_iq(self, task_id, params) -> dict:
+    def capture_iq(self, params: dict) -> dict:
         """Acquire a single gap-free stream of IQ samples."""
         logger.debug(f"GC Count (IQ Cap): {gc.get_count()}")
         tic = perf_counter()
@@ -453,10 +484,6 @@ class NasctnSeaDataProduct(Action):
         measurement_result["name"] = self.name
         measurement_result["start_time"] = start_time
         measurement_result["end_time"] = end_time
-        measurement_result["task_id"] = task_id
-        measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
-            "calibration_datetime"
-        ]
         measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         toc = perf_counter()
@@ -473,98 +500,103 @@ class NasctnSeaDataProduct(Action):
         # TODO: Add additional health checks
         return None
 
-    def create_metadata(
+    def create_channel_metadata(
         self,
-        sigmf_builder: SigMFBuilder,
-        schedule_entry: dict,
-        measurement_result: dict,
-        recording=None,
-        all_idx=None,
-    ):
-        sigmf_builder.set_last_calibration_time(
-            measurement_result["calibration_datetime"]
+        params: dict,
+        cap_meta: dict,
+        dp_idx=None,
+    ) -> SigMFBuilder:
+        """Add metadata corresponding to a single-frequency capture in the measurement"""
+        # Add Capture
+        self.sigmf_builder.set_capture(
+            params[FREQUENCY], cap_meta["start_time"], cap_meta["sample_start"]
         )
-        sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
-        sigmf_builder.set_sample_rate(measurement_result["sample_rate"])
-        sigmf_builder.set_schedule(schedule_entry)
-        sigmf_builder.set_task(measurement_result["task_id"])
-        sigmf_builder.set_recording(recording)
-        sigmf_builder.add_sigmf_capture(sigmf_builder, measurement_result)
-        sigmf_builder.metadata["all_indices"] = all_idx
-        sigmf_builder.build()
 
-    def get_sigmf_builder(self, measurement_result: dict, dp_idx: list) -> SigMFBuilder:
-        """Build SigMF metadata for a single channel capture"""
-        # TODO: Finalize metadata
-        # Create metadata annotations for the data
-        sigmf_builder = SigMFBuilder()
-
-        # Remove unnecessary metadata from calibration annotation
+        # Remove some metadata from calibration annotation
         sensor_cal = {
             k: v
-            for k, v in measurement_result["sensor_cal"].items()
+            for k, v in cap_meta["sensor_cal"].items()
             if k in {"gain_sensor", "noise_figure_sensor", "enbw_sensor", "temperature"}
         }
 
-        # Annotate calibration
+        # Calibration Annotation
         calibration_annotation = CalibrationAnnotation(
-            sample_start=0,
-            sample_count=2,  # TODO: Replace incorrect placeholder
-            sigan_cal=None,
+            sample_start=cap_meta["sample_start"],
+            sample_count=cap_meta["sample_count"],
+            sigan_cal=None,  # Do not include sigan cal data
             sensor_cal=sensor_cal,
         )
-        sigmf_builder.add_metadata_generator(
+        self.sigmf_builder.add_metadata_generator(
             type(calibration_annotation).__name__, calibration_annotation
         )
 
-        # Annotate sensor settings
+        # Sensor Annotation (contains overload indicator)
         sensor_annotation = SensorAnnotation(
-            sample_start=0,
-            sample_count=2,  # self.total_samples, # TODO: replace incorrect
-            overload=measurement_result["overload"],
-            attenuation_setting_sigan=self.parameters["attenuation"],
+            sample_start=cap_meta["sample_start"],
+            sample_count=cap_meta["sample_count"],
+            overload=cap_meta["overload"],
+            attenuation_setting_sigan=params["attenuation"],
         )
-        sigmf_builder.add_metadata_generator(
+        self.sigmf_builder.add_metadata_generator(
             type(sensor_annotation).__name__, sensor_annotation
         )
 
-        # Annotate FFT
+        # FFT Annotation
         for i, detector in enumerate(FFT_DETECTOR):
             fft_annotation = FrequencyDomainDetection(
-                sample_start=dp_idx[i],
+                sample_start=dp_idx[i] + cap_meta["sample_start"],
                 sample_count=dp_idx[i + 1] - dp_idx[i],
                 detector=detector.value,
-                number_of_ffts=int(measurement_result[NUM_FFTS]),
-                number_of_samples_in_fft=FFT_SIZE,
-                window=FFT_WINDOW_TYPE,
+                number_of_ffts=int(params[NUM_FFTS]),
+                number_of_samples_in_fft=FFT_SIZE,  # TODO: This is hard-coded
+                window=FFT_WINDOW_TYPE,  # TODO: This is hard-coded
                 units="dBm/Hz",
                 reference="preselector input",
             )
-            sigmf_builder.add_metadata_generator(
+            self.sigmf_builder.add_metadata_generator(
                 type(fft_annotation).__name__ + "_" + detector.value, fft_annotation
             )
 
-        # Annotate time domain power statistics
+        # Time Domain Annotation
         for i, detector in enumerate(TD_DETECTOR):
             td_annotation = TimeDomainDetection(
-                sample_start=dp_idx[i + 2],
+                sample_start=dp_idx[i + 2] + cap_meta["sample_start"],
                 sample_count=dp_idx[i + 3] - dp_idx[i + 2],
                 detector=detector.value,
-                number_of_samples=int(
-                    measurement_result[SAMPLE_RATE]
-                    * measurement_result[DURATION_MS]
-                    * 1e-3
-                ),
+                number_of_samples=int(params[SAMPLE_RATE] * params[DURATION_MS] * 1e-3),
                 units="dBm",
                 reference="preselector input",
             )
-            sigmf_builder.add_metadata_generator(
+            self.sigmf_builder.add_metadata_generator(
                 type(td_annotation).__name__ + "_" + detector.value, td_annotation
             )
 
-        # TODO: Annotate APD + PFP
+        # PFP Annotation (custom, not in spec)
+        # TODO
 
-        return sigmf_builder
+        # APD Annotation
+        # TODO
+
+    def get_sigmf_builder(
+        self,
+        sample_rate_Hz: float,
+        task_id: int,
+        schedule_entry: dict,
+        recording_id: int,
+        last_cal_time: str,
+    ) -> SigMFBuilder:
+        """Build SigMF that applies to the entire capture (all channels)"""
+        sigmf_builder = SigMFBuilder()
+        sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
+        sigmf_builder.set_sample_rate(sample_rate_Hz)
+        sigmf_builder.set_task(task_id)
+        sigmf_builder.set_schedule(
+            schedule_entry
+        )  # TODO: This is missing stop time + "interval" (?)
+        sigmf_builder.set_recording(recording_id)
+        sigmf_builder.set_last_calibration_time(
+            last_cal_time
+        )  # TODO: this is approximate since each channel is individually calibrated
 
     @staticmethod
     def transform_data(data_product: list):
