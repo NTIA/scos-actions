@@ -411,7 +411,7 @@ class NasctnSeaDataProduct(Action):
         # Initialize metadata object
         # Assumes all sample rates are the same
         # And uses a single "last calibration time"
-        self.sigmf_builder = self.get_sigmf_builder(
+        self.get_sigmf_builder(
             iteration_params[0][SAMPLE_RATE],
             task_id,
             schedule_entry,
@@ -597,6 +597,7 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_last_calibration_time(
             last_cal_time
         )  # TODO: this is approximate since each channel is individually calibrated
+        self.sigmf_builder = sigmf_builder
 
     @staticmethod
     def transform_data(data_product: list):
