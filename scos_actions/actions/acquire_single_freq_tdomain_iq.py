@@ -38,9 +38,7 @@ from numpy import complex64
 from scos_actions import utils
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware import gps as mock_gps
-from scos_actions.metadata.annotations.time_domain_annotation import (
-    TimeDomainAnnotation,
-)
+from scos_actions.metadata.annotations import TimeDomainDetection
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.utils import get_parameter
 
@@ -51,6 +49,7 @@ FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
 DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
+CLASSIFICATION = "classification"
 
 
 class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
@@ -79,6 +78,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         self.nskip = get_parameter(NUM_SKIP, self.parameters)
         self.duration_ms = get_parameter(DURATION_MS, self.parameters)
         self.frequency_Hz = get_parameter(FREQUENCY, self.parameters)
+        self.classification = get_parameter(CLASSIFICATION, self.parameters)
 
     def execute(self, schedule_entry, task_id) -> dict:
         start_time = utils.get_datetime_str_now()
@@ -99,11 +99,19 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         measurement_result["description"] = self.description
         measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
+        measurement_result["classification"] = self.classification
         return measurement_result
 
     def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
-        time_domain_annotation = TimeDomainAnnotation(0, self.received_samples)
+        time_domain_annotation = TimeDomainDetection(
+            sample_start=0,
+            sample_count=self.received_samples,
+            detector="sample_iq",
+            number_of_samples=self.received_samples,
+            units="volts",
+            reference="preselector input",
+        )
         sigmf_builder.add_metadata_generator(
             type(time_domain_annotation).__name__, time_domain_annotation
         )

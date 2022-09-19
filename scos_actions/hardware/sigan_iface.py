@@ -1,12 +1,21 @@
 import copy
+import logging
+import time
 from abc import ABC, abstractmethod
 
-from scos_actions.calibration import Calibration
-from scos_actions.settings import sensor_calibration, sigan_calibration
+from scos_actions.calibration import sensor_calibration, sigan_calibration
+from scos_actions.calibration.calibration import Calibration
+from scos_actions.capabilities import capabilities
+from scos_actions.hardware.hardware_configuration_exception import (
+    HardwareConfigurationException,
+)
+from scos_actions.hardware.utils import power_cycle_sigan
 from scos_actions.utils import (
     convert_string_to_millisecond_iso_format,
     get_datetime_str_now,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SignalAnalyzerInterface(ABC):
@@ -65,11 +74,42 @@ class SignalAnalyzerInterface(ABC):
         """
         pass
 
+    @abstractmethod
+    def connect(self) -> None:
+        """
+        Establish a connection to the signal analyzer.
+        """
+        pass
+
     @property
     @abstractmethod
     def healthy(self) -> bool:
         """Perform a health check by collecting IQ samples."""
         pass
+
+    def power_cycle_and_connect(self, sleep_time: float = 2.0) -> None:
+        """
+        Attempt to cycle signal analyzer power then reconnect.
+
+        :param sleep_time: Time (s) to wait for power to cycle, defaults to 2.0
+        """
+        logger.info("Attempting to power cycle the signal analyzer and reconnect.")
+        try:
+            power_cycle_sigan()
+        except HardwareConfigurationException as hce:
+            logger.warn(f"Unable to power cycle sigan: {hce}")
+            return
+        try:
+            # Wait for power cycle to complete
+            logger.debug(f"Waiting {sleep_time} seconds before reconnecting...")
+            time.sleep(sleep_time)
+            logger.info("Power cycled signal analyzer. Reconnecting...")
+            self.connect()
+        except Exception as e:
+            logger.error(
+                f"Unable to reconnect to signal analyzer after power cycling: {e}"
+            )
+        return
 
     def recompute_calibration_data(self, cal_args: Calibration) -> None:
         """Set the calibration data based on the current tuning"""
@@ -87,3 +127,14 @@ class SignalAnalyzerInterface(ABC):
             self.sigan_calibration_data.update(
                 sigan_calibration.get_calibration_dict(cal_args)
             )
+
+    def get_status(self):
+        try:
+            sigan_model = capabilities["sensor"]["signal_analyzer"]["sigan_spec"][
+                "model"
+            ]
+            if sigan_model.lower() in ["default", ""]:
+                raise KeyError
+        except KeyError:
+            sigan_model = str(self.__class__)
+        return {"model": sigan_model, "healthy": self.healthy}
