@@ -4,11 +4,12 @@ from scos_actions.actions.logger import Logger
 from scos_actions.actions.monitor_sigan import MonitorSignalAnalyzer
 from scos_actions.actions.sync_gps import SyncGps
 from scos_actions.discover.yaml import load_from_yaml
-from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
 from scos_actions.settings import ACTION_DEFINITIONS_DIR, MOCK_SIGAN
 
 mock_sigan = MockSignalAnalyzer(randomize_values=True)
+mock_gps = MockGPS()
 if MOCK_SIGAN:
     register_component_with_status.send(mock_sigan.__class__, component=mock_sigan)
 actions = {"logger": Logger()}

@@ -79,7 +79,7 @@ from scipy.signal import sosfilt
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.calibration import sensor_calibration
-from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware .mocks.mock_gps import MockGPS
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
 from scos_actions.signal_processing.calibration import (
     get_linear_enr,
@@ -138,7 +138,7 @@ class YFactorCalibration(Action):
     :param sigan: instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters, sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=MockGPS()):
         logger.debug("Initializing calibration action")
         super().__init__(parameters, sigan, gps)
         self.sigan = sigan

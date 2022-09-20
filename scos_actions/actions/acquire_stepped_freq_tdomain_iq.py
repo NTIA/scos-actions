@@ -47,7 +47,7 @@ from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     SingleFrequencyTimeDomainIqAcquisition,
 )
 from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType
 from scos_actions.utils import get_parameter
 
@@ -75,7 +75,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=MockGPS()):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
         num_center_frequencies = len(parameters[FREQUENCY])
 

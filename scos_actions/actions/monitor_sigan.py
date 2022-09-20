@@ -4,7 +4,7 @@ import logging
 
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.actions.interfaces.signals import monitor_action_completed
-from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class MonitorSignalAnalyzer(Action):
     """Monitor signal analyzer connection and restart container if unreachable."""
 
-    def __init__(self, sigan, parameters={"name": "monitor_sigan"}, gps=mock_gps):
+    def __init__(self, sigan, parameters={"name": "monitor_sigan"}, gps=MockGPS()):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
 
     def __call__(self, schedule_entry_json, task_id):

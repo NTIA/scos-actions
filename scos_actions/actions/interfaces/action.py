@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 
 from scos_actions.capabilities import capabilities
-from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware import preselector
 from scos_actions.utils import ParameterException, get_parameter
 
@@ -32,7 +32,7 @@ class Action(ABC):
 
     PRESELECTOR_PATH_KEY = "rf_path"
 
-    def __init__(self, parameters, sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=MockGPS()):
         self.parameters = deepcopy(parameters)
         self.sigan = sigan
         self.gps = gps
