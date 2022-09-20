@@ -14,13 +14,6 @@ class ParameterException(Exception):
         super().__init__(msg)
 
 
-class ParameterException(Exception):
-    """Basic exception handling for parameter-related problems."""
-
-    def __init__(self, msg):
-        super().__init__(msg)
-
-
 def get_datetime_str_now():
     return datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
 
