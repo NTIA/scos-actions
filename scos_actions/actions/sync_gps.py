@@ -4,7 +4,7 @@ import logging
 import subprocess
 
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.actions.interfaces.signals import location_action_completed
+from scos_actions.signals import location_action_completed
 
 logger = logging.getLogger(__name__)
 

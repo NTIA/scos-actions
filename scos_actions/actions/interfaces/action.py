@@ -3,10 +3,9 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 
 from scos_actions.capabilities import capabilities
-from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware import preselector
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.utils import ParameterException, get_parameter
-
 
 logger = logging.getLogger(__name__)
 

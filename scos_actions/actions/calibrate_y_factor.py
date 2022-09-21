@@ -79,7 +79,7 @@ from scipy.signal import sosfilt
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.calibration import sensor_calibration
-from scos_actions.hardware .mocks.mock_gps import MockGPS
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
 from scos_actions.signal_processing.calibration import (
     get_linear_enr,

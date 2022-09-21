@@ -2,11 +2,11 @@ import logging
 from abc import abstractmethod
 
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.annotations import CalibrationAnnotation, SensorAnnotation
 from scos_actions.metadata.measurement_global import MeasurementMetadata
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
+from scos_actions.signals import measurement_action_completed
 
 logger = logging.getLogger(__name__)
 
