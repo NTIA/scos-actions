@@ -3,8 +3,8 @@
 import logging
 
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.actions.interfaces.signals import monitor_action_completed
 from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.signals import monitor_action_completed
 
 logger = logging.getLogger(__name__)
 

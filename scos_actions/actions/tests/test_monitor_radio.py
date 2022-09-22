@@ -1,5 +1,5 @@
-from scos_actions.actions.interfaces.signals import monitor_action_completed
 from scos_actions.discover import test_actions as actions
+from scos_actions.signals import monitor_action_completed
 
 MONITOR_SIGAN_SCHEDULE = {
     "name": "test_monitor",

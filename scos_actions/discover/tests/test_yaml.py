@@ -26,6 +26,7 @@ this_doesnt_exist:
 sigan = MockSignalAnalyzer()
 gps = MockGPS()
 
+
 def test_load_from_yaml_existing():
     """Any existing action definitions should be valid yaml."""
     load_from_yaml(actions.action_classes, sigan, gps)
