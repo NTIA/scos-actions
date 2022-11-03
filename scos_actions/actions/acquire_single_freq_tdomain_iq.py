@@ -72,7 +72,9 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     :param sigan: instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters, sigan, gps=MockGPS()):
+    def __init__(self, parameters, sigan, gps=None):
+        if gps is None:
+            gps = MockGPS()
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
         # Pull parameters from action config
         self.nskip = get_parameter(NUM_SKIP, self.parameters)

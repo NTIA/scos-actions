@@ -19,7 +19,9 @@ class MeasurementAction(Action):
 
     """
 
-    def __init__(self, parameters, sigan, gps=MockGPS()):
+    def __init__(self, parameters, sigan, gps=None):
+        if gps is None:
+            gps = MockGPS()
         super().__init__(parameters, sigan, gps)
         self.received_samples = 0
 

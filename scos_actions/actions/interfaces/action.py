@@ -31,7 +31,9 @@ class Action(ABC):
 
     PRESELECTOR_PATH_KEY = "rf_path"
 
-    def __init__(self, parameters, sigan, gps=MockGPS()):
+    def __init__(self, parameters, sigan, gps=None):
+        if gps is None:
+            gps = MockGPS()
         self.parameters = deepcopy(parameters)
         self.sigan = sigan
         self.gps = gps
