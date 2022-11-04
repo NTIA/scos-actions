@@ -95,6 +95,7 @@ def apply_power_detector(
     detector: EnumMeta,
     dtype: type = None,
     ignore_nan: bool = False,
+    axis: int = 0,
 ) -> np.ndarray:
     """
     Apply statistical detectors to a 1- or 2-D array of samples.
@@ -128,6 +129,8 @@ def apply_power_detector(
     :param ignore_nan: If true, statistical detectors (min/max/mean/median)
         will ignore any NaN values. NaN values may still appear in the
         random sample detector result.
+    :param axis: Axis of ``data`` over which to apply detectors, defaults
+        to 0.
     :return: A 1- or 2-D array containing the selected detector results
         as the specified dtype. For 1-D inputs, the 1-D output length is
         equal to the number of detectors applied. For 2-D inputs, the number
@@ -154,7 +157,7 @@ def apply_power_detector(
     if "median" in detectors:
         applied_detectors.append(detector_functions[3])
     # Apply statistical detectors
-    result = [d(data, axis=0) for d in applied_detectors]
+    result = [d(data, axis=axis) for d in applied_detectors]
     # Add sample detector result if configured
     if "sample" in detectors:
         rng = np.random.default_rng()
