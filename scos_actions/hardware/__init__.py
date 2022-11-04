@@ -6,15 +6,14 @@ from its_preselector.configuration_exception import ConfigurationException
 from its_preselector.controlbyweb_web_relay import ControlByWebWebRelay
 
 from scos_actions import utils
-from scos_actions.actions.interfaces.signals import register_component_with_status
 from scos_actions.capabilities import capabilities
-from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.settings import (
     PRESELECTOR_CLASS,
     PRESELECTOR_CONFIG_FILE,
     PRESELECTOR_MODULE,
     SWITCH_CONFIGS_DIR,
 )
+from scos_actions.signals import register_component_with_status
 from scos_actions.status.status_registration_handler import status_registration_handler
 
 logger = logging.getLogger(__name__)
@@ -72,7 +71,6 @@ def load_preselector(preselector_config, module, preselector_class_name):
 
 register_component_with_status.connect(status_registration_handler)
 logger.info("Connected status registration handler")
-gps = MockGPS()
 preselector = load_preslector_from_file(PRESELECTOR_CONFIG_FILE)
 switches = load_switches(SWITCH_CONFIGS_DIR)
 logger.info("Loaded {switch_count} switches.".format(switch_count=(len(switches))))

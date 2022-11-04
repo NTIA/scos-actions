@@ -2,11 +2,11 @@ import logging
 from abc import abstractmethod
 
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.annotations import CalibrationAnnotation, SensorAnnotation
 from scos_actions.metadata.measurement_global import MeasurementMetadata
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
+from scos_actions.signals import measurement_action_completed
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,9 @@ class MeasurementAction(Action):
 
     """
 
-    def __init__(self, parameters, sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=None):
+        if gps is None:
+            gps = MockGPS()
         super().__init__(parameters, sigan, gps)
         self.received_samples = 0
 

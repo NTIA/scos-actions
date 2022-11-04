@@ -5,7 +5,7 @@ from ruamel.yaml.scanner import ScannerError
 
 from scos_actions import actions
 from scos_actions.discover.yaml import load_from_yaml
-from scos_actions.hardware import gps
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
 
 INVALID_YAML = b"""\
@@ -24,6 +24,7 @@ this_doesnt_exist:
 """
 
 sigan = MockSignalAnalyzer()
+gps = MockGPS()
 
 
 def test_load_from_yaml_existing():

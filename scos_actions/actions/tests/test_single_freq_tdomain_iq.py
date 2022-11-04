@@ -1,8 +1,8 @@
 import pytest
 
-from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.tests.utils import check_metadata_fields
 from scos_actions.discover import test_actions as actions
+from scos_actions.signals import measurement_action_completed
 
 SINGLE_TIMEDOMAIN_IQ_ACQUISITION = {
     "name": "test_acq",
