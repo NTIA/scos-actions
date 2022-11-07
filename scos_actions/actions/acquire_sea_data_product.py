@@ -33,8 +33,7 @@ from scipy.signal import sosfilt
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.annotation_segment import AnnotationSegment
 from scos_actions.metadata.annotations import (
     CalibrationAnnotation,
@@ -63,6 +62,7 @@ from scos_actions.signal_processing.unit_conversion import (
     convert_linear_to_dB,
     convert_watts_to_dBm,
 )
+from scos_actions.signals import measurement_action_completed
 
 logger = logging.getLogger(__name__)
 
@@ -330,7 +330,9 @@ class NasctnSeaDataProduct(Action):
     :param sigan: Instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters, sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=None):
+        if gps is None:
+            gps = MockGPS()
         super().__init__(parameters, sigan, gps)
         # Assume preselector is present
         rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
