@@ -47,7 +47,6 @@ dependencies = [
     "numexpr>=2.8.3",
     "numpy>=1.22.0",
     "python-dateutil>=2.0",
-    "ray>=2.0.0",
     "ruamel.yaml>=0.15",
     "scipy>=1.8.0",
     "sigmf @ git+https://github.com/NTIA/SigMF@multi-recording-archive",
