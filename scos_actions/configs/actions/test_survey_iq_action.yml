@@ -1,0 +1,28 @@
+stepped_frequency_time_domain_iq:
+  name: test_survey_iq_action
+  classification: UNCLASSIFIED
+  frequency:
+    - 700.5e6
+    - 709e6
+    - 731.5e6
+    - 739e6
+    - 751e6
+    - 763e6
+    - 772e6
+    - 782e6
+    - 793e6
+    - 802e6
+  gain: 40
+  sample_rate: 15.36e6
+  duration_ms:
+    - 1000
+    - 1000
+    - 1000
+    - 1000
+    - 1000
+    - 1000
+    - 10000
+    - 1000
+    - 1000
+    - 10000
+  nskip: 15.36e4

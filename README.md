@@ -306,7 +306,7 @@ Depending on the type of action, a signal should be sent upon action completion.
 enables SCOS Sensor to do something with the results of the action. This could range
 from storing measurement data to recycling a Docker container or to fixing an unhealthy
 connection to the signal analyzer. You can see the available signals in
-[`scos_actions/actions/interfaces/signals.py`](scos_actions/actions/interfaces/signals.py).
+[`scos_actions/signals.py`](scos_actions/signals.py).
 The following signals are currently offered:
 
 - `measurement_action_completed` - signal expects task_id, data, and metadata

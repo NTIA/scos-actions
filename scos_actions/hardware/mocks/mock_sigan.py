@@ -81,6 +81,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     def acquire_time_domain_samples(
         self, num_samples, num_samples_skip=0, retries=5, gain_adjust=True
     ):
+        logger.warning("Using mock signal analyzer!")
         self.sigan_overload = False
         self._capture_time = None
         self._num_samples_skip = num_samples_skip
