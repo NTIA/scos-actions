@@ -145,13 +145,13 @@ class SigMFBuilder:
             "ntia-location:coordinate_system", coordinate_system
         )
 
-    def set_capture(self, frequency, capture_time):
+    def set_capture(self, frequency, capture_time, sample_start=0):
         capture_md = {
             "core:frequency": frequency,
             "core:datetime": capture_time,
         }
 
-        self.sigmf_md.add_capture(start_index=0, metadata=capture_md)
+        self.sigmf_md.add_capture(sample_start, metadata=capture_md)
 
     def add_annotation(self, start_index, length, annotation_md):
         self.sigmf_md.add_annotation(
