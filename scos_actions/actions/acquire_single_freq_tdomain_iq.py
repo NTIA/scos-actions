@@ -37,7 +37,7 @@ from numpy import complex64
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.annotations import TimeDomainDetection
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.utils import get_parameter
@@ -72,7 +72,9 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     :param sigan: instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters, sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=None):
+        if gps is None:
+            gps = MockGPS()
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
         # Pull parameters from action config
         self.nskip = get_parameter(NUM_SKIP, self.parameters)

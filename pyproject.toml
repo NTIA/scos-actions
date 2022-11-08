@@ -88,12 +88,12 @@ skipsdist = True
 
 [testenv]
 commands =
-    pip install .[dev]
+    pip install .[test]
     pytest
 
 [testenv:coverage]
 commands =
-    pip install .[dev]
+    pip install .[test]
     pytest --cov --cov-append --cov-report=term-missing --no-cov-on-fail
 
 [coverage:run]

@@ -91,7 +91,7 @@ import logging
 from numpy import float32, ndarray
 
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.annotations import FrequencyDomainDetection
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.signal_processing.fft import (
@@ -143,7 +143,9 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     :param sigan: Instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters, sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=None):
+        if gps is None:
+            gps = MockGPS()
         super().__init__(parameters, sigan, gps)
         # Pull parameters from action config
         self.fft_size = get_parameter(FFT_SIZE, self.parameters)

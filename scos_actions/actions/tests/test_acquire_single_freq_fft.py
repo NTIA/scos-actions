@@ -1,7 +1,7 @@
-from scos_actions.actions.interfaces.signals import measurement_action_completed
 from scos_actions.actions.tests.utils import SENSOR_DEFINITION, check_metadata_fields
 from scos_actions.capabilities import capabilities
 from scos_actions.discover import test_actions as actions
+from scos_actions.signals import measurement_action_completed
 
 SINGLE_FREQUENCY_FFT_ACQUISITION = {
     "name": "test_acq",

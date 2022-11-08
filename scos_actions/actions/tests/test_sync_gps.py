@@ -1,6 +1,5 @@
-from scos_actions.actions.interfaces.signals import location_action_completed
-from scos_actions.actions.tests.utils import SENSOR_DEFINITION
 from scos_actions.discover import test_actions
+from scos_actions.signals import location_action_completed
 
 SYNC_GPS = {
     "name": "sync_gps",
