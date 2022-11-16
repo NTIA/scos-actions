@@ -150,7 +150,32 @@ def get_td_power_results(
     iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.0)
 
     # Apply mean/max detectors
-    td_result = apply_power_detector(iq_pwr, TD_DETECTOR, ignore_nan=True)
+    td_result = apply_power_detector(iq_pwr, TD_DETECTOR)
+    print(f"TD PWR result shape: {td_result.shape}")
+
+    # Method 1:
+    tic = perf_counter()
+    max_of_max = td_result[0].max()
+    mean_of_mean = td_result[1].mean()
+    toc = perf_counter()
+    print(f"Got method 1 result in {toc-tic:.2f} s")
+    print(f"Results: mean: {mean_of_mean}, max: {max_of_max}")
+
+    # Method 2:
+    tic = perf_counter()
+    single_value_result = apply_power_detector(td_result, TD_DETECTOR)
+    toc = perf_counter()
+    print(f"Got method 2 results in {toc-tic:.2f} s")
+    print(single_value_result)
+
+    # Method 3:
+    tic = perf_counter()
+    max_of_max, mean_of_mean = (
+        f(td_result[i]) for i, f in enumerate([np.max, np.mean])
+    )
+    toc = perf_counter()
+    print(f"Got method 3 results in {toc-tic:.2f}")
+    print(f"Results: mean: {mean_of_mean}, max: {max_of_max}")
 
     # Convert to dBm
     td_result = convert_watts_to_dBm(td_result)
