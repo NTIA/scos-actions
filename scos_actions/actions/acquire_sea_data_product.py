@@ -56,7 +56,6 @@ from scos_actions.signal_processing.power_analysis import (
     calculate_power_watts,
     calculate_pseudo_power,
     create_power_detector,
-    filter_quantiles,
 )
 from scos_actions.signal_processing.unit_conversion import (
     convert_linear_to_dB,
@@ -74,9 +73,6 @@ IIR_GSTOP = "iir_gstop_dB"
 IIR_PB_EDGE = "iir_pb_edge_Hz"
 IIR_SB_EDGE = "iir_sb_edge_Hz"
 IIR_RESP_FREQS = "iir_num_response_frequencies"
-QFILT_APPLY = "qfilt_apply"
-Q_LO = "qfilt_qlo"
-Q_HI = "qfilt_qhi"
 # FFT_SIZE = "fft_size"
 NUM_FFTS = "nffts"
 # FFT_WINDOW_TYPE = "fft_window_type"
@@ -142,7 +138,7 @@ def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
 def get_td_power_results(
     iqdata: np.ndarray, params: dict
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Compute mean/max time domain power statistics from IQ samples, with optional quantile filtering."""
+    """Compute mean/max time domain power statistics from IQ samples."""
     # Reshape IQ data into blocks
     block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
     n_blocks = len(iqdata) // block_size
@@ -152,17 +148,6 @@ def get_td_power_results(
     )
 
     iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.0)
-
-    if params[QFILT_APPLY]:
-        # Apply quantile filtering before computing power statistics
-        print("Quantile-filtering time domain power data...")
-        iq_pwr = filter_quantiles(iq_pwr, params[Q_LO], params[Q_HI])
-        # Diagnostics
-        num_nans = np.count_nonzero(np.isnan(iq_pwr))
-        nan_pct = num_nans * 100 / len(iq_pwr.flatten())
-        print(f"Rejected {num_nans} samples ({nan_pct:.2f}% of total capture)")
-    else:
-        print("Quantile-filtering disabled. Skipping...")
 
     # Apply mean/max detectors
     td_result = apply_power_detector(iq_pwr, TD_DETECTOR, ignore_nan=True)
@@ -285,19 +270,6 @@ def generate_data_product(
     toc = perf_counter()
     print(f"GC Count after collection: {gc.get_count()}")
     print(f"Deleted IQ @ {params[FREQUENCY]} and collected garbage in {toc-tic:.2f} s")
-
-    # Skip rounding for now (may return to this if it benefits other compression methods)
-    # Quantize power results
-    # tic = perf_counter()
-    # for i, data in enumerate(data_product):
-    #     if i == 4:
-    #         # Do not round APD probability axis
-    #         continue
-    #     data.round(decimals=params[ROUND_TO], out=data)
-    # toc = perf_counter()
-    # logger.debug(
-    #     f"Data product rounded to {params[ROUND_TO]} decimal places in {toc-tic:.2f} s"
-    # )
 
     # Flatten data product but retain component indices
     tic = perf_counter()
