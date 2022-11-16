@@ -236,14 +236,14 @@ def generate_data_product(
     tic1 = perf_counter()
     data_product = []
 
-    data_product.extend(get_fft_results(iqdata, params))
-    toc = perf_counter()
-    print(f"Got FFT result @ {params[FREQUENCY]} in {toc-tic1:.2f} s")
-
-    tic = perf_counter()
     iqdata = sosfilt(iir_sos, iqdata)
     toc = perf_counter()
-    print(f"Applied IIR filter to IQ data @ {params[FREQUENCY]} in {toc-tic:.2f} s")
+    print(f"Applied IIR filter to IQ data @ {params[FREQUENCY]} in {toc-tic1:.2f} s")
+
+    tic = perf_counter()
+    data_product.extend(get_fft_results(iqdata, params))
+    toc = perf_counter()
+    print(f"Got FFT result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
     tic = perf_counter()
     data_product.extend(get_td_power_results(iqdata, params))
