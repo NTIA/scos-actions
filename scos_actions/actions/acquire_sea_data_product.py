@@ -257,56 +257,50 @@ def generate_data_product(
 ) -> np.ndarray:
     """Process IQ data and generate the SEA data product."""
     # Use print instead of logger.debug inside ray.remote function
-    logger.info(f"Generating data product @ {params[FREQUENCY]}...")
+    print(f"Generating data product @ {params[FREQUENCY]}...")
     tic1 = perf_counter()
     data_product = []
 
     iqdata = sosfilt(iir_sos, iqdata)
     toc = perf_counter()
-    logger.debug(
-        f"Applied IIR filter to IQ data @ {params[FREQUENCY]} in {toc-tic1:.2f} s"
-    )
+    print(f"Applied IIR filter to IQ data @ {params[FREQUENCY]} in {toc-tic1:.2f} s")
 
     tic = perf_counter()
     data_product.extend(get_fft_results(iqdata, params))
     toc = perf_counter()
-    logger.debug(f"Got FFT result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
+    print(f"Got FFT result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
     tic = perf_counter()
     data_product.extend(get_td_power_results(iqdata, params))
     toc = perf_counter()
-    logger.debug(f"Got TD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
+    print(f"Got TD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
     tic = perf_counter()
     data_product.extend(get_periodic_frame_power(iqdata, params))
     toc = perf_counter()
-    logger.debug(f"Got PFP result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
+    print(f"Got PFP result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
     tic = perf_counter()
     data_product.extend(get_apd_results(iqdata, params))
     toc = perf_counter()
-    logger.debug(f"Got APD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
+    print(f"Got APD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
-    logger.info(
-        f"Got all data product @ {params[FREQUENCY]} results in {toc-tic1:.2f} s"
-    )
+    print(f"Got all data product @ {params[FREQUENCY]} results in {toc-tic1:.2f} s")
 
     # TODO: Further optimize memory usage
-    logger.debug(f"GC Count: {gc.get_count()}")
+    print(f"GC Count: {gc.get_count()}")
     tic = perf_counter()
     del iqdata
     gc.collect()
     toc = perf_counter()
-    logger.debug(f"GC Count after collection: {gc.get_count()}")
-    logger.debug(
-        f"Deleted IQ @ {params[FREQUENCY]} and collected garbage in {toc-tic:.2f} s"
-    )
+    print(f"GC Count after collection: {gc.get_count()}")
+    print(f"Deleted IQ @ {params[FREQUENCY]} and collected garbage in {toc-tic:.2f} s")
 
     # Flatten data product but retain component indices
     tic = perf_counter()
     data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
     toc = perf_counter()
-    logger.debug(f"Data @ {params[FREQUENCY]} transformed in {toc-tic:.2f} s")
+    print(f"Data @ {params[FREQUENCY]} transformed in {toc-tic:.2f} s")
 
     return data_product, dp_idx
 
@@ -450,7 +444,7 @@ class NasctnSeaDataProduct(Action):
         gc.collect()  # Computationally expensive!
         toc = perf_counter()
         logger.debug(f"GC Count (IQ Cap) after collection: {gc.get_count()}")
-        logger.debug(f"Collected garbage in {toc-tic:.2f} s")
+        print(f"Collected garbage in {toc-tic:.2f} s")
 
         start_time = utils.get_datetime_str_now()
         tic = perf_counter()
