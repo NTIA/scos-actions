@@ -1,8 +1,7 @@
+import logging
 from datetime import datetime
 
 from scos_actions.hardware.gps_iface import GPSInterface
-
-import logging
 
 logger = logging.getLogger(__name__)
 
