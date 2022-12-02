@@ -155,24 +155,15 @@ def get_td_power_results(
     td_result = apply_power_detector(iq_pwr, TD_DETECTOR)
 
     # Get single value mean/max statistics
-    max_of_max = td_result[0].max()
-    mean_of_mean = td_result[1].mean()
+    td_channel_result = np.array([td_result[0].max(), td_result[1].mean()])
 
-    # Convert to dBm
-    td_copy = td_result.copy()
-    td_result = convert_watts_to_dBm(td_result)
-
-    # Account for RF/baseband power difference
-    td_result -= 3
-
-    # TODO Testing
-    td_test, meanmean, maxmax = (
-        convert_watts_to_dBm(x) - 3.0 for x in [td_copy, mean_of_mean, max_of_max]
+    # Convert to dBm and account for RF/baseband power difference
+    td_result, td_channel_result = (
+        convert_watts_to_dBm(x) - 3.0 for x in [td_result, td_channel_result]
     )
-    np.testing.assert_array_almost_equal(td_test, td_result)
-    print(meanmean, maxmax)
 
-    return td_result[0], td_result[1]  # (max, mean)
+    # packed order is (max, mean)
+    return td_result, td_channel_result
 
 
 def get_periodic_frame_power(
@@ -260,7 +251,9 @@ def generate_data_product(
     print(f"Got FFT result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
     tic = perf_counter()
-    data_product.extend(get_td_power_results(iqdata, params))
+    # TODO: Single value results currently don't go anywhere
+    td_result, td_channel_powers = get_td_power_results(iqdata, params)
+    data_product.extend(td_result)
     toc = perf_counter()
     print(f"Got TD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
