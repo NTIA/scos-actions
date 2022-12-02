@@ -165,7 +165,7 @@ def get_td_power_results(
 
     # Method 2:
     tic = perf_counter()
-    single_value_result = apply_power_detector(td_result, TD_DETECTOR)
+    single_value_result = apply_power_detector(td_result, TD_DETECTOR, axis=1)
     toc = perf_counter()
     print(f"Got method 2 results in {toc-tic:.2f} s")
     print(single_value_result)
@@ -173,7 +173,7 @@ def get_td_power_results(
     # Method 3:
     tic = perf_counter()
     max_of_max, mean_of_mean = (
-        f(td_result[i]) for i, f in enumerate([np.max, np.mean])
+        f(td_result[i], axis=1) for i, f in enumerate([np.max, np.mean])
     )
     toc = perf_counter()
     print(f"Got method 3 results in {toc-tic:.2f}")
