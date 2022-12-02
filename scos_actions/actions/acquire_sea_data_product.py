@@ -255,7 +255,9 @@ def generate_data_product(
     remote_procs.append(get_periodic_frame_power.remote(iqdata, params))
     remote_procs.append(get_apd_results.remote(iqdata, params))
     data_product = ray.get(remote_procs)
-    print(type(data_product), data_product.shape())
+
+    for i, dp in enumerate(data_product):
+        print(i, len(dp), type(dp), dp[0])
 
     # tic = perf_counter()
     # data_product.extend(get_fft_results(iqdata, params))
