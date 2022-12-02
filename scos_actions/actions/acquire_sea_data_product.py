@@ -78,9 +78,11 @@ NUM_FFTS = "nffts"
 # FFT_WINDOW_TYPE = "fft_window_type"
 APD_BIN_SIZE_DB = "apd_bin_size_dB"
 TD_BIN_SIZE_MS = "td_bin_size_ms"
-ROUND_TO = "round_to_places"
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
+ATTENUATION = "attenuation"
+PREAMP_ENABLE = "preamp_enable"
+REFERENCE_LEVEL = "reference_level"
 DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
 PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
@@ -287,14 +289,8 @@ def generate_data_product(
 
     print(f"Got all data product @ {params[FREQUENCY]} results in {toc-tic1:.2f} s")
 
-    # TODO: Further optimize memory usage
-    print(f"GC Count: {gc.get_count()}")
-    tic = perf_counter()
     del iqdata
     gc.collect()
-    toc = perf_counter()
-    print(f"GC Count after collection: {gc.get_count()}")
-    print(f"Deleted IQ @ {params[FREQUENCY]} and collected garbage in {toc-tic:.2f} s")
 
     # Flatten data product but retain component indices
     tic = perf_counter()
@@ -370,7 +366,6 @@ class NasctnSeaDataProduct(Action):
         iteration_params = utils.get_iterable_parameters(self.parameters)
 
         start_action = perf_counter()
-        logger.debug(f"Setting RF path to {self.rf_path}")
         self.configure_preselector(self.rf_path)
 
         # Collect all IQ data and spawn data product computation processes
@@ -439,21 +434,22 @@ class NasctnSeaDataProduct(Action):
 
     def capture_iq(self, params: dict) -> dict:
         """Acquire a single gap-free stream of IQ samples."""
-        logger.debug(f"GC Count (IQ Cap): {gc.get_count()}")
-        tic = perf_counter()
-        gc.collect()  # Computationally expensive!
-        toc = perf_counter()
-        logger.debug(f"GC Count (IQ Cap) after collection: {gc.get_count()}")
-        print(f"Collected garbage in {toc-tic:.2f} s")
-
+        # Downselect params to suppress logger warnings
+        hw_params = {
+            k: params[k]
+            for k in [
+                RF_PATH,
+                ATTENUATION,
+                PREAMP_ENABLE,
+                REFERENCE_LEVEL,
+                SAMPLE_RATE,
+                FREQUENCY,
+            ]
+        }
         start_time = utils.get_datetime_str_now()
         tic = perf_counter()
         # Configure signal analyzer + preselector
-        self.configure(params)
-        # Ensure sample rate is accurately applied
-        assert (
-            self.sigan.sample_rate == params[SAMPLE_RATE]
-        ), "Sample rate setting not applied."
+        self.configure(hw_params)
         # Get IQ capture parameters
         duration_ms = utils.get_parameter(DURATION_MS, params)
         nskip = utils.get_parameter(NUM_SKIP, params)
