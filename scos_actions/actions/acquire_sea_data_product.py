@@ -258,9 +258,10 @@ def generate_data_product(
     data_product = ray.get(remote_procs)
 
     for i, dp in enumerate(data_product):
-        print("***********\n", i, len(dp), type(dp))
-        for j in dp:
-            print(type(j), len(j))
+        data_product.extend(dp)
+
+    for dp in data_product:
+        print(len(dp))
 
     # tic = perf_counter()
     # data_product.extend(get_fft_results(iqdata, params))
