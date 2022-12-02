@@ -167,10 +167,10 @@ def get_td_power_results(
 
     # TODO Testing
     td_test, meanmean, maxmax = (
-        convert_watts_to_dBm(x) for x in [td_copy, mean_of_mean, max_of_max]
+        convert_watts_to_dBm(x) - 3.0 for x in [td_copy, mean_of_mean, max_of_max]
     )
-    print(td_test[0][:5], td_test[1][:5])
-    print(td_result[0][:5], td_test[1][:5])
+    np.testing.assert_array_almost_equal(td_test, td_result)
+    print(meanmean, maxmax)
 
     return td_result[0], td_result[1]  # (max, mean)
 
