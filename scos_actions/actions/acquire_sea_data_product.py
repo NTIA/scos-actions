@@ -92,6 +92,7 @@ DATA_TYPE = np.half
 PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
 
 
+@ray.remote
 def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
     """Compute data product mean/max FFT results from IQ samples."""
     # IQ data already scaled for calibrated gain
@@ -125,6 +126,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     return fft_result[0], fft_result[1]
 
 
+@ray.remote
 def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
     """Generate downsampled APD result from IQ samples."""
     p, a = get_apd(iqdata, params[APD_BIN_SIZE_DB])
@@ -137,6 +139,7 @@ def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     return p, a
 
 
+@ray.remote
 def get_td_power_results(
     iqdata: np.ndarray, params: dict
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -166,6 +169,7 @@ def get_td_power_results(
     return td_result, td_channel_result
 
 
+@ray.remote
 def get_periodic_frame_power(
     iqdata: np.ndarray,
     params: dict,
