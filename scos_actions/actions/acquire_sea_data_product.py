@@ -169,8 +169,8 @@ def get_td_power_results(
     td_test, meanmean, maxmax = (
         convert_watts_to_dBm(x) for x in [td_copy, mean_of_mean, max_of_max]
     )
-    print(td_test[:5])
-    print(td_result[:5])
+    print(td_test[0][:5], td_test[1][:5])
+    print(td_result[0][:5], td_test[1][:5])
 
     return td_result[0], td_result[1]  # (max, mean)
 
