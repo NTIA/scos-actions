@@ -167,7 +167,7 @@ def get_td_power_results(
 
     # packed order is (max, mean)
     # return td_result, td_channel_result
-    return td_result[0], td_result[1]
+    return td_result[0], td_result[1], td_channel_result
 
 
 @ray.remote
@@ -255,11 +255,12 @@ def generate_data_product(
     remote_procs.append(get_td_power_results.remote(iqdata, params))
     remote_procs.append(get_periodic_frame_power.remote(iqdata, params))
     remote_procs.append(get_apd_results.remote(iqdata, params))
-    data_product = ray.get(remote_procs)
+    all_results = ray.get(remote_procs)
 
-    for i, dp in enumerate(data_product):
+    for dp in all_results:
         data_product.extend(dp)
 
+    # TODO: Remove Debug
     for dp in data_product:
         print(len(dp))
 
@@ -292,6 +293,7 @@ def generate_data_product(
 
     # Flatten data product but retain component indices
     tic = perf_counter()
+    # TODO: Check handling of single value channel power
     data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
     toc = perf_counter()
     print(f"Data @ {params[FREQUENCY]} transformed in {toc-tic:.2f} s")
