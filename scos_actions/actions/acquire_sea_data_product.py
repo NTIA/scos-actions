@@ -160,24 +160,21 @@ def get_td_power_results(
     max_of_max = td_result[0].max()
     mean_of_mean = td_result[1].mean()
     toc = perf_counter()
-    print(f"Got method 1 result in {toc-tic:.2f} s")
+    print(f"Got method 1 result in {toc-tic} s")
     print(f"Results: mean: {mean_of_mean}, max: {max_of_max}")
 
     # Method 2:
     tic = perf_counter()
     single_value_result = apply_power_detector(td_result, TD_DETECTOR, axis=1)
     toc = perf_counter()
-    print(f"Got method 2 results in {toc-tic:.2f} s")
-    print(single_value_result)
-
-    # Method 3:
-    tic = perf_counter()
-    max_of_max, mean_of_mean = (
-        f(td_result[i], axis=1) for i, f in enumerate([np.max, np.mean])
+    print(f"Got method 2 results in {toc-tic} s")
+    print(
+        f"Results: mean: {single_value_result[1][0]} max: {single_value_result[0][1]}"
     )
-    toc = perf_counter()
-    print(f"Got method 3 results in {toc-tic:.2f}")
-    print(f"Results: mean: {mean_of_mean}, max: {max_of_max}")
+
+    # Testing
+    test_res = apply_power_detector(single_value_result, TD_DETECTOR)
+    print("New test", test_res)
 
     # Convert to dBm
     td_result = convert_watts_to_dBm(td_result)
