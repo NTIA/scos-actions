@@ -191,6 +191,10 @@ class YFactorCalibration(Action):
                     self.iir_sb_edge_Hz,
                     self.sample_rate,
                 )
+                # And get its ENBW
+                self.iir_enbw_hz = get_iir_enbw(
+                    self.iir_sos, self.iir_num_response_frequencies, self.sample_rate
+                )
             else:
                 raise ParameterException(
                     "Only one set of IIR filter parameters may be specified (including sample rate)."
@@ -271,9 +275,7 @@ class YFactorCalibration(Action):
         # Apply IIR filtering to both captures if configured
         if self.iir_apply:
             # Estimate of IIR filter ENBW does NOT account for passband ripple in sensor transfer function!
-            enbw_hz = get_iir_enbw(
-                self.iir_sos, self.iir_num_response_frequencies, sample_rate
-            )
+            enbw_hz = self.iir_enbw_hz
             logger.debug("Applying IIR filter to IQ captures")
             noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
             noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
