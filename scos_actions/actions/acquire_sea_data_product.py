@@ -153,34 +153,24 @@ def get_td_power_results(
 
     # Apply mean/max detectors
     td_result = apply_power_detector(iq_pwr, TD_DETECTOR)
-    print(f"TD PWR result shape: {td_result.shape}")
 
-    # Method 1:
-    tic = perf_counter()
+    # Get single value mean/max statistics
     max_of_max = td_result[0].max()
     mean_of_mean = td_result[1].mean()
-    toc = perf_counter()
-    print(f"Got method 1 result in {toc-tic} s")
-    print(f"Results: mean: {mean_of_mean}, max: {max_of_max}")
-
-    # Method 2:
-    tic = perf_counter()
-    single_value_result = apply_power_detector(td_result, TD_DETECTOR, axis=1)
-    toc = perf_counter()
-    print(f"Got method 2 results in {toc-tic} s")
-    print(
-        f"Results: mean: {single_value_result[1][0]} max: {single_value_result[0][1]}"
-    )
-
-    # Testing
-    test_res = apply_power_detector(single_value_result, TD_DETECTOR)
-    print("New test", test_res)
 
     # Convert to dBm
+    td_copy = td_result.copy()
     td_result = convert_watts_to_dBm(td_result)
 
     # Account for RF/baseband power difference
     td_result -= 3
+
+    # TODO Testing
+    td_test, meanmean, maxmax = (
+        convert_watts_to_dBm(x) for x in [td_copy, mean_of_mean, max_of_max]
+    )
+    print(td_test[:5])
+    print(td_result[:5])
 
     return td_result[0], td_result[1]  # (max, mean)
 
