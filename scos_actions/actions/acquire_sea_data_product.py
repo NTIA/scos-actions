@@ -245,27 +245,35 @@ def generate_data_product(
     toc = perf_counter()
     print(f"Applied IIR filter to IQ data @ {params[FREQUENCY]} in {toc-tic1:.2f} s")
 
-    tic = perf_counter()
-    data_product.extend(get_fft_results(iqdata, params))
-    toc = perf_counter()
-    print(f"Got FFT result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
+    remote_procs = []
+    remote_procs.append(get_fft_results.remote(iqdata, params))
+    remote_procs.append(get_td_power_results.remote(iqdata, params))
+    remote_procs.append(get_periodic_frame_power.remote(iqdata, params))
+    remote_procs.append(get_apd_results.remote(iqdata, params))
+    data_product = ray.get(remote_procs)
+    print(type(data_product), data_product.shape())
 
-    tic = perf_counter()
-    # TODO: Single value results currently don't go anywhere
-    td_result, td_channel_powers = get_td_power_results(iqdata, params)
-    data_product.extend(td_result)
-    toc = perf_counter()
-    print(f"Got TD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
+    # tic = perf_counter()
+    # data_product.extend(get_fft_results(iqdata, params))
+    # toc = perf_counter()
+    # print(f"Got FFT result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
-    tic = perf_counter()
-    data_product.extend(get_periodic_frame_power(iqdata, params))
-    toc = perf_counter()
-    print(f"Got PFP result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
+    # tic = perf_counter()
+    # # TODO: Single value results currently don't go anywhere
+    # td_result, td_channel_powers = get_td_power_results(iqdata, params)
+    # data_product.extend(td_result)
+    # toc = perf_counter()
+    # print(f"Got TD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
-    tic = perf_counter()
-    data_product.extend(get_apd_results(iqdata, params))
-    toc = perf_counter()
-    print(f"Got APD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
+    # tic = perf_counter()
+    # data_product.extend(get_periodic_frame_power(iqdata, params))
+    # toc = perf_counter()
+    # print(f"Got PFP result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
+
+    # tic = perf_counter()
+    # data_product.extend(get_apd_results(iqdata, params))
+    # toc = perf_counter()
+    # print(f"Got APD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
     print(f"Got all data product @ {params[FREQUENCY]} results in {toc-tic1:.2f} s")
 
@@ -612,7 +620,6 @@ class NasctnSeaDataProduct(Action):
     @staticmethod
     def compress_bytes_data(data: bytes) -> bytes:
         """Compress some <bytes> data and return the compressed version"""
-        # TODO: Explore alternate compression methods.
         return lzma.compress(data)
 
     def is_complex(self) -> bool:
