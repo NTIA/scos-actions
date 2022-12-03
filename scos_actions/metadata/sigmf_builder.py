@@ -145,11 +145,15 @@ class SigMFBuilder:
             "ntia-location:coordinate_system", coordinate_system
         )
 
-    def set_capture(self, frequency, capture_time, sample_start=0):
+    def set_capture(
+        self, frequency, capture_time, sample_start=0, extra_entries: dict = None
+    ):
         capture_md = {
             "core:frequency": frequency,
             "core:datetime": capture_time,
         }
+        # Add extra information to capture
+        capture_md.update(extra_entries)
 
         self.sigmf_md.add_capture(sample_start, metadata=capture_md)
 

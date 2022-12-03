@@ -167,7 +167,8 @@ def get_td_power_results(
 
     # packed order is (max, mean)
     # return td_result, td_channel_result
-    return td_result[0], td_result[1], td_channel_result
+    # TODO: Reinclude single value results after metadata updates
+    return td_result[0], td_result[1]  # , td_channel_result
 
 
 @ray.remote
@@ -402,17 +403,15 @@ class NasctnSeaDataProduct(Action):
         # Collect processed data product results
         last_data_len = 0
         results = ray.get(dp_procs)  # Ordering is retained
-        for rec_id, (dp, dp_idx) in enumerate(results):
+        for i, (dp, dp_idx) in enumerate(results):
             all_data.extend(dp)
             all_idx.extend((dp_idx + last_data_len).tolist())
 
-            cap_meta[rec_id]["sample_start"] = last_data_len
-            cap_meta[rec_id]["sample_count"] = len(dp)
+            cap_meta[i]["sample_start"] = last_data_len
+            cap_meta[i]["sample_count"] = len(dp)
 
             # Generate metadata for the capture
-            self.create_channel_metadata(
-                rec_id, iteration_params[rec_id], cap_meta[rec_id], dp_idx
-            )
+            self.create_channel_metadata(iteration_params[i], cap_meta[i], dp_idx)
 
             # Increment start sample
             last_data_len = len(all_data)
@@ -480,124 +479,49 @@ class NasctnSeaDataProduct(Action):
 
     def create_channel_metadata(
         self,
-        rec_id: int,
         params: dict,
         cap_meta: dict,
         dp_idx=None,
     ) -> SigMFBuilder:
         """Add metadata corresponding to a single-frequency capture in the measurement"""
-        # Add Capture
-        self.sigmf_builder.set_capture(
-            params[FREQUENCY], cap_meta["start_time"], cap_meta["sample_start"]
-        )
-
-        # Remove some metadata from calibration annotation
-        sensor_cal = {
-            k: v
-            for k, v in cap_meta["sensor_cal"].items()
-            if k in {"gain_sensor", "noise_figure_sensor", "enbw_sensor", "temperature"}
+        # Construct dict of extra info to attach to capture
+        capture_dict = {
+            "overload": cap_meta["overload"],
+            "sigan_attenuation_dB": params[ATTENUATION],
+            "sigan_preamp_on": params[PREAMP_ENABLE],
+            "sigan_reference_level_dBm": params[REFERENCE_LEVEL],
+            "cal_noise_figure_dB": cap_meta["sensor_cal"]["noise_figure_sensor"],
+            "cal_gain_dB": cap_meta["sensor_cal"]["gain_sensor"],
+            "cal_temperature_degC": cap_meta["sensor_cal"]["temperature"],
+            "fft_sample_count": dp_idx[1] - dp_idx[0],
+            "td_pwr_sample_count": dp_idx[4] - dp_idx[3],
+            "pfp_sample_count": dp_idx[5] - dp_idx[4],
+            "apd_sample_count": dp_idx[11] - dp_idx[10],
         }
 
-        # Calibration Annotation
-        calibration_annotation = CalibrationAnnotation(
-            sample_start=cap_meta["sample_start"],
-            sample_count=cap_meta["sample_count"],
-            sigan_cal=None,  # Do not include sigan cal data
-            sensor_cal=sensor_cal,
-        )
-        self.sigmf_builder.add_metadata_generator(
-            type(calibration_annotation).__name__ + f"_{rec_id}", calibration_annotation
-        )
+        ordered_data_components = [
+            "max_fft",
+            "mean_fft",
+            "max_td_pwr",
+            "mean_td_pwr",
+            "min_rms_pfp",
+            "max_rms_pfp",
+            "mean_rms_pfp",
+            "min_peak_pfp",
+            "max_peak_pfp",
+            "mean_peak_pfp",
+            "apd_p",
+            "apd_a",
+        ]
+        for i, dc in zip(dp_idx, ordered_data_components):
+            capture_dict.update({dc + "_sample_start": i + cap_meta["sample_start"]})
 
-        # Sensor Annotation (contains overload indicator)
-        sensor_annotation = SensorAnnotation(
-            sample_start=cap_meta["sample_start"],
-            sample_count=cap_meta["sample_count"],
-            overload=cap_meta["overload"],
-            attenuation_setting_sigan=params["attenuation"],
-        )
-        self.sigmf_builder.add_metadata_generator(
-            type(sensor_annotation).__name__ + f"_{rec_id}", sensor_annotation
-        )
-
-        # FFT Annotation
-        for i, detector in enumerate(FFT_DETECTOR):
-            fft_annotation = FrequencyDomainDetection(
-                sample_start=dp_idx[i] + cap_meta["sample_start"],
-                sample_count=dp_idx[i + 1] - dp_idx[i],
-                detector=detector.value,
-                number_of_ffts=int(params[NUM_FFTS]),
-                number_of_samples_in_fft=FFT_SIZE,  # TODO: This is hard-coded
-                window=FFT_WINDOW_TYPE,  # TODO: This is hard-coded
-                units="dBm/Hz",
-                reference="preselector input",
-            )
-            self.sigmf_builder.add_metadata_generator(
-                type(fft_annotation).__name__ + "_" + detector.value + f"_{rec_id}",
-                fft_annotation,
-            )
-
-        # Time Domain Annotation
-        for i, detector in enumerate(TD_DETECTOR):
-            td_annotation = TimeDomainDetection(
-                sample_start=dp_idx[i + 2] + cap_meta["sample_start"],
-                sample_count=dp_idx[i + 3] - dp_idx[i + 2],
-                detector=detector.value,
-                number_of_samples=int(params[SAMPLE_RATE] * params[DURATION_MS] * 1e-3),
-                units="dBm",
-                reference="preselector input",
-            )
-            self.sigmf_builder.add_metadata_generator(
-                type(td_annotation).__name__ + "_" + detector.value + f"_{rec_id}",
-                td_annotation,
-            )
-
-        # PFP Annotation (custom, not in spec)
-        for i, detector in enumerate(PFP_M3_DETECTOR):
-            # RMS result M3 detected
-            pfp_annotation = AnnotationSegment(
-                sample_start=dp_idx[i + 4] + cap_meta["sample_start"],
-                sample_count=dp_idx[i + 5] - dp_idx[i + 4],
-                label="pfp_rms_" + detector.value,
-            )
-            self.sigmf_builder.add_metadata_generator(
-                type(pfp_annotation).__name__ + "_rms_" + detector.value + f"_{rec_id}",
-                pfp_annotation,
-            )
-
-        for i, detector in enumerate(PFP_M3_DETECTOR):
-            # Peak result M3 detected
-            pfp_annotation = AnnotationSegment(
-                sample_start=dp_idx[i + 7] + cap_meta["sample_start"],
-                sample_count=dp_idx[i + 8] - dp_idx[i + 7],
-                label="pfp_peak_" + detector.value,
-            )
-            self.sigmf_builder.add_metadata_generator(
-                type(pfp_annotation).__name__
-                + "_peak_"
-                + detector.value
-                + f"_{rec_id}",
-                pfp_annotation,
-            )
-
-        # APD Annotation
-        apd_p_annotation = AnnotationSegment(
-            sample_start=dp_idx[10] + cap_meta["sample_start"],
-            sample_count=dp_idx[11] - dp_idx[10],
-            label="apd_p_pct",
-        )
-        apd_a_annotation = AnnotationSegment(
-            sample_start=dp_idx[11] + cap_meta["sample_start"],
-            sample_count=cap_meta["sample_count"] - dp_idx[11],
-            label="apd_a_dBm",
-        )
-        self.sigmf_builder.add_metadata_generator(
-            type(apd_p_annotation).__name__ + f"_apd_p_{rec_id}",
-            apd_p_annotation,
-        )
-        self.sigmf_builder.add_metadata_generator(
-            type(apd_a_annotation).__name__ + f"_apd_a_{rec_id}",
-            apd_a_annotation,
+        # Add Capture
+        self.sigmf_builder.set_capture(
+            params[FREQUENCY],
+            cap_meta["start_time"],
+            cap_meta["sample_start"],
+            extra_entries=capture_dict,
         )
 
     def get_sigmf_builder(
