@@ -33,14 +33,8 @@ from scipy.signal import sosfilt
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
+from scos_actions.hardware import preselector, switches
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.metadata.annotation_segment import AnnotationSegment
-from scos_actions.metadata.annotations import (
-    CalibrationAnnotation,
-    FrequencyDomainDetection,
-    SensorAnnotation,
-    TimeDomainDetection,
-)
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
@@ -469,6 +463,76 @@ class NasctnSeaDataProduct(Action):
         )
         return measurement_result
 
+    def capture_sensors(self) -> dict:
+        """
+        Read values from web relay sensors.
+
+        This method pulls the following values from the following
+        web relays:
+
+        PRESELECTOR X410
+        LNA Temperature (float)
+        Noise Diode Temperature (float)
+        Internal PS Temperature (float)
+        Internal PS Humidity (float)
+        PS Door Sensor (bool)
+
+        SPU X410
+        SPU RF Tray Power (bool)
+        PS Power (bool)
+        Aux 28 VDC (bool)
+        RF box temp (float)
+        Power/control box temp (float)
+        power/control box humidity (float)
+        """
+
+        """
+        All temperature sensors must be set to degrees F.
+        SPU X410 config file must have "SPU X410" in the name field.
+
+
+        Preselector X410 Setup requires:
+        internal temperature : oneWireSensor 1
+        noise diode temp : oneWireSensor 2
+        LNA temp : oneWireSensor 3
+        internal humidity : oneWireSensor 4
+        door sensor: digitalInput 1
+
+        SPU X410 requires:
+        Power/Control Box Temperature: oneWireSensor 1
+        RF Box Temperature: oneWireSensor 2
+        Power/Control Box Humidity: oneWireSensor 3
+        """
+        # Get SPU x410 sensor values and status:
+        for base_url, switch in switches:
+            if switch.id == "SPU X410":
+                spu_x410_sensor_values = switch.get_status()
+                del spu_x410_sensor_values["name"]
+                del spu_x410_sensor_values["healthy"]
+                spu_x410_sensor_values["pwr_box_temp_degF"] = switch.get_sensor_value(1)
+                spu_x410_sensor_values["rf_box_temp_degF"] = switch.get_sensor_value(2)
+                spu_x410_sensor_values[
+                    "pwr_box_humidity_pct"
+                ] = switch.get_sensor_value(3)
+
+        # Read preselector
+        preselector_sensor_values = {
+            "internal_temp_degF": preselector.get_sensor_value(1),
+            "noise_diode_temp_degF": preselector.get_sensor_value(2),
+            "lna_temp_degF": preselector.get_sensor_value(3),
+            "internal_humidity_pct": preselector.get_sensor_value(4),
+            "door_open": preselector.get_digital_input_value(1),
+        }
+
+        all_sensor_values = {
+            "preselector": preselector_sensor_values,
+            "spu_x410": spu_x410_sensor_values,
+        }
+
+        logger.debug(all_sensor_values)
+
+        return all_sensor_values
+
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
         if not self.sigan.is_available:
@@ -493,10 +557,10 @@ class NasctnSeaDataProduct(Action):
             "cal_noise_figure_dB": cap_meta["sensor_cal"]["noise_figure_sensor"],
             "cal_gain_dB": cap_meta["sensor_cal"]["gain_sensor"],
             "cal_temperature_degC": cap_meta["sensor_cal"]["temperature"],
-            "fft_sample_count": dp_idx[1] - dp_idx[0],
-            "td_pwr_sample_count": dp_idx[4] - dp_idx[3],
-            "pfp_sample_count": dp_idx[5] - dp_idx[4],
-            "apd_sample_count": dp_idx[11] - dp_idx[10],
+            "fft_sample_count": dp_idx[1] - dp_idx[0],  # Should be 625
+            "td_pwr_sample_count": dp_idx[4] - dp_idx[3],  # Should be 400
+            "pfp_sample_count": dp_idx[5] - dp_idx[4],  # Should be 560
+            "apd_sample_count": dp_idx[11] - dp_idx[10],  # Variable!
         }
 
         ordered_data_components = [
