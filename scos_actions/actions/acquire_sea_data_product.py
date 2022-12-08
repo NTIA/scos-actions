@@ -161,9 +161,7 @@ def get_td_power_results(
     )
 
     # packed order is (max, mean)
-    # return td_result, td_channel_result
-    # TODO: Reinclude single value results after metadata updates
-    return td_result[0], td_result[1]  # , td_channel_result
+    return td_result[0], td_result[1], td_channel_result[0], td_channel_result[1]
 
 
 @ray.remote
@@ -289,7 +287,6 @@ def generate_data_product(
 
     # Flatten data product but retain component indices
     tic = perf_counter()
-    # TODO: Check handling of single value channel power
     data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
     toc = perf_counter()
     print(f"Data @ {params[FREQUENCY]} transformed in {toc-tic:.2f} s")
@@ -583,8 +580,10 @@ class NasctnSeaDataProduct(Action):
         ordered_data_components = [
             "max_fft",
             "mean_fft",
-            "max_td_pwr",
-            "mean_td_pwr",
+            "max_td_pwr_series",
+            "mean_td_pwr_series",
+            "max_td_pwr",  # These are single value channel power results
+            "mean_td_pwr",  # which should probably be stored in metadata instead
             "min_rms_pfp",
             "max_rms_pfp",
             "mean_rms_pfp",
