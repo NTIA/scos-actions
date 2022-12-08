@@ -256,10 +256,6 @@ def generate_data_product(
     for dp in all_results:
         data_product.extend(dp)
 
-    # TODO: Remove Debug
-    dp_types = [type(dp) for dp in data_product]
-    print(f"Data product component types: {dp_types}")
-
     # tic = perf_counter()
     # data_product.extend(get_fft_results(iqdata, params))
     # toc = perf_counter()
@@ -627,7 +623,7 @@ class NasctnSeaDataProduct(Action):
     def transform_data(data_product: list):
         """Flatten data product list of arrays (single channel), convert to bytes object, then compress"""
         # Get indices for start of each component in flattened result
-        data_lengths = [len(d) for d in data_product]
+        data_lengths = [d.size for d in data_product]
         logger.debug(f"Data product component lengths: {data_lengths}")
         idx = [0] + np.cumsum(data_lengths[:-1]).tolist()
         logger.debug(f"Data product start indices: {idx}")
