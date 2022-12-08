@@ -257,8 +257,8 @@ def generate_data_product(
         data_product.extend(dp)
 
     # TODO: Remove Debug
-    dp_lengths = [len(dp) for dp in data_product]
-    print(f"Data product component lengths: {dp_lengths}")
+    dp_types = [type(dp) for dp in data_product]
+    print(f"Data product component types: {dp_types}")
 
     # tic = perf_counter()
     # data_product.extend(get_fft_results(iqdata, params))
