@@ -413,7 +413,19 @@ class NasctnSeaDataProduct(Action):
         # Build metadata
         self.sigmf_builder.build()
 
+        # DEBUG
+        logger.info("*****************************")
+        logger.info(f"  Total data is type {type(all_data)}")
+        logger.info(f"  Total data is shape {all_data.shape}")
+        logger.info("*****************************")
+
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
+
+        # DEBUG
+        logger.info("*************************")
+        logger.info(f"  Compressed data is type {type(all_data)}")
+        logger.info("*************************")
+
         measurement_action_completed.send(
             sender=self.__class__,
             task_id=task_id,
