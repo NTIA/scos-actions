@@ -227,6 +227,9 @@ class YFactorCalibration(Action):
             IIR_SB_EDGE,
             CAL_SOURCE_IDX,
             TEMP_SENSOR_IDX,
+            IIR_RESP_FREQS,
+            ND_OFF_STATE,
+            ND_ON_STATE,
         ]:
             try:
                 sigan_params.pop(k)
