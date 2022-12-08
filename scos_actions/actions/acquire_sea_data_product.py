@@ -35,6 +35,7 @@ from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware import preselector, switches
 from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.metadata.annotation_segment import AnnotationSegment
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
@@ -410,21 +411,24 @@ class NasctnSeaDataProduct(Action):
             # Increment start sample
             last_data_len = len(all_data)
 
+        # Add sensor readouts to metadata
+        self.capture_sensors()
+
         # Build metadata
         self.sigmf_builder.build()
 
         # DEBUG
-        logger.info("*****************************")
-        logger.info(f"  Total data is type {type(all_data)}")
-        logger.info(f"  Total data is shape {all_data.shape}")
-        logger.info("*****************************")
+        logger.debug("*****************************")
+        logger.debug(f"  Total data is type {type(all_data)}")
+        logger.debug(f"  Total data is shape {all_data.shape}")
+        logger.debug("*****************************")
 
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
 
         # DEBUG
-        logger.info("*************************")
-        logger.info(f"  Compressed data is type {type(all_data)}")
-        logger.info("*************************")
+        logger.debug("*************************")
+        logger.debug(f"  Compressed data is type {type(all_data)}")
+        logger.debug("*************************")
 
         measurement_action_completed.send(
             sender=self.__class__,
@@ -541,9 +545,10 @@ class NasctnSeaDataProduct(Action):
             "spu_x410": spu_x410_sensor_values,
         }
 
-        logger.debug(all_sensor_values)
+        logger.debug(f"Sensor readout dict: {all_sensor_values}")
 
-        return all_sensor_values
+        # Make AnnotationSegment from sensor data
+        self.sigmf_builder.add_annotation(0, 0, all_sensor_values)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
