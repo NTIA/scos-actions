@@ -160,8 +160,10 @@ def get_td_power_results(
         convert_watts_to_dBm(x) - 3.0 for x in [td_result, td_channel_result]
     )
 
+    channel_max, channel_mean = (np.array(a) for a in td_channel_result)
+
     # packed order is (max, mean)
-    return td_result[0], td_result[1], td_channel_result[0], td_channel_result[1]
+    return td_result[0], td_result[1], channel_max, channel_mean
 
 
 @ray.remote
@@ -255,8 +257,8 @@ def generate_data_product(
         data_product.extend(dp)
 
     # TODO: Remove Debug
-    for dp in data_product:
-        print(len(dp))
+    dp_lengths = [len(dp) for dp in data_product]
+    print(f"Data product component lengths: {dp_lengths}")
 
     # tic = perf_counter()
     # data_product.extend(get_fft_results(iqdata, params))
