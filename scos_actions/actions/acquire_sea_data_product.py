@@ -515,7 +515,7 @@ class NasctnSeaDataProduct(Action):
         Power/Control Box Humidity: oneWireSensor 3
         """
         # Get SPU x410 sensor values and status:
-        for base_url, switch in switches:
+        for switch in switches.values():
             if switch.id == "SPU X410":
                 spu_x410_sensor_values = switch.get_status()
                 del spu_x410_sensor_values["name"]
