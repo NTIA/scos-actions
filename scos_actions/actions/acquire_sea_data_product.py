@@ -35,7 +35,6 @@ from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware import preselector, switches
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.metadata.annotation_segment import AnnotationSegment
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
@@ -515,6 +514,9 @@ class NasctnSeaDataProduct(Action):
         Power/Control Box Humidity: oneWireSensor 3
         """
         # Get SPU x410 sensor values and status:
+        logger.debug("*********************************\n\n")
+        logger.debug(f"SWITCHES: {switches}")
+        logger.debug("*********************************\n\n")
         for base_url, switch in switches.items():
             logger.debug(f"Iterating on switches: {switch}")
             if switch.id == "SPU X410":
