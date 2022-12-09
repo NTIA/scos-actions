@@ -518,8 +518,8 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"SWITCHES: {switches}")
         logger.debug("*********************************\n\n")
         for base_url, switch in switches.items():
-            logger.debug(f"Iterating on switch: {switch.id}")
-            if switch.id == "SPU X410":
+            logger.debug(f"Iterating on switch: {switch.name}")
+            if switch.name == "SPU X410":
                 spu_x410_sensor_values = switch.get_status()
                 del spu_x410_sensor_values["name"]
                 del spu_x410_sensor_values["healthy"]
