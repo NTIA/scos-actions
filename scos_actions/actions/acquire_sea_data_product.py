@@ -581,8 +581,6 @@ class NasctnSeaDataProduct(Action):
             "mean_fft",
             "max_td_pwr_series",
             "mean_td_pwr_series",
-            "max_td_pwr",  # These are single value channel power results
-            "mean_td_pwr",  # which should probably be stored in metadata instead
             "min_rms_pfp",
             "max_rms_pfp",
             "mean_rms_pfp",
