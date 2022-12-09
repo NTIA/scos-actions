@@ -233,12 +233,12 @@ def generate_data_product(
     """Process IQ data and generate the SEA data product."""
     # Use print instead of logger.debug inside ray.remote function
     print(f"Generating data product @ {params[FREQUENCY] / 1e6} MHz...")
-    tic1 = perf_counter()
+    tic = perf_counter()
     data_product = []
 
     iqdata = sosfilt(iir_sos, iqdata)
     toc = perf_counter()
-    print(f"IIR filtered IQ data @ {params[FREQUENCY] / 1e6} MHz in {toc-tic1:.2f} s")
+    print(f"IIR filtered IQ data @ {params[FREQUENCY] / 1e6} MHz in {toc-tic:.2f} s")
 
     remote_procs = []
     remote_procs.append(get_fft_results.remote(iqdata, params))
@@ -272,8 +272,9 @@ def generate_data_product(
     # toc = perf_counter()
     # print(f"Got APD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
+    toc = perf_counter()
     print(
-        f"Got data product @ {params[FREQUENCY] / 1e6} MHz results in {toc-tic1:.2f} s"
+        f"Got data product @ {params[FREQUENCY] / 1e6} MHz results in {toc-tic:.2f} s"
     )
 
     del iqdata
