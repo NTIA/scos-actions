@@ -283,12 +283,15 @@ def generate_data_product(
     gc.collect()
 
     # Flatten data product but retain component indices
+    # Also, separate single value channel powers
     tic = perf_counter()
+    max_chan_pwr = data_product.pop(4).astype(DATA_TYPE)
+    mean_chan_pwr = data_product.pop(4).atype(DATA_TYPE)
     data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
     toc = perf_counter()
     print(f"Data @ {params[FREQUENCY]} transformed in {toc-tic:.2f} s")
 
-    return data_product, dp_idx
+    return data_product, dp_idx, max_chan_pwr, mean_chan_pwr
 
 
 # Hard-coded algorithm parameters
@@ -393,14 +396,18 @@ class NasctnSeaDataProduct(Action):
         last_data_len = 0
         results = ray.get(dp_procs)  # Ordering is retained
         logger.debug("**********\nLOOPING CAPTURES\n*************")
-        for i, (dp, dp_idx) in enumerate(results):
+        for i, (dp, dp_idx, max_ch_pwr, mean_ch_pwr) in enumerate(results):
             all_data.extend(dp)
             all_idx.extend((dp_idx + last_data_len).tolist())
 
-            logger.debug(f"Loop {i}: idx: {dp_idx}, length: {len(dp)}")
+            logger.debug(
+                f"Loop {i}: idx: {dp_idx}, max_pwr: {max_ch_pwr}, mean_pwr: {mean_ch_pwr}"
+            )
 
             cap_meta[i]["sample_start"] = last_data_len
             cap_meta[i]["sample_count"] = len(dp)
+            cap_meta[i]["max_ch_pwr"] = max_ch_pwr
+            cap_meta[i]["mean_ch_pwr"] = mean_ch_pwr
 
             # Generate metadata for the capture
             self.create_channel_metadata(iteration_params[i], cap_meta[i], dp_idx)
@@ -506,9 +513,6 @@ class NasctnSeaDataProduct(Action):
         Power/Control Box Humidity: oneWireSensor 3
         """
         # Get SPU x410 sensor values and status:
-        logger.debug("*********************************\n\n")
-        logger.debug(f"SWITCHES: {switches}")
-        logger.debug("*********************************\n\n")
         for base_url, switch in switches.items():
             logger.debug(f"Iterating on switch: {switch.name}")
             if switch.name == "SPU X410":
@@ -557,6 +561,8 @@ class NasctnSeaDataProduct(Action):
         """Add metadata corresponding to a single-frequency capture in the measurement"""
         # Construct dict of extra info to attach to capture
         capture_dict = {
+            "max_channel_power_dBm": cap_meta["max_ch_pwr"],
+            "mean_channel_power_dBm": cap_meta["mean_ch_pwr"],
             "overload": cap_meta["overload"],
             "sigan_attenuation_dB": params[ATTENUATION],
             "sigan_preamp_on": params[PREAMP_ENABLE],
@@ -619,10 +625,11 @@ class NasctnSeaDataProduct(Action):
         """Flatten data product list of arrays (single channel), convert to bytes object, then compress"""
         # Get indices for start of each component in flattened result
         data_lengths = [d.size for d in data_product]
-        logger.debug(f"Data product component lengths: {data_lengths}")
+        # idx 4 and 5 should be single value
+        print(f"Data product component lengths: {data_lengths}")
         idx = [0] + np.cumsum(data_lengths[:-1]).tolist()
-        logger.debug(f"Data product start indices: {idx}")
-        # Flatten data product, reduce dtype, and convert to byte array
+        print(f"Data product start indices: {idx}")
+        # Flatten data product, reduce dtypem
         data_product = np.hstack(data_product).astype(DATA_TYPE)
         return data_product, np.array(idx)
 
