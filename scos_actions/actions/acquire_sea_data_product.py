@@ -535,7 +535,7 @@ class NasctnSeaDataProduct(Action):
             "noise_diode_temp_degF": preselector.get_sensor_value(2),
             "lna_temp_degF": preselector.get_sensor_value(3),
             "internal_humidity_pct": preselector.get_sensor_value(4),
-            "door_open": preselector.get_digital_input_value(1),
+            "door_closed": preselector.get_digital_input_value(1),
         }
 
         all_sensor_values = {
@@ -546,7 +546,7 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Sensor readout dict: {all_sensor_values}")
 
         # Make AnnotationSegment from sensor data
-        self.sigmf_builder.add_annotation(0, 0, all_sensor_values)
+        self.sigmf_builder.add_annotation(0, 2, all_sensor_values)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
