@@ -392,9 +392,12 @@ class NasctnSeaDataProduct(Action):
         # Collect processed data product results
         last_data_len = 0
         results = ray.get(dp_procs)  # Ordering is retained
+        logger.debug("**********\nLOOPING CAPTURES\n*************")
         for i, (dp, dp_idx) in enumerate(results):
             all_data.extend(dp)
             all_idx.extend((dp_idx + last_data_len).tolist())
+
+            logger.debug(f"Loop {i}: idx: {dp_idx}, length: {len(dp)}")
 
             cap_meta[i]["sample_start"] = last_data_len
             cap_meta[i]["sample_count"] = len(dp)
@@ -411,20 +414,7 @@ class NasctnSeaDataProduct(Action):
         # Build metadata
         self.sigmf_builder.build()
 
-        # DEBUG
-        logger.debug("*****************************")
-        logger.debug(f"  Total data is type {type(all_data)}")
-        logger.debug(f"  Total data has length {len(all_data)}")
-        all_data = np.array(all_data)
-        logger.debug(f"  Converted data shape is {all_data.shape}")
-        logger.debug("*****************************")
-
-        all_data = self.compress_bytes_data(all_data.tobytes())
-
-        # DEBUG
-        logger.debug("*************************")
-        logger.debug(f"  Compressed data is type {type(all_data)}")
-        logger.debug("*************************")
+        all_data = self.compress_bytes_data(np.array(all_data).tobytes())
 
         measurement_action_completed.send(
             sender=self.__class__,
