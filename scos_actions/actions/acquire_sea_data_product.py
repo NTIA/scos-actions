@@ -286,7 +286,7 @@ def generate_data_product(
     # Also, separate single value channel powers
     tic = perf_counter()
     max_chan_pwr = data_product.pop(4).astype(DATA_TYPE)
-    mean_chan_pwr = data_product.pop(4).atype(DATA_TYPE)
+    mean_chan_pwr = data_product.pop(4).astype(DATA_TYPE)
     data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
     toc = perf_counter()
     print(f"Data @ {params[FREQUENCY]} transformed in {toc-tic:.2f} s")
