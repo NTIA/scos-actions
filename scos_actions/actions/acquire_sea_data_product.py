@@ -554,6 +554,9 @@ class NasctnSeaDataProduct(Action):
             "max_channel_power_dBm": cap_meta["max_ch_pwr"],
             "mean_channel_power_dBm": cap_meta["mean_ch_pwr"],
             "overload": cap_meta["overload"],
+            "num_iq_samples_recorded": int(
+                params[DURATION_MS] * params[SAMPLE_RATE] * 1e-3
+            ),
             "sigan_attenuation_dB": params[ATTENUATION],
             "sigan_preamp_on": params[PREAMP_ENABLE],
             "sigan_reference_level_dBm": params[REFERENCE_LEVEL],
