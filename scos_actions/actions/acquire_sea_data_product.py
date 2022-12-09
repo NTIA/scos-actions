@@ -142,10 +142,6 @@ def get_td_power_results(
     block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
     n_blocks = len(iqdata) // block_size
     iqdata = iqdata.reshape(block_size, n_blocks)
-    print(
-        f"Calculating time-domain power statistics on {n_blocks} blocks of {block_size} samples each"
-    )
-
     iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.0)
 
     # Apply mean/max detectors
@@ -201,7 +197,6 @@ def get_periodic_frame_power(
 
     Nframes = int(np.round(frame_period_s / sampling_period_s))
     Npts = int(np.round(frame_period_s / detector_period_s))
-    print(f"PFP Nframes: {Nframes}, Npts: {Npts}")
 
     # set up dimensions to make the statistics fast
     chunked_shape = (iqdata.shape[0] // Nframes, Npts, Nframes // Npts) + tuple(
@@ -237,13 +232,13 @@ def generate_data_product(
 ) -> np.ndarray:
     """Process IQ data and generate the SEA data product."""
     # Use print instead of logger.debug inside ray.remote function
-    print(f"Generating data product @ {params[FREQUENCY]}...")
+    print(f"Generating data product @ {params[FREQUENCY] / 1e6} MHz...")
     tic1 = perf_counter()
     data_product = []
 
     iqdata = sosfilt(iir_sos, iqdata)
     toc = perf_counter()
-    print(f"Applied IIR filter to IQ data @ {params[FREQUENCY]} in {toc-tic1:.2f} s")
+    print(f"IIR filtered IQ data @ {params[FREQUENCY] / 1e6} MHz in {toc-tic1:.2f} s")
 
     remote_procs = []
     remote_procs.append(get_fft_results.remote(iqdata, params))
@@ -277,19 +272,18 @@ def generate_data_product(
     # toc = perf_counter()
     # print(f"Got APD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
-    print(f"Got all data product @ {params[FREQUENCY]} results in {toc-tic1:.2f} s")
+    print(
+        f"Got data product @ {params[FREQUENCY] / 1e6} MHz results in {toc-tic1:.2f} s"
+    )
 
     del iqdata
     gc.collect()
 
     # Flatten data product but retain component indices
     # Also, separate single value channel powers
-    tic = perf_counter()
     max_chan_pwr = data_product.pop(4).astype(DATA_TYPE)
     mean_chan_pwr = data_product.pop(4).astype(DATA_TYPE)
     data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
-    toc = perf_counter()
-    print(f"Data @ {params[FREQUENCY]} transformed in {toc-tic:.2f} s")
 
     return data_product, dp_idx, max_chan_pwr, mean_chan_pwr
 
@@ -395,14 +389,9 @@ class NasctnSeaDataProduct(Action):
         # Collect processed data product results
         last_data_len = 0
         results = ray.get(dp_procs)  # Ordering is retained
-        logger.debug("**********\nLOOPING CAPTURES\n*************")
         for i, (dp, dp_idx, max_ch_pwr, mean_ch_pwr) in enumerate(results):
             all_data.extend(dp)
             all_idx.extend((dp_idx + last_data_len).tolist())
-
-            logger.debug(
-                f"Loop {i}: idx: {dp_idx}, max_pwr: {max_ch_pwr}, mean_pwr: {mean_ch_pwr}"
-            )
 
             cap_meta[i]["sample_start"] = last_data_len
             cap_meta[i]["sample_count"] = len(dp)
@@ -436,7 +425,7 @@ class NasctnSeaDataProduct(Action):
 
     def capture_iq(self, params: dict) -> dict:
         """Acquire a single gap-free stream of IQ samples."""
-        # Downselect params to suppress logger warnings
+        # Downselect params to limit meaningless logger warnings
         hw_params = {
             k: params[k]
             for k in [
@@ -451,7 +440,8 @@ class NasctnSeaDataProduct(Action):
         start_time = utils.get_datetime_str_now()
         tic = perf_counter()
         # Configure signal analyzer + preselector
-        self.configure(hw_params)
+        self.configure_preselector(hw_params)
+        self.configure_sigan({k: v for k, v in hw_params.items() if k != RF_PATH})
         # Get IQ capture parameters
         duration_ms = utils.get_parameter(DURATION_MS, params)
         nskip = utils.get_parameter(NUM_SKIP, params)
@@ -623,10 +613,7 @@ class NasctnSeaDataProduct(Action):
         """Flatten data product list of arrays (single channel), convert to bytes object, then compress"""
         # Get indices for start of each component in flattened result
         data_lengths = [d.size for d in data_product]
-        # idx 4 and 5 should be single value
-        print(f"Data product component lengths: {data_lengths}")
         idx = [0] + np.cumsum(data_lengths[:-1]).tolist()
-        print(f"Data product start indices: {idx}")
         # Flatten data product, reduce dtypem
         data_product = np.hstack(data_product).astype(DATA_TYPE)
         return data_product, np.array(idx)
