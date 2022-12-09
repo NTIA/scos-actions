@@ -414,10 +414,12 @@ class NasctnSeaDataProduct(Action):
         # DEBUG
         logger.debug("*****************************")
         logger.debug(f"  Total data is type {type(all_data)}")
-        logger.debug(f"  Total data is shape {all_data.shape}")
+        logger.debug(f"  Total data has length {len(all_data)}")
+        all_data = np.array(all_data)
+        logger.debug(f"  Converted data shape is {all_data.shape}")
         logger.debug("*****************************")
 
-        all_data = self.compress_bytes_data(np.array(all_data).tobytes())
+        all_data = self.compress_bytes_data(all_data.tobytes())
 
         # DEBUG
         logger.debug("*************************")
