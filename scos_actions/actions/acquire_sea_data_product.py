@@ -28,6 +28,7 @@ from typing import Tuple
 
 import numexpr as ne
 import numpy as np
+import psutil
 import ray
 from scipy.signal import sosfilt
 
@@ -349,6 +350,7 @@ class NasctnSeaDataProduct(Action):
 
     def __call__(self, schedule_entry, task_id):
         """This is the entrypoint function called by the scheduler."""
+        _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
         self.test_required_components()
 
         iteration_params = utils.get_iterable_parameters(self.parameters)
@@ -525,9 +527,34 @@ class NasctnSeaDataProduct(Action):
             "door_closed": preselector.get_digital_input_value(1),
         }
 
+        # Read NUC performance metrics
+
+        # average system load over last 1, 5, 15m (ordered), scaled to percentage
+        load_avg = [a / psutil.cpu_count() * 100.0 for a in psutil.getloadavg()]
+
+        # memory usage
+        mem = psutil.virtual_memory()  # bytes
+        mem_usage_pct = (1.0 - (mem.available / mem.total)) * 100.0
+
+        # NUC temperatures
+        nuc_temps = psutil.sensors_temperatures(fahrenheit=True)
+
+        logger.debug(f"**********\n{nuc_temps}\n***********\n")
+
+        nuc_metrics = {
+            # Systemwide CPU utilization, averaged over current action runtime
+            "action_cpu_usage_pct": np.half(psutil.cpu_percent(interval=None)),
+            "system_load_1m_pct": np.half(load_avg[0]),
+            "system_load_5m_pct": np.half(load_avg[1]),
+            "system_load_15m_pct": np.half(load_avg[2]),
+            "memory_usage_pct": np.half(mem_usage_pct),
+            "disk_usage_pct": np.half(psutil.disk_usage("/").percent),
+        }
+
         all_sensor_values = {
             "preselector": preselector_sensor_values,
             "spu_x410": spu_x410_sensor_values,
+            "nuc": nuc_metrics,
         }
 
         logger.debug(f"Sensor readout dict: {all_sensor_values}")
