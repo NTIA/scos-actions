@@ -529,21 +529,24 @@ class NasctnSeaDataProduct(Action):
 
         # Read NUC performance metrics
 
-        # average system load over last 5m, scaled to percentage
+        # Systemwide CPU utilization (%), averaged over current action runtime
+        cpu_utilization = psutil.cpu_percent(interval=None)
+
+        # Average system load (%) over last 5m
         load_avg_5m = (psutil.getloadavg()[1] / psutil.cpu_count()) * 100.0
 
-        # memory usage
+        # Memory usage
         mem = psutil.virtual_memory()  # bytes
         mem_usage_pct = (1.0 - (mem.available / mem.total)) * 100.0
 
-        # NUC temperatures
+        # NUC CPU temperature
         nuc_temps = psutil.sensors_temperatures(fahrenheit=True)
         cpu_temp_degF = nuc_temps["coretemp"][0].current
         cpu_overheating = cpu_temp_degF >= nuc_temps["coretemp"][0].high
 
         nuc_metrics = {
             # Systemwide CPU utilization, averaged over current action runtime
-            "action_cpu_usage_pct": np.half(psutil.cpu_percent(interval=None)),
+            "action_cpu_usage_pct": np.half(cpu_utilization),
             "system_load_5m_pct": np.half(load_avg_5m),
             "memory_usage_pct": np.half(mem_usage_pct),
             "disk_usage_pct": np.half(psutil.disk_usage("/").percent),
