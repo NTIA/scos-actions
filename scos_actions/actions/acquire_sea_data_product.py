@@ -545,7 +545,6 @@ class NasctnSeaDataProduct(Action):
         cpu_overheating = cpu_temp_degF >= nuc_temps["coretemp"][0].high
 
         nuc_metrics = {
-            # Systemwide CPU utilization, averaged over current action runtime
             "action_cpu_usage_pct": np.half(cpu_utilization),
             "system_load_5m_pct": np.half(load_avg_5m),
             "memory_usage_pct": np.half(mem_usage_pct),
