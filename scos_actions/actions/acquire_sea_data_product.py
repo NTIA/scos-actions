@@ -529,8 +529,8 @@ class NasctnSeaDataProduct(Action):
 
         # Read NUC performance metrics
 
-        # average system load over last 1, 5, 15m (ordered), scaled to percentage
-        load_avg = [a / psutil.cpu_count() * 100.0 for a in psutil.getloadavg()]
+        # average system load over last 5m, scaled to percentage
+        load_avg_5m = (psutil.getloadavg()[1] / psutil.cpu_count()) * 100.0
 
         # memory usage
         mem = psutil.virtual_memory()  # bytes
@@ -538,17 +538,17 @@ class NasctnSeaDataProduct(Action):
 
         # NUC temperatures
         nuc_temps = psutil.sensors_temperatures(fahrenheit=True)
-
-        logger.debug(f"**********\n{nuc_temps}\n***********\n")
+        cpu_temp_degF = nuc_temps["coretemp"][0].current
+        cpu_overheating = cpu_temp_degF >= nuc_temps["coretemp"][0].high
 
         nuc_metrics = {
             # Systemwide CPU utilization, averaged over current action runtime
             "action_cpu_usage_pct": np.half(psutil.cpu_percent(interval=None)),
-            "system_load_1m_pct": np.half(load_avg[0]),
-            "system_load_5m_pct": np.half(load_avg[1]),
-            "system_load_15m_pct": np.half(load_avg[2]),
+            "system_load_5m_pct": np.half(load_avg_5m),
             "memory_usage_pct": np.half(mem_usage_pct),
             "disk_usage_pct": np.half(psutil.disk_usage("/").percent),
+            "cpu_temperature_degF": np.half(cpu_temp_degF),
+            "cpu_overheating": cpu_overheating,
         }
 
         all_sensor_values = {
