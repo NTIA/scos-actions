@@ -445,12 +445,17 @@ class NasctnSeaDataProduct(Action):
         # Configure signal analyzer + preselector
         self.configure_preselector(hw_params)
         self.configure_sigan({k: v for k, v in hw_params.items() if k != RF_PATH})
+        toc_conf = perf_counter()
+        logger.debug(f"Configured preselector and sigan in {toc_conf-tic:.1f} s")
         # Get IQ capture parameters
         duration_ms = utils.get_parameter(DURATION_MS, params)
         nskip = utils.get_parameter(NUM_SKIP, params)
         num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
         # Collect IQ data
+        tic_cap = perf_counter()
         measurement_result = self.sigan.acquire_time_domain_samples(num_samples, nskip)
+        toc_cap = perf_counter()
+        logger.debug(f"IQ samples acquired in {toc_cap-tic_cap:.1f} s")
         end_time = utils.get_datetime_str_now()
         # Store some metadata with the IQ
         measurement_result.update(params)
