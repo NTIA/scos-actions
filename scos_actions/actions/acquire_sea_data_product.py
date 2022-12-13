@@ -631,11 +631,12 @@ class NasctnSeaDataProduct(Action):
         schedule_entry: dict,
     ) -> SigMFBuilder:
         """Build SigMF that applies to the entire capture (all channels)"""
+        schedule_entry_no_stop = {k: v[k] for k in schedule_entry if k != "stop"}
         sigmf_builder = SigMFBuilder()
         sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_task(task_id)
-        sigmf_builder.set_schedule(schedule_entry)
+        sigmf_builder.set_schedule(schedule_entry_no_stop)
         sigmf_builder.set_last_calibration_time(
             self.sigan.sensor_calibration_data["calibration_datetime"]
         )  # TODO: this is approximate since each channel is individually calibrated
