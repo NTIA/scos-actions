@@ -414,8 +414,8 @@ class NasctnSeaDataProduct(Action):
         self.sigmf_builder.build()
 
         # Remove unnecessary SigMF stuff from metadata
-        del self.sigmf_builder.metadata["annotations"][0]["core:sample_start"]
-        del self.sigmf_builder.metadata["annotations"][0]["core:sample_count"]
+        self.sigmf_builder.metadata["annotations"][0]["core:sample_start"] = -999
+        self.sigmf_builder.metadata["annotations"][0]["core:sample_count"] = -999
 
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
 
