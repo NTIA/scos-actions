@@ -413,10 +413,6 @@ class NasctnSeaDataProduct(Action):
         # Build metadata
         self.sigmf_builder.build()
 
-        # Remove unnecessary SigMF stuff from metadata
-        self.sigmf_builder.metadata["annotations"][0]["core:sample_start"] = -999
-        self.sigmf_builder.metadata["annotations"][0]["core:sample_count"] = -999
-
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
 
         measurement_action_completed.send(
