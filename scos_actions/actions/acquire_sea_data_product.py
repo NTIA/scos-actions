@@ -549,7 +549,7 @@ class NasctnSeaDataProduct(Action):
 
         # Get computer uptime
         with open("/proc/uptime") as f:
-            uptime_seconds = np.half(f.readline().split()[0])
+            uptime_hours = np.single(f.readline().split()[0]) / 3600.0
 
         nuc_metrics = {
             "action_cpu_usage_pct": cpu_utilization,
@@ -558,7 +558,7 @@ class NasctnSeaDataProduct(Action):
             "disk_usage_pct": np.half(psutil.disk_usage("/").percent),
             "cpu_temperature_degF": cpu_temp_degF,
             "cpu_overheating": cpu_overheating,
-            "uptime_s": uptime_seconds,
+            "uptime_hours": uptime_hours,
         }
 
         all_sensor_values = {
