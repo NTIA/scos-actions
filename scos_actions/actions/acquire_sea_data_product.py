@@ -351,20 +351,17 @@ class NasctnSeaDataProduct(Action):
 
     def __call__(self, schedule_entry, task_id):
         """This is the entrypoint function called by the scheduler."""
+        start_action = perf_counter()
+
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
         self.test_required_components()
-
         iteration_params = utils.get_iterable_parameters(self.parameters)
-
-        start_action = perf_counter()
         self.configure_preselector(self.rf_path)
 
         # Collect all IQ data and spawn data product computation processes
         all_data, all_idx, dp_procs, cap_meta = ([] for _ in range(4))
         for parameters in iteration_params:
-            # Capture IQ data
             measurement_result = self.capture_iq(parameters)
-
             cap_meta.append(
                 {
                     "start_time": measurement_result["start_time"],
@@ -373,8 +370,7 @@ class NasctnSeaDataProduct(Action):
                     "overload": measurement_result["overload"],
                 }
             )
-
-            # Start data product processing but do not stall before next IQ capture
+            # Start data product processing but do not block next IQ capture
             dp_procs.append(
                 generate_data_product.remote(
                     measurement_result["data"], parameters, self.iir_sos
@@ -382,38 +378,39 @@ class NasctnSeaDataProduct(Action):
             )
 
         # Initialize metadata object
-        # Assumes all sample rates are the same
-        # And uses a single "last calibration time"
         self.get_sigmf_builder(
-            iteration_params[0][SAMPLE_RATE],
+            iteration_params[0][SAMPLE_RATE],  # Assumes all sample rates are the same
             task_id,
-            schedule_entry,
+            schedule_entry,  # Uses a single "last calibration time"
         )
 
         # Collect processed data product results
         last_data_len = 0
         results = ray.get(dp_procs)  # Ordering is retained
         for i, (dp, dp_idx, max_ch_pwr, mean_ch_pwr) in enumerate(results):
+            # Combine channel data
             all_data.extend(dp)
             all_idx.extend((dp_idx + last_data_len).tolist())
 
-            cap_meta[i]["sample_start"] = last_data_len
-            cap_meta[i]["sample_count"] = len(dp)
-            cap_meta[i]["max_ch_pwr"] = max_ch_pwr
-            cap_meta[i]["mean_ch_pwr"] = mean_ch_pwr
-
             # Generate metadata for the capture
+            cap_meta[i].update(
+                {
+                    "sample_start": last_data_len,
+                    "sample_count": len(dp),
+                    "max_ch_pwr": max_ch_pwr,
+                    "mean_ch_pwr": mean_ch_pwr,
+                }
+            )
             self.create_channel_metadata(iteration_params[i], cap_meta[i], dp_idx)
 
-            # Increment start sample
+            # Increment start sample for data combination
             last_data_len = len(all_data)
 
         # Add sensor readouts to metadata
         self.capture_sensors()
 
-        # Build metadata
+        # Build metadata and convert data to compressed bytes
         self.sigmf_builder.build()
-
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
 
         measurement_action_completed.send(
@@ -529,39 +526,30 @@ class NasctnSeaDataProduct(Action):
         # Read NUC performance metrics
 
         # Systemwide CPU utilization (%), averaged over current action runtime
-        cpu_utilization = psutil.cpu_percent(interval=None)
+        cpu_utilization = np.half(psutil.cpu_percent(interval=None))
 
         # Average system load (%) over last 5m
-        load_avg_5m = (psutil.getloadavg()[1] / psutil.cpu_count()) * 100.0
+        load_avg_5m = np.half((psutil.getloadavg()[1] / psutil.cpu_count()) * 100.0)
 
         # Memory usage
         mem = psutil.virtual_memory()  # bytes
-        mem_usage_pct = (1.0 - (mem.available / mem.total)) * 100.0
+        mem_usage_pct = np.half((1.0 - (mem.available / mem.total)) * 100.0)
 
         # NUC CPU temperature
         nuc_temps = psutil.sensors_temperatures(fahrenheit=True)
-        cpu_temp_degF = nuc_temps["coretemp"][0].current
+        cpu_temp_degF = np.half(nuc_temps["coretemp"][0].current)
         cpu_overheating = cpu_temp_degF >= nuc_temps["coretemp"][0].high
 
-        # Test uptime readout
-        tic = perf_counter()
+        # Get computer uptime
         with open("/proc/uptime") as f:
-            uptime_seconds = float(f.readline().split()[0])
-        toc = perf_counter()
-        logger.debug(f"Got uptime first method in {toc-tic} s")
-        # Test another method
-        tic = perf_counter()
-        uptime_seconds2 = time.time() - psutil.boot_time()
-        toc = perf_counter()
-        logger.debug(f"Got uptime second method in {toc-tic} s")
-        logger.debug(f"Uptime 1: {uptime_seconds}, Uptime 2: {uptime_seconds2}")
+            uptime_seconds = np.half(f.readline().split()[0])
 
         nuc_metrics = {
-            "action_cpu_usage_pct": np.half(cpu_utilization),
-            "system_load_5m_pct": np.half(load_avg_5m),
-            "memory_usage_pct": np.half(mem_usage_pct),
+            "action_cpu_usage_pct": cpu_utilization,
+            "system_load_5m_pct": load_avg_5m,
+            "memory_usage_pct": mem_usage_pct,
             "disk_usage_pct": np.half(psutil.disk_usage("/").percent),
-            "cpu_temperature_degF": np.half(cpu_temp_degF),
+            "cpu_temperature_degF": cpu_temp_degF,
             "cpu_overheating": cpu_overheating,
             "uptime_s": uptime_seconds,
         }
