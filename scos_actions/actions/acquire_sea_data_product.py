@@ -23,6 +23,7 @@ Currently in development.
 import gc
 import logging
 import lzma
+import time
 from time import perf_counter
 from typing import Tuple
 
@@ -544,6 +545,18 @@ class NasctnSeaDataProduct(Action):
         cpu_temp_degF = nuc_temps["coretemp"][0].current
         cpu_overheating = cpu_temp_degF >= nuc_temps["coretemp"][0].high
 
+        # Test uptime readout
+        tic = perf_counter()
+        with open("/proc/uptime") as f:
+            uptime_seconds = float(f.readline().split()[0])
+        toc = perf_counter()
+        logger.debug(f"Got uptime first method in {toc-tic} s")
+        # Test another method
+        tic = perf_counter()
+        uptime_seconds2 = time() - psutil.boot_time()
+        toc = perf_counter()
+        logger.debug(f"Got uptime second method in {toc-tic} s")
+
         nuc_metrics = {
             "action_cpu_usage_pct": np.half(cpu_utilization),
             "system_load_5m_pct": np.half(load_avg_5m),
@@ -551,6 +564,7 @@ class NasctnSeaDataProduct(Action):
             "disk_usage_pct": np.half(psutil.disk_usage("/").percent),
             "cpu_temperature_degF": np.half(cpu_temp_degF),
             "cpu_overheating": cpu_overheating,
+            "uptime_s": uptime_seconds,
         }
 
         all_sensor_values = {
