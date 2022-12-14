@@ -23,7 +23,6 @@ Currently in development.
 import gc
 import logging
 import lzma
-import time
 from time import perf_counter
 from typing import Tuple
 
@@ -68,7 +67,6 @@ IIR_GPASS = "iir_gpass_dB"
 IIR_GSTOP = "iir_gstop_dB"
 IIR_PB_EDGE = "iir_pb_edge_Hz"
 IIR_SB_EDGE = "iir_sb_edge_Hz"
-IIR_RESP_FREQS = "iir_num_response_frequencies"
 # FFT_SIZE = "fft_size"
 NUM_FFTS = "nffts"
 # FFT_WINDOW_TYPE = "fft_window_type"
@@ -345,7 +343,6 @@ class NasctnSeaDataProduct(Action):
             IIR_GSTOP,
             IIR_PB_EDGE,
             IIR_SB_EDGE,
-            IIR_RESP_FREQS,
         ]:
             self.parameters.pop(key)
 
@@ -406,10 +403,8 @@ class NasctnSeaDataProduct(Action):
             # Increment start sample for data combination
             last_data_len = len(all_data)
 
-        # Add sensor readouts to metadata
-        self.capture_sensors()
-
         # Build metadata and convert data to compressed bytes
+        self.capture_sensors()  # Add sensor values and diagnostics to metadata
         self.sigmf_builder.build()
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
 
