@@ -553,9 +553,10 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Got uptime first method in {toc-tic} s")
         # Test another method
         tic = perf_counter()
-        uptime_seconds2 = time() - psutil.boot_time()
+        uptime_seconds2 = time.time() - psutil.boot_time()
         toc = perf_counter()
         logger.debug(f"Got uptime second method in {toc-tic} s")
+        logger.debug(f"Uptime 1: {uptime_seconds}, Uptime 2: {uptime_seconds2}")
 
         nuc_metrics = {
             "action_cpu_usage_pct": np.half(cpu_utilization),
