@@ -84,11 +84,33 @@ PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
 # Constants
 DATA_TYPE = np.half
 PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
+FFT_SIZE = 875
+FFT_WINDOW_TYPE = "flattop"
+FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
+FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
+
+# Create power detectors
+TD_DETECTOR = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
+FFT_DETECTOR = create_power_detector("FftMeanMaxDetector", ["mean", "max"])
+PFP_M3_DETECTOR = create_power_detector("PfpM3Detector", ["min", "max", "mean"])
 
 
 @ray.remote
 def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
-    """Compute data product mean/max FFT results from IQ samples."""
+    """
+    Compute data product mean/max FFT results from IQ samples.
+
+    The result is a PSD, with amplitudes in dBm/Hz referenced to the
+    calibration terminal. The result is truncated in frequency to the
+    middle 10 MHz (middle 625 out of 875 total DFT samples). Some parts
+    of this function are hard-coded or depend on constants.
+
+    :param iqdata: Complex-valued input waveform samples.
+    :param params: Action parameters from YAML, which must include
+        `NUM_FFTS` and `SAMPLE_RATE` keys.
+    :return: A tuple, which contains 2 NumPy arrays of power-detected
+        PSD amplitudes, ordered (max, mean).
+    """
     # IQ data already scaled for calibrated gain
     fft_result = get_fft(
         time_data=iqdata,
@@ -102,8 +124,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     fft_result = calculate_pseudo_power(fft_result)
     fft_result = apply_power_detector(fft_result, FFT_DETECTOR)  # (max, mean)
     ne.evaluate("fft_result/50", out=fft_result)  # Finish conversion to Watts
-    # Shift frequencies of reduced result
-    fft_result = np.fft.fftshift(fft_result, axes=(1,))
+    fft_result = np.fft.fftshift(fft_result, axes=(1,))  # Shift frequencies
     fft_result = convert_watts_to_dBm(fft_result)
     fft_result -= 3  # Baseband/RF power conversion
     fft_result -= 10.0 * np.log10(params[SAMPLE_RATE] * FFT_SIZE)  # PSD scaling
@@ -122,7 +143,17 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
 
 @ray.remote
 def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
-    """Generate downsampled APD result from IQ samples."""
+    """
+    Generate downsampled APD result from IQ samples.
+
+    :param iqdata: Complex-valued input waveform samples.
+    :param params: Action parameters from YAML, which must include an
+        `APD_BIN_SIZE_DB` key.
+    :return: A tuple of NumPy arrays containing the APD amplitude and
+        probability axes, ordered (probabilities, amplitudes). Probabilities
+        are given as percentages, and amplitudes in dBm referenced to the
+        calibration terminal.
+    """
     p, a = get_apd(iqdata, params[APD_BIN_SIZE_DB])
     # Convert dBV to dBm:
     # a = a * 2 : dBV --> dB(V^2)
@@ -136,8 +167,24 @@ def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
 @ray.remote
 def get_td_power_results(
     iqdata: np.ndarray, params: dict
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Compute mean/max time domain power statistics from IQ samples."""
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Compute mean/max time domain power statistics from IQ samples.
+
+    Mean and max detectors are applied over a configurable time window.
+    Mean and max power values are also reported as single values, with
+    the detectors applied over the entire input IQ sample sequence.
+
+    :param iqdata: Complex-valued input waveform samples.
+    :param params: Action parameters from YAML, which must include
+        `TD_BIN_SIZE_MS` and `SAMPLE_RATE` keys.
+    :return: A tuple of NumPy arrays containing power detector results,
+        in dBm referenced to the calibration terminal. The order of the
+        results is (max, mean, max_single_value, mean_single_value). The
+        single_value results will always contain only a single number,
+        while the length of the other arrays depends on the configured
+        detector period.
+    """
     # Reshape IQ data into blocks
     block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
     n_blocks = len(iqdata) // block_size
@@ -166,7 +213,7 @@ def get_periodic_frame_power(
     iqdata: np.ndarray,
     params: dict,
     detector_period_s: float = PFP_FRAME_RESOLUTION_S,
-) -> dict:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute a time series of periodic frame power statistics.
 
@@ -177,10 +224,11 @@ def get_periodic_frame_power(
     number of frames (`frame_period/Ts`).
 
     :param iqdata: Complex-valued input waveform samples.
-    :param params:
+    :param params: Action parameters from YAML, which must include `SAMPLE_RATE` and
+        `PFP_FRAME_PERIOD_MS` keys.
     :param detector_period_s: Sampling period (s) within the frame.
-    :return: A dict with keys "rms" and "peak", each with values (min: np.ndarray, mean: np.ndarray,
-        max: np.ndarray)
+    :return: A tuple of 6 NumPy arrays for the 6 detector results: (rms_min, rms_max,
+        rms_mean, peak_min, peak_max, peak_mean).
     :raises ValueError: if detector_period%Ts != 0 or frame_period%detector_period != 0
     """
     sampling_period_s = 1.0 / params[SAMPLE_RATE]
@@ -250,28 +298,6 @@ def generate_data_product(
     for dp in all_results:
         data_product.extend(dp)
 
-    # tic = perf_counter()
-    # data_product.extend(get_fft_results(iqdata, params))
-    # toc = perf_counter()
-    # print(f"Got FFT result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
-
-    # tic = perf_counter()
-    # # TODO: Single value results currently don't go anywhere
-    # td_result, td_channel_powers = get_td_power_results(iqdata, params)
-    # data_product.extend(td_result)
-    # toc = perf_counter()
-    # print(f"Got TD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
-
-    # tic = perf_counter()
-    # data_product.extend(get_periodic_frame_power(iqdata, params))
-    # toc = perf_counter()
-    # print(f"Got PFP result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
-
-    # tic = perf_counter()
-    # data_product.extend(get_apd_results(iqdata, params))
-    # toc = perf_counter()
-    # print(f"Got APD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
-
     toc = perf_counter()
     print(
         f"Got data product @ {params[FREQUENCY] / 1e6} MHz results in {toc-tic:.2f} s"
@@ -287,20 +313,6 @@ def generate_data_product(
     data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
 
     return data_product, dp_idx, max_chan_pwr, mean_chan_pwr
-
-
-# Hard-coded algorithm parameters
-FFT_SIZE = 875
-FFT_WINDOW_TYPE = "flattop"
-
-# Generate FFT window and correction factor
-FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
-FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
-
-# Create power detectors
-TD_DETECTOR = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
-FFT_DETECTOR = create_power_detector("FftMeanMaxDetector", ["mean", "max"])
-PFP_M3_DETECTOR = create_power_detector("PfpM3Detector", ["min", "max", "mean"])
 
 
 class NasctnSeaDataProduct(Action):
@@ -337,7 +349,7 @@ class NasctnSeaDataProduct(Action):
             self.sample_rate_Hz,
         )
 
-        # TODO: remove config parameters which will be hard-coded
+        # Remove IIR parameters which aren't needed after filter generation
         for key in [
             IIR_GPASS,
             IIR_GSTOP,
