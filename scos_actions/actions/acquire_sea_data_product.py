@@ -391,6 +391,7 @@ class NasctnSeaDataProduct(Action):
             iteration_params[0][SAMPLE_RATE],  # Assumes all sample rates are the same
             task_id,
             schedule_entry,  # Uses a single "last calibration time"
+            iteration_params,
         )
 
         # Collect processed data product results
@@ -566,6 +567,13 @@ class NasctnSeaDataProduct(Action):
             "spu_computer": computer_metrics,
         }
 
+        #         "num_iq_samples_recorded": int(
+        #     params[DURATION_MS] * params[SAMPLE_RATE] * 1e-3
+        # ),
+        # "sigan_attenuation_dB": params[ATTENUATION],
+        # "sigan_preamp_on": params[PREAMP_ENABLE],
+        # "sigan_reference_level_dBm": params[REFERENCE_LEVEL],
+
         logger.debug(f"Sensor readout dict: {all_sensor_values}")
 
         # Make AnnotationSegment from sensor data
@@ -591,12 +599,6 @@ class NasctnSeaDataProduct(Action):
             "max_channel_power_dBm": cap_meta["max_ch_pwr"],
             "mean_channel_power_dBm": cap_meta["mean_ch_pwr"],
             "overload": cap_meta["overload"],
-            "num_iq_samples_recorded": int(
-                params[DURATION_MS] * params[SAMPLE_RATE] * 1e-3
-            ),
-            "sigan_attenuation_dB": params[ATTENUATION],
-            "sigan_preamp_on": params[PREAMP_ENABLE],
-            "sigan_reference_level_dBm": params[REFERENCE_LEVEL],
             "cal_noise_figure_dB": cap_meta["sensor_cal"]["noise_figure_sensor"],
             "cal_gain_dB": cap_meta["sensor_cal"]["gain_sensor"],
             "cal_temperature_degC": cap_meta["sensor_cal"]["temperature"],
@@ -636,6 +638,7 @@ class NasctnSeaDataProduct(Action):
         sample_rate_Hz: float,
         task_id: int,
         schedule_entry: dict,
+        iter_params: list,
     ) -> SigMFBuilder:
         """Build SigMF that applies to the entire capture (all channels)"""
         schedule_entry_no_stop = {
@@ -644,11 +647,27 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder = SigMFBuilder()
         sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
         sigmf_builder.set_sample_rate(sample_rate_Hz)
+        sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
         sigmf_builder.set_schedule(schedule_entry_no_stop)
         sigmf_builder.set_last_calibration_time(
             self.sigan.sensor_calibration_data["calibration_datetime"]
         )  # TODO: this is approximate since each channel is individually calibrated
+
+        # The following assume the sigan settings are identical for every channel
+        sigmf_builder.sigmf_md.set_global_field(
+            "channel_capture_duration_msec", iter_params[0][DURATION_MS]
+        )
+        sigmf_builder.sigmf_md.set_global_field(
+            "sigan_attenuation_dB", iter_params[0][ATTENUATION]
+        )
+        sigmf_builder.sigmf_md.set_global_field(
+            "sigan_preamp_enable", iter_params[0][PREAMP_ENABLE]
+        )
+        sigmf_builder.sigmf_md.set_global_field(
+            "sigan_reference_level_dBm", iter_params[0][REFERENCE_LEVEL]
+        )
+
         self.sigmf_builder = sigmf_builder
 
     @staticmethod

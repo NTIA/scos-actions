@@ -95,6 +95,9 @@ class SigMFBuilder:
     def set_sample_rate(self, sample_rate):
         self.sigmf_md.set_global_field("core:sample_rate", sample_rate)
 
+    def set_num_channels(self, num_channels: int) -> None:
+        self.sigmf_md.set_global_field("core:num_channels", num_channels)
+
     def set_recording(self, recording_id):
         self.sigmf_md.set_global_field("ntia-scos:recording", recording_id)
 
