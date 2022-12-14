@@ -416,7 +416,7 @@ class NasctnSeaDataProduct(Action):
             last_data_len = len(all_data)
 
         # Build metadata and convert data to compressed bytes
-        self.capture_sensors()  # Add sensor values and diagnostics to metadata
+        self.capture_diagnostics(n_samps=last_data_len)  # Add diagnostics to metadata
         self.sigmf_builder.build()
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
 
@@ -468,33 +468,30 @@ class NasctnSeaDataProduct(Action):
         )
         return measurement_result
 
-    def capture_sensors(self) -> dict:
+    def capture_diagnostics(self, n_samps: int) -> dict:
         """
-        Read values from web relay sensors.
+        Capture diagnostic sensor data.
 
-        This method pulls the following values from the following
-        web relays:
+        This method pulls diagnostic data from web relays in the
+        sensor preselector and SPU as well as from the SPU computer
+        itself. All temperatures are reported in degrees Fahrenheit,
+        and humidities in % relative humidity. The diagnostic data is
+        added to self.sigmf_builder as an annotation.
 
-        PRESELECTOR X410
-        LNA Temperature (float)
-        Noise Diode Temperature (float)
-        Internal PS Temperature (float)
-        Internal PS Humidity (float)
-        PS Door Sensor (bool)
+        The following diagnostic data is collected:
 
-        SPU X410
-        SPU RF Tray Power (bool)
-        PS Power (bool)
-        Aux 28 VDC (bool)
-        RF box temp (float)
-        Power/control box temp (float)
-        power/control box humidity (float)
-        """
+        From the preselector: LNA temperature, noise diode temperature,
+            internal preselector temperature, internal preselector
+            humidity, and preselector door open/closed status.
 
-        """
-        All temperature sensors must be set to degrees F.
-        SPU X410 config file must have "SPU X410" in the name field.
+        From the SPU web relay: SPU RF tray power on/off, preselector
+            power on/off, aux 28 V power on/off, SPU RF tray temperature,
+            SPU power/control tray temperature, SPU power/control tray
+            humidity.
 
+        From the SPU computer: systemwide CPU utilization (%) averaged over
+            the action runtime, system load (%) averaged over last 5 minutes,
+            current memory usage (%),
 
         Preselector X410 Setup requires:
         internal temperature : oneWireSensor 1
@@ -504,12 +501,15 @@ class NasctnSeaDataProduct(Action):
         door sensor: digitalInput 1
 
         SPU X410 requires:
+        config file: name field must be "SPU X410"
         Power/Control Box Temperature: oneWireSensor 1
         RF Box Temperature: oneWireSensor 2
         Power/Control Box Humidity: oneWireSensor 3
+
+        :param n_samps: The total number of data samples recorded.
         """
-        # Get SPU x410 sensor values and status:
-        for base_url, switch in switches.items():
+        # Read SPU sensors
+        for _, switch in switches.items():
             logger.debug(f"Iterating on switch: {switch.name}")
             if switch.name == "SPU X410":
                 spu_x410_sensor_values = switch.get_status()
@@ -521,7 +521,7 @@ class NasctnSeaDataProduct(Action):
                     "pwr_box_humidity_pct"
                 ] = switch.get_sensor_value(3)
 
-        # Read preselector
+        # Read preselector sensors
         preselector_sensor_values = {
             "internal_temp_degF": preselector.get_sensor_value(1),
             "noise_diode_temp_degF": preselector.get_sensor_value(2),
@@ -530,7 +530,7 @@ class NasctnSeaDataProduct(Action):
             "door_closed": preselector.get_digital_input_value(1),
         }
 
-        # Read NUC performance metrics
+        # Read computer performance metrics
 
         # Systemwide CPU utilization (%), averaged over current action runtime
         cpu_utilization = np.half(psutil.cpu_percent(interval=None))
@@ -539,38 +539,37 @@ class NasctnSeaDataProduct(Action):
         load_avg_5m = np.half((psutil.getloadavg()[1] / psutil.cpu_count()) * 100.0)
 
         # Memory usage
-        mem = psutil.virtual_memory()  # bytes
-        mem_usage_pct = np.half((1.0 - (mem.available / mem.total)) * 100.0)
+        mem_usage_pct = np.half(psutil.virtual_memory().percent)
 
-        # NUC CPU temperature
-        nuc_temps = psutil.sensors_temperatures(fahrenheit=True)
-        cpu_temp_degF = np.half(nuc_temps["coretemp"][0].current)
-        cpu_overheating = cpu_temp_degF >= nuc_temps["coretemp"][0].high
+        # CPU temperature
+        cpu_temps = psutil.sensors_temperatures(fahrenheit=True)
+        cpu_temp_degF = np.half(cpu_temps["coretemp"][0].current)
+        cpu_overheating = cpu_temp_degF >= cpu_temps["coretemp"][0].high
 
         # Get computer uptime
         with open("/proc/uptime") as f:
-            uptime_hours = np.single(f.readline().split()[0]) / 3600.0
+            uptime_hours = float(f.readline().split()[0]) / 3600.0
 
-        nuc_metrics = {
+        computer_metrics = {
             "action_cpu_usage_pct": cpu_utilization,
             "system_load_5m_pct": load_avg_5m,
             "memory_usage_pct": mem_usage_pct,
             "disk_usage_pct": np.half(psutil.disk_usage("/").percent),
             "cpu_temperature_degF": cpu_temp_degF,
             "cpu_overheating": cpu_overheating,
-            "uptime_hours": uptime_hours,
+            "uptime_hours": np.half(uptime_hours),
         }
 
         all_sensor_values = {
             "preselector": preselector_sensor_values,
             "spu_x410": spu_x410_sensor_values,
-            "nuc": nuc_metrics,
+            "spu_computer": computer_metrics,
         }
 
         logger.debug(f"Sensor readout dict: {all_sensor_values}")
 
         # Make AnnotationSegment from sensor data
-        self.sigmf_builder.add_annotation(0, 2, all_sensor_values)
+        self.sigmf_builder.add_annotation(0, n_samps, all_sensor_values)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
