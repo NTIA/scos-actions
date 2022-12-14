@@ -433,7 +433,6 @@ class NasctnSeaDataProduct(Action):
         hw_params = {
             k: params[k]
             for k in [
-                RF_PATH,
                 ATTENUATION,
                 PREAMP_ENABLE,
                 REFERENCE_LEVEL,
@@ -443,8 +442,7 @@ class NasctnSeaDataProduct(Action):
         }
         start_time = utils.get_datetime_str_now()
         tic = perf_counter()
-        # Configure signal analyzer + preselector
-        self.configure_preselector(hw_params)
+        # Configure signal analyzer
         self.configure_sigan({k: v for k, v in hw_params.items() if k != RF_PATH})
         # Get IQ capture parameters
         duration_ms = utils.get_parameter(DURATION_MS, params)
