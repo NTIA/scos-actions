@@ -475,7 +475,7 @@ class NasctnSeaDataProduct(Action):
 
         This method pulls diagnostic data from web relays in the
         sensor preselector and SPU as well as from the SPU computer
-        itself. All temperatures are reported in degrees Fahrenheit,
+        itself. All temperatures are reported in degrees Celsius,
         and humidities in % relative humidity. The diagnostic data is
         added to self.sigmf_builder as an annotation.
 
@@ -495,37 +495,38 @@ class NasctnSeaDataProduct(Action):
             current memory usage (%),
 
         Preselector X410 Setup requires:
-        internal temperature : oneWireSensor 1
-        noise diode temp : oneWireSensor 2
-        LNA temp : oneWireSensor 3
+        internal temperature : oneWireSensor 1, set units to C
+        noise diode temp : oneWireSensor 2, set units to C
+        LNA temp : oneWireSensor 3, set units to C
         internal humidity : oneWireSensor 4
         door sensor: digitalInput 1
 
         SPU X410 requires:
         config file: name field must be "SPU X410"
-        Power/Control Box Temperature: oneWireSensor 1
-        RF Box Temperature: oneWireSensor 2
+        Power/Control Box Temperature: oneWireSensor 1, set units to C
+        RF Box Temperature: oneWireSensor 2, set units to C
         Power/Control Box Humidity: oneWireSensor 3
 
         :param n_samps: The total number of data samples recorded.
         """
+        tic = perf_counter()
         # Read SPU sensors
         for _, switch in switches.items():
             if switch.name == "SPU X410":
                 spu_x410_sensor_values = switch.get_status()
                 del spu_x410_sensor_values["name"]
                 del spu_x410_sensor_values["healthy"]
-                spu_x410_sensor_values["pwr_box_temp_degF"] = switch.get_sensor_value(1)
-                spu_x410_sensor_values["rf_box_temp_degF"] = switch.get_sensor_value(2)
+                spu_x410_sensor_values["pwr_box_temp_degC"] = switch.get_sensor_value(1)
+                spu_x410_sensor_values["rf_box_temp_degC"] = switch.get_sensor_value(2)
                 spu_x410_sensor_values[
                     "pwr_box_humidity_pct"
                 ] = switch.get_sensor_value(3)
 
         # Read preselector sensors
         preselector_sensor_values = {
-            "internal_temp_degF": preselector.get_sensor_value(1),
-            "noise_diode_temp_degF": preselector.get_sensor_value(2),
-            "lna_temp_degF": preselector.get_sensor_value(3),
+            "internal_temp_degC": preselector.get_sensor_value(1),
+            "noise_diode_temp_degC": preselector.get_sensor_value(2),
+            "lna_temp_degC": preselector.get_sensor_value(3),
             "internal_humidity_pct": preselector.get_sensor_value(4),
             "door_closed": preselector.get_digital_input_value(1),
         }
@@ -533,40 +534,43 @@ class NasctnSeaDataProduct(Action):
         # Read computer performance metrics
 
         # Systemwide CPU utilization (%), averaged over current action runtime
-        cpu_utilization = np.half(psutil.cpu_percent(interval=None))
+        cpu_utilization = psutil.cpu_percent(interval=None)
 
         # Average system load (%) over last 5m
-        load_avg_5m = np.half((psutil.getloadavg()[1] / psutil.cpu_count()) * 100.0)
+        load_avg_5m = (psutil.getloadavg()[1] / psutil.cpu_count()) * 100.0
 
         # Memory usage
-        mem_usage_pct = np.half(psutil.virtual_memory().percent)
+        mem_usage_pct = psutil.virtual_memory().percent
 
         # CPU temperature
-        cpu_temps = psutil.sensors_temperatures(fahrenheit=True)
-        cpu_temp_degF = np.half(cpu_temps["coretemp"][0].current)
-        cpu_overheating = cpu_temp_degF >= cpu_temps["coretemp"][0].high
+        cpu_temps = psutil.sensors_temperatures()
+        cpu_temp_degC = cpu_temps["coretemp"][0].current
+        cpu_overheating = cpu_temp_degC >= cpu_temps["coretemp"][0].high
 
         # Get computer uptime
         with open("/proc/uptime") as f:
             uptime_hours = float(f.readline().split()[0]) / 3600.0
 
         computer_metrics = {
-            "action_cpu_usage_pct": cpu_utilization,
-            "system_load_5m_pct": load_avg_5m,
-            "memory_usage_pct": mem_usage_pct,
-            "disk_usage_pct": np.half(psutil.disk_usage("/").percent),
-            "cpu_temperature_degF": cpu_temp_degF,
+            "action_cpu_usage_pct": round(cpu_utilization, 2),
+            "system_load_5m_pct": round(load_avg_5m, 2),
+            "memory_usage_pct": round(mem_usage_pct, 2),
+            "disk_usage_pct": round(psutil.disk_usage("/").percent, 2),
+            "cpu_temperature_degC": round(cpu_temp_degC, 2),
             "cpu_overheating": cpu_overheating,
-            "uptime_hours": np.half(uptime_hours),
+            "uptime_hours": round(uptime_hours, 2),
         }
+        toc = perf_counter()
+        logger.debug(f"Got all diagnostics in {toc-tic} s")
 
         all_sensor_values = {
+            "diagnostics_datetime": utils.get_datetime_str_now(),
             "preselector": preselector_sensor_values,
             "spu_x410": spu_x410_sensor_values,
             "spu_computer": computer_metrics,
         }
 
-        # Make AnnotationSegment from sensor data
+        # Make SigMF annotation from sensor data
         self.sigmf_builder.add_annotation(0, n_samps, all_sensor_values)
 
     def test_required_components(self):
@@ -589,8 +593,10 @@ class NasctnSeaDataProduct(Action):
             "max_channel_power_dBm": cap_meta["max_ch_pwr"],
             "mean_channel_power_dBm": cap_meta["mean_ch_pwr"],
             "overload": cap_meta["overload"],
-            "cal_noise_figure_dB": cap_meta["sensor_cal"]["noise_figure_sensor"],
-            "cal_gain_dB": cap_meta["sensor_cal"]["gain_sensor"],
+            "cal_noise_figure_dB": round(
+                cap_meta["sensor_cal"]["noise_figure_sensor"], 3
+            ),
+            "cal_gain_dB": round(cap_meta["sensor_cal"]["gain_sensor"], 3),
             "fft_sample_count": dp_idx[1] - dp_idx[0],  # Should be 625
             "td_pwr_sample_count": dp_idx[4] - dp_idx[3],  # Should be 400
             "pfp_sample_count": dp_idx[5] - dp_idx[4],  # Should be 560
