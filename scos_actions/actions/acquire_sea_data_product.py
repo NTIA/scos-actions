@@ -511,7 +511,6 @@ class NasctnSeaDataProduct(Action):
         """
         # Read SPU sensors
         for _, switch in switches.items():
-            logger.debug(f"Iterating on switch: {switch.name}")
             if switch.name == "SPU X410":
                 spu_x410_sensor_values = switch.get_status()
                 del spu_x410_sensor_values["name"]
@@ -566,15 +565,6 @@ class NasctnSeaDataProduct(Action):
             "spu_x410": spu_x410_sensor_values,
             "spu_computer": computer_metrics,
         }
-
-        #         "num_iq_samples_recorded": int(
-        #     params[DURATION_MS] * params[SAMPLE_RATE] * 1e-3
-        # ),
-        # "sigan_attenuation_dB": params[ATTENUATION],
-        # "sigan_preamp_on": params[PREAMP_ENABLE],
-        # "sigan_reference_level_dBm": params[REFERENCE_LEVEL],
-
-        logger.debug(f"Sensor readout dict: {all_sensor_values}")
 
         # Make AnnotationSegment from sensor data
         self.sigmf_builder.add_annotation(0, n_samps, all_sensor_values)
@@ -652,6 +642,7 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_last_calibration_time(
             self.sigan.sensor_calibration_data["calibration_datetime"]
         )  # TODO: this is approximate since each channel is individually calibrated
+
         sigmf_builder.sigmf_md.set_global_field(
             "calibration_temperature_degC",
             np.half(self.sigan.sensor_calibration_data["temperature"]),
