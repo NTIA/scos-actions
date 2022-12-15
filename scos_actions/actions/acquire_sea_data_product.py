@@ -601,7 +601,6 @@ class NasctnSeaDataProduct(Action):
             "overload": cap_meta["overload"],
             "cal_noise_figure_dB": cap_meta["sensor_cal"]["noise_figure_sensor"],
             "cal_gain_dB": cap_meta["sensor_cal"]["gain_sensor"],
-            "cal_temperature_degC": cap_meta["sensor_cal"]["temperature"],
             "fft_sample_count": dp_idx[1] - dp_idx[0],  # Should be 625
             "td_pwr_sample_count": dp_idx[4] - dp_idx[3],  # Should be 400
             "pfp_sample_count": dp_idx[5] - dp_idx[4],  # Should be 560
@@ -653,6 +652,10 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_last_calibration_time(
             self.sigan.sensor_calibration_data["calibration_datetime"]
         )  # TODO: this is approximate since each channel is individually calibrated
+        sigmf_builder.sigmf_md.set_global_field(
+            "calibration_temperature_degC",
+            np.half(self.sigan.sensor_calibration_data["temperature"]),
+        )
 
         # The following assume the sigan settings are identical for every channel
         sigmf_builder.sigmf_md.set_global_field(
