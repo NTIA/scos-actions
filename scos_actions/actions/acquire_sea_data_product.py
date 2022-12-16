@@ -56,7 +56,7 @@ from scos_actions.signal_processing.unit_conversion import (
     convert_linear_to_dB,
     convert_watts_to_dBm,
 )
-from scos_actions.signals import measurement_action_completed
+from scos_actions.signals import measurement_action_completed, monitor_action_completed
 
 logger = logging.getLogger(__name__)
 
@@ -364,6 +364,11 @@ class NasctnSeaDataProduct(Action):
 
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
         self.test_required_components()
+        if not self.sigan.healthy():
+            monitor_action_completed.send(
+                sender=self.__class__,
+                sigan_healthy=False
+            )
         iteration_params = utils.get_iterable_parameters(self.parameters)
         self.configure_preselector(self.rf_path)
 
