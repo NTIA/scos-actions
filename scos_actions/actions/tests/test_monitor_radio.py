@@ -1,5 +1,5 @@
 from scos_actions.discover import test_actions as actions
-from scos_actions.signals import monitor_action_completed
+from scos_actions.signals import trigger_api_restart
 
 MONITOR_SIGAN_SCHEDULE = {
     "name": "test_monitor",
@@ -17,7 +17,7 @@ def test_monitor_sigan_not_available():
         nonlocal _sigan_healthy
         _sigan_healthy = kwargs["sigan_healthy"]
 
-    monitor_action_completed.connect(callback)
+    trigger_api_restart.connect(callback)
     action = actions["test_monitor_sigan"]
     sigan = action.sigan
     sigan._is_available = False
@@ -33,7 +33,7 @@ def test_monitor_sigan_not_healthy():
         nonlocal _sigan_healthy
         _sigan_healthy = kwargs["sigan_healthy"]
 
-    monitor_action_completed.connect(callback)
+    trigger_api_restart.connect(callback)
     action = actions["test_monitor_sigan"]
     sigan = action.sigan
     sigan._healthy = False
@@ -49,7 +49,7 @@ def test_monitor_sigan_healthy():
         nonlocal _sigan_healthy
         _sigan_healthy = kwargs["sigan_healthy"]
 
-    monitor_action_completed.connect(callback)
+    trigger_api_restart.connect(callback)
     action = actions["test_monitor_sigan"]
     sigan = action.sigan
     sigan._is_available = True

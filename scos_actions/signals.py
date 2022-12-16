@@ -7,7 +7,7 @@ measurement_action_completed = Signal()
 location_action_completed = Signal()
 
 # Provides arguments: 'sigan_healthy'
-monitor_action_completed = Signal()
+trigger_api_restart = Signal()
 
 # Provides argument: 'component'
 register_component_with_status = Signal()
