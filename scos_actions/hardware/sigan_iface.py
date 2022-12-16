@@ -84,7 +84,8 @@ class SignalAnalyzerInterface(ABC):
     def healthy(self, num_samples=56000):
         """Perform health check by collecting IQ samples."""
         logger.debug("Performing health check.")
-
+        if not self.is_available:
+            return False
         try:
             measurement_result = self.acquire_time_domain_samples(num_samples, gain_adjust=False)
             data = measurement_result["data"]
