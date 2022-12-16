@@ -597,6 +597,10 @@ class NasctnSeaDataProduct(Action):
                 cap_meta["sensor_cal"]["noise_figure_sensor"], 3
             ),
             "cal_gain_dB": round(cap_meta["sensor_cal"]["gain_sensor"], 3),
+            "iq_capture_duration_msec": params[DURATION_MS],
+            "sigan_attenuation_dB": params[ATTENUATION],
+            "sigan_preamp_enable": params[PREAMP_ENABLE],
+            "sigan_reference_level_dBm": params[REFERENCE_LEVEL],
             "fft_sample_count": dp_idx[1] - dp_idx[0],  # Should be 625
             "td_pwr_sample_count": dp_idx[4] - dp_idx[3],  # Should be 400
             "pfp_sample_count": dp_idx[5] - dp_idx[4],  # Should be 560
@@ -652,20 +656,6 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.sigmf_md.set_global_field(
             "calibration_temperature_degC",
             np.half(self.sigan.sensor_calibration_data["temperature"]),
-        )
-
-        # The following assume the sigan settings are identical for every channel
-        sigmf_builder.sigmf_md.set_global_field(
-            "channel_capture_duration_msec", iter_params[0][DURATION_MS]
-        )
-        sigmf_builder.sigmf_md.set_global_field(
-            "sigan_attenuation_dB", iter_params[0][ATTENUATION]
-        )
-        sigmf_builder.sigmf_md.set_global_field(
-            "sigan_preamp_enable", iter_params[0][PREAMP_ENABLE]
-        )
-        sigmf_builder.sigmf_md.set_global_field(
-            "sigan_reference_level_dBm", iter_params[0][REFERENCE_LEVEL]
         )
 
         self.sigmf_builder = sigmf_builder
