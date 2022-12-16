@@ -6,7 +6,6 @@ measurement_action_completed = Signal()
 # Provides arguments: 'latitude', 'longitude'
 location_action_completed = Signal()
 
-# Provides arguments: 'sigan_healthy'
 trigger_api_restart = Signal()
 
 # Provides argument: 'component'
