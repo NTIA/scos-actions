@@ -151,4 +151,4 @@ class SignalAnalyzerInterface(ABC):
                 raise KeyError
         except KeyError:
             sigan_model = str(self.__class__)
-        return {"model": sigan_model, "healthy": self.healthy}
+        return {"model": sigan_model, "healthy": self.healthy()}
