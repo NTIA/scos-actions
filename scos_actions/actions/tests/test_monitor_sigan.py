@@ -36,10 +36,9 @@ def test_monitor_sigan_not_healthy():
     trigger_api_restart.connect(callback)
     action = actions["test_monitor_sigan"]
     sigan = action.sigan
-    sigan._healthy = False
+    sigan.times_to_fail_recv = 6
     action(MONITOR_SIGAN_SCHEDULE, 1)
     assert _sigan_healthy == False
-    sigan._healthy = True
 
 
 def test_monitor_sigan_healthy():

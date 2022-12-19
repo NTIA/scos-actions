@@ -20,7 +20,7 @@ class MonitorSignalAnalyzer(Action):
     def __call__(self, schedule_entry_json, task_id):
         logger.debug("Performing signal analyzer health check")
 
-        healthy = self.sigan.healthy
+        healthy = self.sigan.healthy()
 
         if healthy:
             trigger_api_restart.send(sender=self.__class__, sigan_healthy=True)
