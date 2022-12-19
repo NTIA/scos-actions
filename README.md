@@ -311,8 +311,7 @@ The following signals are currently offered:
 
 - `measurement_action_completed` - signal expects task_id, data, and metadata
 - `location_action_completed` - signal expects latitude and longitude
-- `monitor_action_completed` - signal expects boolean indicating if the signal analyzer
-is healthy
+- `trigger_api_restart` - triggers a restart of the API docker container (where scos-sensor runs)
 
 New signals can be added. However, corresponding signal handlers must be added to
 scos-sensor to receive the signals and process the results.
