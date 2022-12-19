@@ -23,8 +23,7 @@ class MonitorSignalAnalyzer(Action):
         healthy = self.sigan.healthy()
 
         if healthy:
-            trigger_api_restart.send(sender=self.__class__, sigan_healthy=True)
             logger.info("signal analyzer healthy")
         else:
             logger.warning("signal analyzer unhealthy")
-            trigger_api_restart.send(sender=self.__class__, sigan_healthy=False)
+            trigger_api_restart.send(sender=self.__class__)

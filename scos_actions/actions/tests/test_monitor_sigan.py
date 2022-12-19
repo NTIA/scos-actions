@@ -11,42 +11,42 @@ MONITOR_SIGAN_SCHEDULE = {
 
 
 def test_monitor_sigan_not_available():
-    _sigan_healthy = None
+    _api_restart_triggered = False
 
     def callback(sender, **kwargs):
-        nonlocal _sigan_healthy
-        _sigan_healthy = kwargs["sigan_healthy"]
+        nonlocal _api_restart_triggered
+        _api_restart_triggered = True
 
     trigger_api_restart.connect(callback)
     action = actions["test_monitor_sigan"]
     sigan = action.sigan
     sigan._is_available = False
     action(MONITOR_SIGAN_SCHEDULE, 1)
-    assert _sigan_healthy == False
+    assert _api_restart_triggered == True  # signal sent
     sigan._is_available = True
 
 
 def test_monitor_sigan_not_healthy():
-    _sigan_healthy = None
+    _api_restart_triggered = False
 
     def callback(sender, **kwargs):
-        nonlocal _sigan_healthy
-        _sigan_healthy = kwargs["sigan_healthy"]
+        nonlocal _api_restart_triggered
+        _api_restart_triggered = True
 
     trigger_api_restart.connect(callback)
     action = actions["test_monitor_sigan"]
     sigan = action.sigan
     sigan.times_to_fail_recv = 6
     action(MONITOR_SIGAN_SCHEDULE, 1)
-    assert _sigan_healthy == False
+    assert _api_restart_triggered == True  # signal sent
 
 
 def test_monitor_sigan_healthy():
-    _sigan_healthy = None
+    _api_restart_triggered = False
 
     def callback(sender, **kwargs):
-        nonlocal _sigan_healthy
-        _sigan_healthy = kwargs["sigan_healthy"]
+        nonlocal _api_restart_triggered
+        _api_restart_triggered = True
 
     trigger_api_restart.connect(callback)
     action = actions["test_monitor_sigan"]
@@ -54,4 +54,4 @@ def test_monitor_sigan_healthy():
     sigan._is_available = True
     sigan.set_times_to_fail_recv(0)
     action(MONITOR_SIGAN_SCHEDULE, 1)
-    assert _sigan_healthy == True
+    assert _api_restart_triggered == False  # signal not sent
