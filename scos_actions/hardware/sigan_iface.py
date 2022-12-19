@@ -87,7 +87,9 @@ class SignalAnalyzerInterface(ABC):
         if not self.is_available:
             return False
         try:
-            measurement_result = self.acquire_time_domain_samples(num_samples, gain_adjust=False)
+            measurement_result = self.acquire_time_domain_samples(
+                num_samples, gain_adjust=False
+            )
             data = measurement_result["data"]
         except Exception as e:
             logger.exception("Unable to acquire samples from device.")
