@@ -81,11 +81,25 @@ class SignalAnalyzerInterface(ABC):
         """
         pass
 
-    @property
-    @abstractmethod
-    def healthy(self) -> bool:
-        """Perform a health check by collecting IQ samples."""
-        pass
+    def healthy(self, num_samples=56000):
+        """Perform health check by collecting IQ samples."""
+        logger.debug("Performing health check.")
+        if not self.is_available:
+            return False
+        try:
+            measurement_result = self.acquire_time_domain_samples(
+                num_samples, gain_adjust=False
+            )
+            data = measurement_result["data"]
+        except Exception as e:
+            logger.exception("Unable to acquire samples from device.")
+            return False
+
+        if not len(data) == num_samples:
+            logger.error("Data length doesn't match request.")
+            return False
+
+        return True
 
     def power_cycle_and_connect(self, sleep_time: float = 2.0) -> None:
         """
@@ -137,4 +151,4 @@ class SignalAnalyzerInterface(ABC):
                 raise KeyError
         except KeyError:
             sigan_model = str(self.__class__)
-        return {"model": sigan_model, "healthy": self.healthy}
+        return {"model": sigan_model, "healthy": self.healthy()}
