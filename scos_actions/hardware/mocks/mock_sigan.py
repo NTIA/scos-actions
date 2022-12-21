@@ -33,6 +33,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         self._overload = False
         self._capture_time = None
         self._is_available = True
+        self._healthy = True
 
         # Simulate returning less than the requested number of samples from
         # self.recv_num_samps
@@ -142,6 +143,10 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     @property
     def last_calibration_time(self):
         return get_datetime_str_now()
+
+    @property
+    def healthy(self):
+        return self._healthy
 
     def update_calibration(self, params):
         pass
