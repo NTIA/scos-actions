@@ -279,14 +279,8 @@ def generate_data_product(
     iqdata: np.ndarray, params: dict, iir_sos: np.ndarray
 ) -> np.ndarray:
     """Process IQ data and generate the SEA data product."""
-    # Use print instead of logger.debug inside ray.remote function
-    print(f"Generating data product @ {params[FREQUENCY] / 1e6} MHz...")
-    tic = perf_counter()
     data_product = []
-
     iqdata = sosfilt(iir_sos, iqdata)
-    toc = perf_counter()
-    print(f"IIR filtered IQ data @ {params[FREQUENCY] / 1e6} MHz in {toc-tic:.2f} s")
 
     remote_procs = []
     remote_procs.append(get_fft_results.remote(iqdata, params))
@@ -297,11 +291,6 @@ def generate_data_product(
 
     for dp in all_results:
         data_product.extend(dp)
-
-    toc = perf_counter()
-    print(
-        f"Got data product @ {params[FREQUENCY] / 1e6} MHz results in {toc-tic:.2f} s"
-    )
 
     del iqdata
     gc.collect()
@@ -515,7 +504,7 @@ class NasctnSeaDataProduct(Action):
         """
         tic = perf_counter()
         # Read SPU sensors
-        for _, switch in switches.items():
+        for switch in switches.values():
             if switch.name == "SPU X410":
                 spu_x410_sensor_values = switch.get_status()
                 del spu_x410_sensor_values["name"]
@@ -567,7 +556,7 @@ class NasctnSeaDataProduct(Action):
         toc = perf_counter()
         logger.debug(f"Got all diagnostics in {toc-tic} s")
 
-        all_sensor_values = {
+        diag = {
             "diagnostics_datetime": utils.get_datetime_str_now(),
             "preselector": preselector_sensor_values,
             "spu_x410": spu_x410_sensor_values,
@@ -575,12 +564,15 @@ class NasctnSeaDataProduct(Action):
         }
 
         # Make SigMF annotation from sensor data
-        self.sigmf_builder.add_annotation(0, n_samps, all_sensor_values)
+        self.sigmf_builder.add_to_global("diagnostics", diag)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
         if not self.sigan.is_available:
             msg = "Acquisition failed: signal analyzer is not available"
+            raise RuntimeError(msg)
+        if "SPU X410" not in [s.name for s in switches.values()]:
+            msg = "Configuration error: no switch configured with name 'SPU X410'"
             raise RuntimeError(msg)
         # TODO: Add additional health checks
         return None
@@ -644,15 +636,12 @@ class NasctnSeaDataProduct(Action):
         iter_params: list,
     ) -> SigMFBuilder:
         """Build SigMF that applies to the entire capture (all channels)"""
-        schedule_entry_no_stop = {
-            k: v for k, v in schedule_entry.items() if k != "stop"
-        }
         sigmf_builder = SigMFBuilder()
         sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
-        sigmf_builder.set_schedule(schedule_entry_no_stop)
+        sigmf_builder.set_schedule(schedule_entry)
         sigmf_builder.set_last_calibration_time(
             self.sigan.sensor_calibration_data["calibration_datetime"]
         )  # TODO: this is approximate since each channel is individually calibrated
