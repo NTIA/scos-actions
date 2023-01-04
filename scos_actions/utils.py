@@ -84,7 +84,7 @@ def get_iterable_parameters(parameters: dict, sortby: str = "frequency"):
                 # Repeat parameter to max length
                 msg = f"Parameter {p_key} has only one value specified.\n"
                 msg += "It will be used for all iterations in the action."
-                logger.warning(msg)
+                logger.debug(msg)
                 params[p_key] = p_val * max_param_length
             elif len(p_val) < max_param_length:
                 # Don't make assumptions otherwise. Raise an error.

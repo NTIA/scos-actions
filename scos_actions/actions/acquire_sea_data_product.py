@@ -28,19 +28,14 @@ from typing import Tuple
 
 import numexpr as ne
 import numpy as np
+import psutil
 import ray
 from scipy.signal import sosfilt
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
+from scos_actions.hardware import preselector, switches
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.metadata.annotation_segment import AnnotationSegment
-from scos_actions.metadata.annotations import (
-    CalibrationAnnotation,
-    FrequencyDomainDetection,
-    SensorAnnotation,
-    TimeDomainDetection,
-)
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
@@ -72,15 +67,16 @@ IIR_GPASS = "iir_gpass_dB"
 IIR_GSTOP = "iir_gstop_dB"
 IIR_PB_EDGE = "iir_pb_edge_Hz"
 IIR_SB_EDGE = "iir_sb_edge_Hz"
-IIR_RESP_FREQS = "iir_num_response_frequencies"
 # FFT_SIZE = "fft_size"
 NUM_FFTS = "nffts"
 # FFT_WINDOW_TYPE = "fft_window_type"
 APD_BIN_SIZE_DB = "apd_bin_size_dB"
 TD_BIN_SIZE_MS = "td_bin_size_ms"
-ROUND_TO = "round_to_places"
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
+ATTENUATION = "attenuation"
+PREAMP_ENABLE = "preamp_enable"
+REFERENCE_LEVEL = "reference_level"
 DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
 PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
@@ -88,10 +84,33 @@ PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
 # Constants
 DATA_TYPE = np.half
 PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
+FFT_SIZE = 875
+FFT_WINDOW_TYPE = "flattop"
+FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
+FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
+
+# Create power detectors
+TD_DETECTOR = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
+FFT_DETECTOR = create_power_detector("FftMeanMaxDetector", ["mean", "max"])
+PFP_M3_DETECTOR = create_power_detector("PfpM3Detector", ["min", "max", "mean"])
 
 
+@ray.remote
 def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
-    """Compute data product mean/max FFT results from IQ samples."""
+    """
+    Compute data product mean/max FFT results from IQ samples.
+
+    The result is a PSD, with amplitudes in dBm/Hz referenced to the
+    calibration terminal. The result is truncated in frequency to the
+    middle 10 MHz (middle 625 out of 875 total DFT samples). Some parts
+    of this function are hard-coded or depend on constants.
+
+    :param iqdata: Complex-valued input waveform samples.
+    :param params: Action parameters from YAML, which must include
+        `NUM_FFTS` and `SAMPLE_RATE` keys.
+    :return: A tuple, which contains 2 NumPy arrays of power-detected
+        PSD amplitudes, ordered (max, mean).
+    """
     # IQ data already scaled for calibrated gain
     fft_result = get_fft(
         time_data=iqdata,
@@ -105,8 +124,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     fft_result = calculate_pseudo_power(fft_result)
     fft_result = apply_power_detector(fft_result, FFT_DETECTOR)  # (max, mean)
     ne.evaluate("fft_result/50", out=fft_result)  # Finish conversion to Watts
-    # Shift frequencies of reduced result
-    fft_result = np.fft.fftshift(fft_result, axes=(1,))
+    fft_result = np.fft.fftshift(fft_result, axes=(1,))  # Shift frequencies
     fft_result = convert_watts_to_dBm(fft_result)
     fft_result -= 3  # Baseband/RF power conversion
     fft_result -= 10.0 * np.log10(params[SAMPLE_RATE] * FFT_SIZE)  # PSD scaling
@@ -123,8 +141,19 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     return fft_result[0], fft_result[1]
 
 
+@ray.remote
 def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
-    """Generate downsampled APD result from IQ samples."""
+    """
+    Generate downsampled APD result from IQ samples.
+
+    :param iqdata: Complex-valued input waveform samples.
+    :param params: Action parameters from YAML, which must include an
+        `APD_BIN_SIZE_DB` key.
+    :return: A tuple of NumPy arrays containing the APD amplitude and
+        probability axes, ordered (probabilities, amplitudes). Probabilities
+        are given as percentages, and amplitudes in dBm referenced to the
+        calibration terminal.
+    """
     p, a = get_apd(iqdata, params[APD_BIN_SIZE_DB])
     # Convert dBV to dBm:
     # a = a * 2 : dBV --> dB(V^2)
@@ -135,37 +164,56 @@ def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     return p, a
 
 
+@ray.remote
 def get_td_power_results(
     iqdata: np.ndarray, params: dict
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Compute mean/max time domain power statistics from IQ samples."""
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Compute mean/max time domain power statistics from IQ samples.
+
+    Mean and max detectors are applied over a configurable time window.
+    Mean and max power values are also reported as single values, with
+    the detectors applied over the entire input IQ sample sequence.
+
+    :param iqdata: Complex-valued input waveform samples.
+    :param params: Action parameters from YAML, which must include
+        `TD_BIN_SIZE_MS` and `SAMPLE_RATE` keys.
+    :return: A tuple of NumPy arrays containing power detector results,
+        in dBm referenced to the calibration terminal. The order of the
+        results is (max, mean, max_single_value, mean_single_value). The
+        single_value results will always contain only a single number,
+        while the length of the other arrays depends on the configured
+        detector period.
+    """
     # Reshape IQ data into blocks
     block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
     n_blocks = len(iqdata) // block_size
     iqdata = iqdata.reshape(block_size, n_blocks)
-    print(
-        f"Calculating time-domain power statistics on {n_blocks} blocks of {block_size} samples each"
-    )
-
     iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.0)
 
     # Apply mean/max detectors
-    td_result = apply_power_detector(iq_pwr, TD_DETECTOR, ignore_nan=True)
+    td_result = apply_power_detector(iq_pwr, TD_DETECTOR)
 
-    # Convert to dBm
-    td_result = convert_watts_to_dBm(td_result)
+    # Get single value mean/max statistics
+    td_channel_result = np.array([td_result[0].max(), td_result[1].mean()])
 
-    # Account for RF/baseband power difference
-    td_result -= 3
+    # Convert to dBm and account for RF/baseband power difference
+    td_result, td_channel_result = (
+        convert_watts_to_dBm(x) - 3.0 for x in [td_result, td_channel_result]
+    )
 
-    return td_result[0], td_result[1]  # (max, mean)
+    channel_max, channel_mean = (np.array(a) for a in td_channel_result)
+
+    # packed order is (max, mean)
+    return td_result[0], td_result[1], channel_max, channel_mean
 
 
+@ray.remote
 def get_periodic_frame_power(
     iqdata: np.ndarray,
     params: dict,
     detector_period_s: float = PFP_FRAME_RESOLUTION_S,
-) -> dict:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute a time series of periodic frame power statistics.
 
@@ -176,10 +224,11 @@ def get_periodic_frame_power(
     number of frames (`frame_period/Ts`).
 
     :param iqdata: Complex-valued input waveform samples.
-    :param params:
+    :param params: Action parameters from YAML, which must include `SAMPLE_RATE` and
+        `PFP_FRAME_PERIOD_MS` keys.
     :param detector_period_s: Sampling period (s) within the frame.
-    :return: A dict with keys "rms" and "peak", each with values (min: np.ndarray, mean: np.ndarray,
-        max: np.ndarray)
+    :return: A tuple of 6 NumPy arrays for the 6 detector results: (rms_min, rms_max,
+        rms_mean, peak_min, peak_max, peak_mean).
     :raises ValueError: if detector_period%Ts != 0 or frame_period%detector_period != 0
     """
     sampling_period_s = 1.0 / params[SAMPLE_RATE]
@@ -196,7 +245,6 @@ def get_periodic_frame_power(
 
     Nframes = int(np.round(frame_period_s / sampling_period_s))
     Npts = int(np.round(frame_period_s / detector_period_s))
-    print(f"PFP Nframes: {Nframes}, Npts: {Npts}")
 
     # set up dimensions to make the statistics fast
     chunked_shape = (iqdata.shape[0] // Nframes, Npts, Nframes // Npts) + tuple(
@@ -231,67 +279,29 @@ def generate_data_product(
     iqdata: np.ndarray, params: dict, iir_sos: np.ndarray
 ) -> np.ndarray:
     """Process IQ data and generate the SEA data product."""
-    # Use print instead of logger.debug inside ray.remote function
-    print(f"Generating data product @ {params[FREQUENCY]}...")
-    tic1 = perf_counter()
     data_product = []
-
-    data_product.extend(get_fft_results(iqdata, params))
-    toc = perf_counter()
-    print(f"Got FFT result @ {params[FREQUENCY]} in {toc-tic1:.2f} s")
-
-    tic = perf_counter()
     iqdata = sosfilt(iir_sos, iqdata)
-    toc = perf_counter()
-    print(f"Applied IIR filter to IQ data @ {params[FREQUENCY]} in {toc-tic:.2f} s")
 
-    tic = perf_counter()
-    data_product.extend(get_td_power_results(iqdata, params))
-    toc = perf_counter()
-    print(f"Got TD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
+    remote_procs = []
+    remote_procs.append(get_fft_results.remote(iqdata, params))
+    remote_procs.append(get_td_power_results.remote(iqdata, params))
+    remote_procs.append(get_periodic_frame_power.remote(iqdata, params))
+    remote_procs.append(get_apd_results.remote(iqdata, params))
+    all_results = ray.get(remote_procs)
 
-    tic = perf_counter()
-    data_product.extend(get_periodic_frame_power(iqdata, params))
-    toc = perf_counter()
-    print(f"Got PFP result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
+    for dp in all_results:
+        data_product.extend(dp)
 
-    tic = perf_counter()
-    data_product.extend(get_apd_results(iqdata, params))
-    toc = perf_counter()
-    print(f"Got APD result @ {params[FREQUENCY]} in {toc-tic:.2f} s")
-
-    print(f"Got all data product @ {params[FREQUENCY]} results in {toc-tic1:.2f} s")
-
-    # TODO: Further optimize memory usage
-    print(f"GC Count: {gc.get_count()}")
-    tic = perf_counter()
     del iqdata
     gc.collect()
-    toc = perf_counter()
-    print(f"GC Count after collection: {gc.get_count()}")
-    print(f"Deleted IQ @ {params[FREQUENCY]} and collected garbage in {toc-tic:.2f} s")
 
     # Flatten data product but retain component indices
-    tic = perf_counter()
+    # Also, separate single value channel powers
+    max_chan_pwr = data_product.pop(4).astype(DATA_TYPE)
+    mean_chan_pwr = data_product.pop(4).astype(DATA_TYPE)
     data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
-    toc = perf_counter()
-    print(f"Data @ {params[FREQUENCY]} transformed in {toc-tic:.2f} s")
 
-    return data_product, dp_idx
-
-
-# Hard-coded algorithm parameters
-FFT_SIZE = 875
-FFT_WINDOW_TYPE = "flattop"
-
-# Generate FFT window and correction factor
-FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
-FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
-
-# Create power detectors
-TD_DETECTOR = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
-FFT_DETECTOR = create_power_detector("FftMeanMaxDetector", ["mean", "max"])
-PFP_M3_DETECTOR = create_power_detector("PfpM3Detector", ["min", "max", "mean"])
+    return data_product, dp_idx, max_chan_pwr, mean_chan_pwr
 
 
 class NasctnSeaDataProduct(Action):
@@ -328,32 +338,28 @@ class NasctnSeaDataProduct(Action):
             self.sample_rate_Hz,
         )
 
-        # TODO: remove config parameters which will be hard-coded
+        # Remove IIR parameters which aren't needed after filter generation
         for key in [
             IIR_GPASS,
             IIR_GSTOP,
             IIR_PB_EDGE,
             IIR_SB_EDGE,
-            IIR_RESP_FREQS,
         ]:
             self.parameters.pop(key)
 
     def __call__(self, schedule_entry, task_id):
         """This is the entrypoint function called by the scheduler."""
-        self.test_required_components()
-
-        iteration_params = utils.get_iterable_parameters(self.parameters)
-
         start_action = perf_counter()
-        logger.debug(f"Setting RF path to {self.rf_path}")
+
+        _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
+        self.test_required_components()
+        iteration_params = utils.get_iterable_parameters(self.parameters)
         self.configure_preselector(self.rf_path)
 
         # Collect all IQ data and spawn data product computation processes
         all_data, all_idx, dp_procs, cap_meta = ([] for _ in range(4))
         for parameters in iteration_params:
-            # Capture IQ data
             measurement_result = self.capture_iq(parameters)
-
             cap_meta.append(
                 {
                     "start_time": measurement_result["start_time"],
@@ -362,8 +368,7 @@ class NasctnSeaDataProduct(Action):
                     "overload": measurement_result["overload"],
                 }
             )
-
-            # Start data product processing but do not stall before next IQ capture
+            # Start data product processing but do not block next IQ capture
             dp_procs.append(
                 generate_data_product.remote(
                     measurement_result["data"], parameters, self.iir_sos
@@ -371,36 +376,40 @@ class NasctnSeaDataProduct(Action):
             )
 
         # Initialize metadata object
-        # Assumes all sample rates are the same
-        # And uses a single "last calibration time"
         self.get_sigmf_builder(
-            iteration_params[0][SAMPLE_RATE],
+            iteration_params[0][SAMPLE_RATE],  # Assumes all sample rates are the same
             task_id,
-            schedule_entry,
+            schedule_entry,  # Uses a single "last calibration time"
+            iteration_params,
         )
 
         # Collect processed data product results
         last_data_len = 0
         results = ray.get(dp_procs)  # Ordering is retained
-        for rec_id, (dp, dp_idx) in enumerate(results):
+        for i, (dp, dp_idx, max_ch_pwr, mean_ch_pwr) in enumerate(results):
+            # Combine channel data
             all_data.extend(dp)
             all_idx.extend((dp_idx + last_data_len).tolist())
 
-            cap_meta[rec_id]["sample_start"] = last_data_len
-            cap_meta[rec_id]["sample_count"] = len(dp)
-
             # Generate metadata for the capture
-            self.create_channel_metadata(
-                rec_id, iteration_params[rec_id], cap_meta[rec_id], dp_idx
+            cap_meta[i].update(
+                {
+                    "sample_start": last_data_len,
+                    "sample_count": len(dp),
+                    "max_ch_pwr": max_ch_pwr,
+                    "mean_ch_pwr": mean_ch_pwr,
+                }
             )
+            self.create_channel_metadata(iteration_params[i], cap_meta[i], dp_idx)
 
-            # Increment start sample
+            # Increment start sample for data combination
             last_data_len = len(all_data)
 
-        # Build metadata
+        # Build metadata and convert data to compressed bytes
+        self.capture_diagnostics(n_samps=last_data_len)  # Add diagnostics to metadata
         self.sigmf_builder.build()
-
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
+
         measurement_action_completed.send(
             sender=self.__class__,
             task_id=task_id,
@@ -414,21 +423,21 @@ class NasctnSeaDataProduct(Action):
 
     def capture_iq(self, params: dict) -> dict:
         """Acquire a single gap-free stream of IQ samples."""
-        logger.debug(f"GC Count (IQ Cap): {gc.get_count()}")
-        tic = perf_counter()
-        gc.collect()  # Computationally expensive!
-        toc = perf_counter()
-        logger.debug(f"GC Count (IQ Cap) after collection: {gc.get_count()}")
-        print(f"Collected garbage in {toc-tic:.2f} s")
-
+        # Downselect params to limit meaningless logger warnings
+        hw_params = {
+            k: params[k]
+            for k in [
+                ATTENUATION,
+                PREAMP_ENABLE,
+                REFERENCE_LEVEL,
+                SAMPLE_RATE,
+                FREQUENCY,
+            ]
+        }
         start_time = utils.get_datetime_str_now()
         tic = perf_counter()
-        # Configure signal analyzer + preselector
-        self.configure(params)
-        # Ensure sample rate is accurately applied
-        assert (
-            self.sigan.sample_rate == params[SAMPLE_RATE]
-        ), "Sample rate setting not applied."
+        # Configure signal analyzer
+        self.configure_sigan({k: v for k, v in hw_params.items() if k != RF_PATH})
         # Get IQ capture parameters
         duration_ms = utils.get_parameter(DURATION_MS, params)
         nskip = utils.get_parameter(NUM_SKIP, params)
@@ -449,134 +458,170 @@ class NasctnSeaDataProduct(Action):
         )
         return measurement_result
 
+    def capture_diagnostics(self, n_samps: int) -> dict:
+        """
+        Capture diagnostic sensor data.
+
+        This method pulls diagnostic data from web relays in the
+        sensor preselector and SPU as well as from the SPU computer
+        itself. All temperatures are reported in degrees Celsius,
+        and humidities in % relative humidity. The diagnostic data is
+        added to self.sigmf_builder as an annotation.
+
+        The following diagnostic data is collected:
+
+        From the preselector: LNA temperature, noise diode temperature,
+            internal preselector temperature, internal preselector
+            humidity, and preselector door open/closed status.
+
+        From the SPU web relay: SPU RF tray power on/off, preselector
+            power on/off, aux 28 V power on/off, SPU RF tray temperature,
+            SPU power/control tray temperature, SPU power/control tray
+            humidity.
+
+        From the SPU computer: systemwide CPU utilization (%) averaged over
+            the action runtime, system load (%) averaged over last 5 minutes,
+            current memory usage (%),
+
+        Preselector X410 Setup requires:
+        internal temperature : oneWireSensor 1, set units to C
+        noise diode temp : oneWireSensor 2, set units to C
+        LNA temp : oneWireSensor 3, set units to C
+        internal humidity : oneWireSensor 4
+        door sensor: digitalInput 1
+
+        SPU X410 requires:
+        config file: name field must be "SPU X410"
+        Power/Control Box Temperature: oneWireSensor 1, set units to C
+        RF Box Temperature: oneWireSensor 2, set units to C
+        Power/Control Box Humidity: oneWireSensor 3
+
+        :param n_samps: The total number of data samples recorded.
+        """
+        tic = perf_counter()
+        # Read SPU sensors
+        for switch in switches.values():
+            if switch.name == "SPU X410":
+                spu_x410_sensor_values = switch.get_status()
+                del spu_x410_sensor_values["name"]
+                del spu_x410_sensor_values["healthy"]
+                spu_x410_sensor_values["pwr_box_temp_degC"] = switch.get_sensor_value(1)
+                spu_x410_sensor_values["rf_box_temp_degC"] = switch.get_sensor_value(2)
+                spu_x410_sensor_values[
+                    "pwr_box_humidity_pct"
+                ] = switch.get_sensor_value(3)
+
+        # Read preselector sensors
+        preselector_sensor_values = {
+            "internal_temp_degC": preselector.get_sensor_value(1),
+            "noise_diode_temp_degC": preselector.get_sensor_value(2),
+            "lna_temp_degC": preselector.get_sensor_value(3),
+            "internal_humidity_pct": preselector.get_sensor_value(4),
+            "door_closed": preselector.get_digital_input_value(1),
+        }
+
+        # Read computer performance metrics
+
+        # Systemwide CPU utilization (%), averaged over current action runtime
+        cpu_utilization = psutil.cpu_percent(interval=None)
+
+        # Average system load (%) over last 5m
+        load_avg_5m = (psutil.getloadavg()[1] / psutil.cpu_count()) * 100.0
+
+        # Memory usage
+        mem_usage_pct = psutil.virtual_memory().percent
+
+        # CPU temperature
+        cpu_temps = psutil.sensors_temperatures()
+        cpu_temp_degC = cpu_temps["coretemp"][0].current
+        cpu_overheating = cpu_temp_degC >= cpu_temps["coretemp"][0].high
+
+        # Get computer uptime
+        with open("/proc/uptime") as f:
+            uptime_hours = float(f.readline().split()[0]) / 3600.0
+
+        computer_metrics = {
+            "action_cpu_usage_pct": round(cpu_utilization, 2),
+            "system_load_5m_pct": round(load_avg_5m, 2),
+            "memory_usage_pct": round(mem_usage_pct, 2),
+            "disk_usage_pct": round(psutil.disk_usage("/").percent, 2),
+            "cpu_temperature_degC": round(cpu_temp_degC, 2),
+            "cpu_overheating": cpu_overheating,
+            "uptime_hours": round(uptime_hours, 2),
+        }
+        toc = perf_counter()
+        logger.debug(f"Got all diagnostics in {toc-tic} s")
+
+        diag = {
+            "diagnostics_datetime": utils.get_datetime_str_now(),
+            "preselector": preselector_sensor_values,
+            "spu_x410": spu_x410_sensor_values,
+            "spu_computer": computer_metrics,
+        }
+
+        # Make SigMF annotation from sensor data
+        self.sigmf_builder.add_to_global("diagnostics", diag)
+
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
         if not self.sigan.is_available:
             msg = "Acquisition failed: signal analyzer is not available"
+            raise RuntimeError(msg)
+        if "SPU X410" not in [s.name for s in switches.values()]:
+            msg = "Configuration error: no switch configured with name 'SPU X410'"
             raise RuntimeError(msg)
         # TODO: Add additional health checks
         return None
 
     def create_channel_metadata(
         self,
-        rec_id: int,
         params: dict,
         cap_meta: dict,
         dp_idx=None,
     ) -> SigMFBuilder:
         """Add metadata corresponding to a single-frequency capture in the measurement"""
-        # Add Capture
-        self.sigmf_builder.set_capture(
-            params[FREQUENCY], cap_meta["start_time"], cap_meta["sample_start"]
-        )
-
-        # Remove some metadata from calibration annotation
-        sensor_cal = {
-            k: v
-            for k, v in cap_meta["sensor_cal"].items()
-            if k in {"gain_sensor", "noise_figure_sensor", "enbw_sensor", "temperature"}
+        # Construct dict of extra info to attach to capture
+        capture_dict = {
+            "max_channel_power_dBm": cap_meta["max_ch_pwr"],
+            "mean_channel_power_dBm": cap_meta["mean_ch_pwr"],
+            "overload": cap_meta["overload"],
+            "cal_noise_figure_dB": round(
+                cap_meta["sensor_cal"]["noise_figure_sensor"], 3
+            ),
+            "cal_gain_dB": round(cap_meta["sensor_cal"]["gain_sensor"], 3),
+            "iq_capture_duration_msec": params[DURATION_MS],
+            "sigan_attenuation_dB": params[ATTENUATION],
+            "sigan_preamp_enable": params[PREAMP_ENABLE],
+            "sigan_reference_level_dBm": params[REFERENCE_LEVEL],
+            "fft_sample_count": dp_idx[1] - dp_idx[0],  # Should be 625
+            "td_pwr_sample_count": dp_idx[4] - dp_idx[3],  # Should be 400
+            "pfp_sample_count": dp_idx[5] - dp_idx[4],  # Should be 560
+            "apd_sample_count": dp_idx[11] - dp_idx[10],  # Variable!
         }
 
-        # Calibration Annotation
-        calibration_annotation = CalibrationAnnotation(
-            sample_start=cap_meta["sample_start"],
-            sample_count=cap_meta["sample_count"],
-            sigan_cal=None,  # Do not include sigan cal data
-            sensor_cal=sensor_cal,
-        )
-        self.sigmf_builder.add_metadata_generator(
-            type(calibration_annotation).__name__ + f"_{rec_id}", calibration_annotation
-        )
+        ordered_data_components = [
+            "max_fft",
+            "mean_fft",
+            "max_td_pwr_series",
+            "mean_td_pwr_series",
+            "min_rms_pfp",
+            "max_rms_pfp",
+            "mean_rms_pfp",
+            "min_peak_pfp",
+            "max_peak_pfp",
+            "mean_peak_pfp",
+            "apd_p",
+            "apd_a",
+        ]
+        for i, dc in zip(dp_idx, ordered_data_components):
+            capture_dict.update({dc + "_sample_start": i + cap_meta["sample_start"]})
 
-        # Sensor Annotation (contains overload indicator)
-        sensor_annotation = SensorAnnotation(
-            sample_start=cap_meta["sample_start"],
-            sample_count=cap_meta["sample_count"],
-            overload=cap_meta["overload"],
-            attenuation_setting_sigan=params["attenuation"],
-        )
-        self.sigmf_builder.add_metadata_generator(
-            type(sensor_annotation).__name__ + f"_{rec_id}", sensor_annotation
-        )
-
-        # FFT Annotation
-        for i, detector in enumerate(FFT_DETECTOR):
-            fft_annotation = FrequencyDomainDetection(
-                sample_start=dp_idx[i] + cap_meta["sample_start"],
-                sample_count=dp_idx[i + 1] - dp_idx[i],
-                detector=detector.value,
-                number_of_ffts=int(params[NUM_FFTS]),
-                number_of_samples_in_fft=FFT_SIZE,  # TODO: This is hard-coded
-                window=FFT_WINDOW_TYPE,  # TODO: This is hard-coded
-                units="dBm/Hz",
-                reference="preselector input",
-            )
-            self.sigmf_builder.add_metadata_generator(
-                type(fft_annotation).__name__ + "_" + detector.value + f"_{rec_id}",
-                fft_annotation,
-            )
-
-        # Time Domain Annotation
-        for i, detector in enumerate(TD_DETECTOR):
-            td_annotation = TimeDomainDetection(
-                sample_start=dp_idx[i + 2] + cap_meta["sample_start"],
-                sample_count=dp_idx[i + 3] - dp_idx[i + 2],
-                detector=detector.value,
-                number_of_samples=int(params[SAMPLE_RATE] * params[DURATION_MS] * 1e-3),
-                units="dBm",
-                reference="preselector input",
-            )
-            self.sigmf_builder.add_metadata_generator(
-                type(td_annotation).__name__ + "_" + detector.value + f"_{rec_id}",
-                td_annotation,
-            )
-
-        # PFP Annotation (custom, not in spec)
-        for i, detector in enumerate(PFP_M3_DETECTOR):
-            # RMS result M3 detected
-            pfp_annotation = AnnotationSegment(
-                sample_start=dp_idx[i + 4] + cap_meta["sample_start"],
-                sample_count=dp_idx[i + 5] - dp_idx[i + 4],
-                label="pfp_rms_" + detector.value,
-            )
-            self.sigmf_builder.add_metadata_generator(
-                type(pfp_annotation).__name__ + "_rms_" + detector.value + f"_{rec_id}",
-                pfp_annotation,
-            )
-
-        for i, detector in enumerate(PFP_M3_DETECTOR):
-            # Peak result M3 detected
-            pfp_annotation = AnnotationSegment(
-                sample_start=dp_idx[i + 7] + cap_meta["sample_start"],
-                sample_count=dp_idx[i + 8] - dp_idx[i + 7],
-                label="pfp_peak_" + detector.value,
-            )
-            self.sigmf_builder.add_metadata_generator(
-                type(pfp_annotation).__name__
-                + "_peak_"
-                + detector.value
-                + f"_{rec_id}",
-                pfp_annotation,
-            )
-
-        # APD Annotation
-        apd_p_annotation = AnnotationSegment(
-            sample_start=dp_idx[10] + cap_meta["sample_start"],
-            sample_count=dp_idx[11] - dp_idx[10],
-            label="apd_p_pct",
-        )
-        apd_a_annotation = AnnotationSegment(
-            sample_start=dp_idx[11] + cap_meta["sample_start"],
-            sample_count=cap_meta["sample_count"] - dp_idx[11],
-            label="apd_a_dBm",
-        )
-        self.sigmf_builder.add_metadata_generator(
-            type(apd_p_annotation).__name__ + f"_apd_p_{rec_id}",
-            apd_p_annotation,
-        )
-        self.sigmf_builder.add_metadata_generator(
-            type(apd_a_annotation).__name__ + f"_apd_a_{rec_id}",
-            apd_a_annotation,
+        # Add Capture
+        self.sigmf_builder.set_capture(
+            params[FREQUENCY],
+            cap_meta["start_time"],
+            cap_meta["sample_start"],
+            extra_entries=capture_dict,
         )
 
     def get_sigmf_builder(
@@ -584,34 +629,39 @@ class NasctnSeaDataProduct(Action):
         sample_rate_Hz: float,
         task_id: int,
         schedule_entry: dict,
+        iter_params: list,
     ) -> SigMFBuilder:
         """Build SigMF that applies to the entire capture (all channels)"""
         sigmf_builder = SigMFBuilder()
         sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
         sigmf_builder.set_sample_rate(sample_rate_Hz)
+        sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
         sigmf_builder.set_schedule(schedule_entry)
         sigmf_builder.set_last_calibration_time(
             self.sigan.sensor_calibration_data["calibration_datetime"]
         )  # TODO: this is approximate since each channel is individually calibrated
+
+        sigmf_builder.sigmf_md.set_global_field(
+            "calibration_temperature_degC",
+            np.half(self.sigan.sensor_calibration_data["temperature"]),
+        )
+
         self.sigmf_builder = sigmf_builder
 
     @staticmethod
     def transform_data(data_product: list):
         """Flatten data product list of arrays (single channel), convert to bytes object, then compress"""
         # Get indices for start of each component in flattened result
-        data_lengths = [len(d) for d in data_product]
-        logger.debug(f"Data product component lengths: {data_lengths}")
+        data_lengths = [d.size for d in data_product]
         idx = [0] + np.cumsum(data_lengths[:-1]).tolist()
-        logger.debug(f"Data product start indices: {idx}")
-        # Flatten data product, reduce dtype, and convert to byte array
+        # Flatten data product, reduce dtypem
         data_product = np.hstack(data_product).astype(DATA_TYPE)
         return data_product, np.array(idx)
 
     @staticmethod
     def compress_bytes_data(data: bytes) -> bytes:
         """Compress some <bytes> data and return the compressed version"""
-        # TODO: Explore alternate compression methods.
         return lzma.compress(data)
 
     def is_complex(self) -> bool:

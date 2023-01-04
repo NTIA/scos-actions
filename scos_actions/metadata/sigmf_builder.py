@@ -11,6 +11,7 @@ GLOBAL_INFO = {
         "ntia-location": "v1.0.0",
         "ntia-scos": "v1.0.0",
         "ntia-sensor": "v1.0.0",
+        "ntia-nasctn-sea": "v0.2",
     },
 }
 
@@ -103,6 +104,9 @@ class SigMFBuilder:
     def set_sample_rate(self, sample_rate):
         self.sigmf_md.set_global_field("core:sample_rate", sample_rate)
 
+    def set_num_channels(self, num_channels: int) -> None:
+        self.sigmf_md.set_global_field("core:num_channels", num_channels)
+
     def set_recording(self, recording_id):
         self.sigmf_md.set_global_field("ntia-scos:recording", recording_id)
 
@@ -145,11 +149,15 @@ class SigMFBuilder:
             "ntia-location:coordinate_system", coordinate_system
         )
 
-    def set_capture(self, frequency, capture_time, sample_start=0):
+    def set_capture(
+        self, frequency, capture_time, sample_start=0, extra_entries: dict = None
+    ):
         capture_md = {
             "core:frequency": frequency,
             "core:datetime": capture_time,
         }
+        # Add extra information to capture
+        capture_md.update(extra_entries)
 
         self.sigmf_md.add_capture(sample_start, metadata=capture_md)
 

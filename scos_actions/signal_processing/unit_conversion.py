@@ -143,3 +143,18 @@ def convert_fahrenheit_to_celsius(
         Celsius.
     """
     return (val_fahrenheit - 32.0) * (5.0 / 9.0)
+
+
+def convert_celsius_to_fahrenheit(
+    val_celsius: Union[float, np.ndarray]
+) -> Union[float, np.ndarray]:
+    """
+    Convert from degrees Celsius to degrees Fahrenheit.
+
+    Calculations: ``(val_celsius * (9 / 5)) + 32``
+
+    :param val_celsius: A value, or an array of values, in
+        degrees Celsius.
+    :return: The input val_celsius, converted to degrees Fahrenheit.
+    """
+    return (val_celsius * (9.0 / 5.0)) + 32.0
