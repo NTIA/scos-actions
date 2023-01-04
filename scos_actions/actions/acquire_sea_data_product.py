@@ -279,14 +279,8 @@ def generate_data_product(
     iqdata: np.ndarray, params: dict, iir_sos: np.ndarray
 ) -> np.ndarray:
     """Process IQ data and generate the SEA data product."""
-    # Use print instead of logger.debug inside ray.remote function
-    print(f"Generating data product @ {params[FREQUENCY] / 1e6} MHz...")
-    tic = perf_counter()
     data_product = []
-
     iqdata = sosfilt(iir_sos, iqdata)
-    toc = perf_counter()
-    print(f"IIR filtered IQ data @ {params[FREQUENCY] / 1e6} MHz in {toc-tic:.2f} s")
 
     remote_procs = []
     remote_procs.append(get_fft_results.remote(iqdata, params))
@@ -297,11 +291,6 @@ def generate_data_product(
 
     for dp in all_results:
         data_product.extend(dp)
-
-    toc = perf_counter()
-    print(
-        f"Got data product @ {params[FREQUENCY] / 1e6} MHz results in {toc-tic:.2f} s"
-    )
 
     del iqdata
     gc.collect()
