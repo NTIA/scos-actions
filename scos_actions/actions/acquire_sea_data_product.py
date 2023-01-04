@@ -500,7 +500,7 @@ class NasctnSeaDataProduct(Action):
         """
         tic = perf_counter()
         # Read SPU sensors
-        for _, switch in switches.items():
+        for switch in switches.values():
             if switch.name == "SPU X410":
                 spu_x410_sensor_values = switch.get_status()
                 del spu_x410_sensor_values["name"]
@@ -566,6 +566,9 @@ class NasctnSeaDataProduct(Action):
         """Fail acquisition if a required component is not available."""
         if not self.sigan.is_available:
             msg = "Acquisition failed: signal analyzer is not available"
+            raise RuntimeError(msg)
+        if "SPU X410" not in [s.name for s in switches.values()]:
+            msg = "Configuration error: no switch configured with name 'SPU X410'"
             raise RuntimeError(msg)
         # TODO: Add additional health checks
         return None
