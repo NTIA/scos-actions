@@ -552,7 +552,7 @@ class NasctnSeaDataProduct(Action):
         toc = perf_counter()
         logger.debug(f"Got all diagnostics in {toc-tic} s")
 
-        all_sensor_values = {
+        diag = {
             "diagnostics_datetime": utils.get_datetime_str_now(),
             "preselector": preselector_sensor_values,
             "spu_x410": spu_x410_sensor_values,
@@ -560,7 +560,7 @@ class NasctnSeaDataProduct(Action):
         }
 
         # Make SigMF annotation from sensor data
-        self.sigmf_builder.add_annotation(0, n_samps, all_sensor_values)
+        self.sigmf_builder.add_to_global("diagnostics", diag)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
