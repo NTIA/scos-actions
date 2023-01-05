@@ -353,10 +353,6 @@ class NasctnSeaDataProduct(Action):
 
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
         self.test_required_components()
-        if not self.sigan.healthy():
-            trigger_api_restart.send(
-                sender=self.__class__
-            )
         iteration_params = utils.get_iterable_parameters(self.parameters)
         self.configure_preselector(self.rf_path)
 
@@ -574,6 +570,10 @@ class NasctnSeaDataProduct(Action):
         if "SPU X410" not in [s.name for s in switches.values()]:
             msg = "Configuration error: no switch configured with name 'SPU X410'"
             raise RuntimeError(msg)
+        if not self.sigan.healthy():
+            trigger_api_restart.send(
+                sender=self.__class__
+            )
         # TODO: Add additional health checks
         return None
 
