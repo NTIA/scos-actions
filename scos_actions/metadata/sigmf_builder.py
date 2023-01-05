@@ -157,7 +157,7 @@ class SigMFBuilder:
             "core:datetime": capture_time,
         }
         # Add extra information to capture
-        capture_md.update(extra_entries)
+        if extra_entries: capture_md.update(extra_entries)
 
         self.sigmf_md.add_capture(sample_start, metadata=capture_md)
 

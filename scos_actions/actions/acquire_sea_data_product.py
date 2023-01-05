@@ -56,7 +56,7 @@ from scos_actions.signal_processing.unit_conversion import (
     convert_linear_to_dB,
     convert_watts_to_dBm,
 )
-from scos_actions.signals import measurement_action_completed
+from scos_actions.signals import measurement_action_completed, trigger_api_restart
 
 logger = logging.getLogger(__name__)
 
@@ -570,6 +570,10 @@ class NasctnSeaDataProduct(Action):
         if "SPU X410" not in [s.name for s in switches.values()]:
             msg = "Configuration error: no switch configured with name 'SPU X410'"
             raise RuntimeError(msg)
+        if not self.sigan.healthy():
+            trigger_api_restart.send(
+                sender=self.__class__
+            )
         # TODO: Add additional health checks
         return None
 
