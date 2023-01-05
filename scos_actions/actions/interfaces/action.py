@@ -38,9 +38,10 @@ class Action(ABC):
         self.sigan = sigan
         self.gps = gps
         self.sensor_definition = capabilities["sensor"]
-        self.has_preselector = (
-            True if "preselector" in self.sensor_definition else False
-        )
+        if "preselector" in self.sensor_definition and "rf_paths" in self.sensor_definition["preselector"]:
+            self.has_configurable_preselector = True
+        else:
+            self.has_configurable_preselector = False
 
     def configure(self, measurement_params: dict):
         self.configure_sigan(measurement_params)
@@ -59,7 +60,7 @@ class Action(ABC):
             path = measurement_params[self.PRESELECTOR_PATH_KEY]
             logger.debug(f"Setting preselector RF path: {path}")
             preselector.set_state(path)
-        elif self.has_preselector:
+        elif self.has_configurable_preselector:
             # Require the RF path to be specified if the sensor has a preselector.
             raise ParameterException(
                 f"No {self.PRESELECTOR_PATH_KEY} value specified in the YAML config."
