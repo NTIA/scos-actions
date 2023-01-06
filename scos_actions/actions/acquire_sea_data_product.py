@@ -62,14 +62,11 @@ logger = logging.getLogger(__name__)
 
 # Define parameter keys
 RF_PATH = "rf_path"
-IIR_APPLY = "iir_apply"
 IIR_GPASS = "iir_gpass_dB"
 IIR_GSTOP = "iir_gstop_dB"
 IIR_PB_EDGE = "iir_pb_edge_Hz"
 IIR_SB_EDGE = "iir_sb_edge_Hz"
-# FFT_SIZE = "fft_size"
 NUM_FFTS = "nffts"
-# FFT_WINDOW_TYPE = "fft_window_type"
 APD_BIN_SIZE_DB = "apd_bin_size_dB"
 TD_BIN_SIZE_MS = "td_bin_size_ms"
 FREQUENCY = "frequency"
@@ -188,11 +185,11 @@ def get_td_power_results(
     # Reshape IQ data into blocks
     block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
     n_blocks = len(iqdata) // block_size
-    iqdata = iqdata.reshape(block_size, n_blocks)
+    iqdata = iqdata.reshape((n_blocks, block_size))
     iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.0)
 
     # Apply mean/max detectors
-    td_result = apply_power_detector(iq_pwr, TD_DETECTOR)
+    td_result = apply_power_detector(iq_pwr, TD_DETECTOR, axis=1)
 
     # Get single value mean/max statistics
     td_channel_result = np.array([td_result[0].max(), td_result[1].mean()])
@@ -297,8 +294,9 @@ def generate_data_product(
 
     # Flatten data product but retain component indices
     # Also, separate single value channel powers
-    max_chan_pwr = data_product.pop(4).astype(DATA_TYPE)
-    mean_chan_pwr = data_product.pop(4).astype(DATA_TYPE)
+    max_chan_pwr = DATA_TYPE(data_product[4])
+    mean_chan_pwr = DATA_TYPE(data_product[5])
+    del data_product[4:6]
     data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
 
     return data_product, dp_idx, max_chan_pwr, mean_chan_pwr
@@ -321,8 +319,6 @@ class NasctnSeaDataProduct(Action):
         self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
 
         # Setup/pull config parameters
-        # TODO: Some parameters in this section should end up hard-coded
-        # For now they are all parameterized in the action config for testing
         self.iir_gpass_dB = utils.get_parameter(IIR_GPASS, self.parameters)
         self.iir_gstop_dB = utils.get_parameter(IIR_GSTOP, self.parameters)
         self.iir_pb_edge_Hz = utils.get_parameter(IIR_PB_EDGE, self.parameters)
@@ -571,10 +567,7 @@ class NasctnSeaDataProduct(Action):
             msg = "Configuration error: no switch configured with name 'SPU X410'"
             raise RuntimeError(msg)
         if not self.sigan.healthy():
-            trigger_api_restart.send(
-                sender=self.__class__
-            )
-        # TODO: Add additional health checks
+            trigger_api_restart.send(sender=self.__class__)
         return None
 
     def create_channel_metadata(
