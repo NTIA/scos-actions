@@ -95,6 +95,7 @@ from scos_actions.signal_processing.power_analysis import (
     create_power_detector,
 )
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
+from scos_actions.signals import trigger_api_restart
 from scos_actions.utils import ParameterException, get_parameter
 
 logger = logging.getLogger(__name__)
@@ -398,3 +399,5 @@ class YFactorCalibration(Action):
         if not self.sigan.is_available:
             msg = "acquisition failed: signal analyzer required but not available"
             raise RuntimeError(msg)
+        if not self.sigan.healthy():
+            trigger_api_restart.send(sensor=self.__class__)
