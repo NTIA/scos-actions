@@ -38,7 +38,10 @@ class Action(ABC):
         self.sigan = sigan
         self.gps = gps
         self.sensor_definition = capabilities["sensor"]
-        if "preselector" in self.sensor_definition and "rf_paths" in self.sensor_definition["preselector"]:
+        if (
+            "preselector" in self.sensor_definition
+            and "rf_paths" in self.sensor_definition["preselector"]
+        ):
             self.has_configurable_preselector = True
         else:
             self.has_configurable_preselector = False
