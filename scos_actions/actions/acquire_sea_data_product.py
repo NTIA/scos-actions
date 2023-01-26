@@ -58,6 +58,8 @@ from scos_actions.signal_processing.unit_conversion import (
     convert_watts_to_dBm,
 )
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
+from scos_actions.status import start_time
+from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
 
 logger = logging.getLogger(__name__)
 
@@ -557,7 +559,8 @@ class NasctnSeaDataProduct(Action):
 
         # Get computer uptime
         with open("/proc/uptime") as f:
-            uptime_hours = float(f.readline().split()[0]) / 3600.0
+            cpu_uptime_sec = float(f.readline().split()[0])
+            cpu_uptime_days = round(cpu_uptime_sec / (60 * 60 * 24), 4)
 
         computer_metrics = {
             "action_cpu_usage_pct": round(cpu_utilization, 2),
@@ -566,7 +569,9 @@ class NasctnSeaDataProduct(Action):
             "disk_usage_pct": round(psutil.disk_usage("/").percent, 2),
             "cpu_temperature_degC": round(cpu_temp_degC, 2),
             "cpu_overheating": cpu_overheating,
-            "uptime_hours": round(uptime_hours, 2),
+            "cpu_uptime_days": cpu_uptime_days,
+            "scos_start_time": convert_datetime_to_millisecond_iso_format(start_time),
+            "scos_uptime_days": get_days_up(),
         }
         toc = perf_counter()
         logger.debug(f"Got all diagnostics in {toc-tic} s")

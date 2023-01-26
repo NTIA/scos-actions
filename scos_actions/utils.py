@@ -4,6 +4,8 @@ from datetime import datetime
 
 from dateutil import parser
 
+from scos_actions.status import start_time
+
 logger = logging.getLogger(__name__)
 
 
@@ -118,3 +120,10 @@ def get_parameter(p: str, params: dict):
             + f"Available parameters: {params}"
         )
     return params[p]
+
+
+def get_days_up():
+    elapsed = datetime.datetime.utcnow() - start_time
+    days = elapsed.days
+    fractional_day = elapsed.seconds / (60 * 60 * 24)
+    return round(days + fractional_day, 4)
