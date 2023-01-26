@@ -400,4 +400,4 @@ class YFactorCalibration(Action):
             msg = "acquisition failed: signal analyzer required but not available"
             raise RuntimeError(msg)
         if not self.sigan.healthy():
-            trigger_api_restart.send(sensor=self.__class__)
+            trigger_api_restart.send(sender=self.__class__)
