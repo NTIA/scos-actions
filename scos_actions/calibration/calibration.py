@@ -1,6 +1,7 @@
 import json
 import logging
 import math
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ def get_comparable_value(f):
     return f
 
 
-def load_from_json(fname):
+def load_from_json(fname: Path):
     with open(fname) as file:
         calibration = json.load(file)
     # Check that the required fields are in the dict

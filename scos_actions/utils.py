@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime
+from pathlib import Path
 
 from dateutil import parser
 
@@ -36,7 +37,7 @@ def convert_string_to_millisecond_iso_format(timestamp):
     return None
 
 
-def load_from_json(fname):
+def load_from_json(fname: Path):
     logger = logging.getLogger(__name__)
     try:
         with open(fname) as f:
