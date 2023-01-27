@@ -11,7 +11,7 @@ GLOBAL_INFO = {
         "ntia-location": "v1.0.0",
         "ntia-scos": "v1.0.0",
         "ntia-sensor": "v1.0.0",
-        "ntia-nasctn-sea": "v0.2",
+        "ntia-nasctn-sea": "v0.3",
     },
 }
 
