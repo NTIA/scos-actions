@@ -52,7 +52,7 @@ class Calibration:
                 value = params[parameter]
                 logger.debug("Updating calibration at {} = {}".format(parameter, value))
                 cal_data = cal_data[value]
-        cal_data["calibration_datetime"] = calibration_datetime
+        self.calibration_datetime = calibration_datetime
         if "gain_sensor" in cal_data:
             cal_data["gain_sensor"] = gain
         else:
