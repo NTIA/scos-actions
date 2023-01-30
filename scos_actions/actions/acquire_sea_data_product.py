@@ -466,11 +466,16 @@ class NasctnSeaDataProduct(Action):
         return measurement_result
 
     @staticmethod
-    def read_sensor_if_available(relay, sensor_idx: int):
+    def read_sensor_if_available(relay: WebRelay, sensor_idx: int):
         try:
             value = relay.get_sensor_value(sensor_idx)
         except ConfigurationException:
-            logger.debug(f"Could not read relay sensor {sensor_idx}")
+            logger.debug(f"Could not read relay {relay.name} sensor {sensor_idx}")
+            value = "Unavailable"
+        except ValueError:
+            logger.debug(
+                f"Relay {relay.name} sensor {sensor_idx} returned an invalid value."
+            )
             value = "Unavailable"
         return value
 
@@ -480,12 +485,12 @@ class NasctnSeaDataProduct(Action):
             value = relay.get_digital_input_value(sensor_idx)
         except ConfigurationException:
             logger.debug(
-                f"Could not read digital input {sensor_idx} from relay {relay.name}"
+                f"Could not read relay {relay.name} digital input {sensor_idx}"
             )
             value = "Unavailable"
         except ValueError:
             logger.debug(
-                f"Sensor {sensor_idx} exists on relay {relay.name} but did not return a number."
+                f"Relay {relay.name} digital input {sensor_idx} returned an invalid value."
             )
             value = "Unavailable"
         return value
