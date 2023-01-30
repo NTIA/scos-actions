@@ -676,7 +676,7 @@ class NasctnSeaDataProduct(Action):
                 "power_bin_size": round(2.0 * params[APD_BIN_SIZE_DB], 2),
             },
         }
-        self.sigmf_builder.add_to_global("sea_data_product", dp_meta)
+        self.sigmf_builder.add_to_global("data_products", dp_meta)
 
     def create_channel_metadata(
         self,
