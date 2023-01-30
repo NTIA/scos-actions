@@ -627,11 +627,11 @@ class NasctnSeaDataProduct(Action):
                 "detector": [d.value for d in FFT_DETECTOR],
                 # Get sample count the same way that FFT processing truncates the result
                 "sample_count": int(FFT_SIZE * (5 / 7)),
-                "equivalent_noise_bandwidth": get_fft_enbw(
-                    FFT_WINDOW, params[SAMPLE_RATE]
+                "equivalent_noise_bandwidth": round(
+                    get_fft_enbw(FFT_WINDOW, params[SAMPLE_RATE]), 2
                 ),
                 "number_of_samples_in_fft": FFT_SIZE,
-                "number_of_ffts": params[NUM_FFTS],
+                "number_of_ffts": int(params[NUM_FFTS]),
                 "units": "dBm/Hz",
                 "window": FFT_WINDOW_TYPE,
                 "reference": "noise source output",
