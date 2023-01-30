@@ -50,9 +50,10 @@ class Calibration:
         for parameter in self.calibration_parameters:
             if parameter in params:
                 value = params[parameter]
-                logger.debug("Updating calibration at {} = {}".format(parameter, value))
+                logger.debug(f"Updating calibration at {parameter} = {value}")
                 cal_data = cal_data[value]
         self.calibration_datetime = calibration_datetime
+        cal_data["calibration_datetime"] = self.calibration_datetime
         if "gain_sensor" in cal_data:
             cal_data["gain_sensor"] = gain
         else:
