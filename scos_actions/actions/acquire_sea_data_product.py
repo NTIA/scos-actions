@@ -488,11 +488,6 @@ class NasctnSeaDataProduct(Action):
                 f"Could not read relay {relay.name} digital input {sensor_idx}"
             )
             value = "Unavailable"
-        except ValueError:
-            logger.debug(
-                f"Relay {relay.name} digital input {sensor_idx} returned an invalid value."
-            )
-            value = "Unavailable"
         return value
 
     def capture_diagnostics(self) -> dict:
