@@ -1,8 +1,11 @@
 import json
 import logging
 from datetime import datetime
+from pathlib import Path
 
 from dateutil import parser
+
+from scos_actions.status import start_time
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +37,7 @@ def convert_string_to_millisecond_iso_format(timestamp):
     return None
 
 
-def load_from_json(fname):
+def load_from_json(fname: Path):
     logger = logging.getLogger(__name__)
     try:
         with open(fname) as f:
@@ -118,3 +121,10 @@ def get_parameter(p: str, params: dict):
             + f"Available parameters: {params}"
         )
     return params[p]
+
+
+def get_days_up():
+    elapsed = datetime.utcnow() - start_time
+    days = elapsed.days
+    fractional_day = elapsed.seconds / (60 * 60 * 24)
+    return round(days + fractional_day, 4)

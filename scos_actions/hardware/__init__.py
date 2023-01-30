@@ -1,6 +1,6 @@
 import importlib
 import logging
-import os
+from pathlib import Path
 
 from its_preselector.configuration_exception import ConfigurationException
 from its_preselector.controlbyweb_web_relay import ControlByWebWebRelay
@@ -19,12 +19,11 @@ from scos_actions.status.status_registration_handler import status_registration_
 logger = logging.getLogger(__name__)
 
 
-def load_switches(switch_dir) -> dict:
+def load_switches(switch_dir: Path) -> dict:
     switch_dict = {}
-    if switch_dir is not None and os.path.isdir(switch_dir):
-        files = os.listdir(switch_dir)
-        for f in files:
-            file_path = os.path.join(switch_dir, f)
+    if switch_dir is not None and switch_dir.is_dir():
+        for f in switch_dir.iterdir():
+            file_path = f.resolve()
             logger.info(f"loading switch config {file_path}")
             conf = utils.load_from_json(file_path)
             try:
@@ -40,7 +39,7 @@ def load_switches(switch_dir) -> dict:
     return switch_dict
 
 
-def load_preslector_from_file(preselector_config_file):
+def load_preslector_from_file(preselector_config_file: Path):
     if preselector_config_file is None:
         return None
     else:

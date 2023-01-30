@@ -30,6 +30,7 @@ import numexpr as ne
 import numpy as np
 import psutil
 import ray
+from its_preselector.configuration_exception import ConfigurationException
 from scipy.signal import sos2tf, sosfilt
 
 from scos_actions import utils
@@ -58,6 +59,8 @@ from scos_actions.signal_processing.unit_conversion import (
     convert_watts_to_dBm,
 )
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
+from scos_actions.status import start_time
+from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
 
 logger = logging.getLogger(__name__)
 
@@ -461,7 +464,25 @@ class NasctnSeaDataProduct(Action):
         )
         return measurement_result
 
-    def capture_diagnostics(self, n_samps: int) -> dict:
+    @staticmethod
+    def read_sensor_if_available(relay, sensor_idx: int):
+        try:
+            value = relay.get_sensor_value(sensor_idx)
+        except ConfigurationException:
+            logger.debug(f"Could not read relay sensor {sensor_idx}")
+            value = "Unavailable"
+        return value
+
+    @staticmethod
+    def read_digital_input_if_available(relay, sensor_idx: int):
+        try:
+            value = relay.get_digital_input_value(sensor_idx)
+        except ConfigurationException:
+            logger.debug(f"Could not read relay digital input {sensor_idx}")
+            value = "Unavailable"
+        return value
+
+    def capture_diagnostics(self) -> dict:
         """
         Capture diagnostic sensor data.
 
@@ -508,19 +529,23 @@ class NasctnSeaDataProduct(Action):
                 spu_x410_sensor_values = switch.get_status()
                 del spu_x410_sensor_values["name"]
                 del spu_x410_sensor_values["healthy"]
-                spu_x410_sensor_values["pwr_box_temp_degC"] = switch.get_sensor_value(1)
-                spu_x410_sensor_values["rf_box_temp_degC"] = switch.get_sensor_value(2)
+                spu_x410_sensor_values[
+                    "pwr_box_temp_degC"
+                ] = self.read_sensor_if_available(switch, 1)
+                spu_x410_sensor_values[
+                    "rf_box_temp_degC"
+                ] = self.read_sensor_if_available(switch, 2)
                 spu_x410_sensor_values[
                     "pwr_box_humidity_pct"
-                ] = switch.get_sensor_value(3)
+                ] = self.read_sensor_if_available(switch, 3)
 
         # Read preselector sensors
         preselector_sensor_values = {
-            "internal_temp_degC": preselector.get_sensor_value(1),
-            "noise_diode_temp_degC": preselector.get_sensor_value(2),
-            "lna_temp_degC": preselector.get_sensor_value(3),
-            "internal_humidity_pct": preselector.get_sensor_value(4),
-            "door_closed": preselector.get_digital_input_value(1),
+            "internal_temp_degC": self.read_sensor_if_available(preselector, 1),
+            "noise_diode_temp_degC": self.read_sensor_if_available(preselector, 2),
+            "lna_temp_degC": self.read_sensor_if_available(preselector, 3),
+            "internal_humidity_pct": self.read_sensor_if_available(preselector, 4),
+            "door_closed": self.read_digital_input_if_available(preselector, 1),
         }
 
         # Read computer performance metrics
@@ -541,7 +566,8 @@ class NasctnSeaDataProduct(Action):
 
         # Get computer uptime
         with open("/proc/uptime") as f:
-            uptime_hours = float(f.readline().split()[0]) / 3600.0
+            cpu_uptime_sec = float(f.readline().split()[0])
+            cpu_uptime_days = round(cpu_uptime_sec / (60 * 60 * 24), 4)
 
         computer_metrics = {
             "action_cpu_usage_pct": round(cpu_utilization, 2),
@@ -550,7 +576,9 @@ class NasctnSeaDataProduct(Action):
             "disk_usage_pct": round(psutil.disk_usage("/").percent, 2),
             "cpu_temperature_degC": round(cpu_temp_degC, 2),
             "cpu_overheating": cpu_overheating,
-            "uptime_hours": round(uptime_hours, 2),
+            "cpu_uptime_days": cpu_uptime_days,
+            "scos_start_time": convert_datetime_to_millisecond_iso_format(start_time),
+            "scos_uptime_days": get_days_up(),
         }
         toc = perf_counter()
         logger.debug(f"Got all diagnostics in {toc-tic} s")

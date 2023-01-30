@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 capabilities = {}
 
 if SENSOR_DEFINITION_FILE:
-    logger.info("Loading " + SENSOR_DEFINITION_FILE)
+    logger.info(f"Loading {SENSOR_DEFINITION_FILE}")
     capabilities["sensor"] = utils.load_from_json(SENSOR_DEFINITION_FILE)
 else:
     capabilities["sensor"] = {}
