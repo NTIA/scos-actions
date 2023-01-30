@@ -412,7 +412,7 @@ class NasctnSeaDataProduct(Action):
         self.sigmf_builder.add_to_global("max_channel_powers_dBm", max_ch_pwrs)
         self.sigmf_builder.add_to_global("rms_channel_powers_dBm", rms_ch_pwrs)
         self.create_global_data_product_metadata(self.parameters, apd_lengths)
-        self.capture_diagnostics(n_samps=last_data_len)  # Add diagnostics to metadata
+        self.capture_diagnostics()  # Add diagnostics to metadata
         self.sigmf_builder.build()
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
 
