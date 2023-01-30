@@ -31,6 +31,7 @@ import numpy as np
 import psutil
 import ray
 from its_preselector.configuration_exception import ConfigurationException
+from its_preselector.web_relay import WebRelay
 from scipy.signal import sos2tf, sosfilt
 
 from scos_actions import utils
@@ -474,11 +475,18 @@ class NasctnSeaDataProduct(Action):
         return value
 
     @staticmethod
-    def read_digital_input_if_available(relay, sensor_idx: int):
+    def read_digital_input_if_available(relay: WebRelay, sensor_idx: int):
         try:
             value = relay.get_digital_input_value(sensor_idx)
         except ConfigurationException:
-            logger.debug(f"Could not read relay digital input {sensor_idx}")
+            logger.debug(
+                f"Could not read digital input {sensor_idx} from relay {relay.name}"
+            )
+            value = "Unavailable"
+        except ValueError:
+            logger.debug(
+                f"Sensor {sensor_idx} exists on relay {relay.name} but did not return a number."
+            )
             value = "Unavailable"
         return value
 
