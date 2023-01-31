@@ -7,7 +7,7 @@ from scos_actions.settings import SENSOR_CALIBRATION_FILE, SIGAN_CALIBRATION_FIL
 logger = logging.getLogger(__name__)
 
 
-def load_sigan_calibration(sigan_cal_file: Path) -> Calibration:
+def get_sigan_calibration(sigan_cal_file: Path) -> Calibration:
     """
     Load signal analyzer calibration data from file.
 
@@ -24,7 +24,7 @@ def load_sigan_calibration(sigan_cal_file: Path) -> Calibration:
     return sigan_cal
 
 
-def load_sensor_calibration(sensor_cal_file: Path) -> Calibration:
+def get_sensor_calibration(sensor_cal_file: Path) -> Calibration:
     """
     Load sensor calibration data from file.
 
@@ -41,19 +41,9 @@ def load_sensor_calibration(sensor_cal_file: Path) -> Calibration:
     return sensor_cal
 
 
-def get_sigan_calibration() -> Calibration:
-    """Get the currently loaded signal analyzer ``Calibration`` object."""
-    return sigan_calibration
-
-
-def get_sensor_calibration() -> Calibration:
-    """Get the currently loaded sensor ``Calibration`` object."""
-    return sensor_calibration
-
-
 logger.info(f"Loading sensor cal file: {SENSOR_CALIBRATION_FILE}")
-sensor_calibration = load_sensor_calibration(SENSOR_CALIBRATION_FILE)
+sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
 logger.info(f"Loading sigan cal file: {SIGAN_CALIBRATION_FILE}")
-sigan_calibration = load_sigan_calibration(SIGAN_CALIBRATION_FILE)
+sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
 if sensor_calibration:
     logger.info(f"last sensor cal: {sensor_calibration.calibration_datetime}")
