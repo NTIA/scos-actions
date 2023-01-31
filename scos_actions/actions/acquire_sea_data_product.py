@@ -725,7 +725,7 @@ class NasctnSeaDataProduct(Action):
 
         sigmf_builder.sigmf_md.set_global_field(
             "calibration_temperature_degC",
-            np.half(self.sigan.sensor_calibration_data["temperature"]),
+            round(self.sigan.sensor_calibration_data["temperature"], 1),
         )
 
         self.sigmf_builder = sigmf_builder
