@@ -720,7 +720,7 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_task(task_id)
         sigmf_builder.set_schedule(schedule_entry)
         sigmf_builder.set_last_calibration_time(
-            self.sigan.sensor_calibration.calibration_datetime
+            self.sigan.sensor_calibration_data["calibration_datetime"]
         )  # TODO: this is approximate since each channel is individually calibrated
 
         sigmf_builder.sigmf_md.set_global_field(
