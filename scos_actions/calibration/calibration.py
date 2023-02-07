@@ -1,6 +1,7 @@
 import json
 import logging
 import math
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ class Calibration:
             cal_data = filter_by_parameter(cal_data, setting, setting_value)
             if "calibration_datetime" not in cal_data:
                 cal_data["calibration_datetime"] = self.calibration_datetime
-        logger.info(f"Cal Data: {cal_data}")
+        logger.debug(f"Cal Data: {cal_data}")
         return cal_data
 
     def update(self, params, calibration_datetime, gain, noise_figure, temp, file_path):
@@ -49,9 +50,10 @@ class Calibration:
         for parameter in self.calibration_parameters:
             if parameter in params:
                 value = params[parameter]
-                logger.debug("Updating calibration at {} = {}".format(parameter, value))
+                logger.debug(f"Updating calibration at {parameter} = {value}")
                 cal_data = cal_data[value]
-        cal_data["calibration_datetime"] = calibration_datetime
+        self.calibration_datetime = calibration_datetime
+        cal_data["calibration_datetime"] = self.calibration_datetime
         if "gain_sensor" in cal_data:
             cal_data["gain_sensor"] = gain
         else:
@@ -79,7 +81,7 @@ def get_comparable_value(f):
     return f
 
 
-def load_from_json(fname):
+def load_from_json(fname: Path):
     with open(fname) as file:
         calibration = json.load(file)
     # Check that the required fields are in the dict

@@ -47,7 +47,6 @@ def generate_elliptic_iir_low_pass_filter(
     )
     sos = ellip(ord, gpass_dB, gstop_dB, wn, "lowpass", False, "sos", sample_rate_Hz)
     logger.debug(f"Generated low-pass IIR filter with order {ord}.")
-    print(f"FILTER ORDER: {ord}")
     return sos
 
 

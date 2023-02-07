@@ -1,30 +1,43 @@
 import logging
+from pathlib import Path
 
-from scos_actions.calibration.calibration import load_from_json
+from scos_actions.calibration.calibration import Calibration, load_from_json
 from scos_actions.settings import SENSOR_CALIBRATION_FILE, SIGAN_CALIBRATION_FILE
 
 logger = logging.getLogger(__name__)
 
 
-def get_sigan_calibration(sigan_cal_file):
+def get_sigan_calibration(sigan_cal_file: Path) -> Calibration:
+    """
+    Load signal analyzer calibration data from file.
+
+    :param sigan_cal_file: Path to JSON file containing signal
+        analyzer calibration data.
+    :return: The signal analyzer ``Calibration`` object.
+    """
     try:
         sigan_cal = load_from_json(sigan_cal_file)
     except Exception as err:
+        sigan_cal = None
         logger.error("Unable to load sigan calibration data, reverting to none")
         logger.exception(err)
-        sigan_cal = None
-
     return sigan_cal
 
 
-def get_sensor_calibration(sensor_cal_file):
-    """Get calibration data from sensor_cal_file and sigan_cal_file."""
+def get_sensor_calibration(sensor_cal_file: Path) -> Calibration:
+    """
+    Load sensor calibration data from file.
+
+    :param sensor_cal_file: Path to JSON file containing sensor
+        calibration data.
+    :return: The sensor ``Calibration`` object.
+    """
     try:
         sensor_cal = load_from_json(sensor_cal_file)
     except Exception as err:
+        sensor_cal = None
         logger.error("Unable to load sensor calibration data, reverting to none")
         logger.exception(err)
-        sensor_cal = None
     return sensor_cal
 
 
