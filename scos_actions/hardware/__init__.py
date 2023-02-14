@@ -33,7 +33,7 @@ def load_switches(switch_dir: Path) -> dict:
                 switch_dict[switch.id] = switch
                 logger.info(f"Registering switch status for {switch.name}")
                 register_component_with_status.send(__name__, component=switch)
-            except (ConfigurationException):
+            except ConfigurationException:
                 logger.error(f"Unable to configure switch defined in: {file_path}")
 
     return switch_dict
