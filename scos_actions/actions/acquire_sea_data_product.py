@@ -390,7 +390,6 @@ class NasctnSeaDataProduct(Action):
         results = ray.get(dp_procs)  # Ordering is retained
         max_ch_pwrs, rms_ch_pwrs, apd_lengths = [], [], []
         for i, (dp, dp_idx, max_ch_pwr, rms_ch_pwr) in enumerate(results):
-
             # Combine channel data
             all_data.extend(dp)
             all_idx.extend((dp_idx + last_data_len).tolist())
