@@ -351,7 +351,7 @@ class NasctnSeaDataProduct(Action):
 
     def __call__(self, schedule_entry, task_id):
         """This is the entrypoint function called by the scheduler."""
-        start_action = perf_counter()
+        action_start_tic = perf_counter()
 
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
         self.test_required_components()
@@ -409,12 +409,12 @@ class NasctnSeaDataProduct(Action):
             last_data_len = len(all_data)
 
         # Build metadata and convert data to compressed bytes
+        all_data = self.compress_bytes_data(np.array(all_data).tobytes())
         self.sigmf_builder.add_to_global("max_channel_powers_dBm", max_ch_pwrs)
         self.sigmf_builder.add_to_global("rms_channel_powers_dBm", rms_ch_pwrs)
         self.create_global_data_product_metadata(self.parameters, apd_lengths)
         self.capture_diagnostics()  # Add diagnostics to metadata
         self.sigmf_builder.build()
-        all_data = self.compress_bytes_data(np.array(all_data).tobytes())
 
         measurement_action_completed.send(
             sender=self.__class__,
@@ -489,7 +489,7 @@ class NasctnSeaDataProduct(Action):
             value = "Unavailable"
         return value
 
-    def capture_diagnostics(self) -> dict:
+    def capture_diagnostics(self, action_start_tic) -> dict:
         """
         Capture diagnostic sensor data.
 
@@ -595,6 +595,7 @@ class NasctnSeaDataProduct(Action):
             "preselector": preselector_sensor_values,
             "spu_x410": spu_x410_sensor_values,
             "spu_computer": computer_metrics,
+            "action_runtime_sec": perf_counter() - action_start_tic,
         }
 
         # Make SigMF annotation from sensor data
