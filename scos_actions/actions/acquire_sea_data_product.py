@@ -422,10 +422,6 @@ class NasctnSeaDataProduct(Action):
             data=all_data,
             metadata=self.sigmf_builder.metadata,
         )
-        action_done = perf_counter()
-        logger.debug(
-            f"IQ Capture and all data processing completed in {action_done-action_start_tic:.2f}"
-        )
 
     def capture_iq(self, params: dict) -> dict:
         """Acquire a single gap-free stream of IQ samples."""
