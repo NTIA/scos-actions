@@ -619,16 +619,6 @@ class NasctnSeaDataProduct(Action):
         # NUM_FFTS, SAMPLE_RATE, DURATION_MS, TD_BIN_SIZE_MS, PFP_FRAME_PERIOD_MS, APD_BIN_SIZE_DB
         num_iq_samples = int(params[SAMPLE_RATE] * params[DURATION_MS] * 1e-3)
         dp_meta = {
-            "digital_filter": {
-                # Approximately a DigitalFilter object from ntia-algorithm
-                "filter_type": "IIR",
-                "IIR_numerator_coefficients": self.iir_numerators.tolist(),
-                "IIR_denominator_coefficients": self.iir_denominators.tolist(),
-                "frequency_cutoff": self.iir_pb_edge_Hz,
-                "ripple_passband": self.iir_gpass_dB,
-                "attenuation_stopband": self.iir_gstop_dB,
-                "frequency_stopband": self.iir_sb_edge_Hz,
-            },
             "power_spectral_density": {
                 # Approximately a FrequencyDomainDetection from ntia-algorithm
                 "detector": [d.value for d in FFT_DETECTOR],
@@ -676,6 +666,20 @@ class NasctnSeaDataProduct(Action):
             },
         }
         self.sigmf_builder.add_to_global("data_products", dp_meta)
+
+        # Create DigitalFilter object
+        iir_filter_meta = [
+            {
+                "filter_type": "IIR",
+                "IIR_numerator_coefficients": self.iir_numerators.tolist(),
+                "IIR_denominator_coefficients": self.iir_denominators.tolist(),
+                "ripple_passband": self.iir_gpass_dB,
+                "attenuation_stopband": self.iir_gstop_dB,
+                "frequency_stopband": self.iir_sb_edge_Hz,
+                "frequency_passband": self.iir_pb_edge_Hz,
+            },
+        ]
+        self.sigmf_builder.add_to_global("digital_filters", iir_filter_meta)
 
     def create_channel_metadata(
         self,
