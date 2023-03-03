@@ -413,7 +413,7 @@ class NasctnSeaDataProduct(Action):
         self.sigmf_builder.add_to_global("max_channel_powers_dBm", max_ch_pwrs)
         self.sigmf_builder.add_to_global("rms_channel_powers_dBm", rms_ch_pwrs)
         self.create_global_data_product_metadata(self.parameters, apd_lengths)
-        self.capture_diagnostics()  # Add diagnostics to metadata
+        self.capture_diagnostics(action_start_tic)  # Add diagnostics to metadata
         self.sigmf_builder.build()
 
         measurement_action_completed.send(
@@ -424,7 +424,7 @@ class NasctnSeaDataProduct(Action):
         )
         action_done = perf_counter()
         logger.debug(
-            f"IQ Capture and all data processing completed in {action_done-start_action:.2f}"
+            f"IQ Capture and all data processing completed in {action_done-action_start_tic:.2f}"
         )
 
     def capture_iq(self, params: dict) -> dict:
