@@ -572,10 +572,30 @@ class NasctnSeaDataProduct(Action):
             cpu_uptime_sec = float(f.readline().split()[0])
             cpu_uptime_days = round(cpu_uptime_sec / (60 * 60 * 24), 4)
 
+        # Get CPU base clock speed
+        with open("/sys/devices/system/cpu/cpufreq/policy0/base_frequency") as f:
+            # Value stored in file in kHz
+            cpu_base_freq_MHz = round(float(f.readline()) / 1e3, 2)
+
+        # Get CPU max (turbo) clock speed
+        with open("/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq") as f:
+            # Value stored in file in kHz
+            cpu_max_freq_MHz = round(float(f.readline()) / 1e3, 2)
+
+        # Get CPU current clock speeds
+        cpu_current_freqs_MHz = []
+        with open("/proc/cpuinfo") as f:
+            for line in f.readlines():
+                if "cpu MHz" in line:
+                    cpu_current_freqs_MHz.append(round(float(line.split(": ")[1]), 2))
+
         computer_metrics = {
             "action_cpu_usage_pct": round(cpu_utilization, 2),
             "system_load_5m_pct": round(load_avg_5m, 2),
             "memory_usage_pct": round(mem_usage_pct, 2),
+            "cpu_max_freq_MHz": cpu_max_freq_MHz,
+            "cpu_base_freq_MHz": cpu_base_freq_MHz,
+            "cpu_current_freqs_MHz": cpu_current_freqs_MHz,
             "disk_usage_pct": round(psutil.disk_usage("/").percent, 2),
             "cpu_temperature_degC": round(cpu_temp_degC, 2),
             "cpu_overheating": cpu_overheating,
