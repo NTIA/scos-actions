@@ -734,6 +734,10 @@ class NasctnSeaDataProduct(Action):
             # TODO: Uncomment below line after updating sensor definition files
             # "location": self.sensor_definition["location"],
         }
+        sigmf_builder.sigmf_md.set_global_field(
+            "ntia-sensor:sensor",
+            sensor_meta,
+        )
 
         self.sigmf_builder = sigmf_builder
 
