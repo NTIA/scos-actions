@@ -38,6 +38,14 @@ from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware import preselector, switches
 from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.hardware.utils import (
+    get_base_cpu_clock_speed_kHz,
+    get_cpu_uptime_seconds,
+    get_current_cpu_clock_speeds_MHz,
+    get_current_cpu_temperature,
+    get_max_cpu_clock_speed_kHz,
+    get_max_cpu_temperature,
+)
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
@@ -563,31 +571,18 @@ class NasctnSeaDataProduct(Action):
         mem_usage_pct = psutil.virtual_memory().percent
 
         # CPU temperature
-        cpu_temps = psutil.sensors_temperatures()
-        cpu_temp_degC = cpu_temps["coretemp"][0].current
-        cpu_overheating = cpu_temp_degC >= cpu_temps["coretemp"][0].high
+        cpu_temp_degC = get_current_cpu_temperature()
+        cpu_overheating = cpu_temp_degC > get_max_cpu_temperature()
 
         # Get computer uptime
-        with open("/proc/uptime") as f:
-            cpu_uptime_sec = float(f.readline().split()[0])
-            cpu_uptime_days = round(cpu_uptime_sec / (60 * 60 * 24), 4)
+        cpu_uptime_days = round(get_cpu_uptime_seconds() / (60 * 60 * 24), 4)
 
-        # Get CPU base clock speed
-        with open("/sys/devices/system/cpu/cpufreq/policy0/base_frequency") as f:
-            # Value stored in file in kHz
-            cpu_base_freq_MHz = round(float(f.readline()) / 1e3, 2)
-
-        # Get CPU max (turbo) clock speed
-        with open("/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq") as f:
-            # Value stored in file in kHz
-            cpu_max_freq_MHz = round(float(f.readline()) / 1e3, 2)
-
-        # Get CPU current clock speeds
-        cpu_current_freqs_MHz = []
-        with open("/proc/cpuinfo") as f:
-            for line in f.readlines():
-                if "cpu MHz" in line:
-                    cpu_current_freqs_MHz.append(round(float(line.split(": ")[1]), 2))
+        # Get CPU clock speed diagnostics
+        cpu_base_freq_MHz = round(get_base_cpu_clock_speed_kHz() / 1e3, 2)
+        cpu_max_freq_MHz = round(get_max_cpu_clock_speed_kHz() / 1e3, 2)
+        cpu_current_freqs_MHz = [
+            round(s, 2) for s in get_current_cpu_clock_speeds_MHz()
+        ]
 
         computer_metrics = {
             "action_cpu_usage_pct": round(cpu_utilization, 2),
