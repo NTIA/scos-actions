@@ -1,4 +1,5 @@
 import logging
+import subprocess
 
 import psutil
 
@@ -99,6 +100,32 @@ def get_current_cpu_temperature(fahrenheit: bool = False) -> float:
         return cpu_temp
     except Exception as e:
         logger.error("Unable to get current CPU temperature.")
+        raise e
+
+
+def get_disk_smart_healthy_status(disk: str) -> bool:
+    """
+    Get the result of the SMART overall-assessment health test for the chosen disk.
+
+    This method requires that ``smartmontools`` be installed on the host OS.
+
+    :param disk: The desired disk, e.g., ``/dev/sda1``.
+    :raises RuntimeError: If the ``smartctl`` call fails and disk health cannot be
+        determined.
+    :return: True if the SMART overall-health self-assessment health test is passed.
+        False otherwise.
+    """
+    try:
+        result = subprocess.run(["sudo", "smartctl", "-H", disk], capture_output=True)
+        if result.returncode == 0:
+            return "PASSED" in str(result.stdout)
+        else:
+            logger.error(
+                f"Call to smartctl failed with return code {result.returncode}"
+            )
+            raise RuntimeError(str(result.stdout))
+    except Exception as e:
+        logger.error(f"Unable to get SMART health test result for disk {disk}")
         raise e
 
 

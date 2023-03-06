@@ -43,6 +43,7 @@ from scos_actions.hardware.utils import (
     get_cpu_uptime_seconds,
     get_current_cpu_clock_speeds_MHz,
     get_current_cpu_temperature,
+    get_disk_smart_healthy_status,
     get_max_cpu_clock_speed_kHz,
     get_max_cpu_temperature,
 )
@@ -591,6 +592,7 @@ class NasctnSeaDataProduct(Action):
             "cpu_max_freq_MHz": cpu_max_freq_MHz,
             "cpu_base_freq_MHz": cpu_base_freq_MHz,
             "cpu_current_freqs_MHz": cpu_current_freqs_MHz,
+            "disk_healthy": get_disk_smart_healthy_status("/dev/nvme0n1"),
             "disk_usage_pct": round(psutil.disk_usage("/").percent, 2),
             "cpu_temperature_degC": round(cpu_temp_degC, 2),
             "cpu_overheating": cpu_overheating,
