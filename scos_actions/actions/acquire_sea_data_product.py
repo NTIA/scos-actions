@@ -728,6 +728,13 @@ class NasctnSeaDataProduct(Action):
             round(self.sigan.sensor_calibration_data["temperature"], 1),
         )
 
+        # Add ntia-sensor metadata
+        sensor_meta = {
+            "sensor_spec": self.sensor_definition["sensor_spec"],
+            # TODO: Uncomment below line after updating sensor definition files
+            # "location": self.sensor_definition["location"],
+        }
+
         self.sigmf_builder = sigmf_builder
 
     @staticmethod
