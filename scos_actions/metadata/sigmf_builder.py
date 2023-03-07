@@ -18,7 +18,7 @@ GLOBAL_INFO = {
 
 def get_coordinate_system_sigmf():
     return {
-        "id": "WGS 1984",
+        "id": "WGS84",
         "coordinate_system_type": "GeographicCoordinateSystem",
         "distance_unit": "decimal degrees",
         "time_unit": "seconds",
