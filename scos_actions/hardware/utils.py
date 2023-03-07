@@ -116,7 +116,7 @@ def get_disk_smart_healthy_status(disk: str) -> bool:
         False otherwise.
     """
     try:
-        result = subprocess.run(["sudo", "smartctl", "-H", disk], capture_output=True)
+        result = subprocess.run(["smartctl", "-H", disk], capture_output=True)
         if result.returncode == 0:
             return "PASSED" in str(result.stdout)
         else:
