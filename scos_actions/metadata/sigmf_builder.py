@@ -22,6 +22,8 @@ def get_coordinate_system_sigmf():
         "coordinate_system_type": "GeographicCoordinateSystem",
         "distance_unit": "decimal degrees",
         "time_unit": "seconds",
+        "elevation_ref": "Above Mean Sea Level",
+        "elevation_unit": "meters",
     }
 
 

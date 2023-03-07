@@ -730,6 +730,7 @@ class NasctnSeaDataProduct(Action):
     ) -> SigMFBuilder:
         """Build SigMF that applies to the entire capture (all channels)"""
         sigmf_builder = SigMFBuilder()
+        sigmf_builder.set_coordinate_system()
         sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_num_channels(len(iter_params))
