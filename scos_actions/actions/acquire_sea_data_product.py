@@ -39,12 +39,9 @@ from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware import preselector, switches
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.utils import (
-    get_base_cpu_clock_speed_kHz,
     get_cpu_uptime_seconds,
-    get_current_cpu_clock_speeds_MHz,
     get_current_cpu_temperature,
     get_disk_smart_healthy_status,
-    get_max_cpu_clock_speed_kHz,
     get_max_cpu_temperature,
 )
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
@@ -578,20 +575,10 @@ class NasctnSeaDataProduct(Action):
         # Get computer uptime
         cpu_uptime_days = round(get_cpu_uptime_seconds() / (60 * 60 * 24), 4)
 
-        # Get CPU clock speed diagnostics
-        cpu_base_freq_MHz = round(get_base_cpu_clock_speed_kHz() / 1e3, 2)
-        cpu_max_freq_MHz = round(get_max_cpu_clock_speed_kHz() / 1e3, 2)
-        cpu_current_freqs_MHz = [
-            round(s, 2) for s in get_current_cpu_clock_speeds_MHz()
-        ]
-
         computer_metrics = {
             "action_cpu_usage_pct": round(cpu_utilization, 2),
             "system_load_5m_pct": round(load_avg_5m, 2),
             "memory_usage_pct": round(mem_usage_pct, 2),
-            "cpu_max_freq_MHz": cpu_max_freq_MHz,
-            "cpu_base_freq_MHz": cpu_base_freq_MHz,
-            "cpu_current_freqs_MHz": cpu_current_freqs_MHz,
             "disk_healthy": get_disk_smart_healthy_status("/dev/nvme0n1"),
             "disk_usage_pct": round(psutil.disk_usage("/").percent, 2),
             "cpu_temperature_degC": round(cpu_temp_degC, 2),
