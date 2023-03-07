@@ -12,18 +12,6 @@ from scos_actions.settings import SIGAN_POWER_CYCLE_STATES, SIGAN_POWER_SWITCH
 logger = logging.getLogger(__name__)
 
 
-def get_cpu_overheating() -> bool:
-    """
-    Get a boolean indicating whether the CPU running SCOS is overheating.
-
-    Only Intel CPUs are currently supported.
-
-    :return: True if the current CPU temperature is above its maximum,
-        False otherwise.
-    """
-    return get_current_cpu_temperature() > get_max_cpu_temperature()
-
-
 def get_cpu_uptime_seconds() -> float:
     """
     Get the current uptime, in seconds, of the CPU running SCOS.
