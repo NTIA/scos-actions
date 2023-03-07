@@ -735,7 +735,6 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
         sigmf_builder.set_schedule(schedule_entry)
-        sigmf_builder.set_sensor(self.sensor_definition)
         sigmf_builder.set_last_calibration_time(
             self.sigan.sensor_calibration_data["calibration_datetime"]
         )  # TODO: this is approximate since each channel is individually calibrated
@@ -745,17 +744,17 @@ class NasctnSeaDataProduct(Action):
             round(self.sigan.sensor_calibration_data["temperature"], 1),
         )
 
-        # Add ntia-sensor metadata
-        # sensor_meta = {
-        #     "id": self.sensor_definition["sensor_spec"]["id"],
-        #     "sensor_spec": self.sensor_definition["sensor_spec"],
-        #     # TODO: Uncomment below line after updating sensor definition files
-        #     # "location": self.sensor_definition["location"],
-        # }
-        # sigmf_builder.sigmf_md.set_global_field(
-        #     "ntia-sensor:sensor",
-        #     sensor_meta,
-        # )
+        # Add some (not all) ntia-sensor metadata
+        sensor_meta = {
+            "id": self.sensor_definition["sensor_spec"]["id"],
+            "sensor_spec": self.sensor_definition["sensor_spec"],
+            # TODO: Uncomment below line after updating sensor definition files
+            # "location": self.sensor_definition["location"],
+        }
+        sigmf_builder.sigmf_md.set_global_field(
+            "ntia-sensor:sensor",
+            sensor_meta,
+        )
 
         self.sigmf_builder = sigmf_builder
 
