@@ -751,6 +751,13 @@ class NasctnSeaDataProduct(Action):
             "sensor_spec": self.sensor_definition["sensor_spec"],
             "location": self.sensor_definition["location"],
         }
+        # Adding location requires the location to be set manually
+        try:
+            sensor_meta.update({"location": self.sensor_definition["location"]})
+        except KeyError as e:
+            logger.error("Set the sensor location in the SCOS admin web UI")
+            raise e
+
         sigmf_builder.sigmf_md.set_global_field(
             "ntia-sensor:sensor",
             sensor_meta,
