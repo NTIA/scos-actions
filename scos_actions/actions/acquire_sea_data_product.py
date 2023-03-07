@@ -491,7 +491,7 @@ class NasctnSeaDataProduct(Action):
             value = "Unavailable"
         return value
 
-    def capture_diagnostics(self, action_start_tic) -> dict:
+    def capture_diagnostics(self, action_start_tic: float) -> dict:
         """
         Capture diagnostic sensor data.
 
@@ -499,7 +499,7 @@ class NasctnSeaDataProduct(Action):
         sensor preselector and SPU as well as from the SPU computer
         itself. All temperatures are reported in degrees Celsius,
         and humidities in % relative humidity. The diagnostic data is
-        added to self.sigmf_builder as an annotation.
+        added to the SigMF metadata as an object in the global namespace.
 
         The following diagnostic data is collected:
 
@@ -514,7 +514,11 @@ class NasctnSeaDataProduct(Action):
 
         From the SPU computer: systemwide CPU utilization (%) averaged over
             the action runtime, system load (%) averaged over last 5 minutes,
-            current memory usage (%),
+            current memory usage (%), SSD SMART health check status, SSD usage
+            percent, CPU temperature, CPU overheating status, CPU uptime, SCOS
+            start time, and SCOS uptime.
+
+        The total action runtime is also recorded.
 
         Preselector X410 Setup requires:
         internal temperature : oneWireSensor 1, set units to C
@@ -529,7 +533,15 @@ class NasctnSeaDataProduct(Action):
         RF Box Temperature: oneWireSensor 2, set units to C
         Power/Control Box Humidity: oneWireSensor 3
 
-        :param n_samps: The total number of data samples recorded.
+        Various CPU metrics make assumptions about the system: only
+        Intel CPUs are supported.
+
+        Disk health check assumes the SSD is ``/dev/nvme0n1`` and
+        requires the Docker container to have the required privileges
+        or capabilities and device passthrough.
+
+        :param action_start_tic: Action start timestamp, as would
+             be returned by ``time.perf_counter()``
         """
         tic = perf_counter()
         # Read SPU sensors
@@ -723,6 +735,7 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
         sigmf_builder.set_schedule(schedule_entry)
+        sigmf_builder.set_sensor(self.sensor_definition)
         sigmf_builder.set_last_calibration_time(
             self.sigan.sensor_calibration_data["calibration_datetime"]
         )  # TODO: this is approximate since each channel is individually calibrated
