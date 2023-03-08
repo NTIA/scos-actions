@@ -1,23 +1,18 @@
 import json
 import logging
 import math
+from dataclasses import dataclass
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass
 class Calibration:
-    def __init__(
-        self,
-        calibration_datetime,
-        calibration_params,
-        calibration_data,
-        clock_rate_lookup_by_sample_rate,
-    ):
-        self.calibration_datetime = calibration_datetime
-        self.calibration_parameters = calibration_params
-        self.calibration_data = calibration_data
-        self.clock_rate_lookup_by_sample_rate = clock_rate_lookup_by_sample_rate
+    calibration_datetime: str
+    calibration_parameters: list
+    calibration_data: dict
+    clock_rate_lookup_by_sample_rate: list  # list of dict
 
     def get_clock_rate(self, sample_rate):
         """Find the clock rate (Hz) using the given sample_rate (samples per second)"""
@@ -46,8 +41,14 @@ class Calibration:
         return cal_data
 
     def update(
-        self, params: dict, calibration_datetime, gain, noise_figure, temp, file_path
-    ):
+        self,
+        params: dict,
+        calibration_datetime: str,
+        gain: float,
+        noise_figure: float,
+        temp: float,
+        file_path,
+    ) -> None:
         cal_data = self.calibration_data
         self.calibration_datetime = calibration_datetime
 
@@ -56,7 +57,7 @@ class Calibration:
         logger.debug(
             f"\nCAL PARAMS: {self.calibration_parameters}, {type(self.calibration_parameters)}"
         )
-        if set(params.keys()).issuperset(self.calibration_parameters):
+        if not set(params.keys()) >= set(self.calibration_parameters):
             raise Exception(
                 "Not enough parameters specified to update calibration.\n"
                 + f"Required parameters are {self.calibration_parameters}"
