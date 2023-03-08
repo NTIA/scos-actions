@@ -2,10 +2,10 @@
 
 import datetime
 import json
-import os
 import random
 from copy import deepcopy
 from math import isclose
+from pathlib import Path
 
 import pytest
 import pytz
@@ -307,9 +307,10 @@ class TestCalibrationFile:
         )
         action_params = {"sample_rate": 100.0, "frequency": 200.0}
         update_time = get_datetime_str_now()
-        cal.update(action_params, update_time, 30.0, 5.0, 21, "test_calibration.json")
-        cal_from_file = load_from_json("test_calibration.json")
-        os.remove("test_calibration.json")
+        test_cal_path = Path("test_calibration.json")
+        cal.update(action_params, update_time, 30.0, 5.0, 21, test_cal_path)
+        cal_from_file = load_from_json(test_cal_path)
+        test_cal_path.unlink()
         local = timezone("US/Mountain")
         local_cal_time = local.localize(cal.calibration_datetime)
         file_utc_time = local_cal_time.astimezone(pytz.UTC)
