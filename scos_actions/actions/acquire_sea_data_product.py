@@ -703,15 +703,20 @@ class NasctnSeaDataProduct(Action):
         """Add metadata corresponding to a single-frequency capture in the measurement"""
         # Construct dict of extra info to attach to capture
         capture_dict = {
-            "overload": cap_meta["overload"],
-            "cal_noise_figure_dB": round(
-                cap_meta["sensor_cal"]["noise_figure_sensor"], 3
-            ),
-            "cal_gain_dB": round(cap_meta["sensor_cal"]["gain_sensor"], 3),
-            "iq_capture_duration_msec": params[DURATION_MS],
-            "sigan_attenuation_dB": params[ATTENUATION],
-            "sigan_preamp_enable": params[PREAMP_ENABLE],
-            "sigan_reference_level_dBm": params[REFERENCE_LEVEL],
+            "ntia-sensor:overload": cap_meta["overload"],
+            "ntia-sensor:calibration": {
+                "noise_figure_sensor": round(
+                    cap_meta["sensor_cal"]["noise_figure_sensor"], 3
+                ),
+                "gain_sensor": round(cap_meta["sensor_cal"]["gain_sensor"], 3),
+            },
+            "ntia-sensor:sigan_settings": {
+                "class": "tekrsa_usb",
+                "reference_level": params[REFERENCE_LEVEL],
+                "attenuation": params[ATTENUATION],
+                "preamp_enable": params[PREAMP_ENABLE],
+                "auto_attenuation_enable": False,
+            },
         }
 
         # Add Capture
