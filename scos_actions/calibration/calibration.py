@@ -47,7 +47,7 @@ class Calibration:
         gain: float,
         noise_figure: float,
         temp: float,
-        file_path,
+        file_path: Path,
     ) -> None:
         cal_data = self.calibration_data
         self.calibration_datetime = calibration_datetime
@@ -65,8 +65,8 @@ class Calibration:
 
         # Get calibration entry by parameters used
         for parameter in self.calibration_parameters:
-            logger.debug(f"Updating calibration at {parameter} = {value}")
             value = params[parameter]
+            logger.debug(f"Updating calibration at {parameter} = {value}")
             try:
                 cal_data = cal_data[value]
             except KeyError:
