@@ -86,7 +86,7 @@ def get_disk_smart_data(disk: str) -> dict:
         elif line.startswith("Unsafe Shutdowns:"):
             disk_info["unsafe_shutdown_count"] = int(line.split()[2])
         elif line.startswith("Media and Data Integrity Errors:"):
-            disk_info["media_data_integrity_error_count"] = int(line.split()[4])
+            disk_info["media_data_integrity_error_count"] = int(line.split()[5])
     return disk_info
 
 
