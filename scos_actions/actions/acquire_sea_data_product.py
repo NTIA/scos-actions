@@ -41,7 +41,7 @@ from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.utils import (
     get_cpu_uptime_seconds,
     get_current_cpu_temperature,
-    get_disk_smart_healthy_status,
+    get_disk_smart_data,
     get_max_cpu_temperature,
 )
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
@@ -591,13 +591,12 @@ class NasctnSeaDataProduct(Action):
             "action_cpu_usage_pct": round(cpu_utilization, 2),
             "system_load_5m_pct": round(load_avg_5m, 2),
             "memory_usage_pct": round(mem_usage_pct, 2),
-            "disk_healthy": get_disk_smart_healthy_status("/dev/nvme0n1"),
-            "disk_usage_pct": round(psutil.disk_usage("/").percent, 2),
             "cpu_temperature_degC": round(cpu_temp_degC, 2),
             "cpu_overheating": cpu_overheating,
             "cpu_uptime_days": cpu_uptime_days,
             "scos_start_time": convert_datetime_to_millisecond_iso_format(start_time),
             "scos_uptime_days": get_days_up(),
+            "ssd_smart_data": get_disk_smart_data("/dev/nvme0n1"),
         }
         toc = perf_counter()
         logger.debug(f"Got all diagnostics in {toc-tic} s")

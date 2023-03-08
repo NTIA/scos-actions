@@ -47,30 +47,47 @@ def get_current_cpu_temperature(fahrenheit: bool = False) -> float:
         raise e
 
 
-def get_disk_smart_healthy_status(disk: str) -> bool:
+def get_disk_smart_data(disk: str) -> dict:
     """
-    Get the result of the SMART overall-assessment health test for the chosen disk.
+    Get selected SMART data for the chosen disk.
 
-    This method requires that ``smartmontools`` be installed on the host OS.
+    This method requires that ``smartmontools`` be installed on the host OS,
+    and that the disk is properly accessible (i.e., available to the Docker
+    container, if running in Docker). This method was written specifically
+    for NVMe SSDs used by NASCTN SEA SPU computers, and results may vary when
+    using other hardware.
 
-    :param disk: The desired disk, e.g., ``/dev/sda1``.
-    :raises RuntimeError: If the ``smartctl`` call fails and disk health cannot be
-        determined.
-    :return: True if the SMART overall-health self-assessment health test is passed.
-        False otherwise.
+    More details can be found in Figure 194 (p. 122) of the NVMe standard,
+    Revision 1.4, available here (accessed 3/7/2023):
+    https://nvmexpress.org/wp-content/uploads/NVM-Express-1_4-2019.06.10-Ratified.pdf
+
+    :param disk: The desired disk, e.g., ``/dev/nvme0n1``.
+    :return: A dictionary containing the retrieved data from the SMART report.
     """
     try:
-        result = subprocess.run(["smartctl", "-H", disk], capture_output=True)
-        if result.returncode == 0:
-            return "PASSED" in str(result.stdout)
-        else:
-            logger.error(
-                f"Call to smartctl failed with return code {result.returncode}"
-            )
-            raise RuntimeError(str(result.stdout))
+        report = subprocess.check_output(["smartctl", "-a", disk]).decode("utf-8")
     except Exception as e:
-        logger.error(f"Unable to get SMART health test result for disk {disk}")
-        raise e
+        logger.exception(f"Unable to get SMART data for disk {disk}")
+        return "Unavailable"
+    disk_info = {}
+    for line in report.split("\n"):
+        if line.startswith("SMART overall-health self-assessment test result:"):
+            disk_info["test_passed"] = "PASSED" in line.split()[5]
+        elif line.startswith("Critical Warning:"):
+            disk_info["critical_warning"] = int(line.split()[2], base=16)
+        elif line.startswith("Temperature:"):
+            disk_info["temperature_degC"] = int(line.split()[1])
+        elif line.startswith("Available Spare:"):
+            disk_info["available_spare"] = int(line.split()[2].rstrip("%"))
+        elif line.startswith("Available Spare Threshold:"):
+            disk_info["available_spare_threshold"] = int(line.split()[3].rstrip("%"))
+        elif line.startswith("Percentage Used:"):
+            disk_info["percentage_used"] = int(line.split()[2].rstrip("%"))
+        elif line.startswith("Unsafe Shutdowns:"):
+            disk_info["unsafe_shutdown_count"] = int(line.split()[2])
+        elif line.startswith("Media and Data Integrity Errors:"):
+            disk_info["media_data_integrity_error_count"] = int(line.split()[4])
+    return disk_info
 
 
 def get_max_cpu_temperature(fahrenheit: bool = False) -> float:
