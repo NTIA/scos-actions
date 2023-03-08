@@ -538,13 +538,15 @@ class NasctnSeaDataProduct(Action):
 
         Disk health check assumes the SSD is ``/dev/nvme0n1`` and
         requires the Docker container to have the required privileges
-        or capabilities and device passthrough.
+        or capabilities and device passthrough. For more information,
+        see ``scos_actions.hardware.utils.get_disk_smart_data()``.
 
         :param action_start_tic: Action start timestamp, as would
              be returned by ``time.perf_counter()``
         """
         tic = perf_counter()
         # Read SPU sensors
+        spu_x410_sensor_values = "Unavailable"
         for switch in switches.values():
             if switch.name == "SPU X410":
                 spu_x410_sensor_values = switch.get_status()
