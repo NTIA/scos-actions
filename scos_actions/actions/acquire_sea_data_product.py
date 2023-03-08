@@ -612,7 +612,7 @@ class NasctnSeaDataProduct(Action):
         }
 
         # Make SigMF annotation from sensor data
-        self.sigmf_builder.add_to_global("diagnostics", diag)
+        self.sigmf_builder.add_to_global("ntia-nasctn-sea:diagnostics", diag)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
@@ -679,7 +679,7 @@ class NasctnSeaDataProduct(Action):
                 "power_bin_size": round(2.0 * params[APD_BIN_SIZE_DB], 2),
             },
         }
-        self.sigmf_builder.add_to_global("data_products", dp_meta)
+        self.sigmf_builder.add_to_global("ntia-nasctn-sea:data_products", dp_meta)
 
         # Create DigitalFilter object
         iir_filter_meta = [
@@ -747,7 +747,7 @@ class NasctnSeaDataProduct(Action):
         )  # TODO: this is approximate since each channel is individually calibrated
 
         sigmf_builder.sigmf_md.set_global_field(
-            "calibration_temperature_degC",
+            "ntia-nasctn-sea:calibration_temperature",
             round(self.sigan.sensor_calibration_data["temperature"], 1),
         )
 
