@@ -45,26 +45,47 @@ class Calibration:
         logger.debug(f"Cal Data: {cal_data}")
         return cal_data
 
-    def update(self, params, calibration_datetime, gain, noise_figure, temp, file_path):
+    def update(
+        self, params: dict, calibration_datetime, gain, noise_figure, temp, file_path
+    ):
         cal_data = self.calibration_data
-        for parameter in self.calibration_parameters:
-            if parameter in params:
-                value = params[parameter]
-                logger.debug(f"Updating calibration at {parameter} = {value}")
-                cal_data = cal_data[value]
         self.calibration_datetime = calibration_datetime
-        cal_data["calibration_datetime"] = self.calibration_datetime
-        if "gain_sensor" in cal_data:
-            cal_data["gain_sensor"] = gain
-        else:
-            raise Exception("Not enough parameters specified to update sensor gain")
-        if "noise_figure_sensor" in cal_data:
-            cal_data["noise_figure_sensor"] = noise_figure
-        else:
+
+        # Ensure all required calibration parameters were used
+        logger.debug(f"\nPASSED PARAMS: {params}\n")
+        logger.debug(
+            f"\nCAL PARAMS: {self.calibration_parameters}, {type(self.calibration_parameters)}"
+        )
+        if set(params.keys()).issuperset(self.calibration_parameters):
             raise Exception(
-                "Not enough parameters specified to update sensor noise figure"
+                "Not enough parameters specified to update calibration.\n"
+                + f"Required parameters are {self.calibration_parameters}"
             )
-        cal_data["temperature"] = temp
+
+        # Get calibration entry by parameters used
+        for parameter in self.calibration_parameters:
+            logger.debug(f"Updating calibration at {parameter} = {value}")
+            value = params[parameter]
+            try:
+                cal_data = cal_data[value]
+            except KeyError:
+                logger.debug(
+                    f"Creating required calibration data field for {parameter} = {value}"
+                )
+                cal_data[value] = {}
+                cal_data = cal_data[value]
+
+        # Update calibration entry
+        cal_data.update(
+            {
+                "calibration_datetime": self.calibration_datetime,
+                "gain_sensor": gain,
+                "noise_figure_sensor": noise_figure,
+                "temperature": temp,
+            }
+        )
+
+        # Write updated calibration data to file
         dict = {
             "calibration_datetime": str(self.calibration_datetime),
             "calibration_parameters": self.calibration_parameters,
