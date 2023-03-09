@@ -364,32 +364,30 @@ class NasctnSeaDataProduct(Action):
         iteration_params = utils.get_iterable_parameters(self.parameters)
         self.configure_preselector(self.rf_path)
 
+        # Initialize metadata object
+        self.get_sigmf_builder(
+            # Assumes all sample rates are the same, and that the sigan
+            # correctly uses the desired sample rate.
+            iteration_params[0][SAMPLE_RATE],
+            task_id,
+            schedule_entry,  # Uses a single "last calibration time"
+            iteration_params,
+        )
+
         # Collect all IQ data and spawn data product computation processes
-        all_data, all_idx, dp_procs, cap_meta = ([] for _ in range(4))
-        for parameters in iteration_params:
+        all_data, all_idx, dp_procs, cap_meta, cap_entries = ([] for _ in range(5))
+        for i, parameters in enumerate(iteration_params):
             measurement_result = self.capture_iq(parameters)
-            cap_meta.append(
-                {
-                    "start_time": measurement_result["start_time"],
-                    "end_time": measurement_result["end_time"],
-                    "sensor_cal": measurement_result["sensor_cal"],
-                    "overload": measurement_result["overload"],
-                }
-            )
             # Start data product processing but do not block next IQ capture
             dp_procs.append(
                 generate_data_product.remote(
                     measurement_result["data"], parameters, self.iir_sos
                 )
             )
-
-        # Initialize metadata object
-        self.get_sigmf_builder(
-            iteration_params[0][SAMPLE_RATE],  # Assumes all sample rates are the same
-            task_id,
-            schedule_entry,  # Uses a single "last calibration time"
-            iteration_params,
-        )
+            # Generate capture metadata before sigan reconfigured
+            cap_meta[i], cap_entries[i] = self.create_channel_metadata(
+                measurement_result
+            )
 
         # Collect processed data product results
         last_data_len = 0
@@ -400,9 +398,13 @@ class NasctnSeaDataProduct(Action):
             all_data.extend(dp)
             all_idx.extend((dp_idx + last_data_len).tolist())
 
-            # Generate metadata for the capture
-            cap_meta[i].update({"sample_start": last_data_len, "sample_count": len(dp)})
-            self.create_channel_metadata(iteration_params[i], cap_meta[i])
+            # Add Capture
+            self.sigmf_builder.set_capture(
+                cap_meta[i]["frequency"],
+                cap_meta[i]["start_time"],
+                sample_start=last_data_len,
+                extra_entries=cap_entries[i],
+            )
 
             # Collect channel power statistics
             max_ch_pwrs.append(max_ch_pwr)
@@ -701,35 +703,35 @@ class NasctnSeaDataProduct(Action):
 
     def create_channel_metadata(
         self,
-        params: dict,
-        cap_meta: dict,
-    ) -> SigMFBuilder:
+        measurement_result: dict,
+    ) -> Tuple:
         """Add metadata corresponding to a single-frequency capture in the measurement"""
         # Construct dict of extra info to attach to capture
-        capture_dict = {
-            "ntia-sensor:overload": cap_meta["overload"],
+        entries_dict = {
+            "ntia-sensor:overload": measurement_result["overload"],
             "ntia-sensor:calibration": {
                 "noise_figure_sensor": round(
-                    cap_meta["sensor_cal"]["noise_figure_sensor"], 3
+                    measurement_result["sensor_cal"]["noise_figure_sensor"], 3
                 ),
-                "gain_sensor": round(cap_meta["sensor_cal"]["gain_sensor"], 3),
+                "gain_sensor": round(
+                    measurement_result["sensor_cal"]["gain_sensor"], 3
+                ),
             },
             "ntia-sensor:sigan_settings": {
                 "class": "tekrsa_usb",
-                "reference_level": params[REFERENCE_LEVEL],
-                "attenuation": params[ATTENUATION],
-                "preamp_enable": params[PREAMP_ENABLE],
+                "reference_level": self.sigan.reference_level,
+                "attenuation": self.sigan.attenuation,
+                "preamp_enable": self.sigan.preamp_enable,
                 "auto_attenuation_enable": False,
             },
         }
-
-        # Add Capture
-        self.sigmf_builder.set_capture(
-            params[FREQUENCY],
-            cap_meta["start_time"],
-            cap_meta["sample_start"],
-            extra_entries=capture_dict,
-        )
+        # Start time and frequency are needed when building
+        # the capture metadata, but should not be in the capture_dict.
+        capture_meta = {
+            "start_time": measurement_result["start_time"],
+            "frequency": self.sigan.frequency,
+        }
+        return capture_meta, entries_dict
 
     def get_sigmf_builder(
         self,
