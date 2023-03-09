@@ -366,7 +366,7 @@ class NasctnSeaDataProduct(Action):
 
         # Collect all IQ data and spawn data product computation processes
         all_data, all_idx, dp_procs, cap_meta, cap_entries = ([] for _ in range(5))
-        for i, parameters in enumerate(iteration_params):
+        for parameters in iteration_params:
             measurement_result = self.capture_iq(parameters)
             # Start data product processing but do not block next IQ capture
             dp_procs.append(
@@ -375,9 +375,9 @@ class NasctnSeaDataProduct(Action):
                 )
             )
             # Generate capture metadata before sigan reconfigured
-            cap_meta[i], cap_entries[i] = self.create_channel_metadata(
-                measurement_result
-            )
+            cap_meta_tuple = self.create_channel_metadata(measurement_result)
+            cap_meta.append(cap_meta_tuple[0])
+            cap_entries.append(cap_meta_tuple[1])
 
         # Initialize metadata object
         self.get_sigmf_builder(
