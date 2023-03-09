@@ -716,6 +716,9 @@ class NasctnSeaDataProduct(Action):
                 "gain_sensor": round(
                     measurement_result["sensor_cal"]["gain_sensor"], 3
                 ),
+                "temperature": round(
+                    self.sigan.sensor_calibration_data["temperature"], 1
+                ),
             },
             "ntia-sensor:sigan_settings": {
                 "class": "tekrsa_usb",
@@ -751,11 +754,6 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_last_calibration_time(
             self.sigan.sensor_calibration_data["calibration_datetime"]
         )  # TODO: this is approximate since each channel is individually calibrated
-
-        sigmf_builder.sigmf_md.set_global_field(
-            "ntia-nasctn-sea:calibration_temperature",
-            round(self.sigan.sensor_calibration_data["temperature"], 1),
-        )
 
         # Add some (not all) ntia-sensor metadata
         sensor_meta = {
