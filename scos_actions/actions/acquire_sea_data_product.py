@@ -464,7 +464,6 @@ class NasctnSeaDataProduct(Action):
         measurement_result["name"] = self.name
         measurement_result["start_time"] = start_time
         measurement_result["end_time"] = end_time
-        measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         toc = perf_counter()
         logger.debug(
