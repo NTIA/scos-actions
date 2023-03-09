@@ -53,10 +53,6 @@ class Calibration:
         self.calibration_datetime = calibration_datetime
 
         # Ensure all required calibration parameters were used
-        logger.debug(f"\nPASSED PARAMS: {params}\n")
-        logger.debug(
-            f"\nCAL PARAMS: {self.calibration_parameters}, {type(self.calibration_parameters)}"
-        )
         if not set(params.keys()) >= set(self.calibration_parameters):
             raise Exception(
                 "Not enough parameters specified to update calibration.\n"
