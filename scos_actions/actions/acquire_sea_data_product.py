@@ -458,12 +458,10 @@ class NasctnSeaDataProduct(Action):
         num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
         # Collect IQ data
         measurement_result = self.sigan.acquire_time_domain_samples(num_samples, nskip)
-        end_time = utils.get_datetime_str_now()
         # Store some metadata with the IQ
         measurement_result.update(params)
         measurement_result["name"] = self.name
         measurement_result["start_time"] = start_time
-        measurement_result["end_time"] = end_time
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         toc = perf_counter()
         logger.debug(
