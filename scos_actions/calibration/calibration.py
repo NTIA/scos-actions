@@ -145,6 +145,7 @@ def filter_by_parameter(calibrations, parameter, value):
         if filtered_data is None:
             filtered_data = check_ceiling_of_parameter(calibrations, parameter, value)
             if filtered_data is None:
+                logger.debug(calibrations)
                 raise Exception(
                     "No calibration was performed with {} at {}".format(
                         parameter, value
