@@ -416,8 +416,12 @@ class NasctnSeaDataProduct(Action):
 
         # Build metadata and convert data to compressed bytes
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
-        self.sigmf_builder.add_to_global("max_channel_powers_dBm", max_ch_pwrs)
-        self.sigmf_builder.add_to_global("rms_channel_powers_dBm", rms_ch_pwrs)
+        self.sigmf_builder.add_to_global(
+            "ntia-nasctn-sea:max_channel_powers", max_ch_pwrs
+        )
+        self.sigmf_builder.add_to_global(
+            "ntia-nasctn-sea:rms_channel_powers", rms_ch_pwrs
+        )
         self.create_global_data_product_metadata(self.parameters, apd_lengths)
         self.capture_diagnostics(action_start_tic)  # Add diagnostics to metadata
         self.sigmf_builder.build()
