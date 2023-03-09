@@ -3,6 +3,7 @@ import logging
 import math
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Union
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class Calibration:
                 return mapping["clock_frequency"]
         return sample_rate
 
-    def get_calibration_dict(self, args):
+    def get_calibration_dict(self, args: list) -> dict:
         """Find the calibration points closest to the specified args (gain, attenuation,ref_level...)."""
 
         # Check if the sample rate was calibrated
@@ -93,7 +94,7 @@ class Calibration:
             outfile.write(json.dumps(dict))
 
 
-def get_comparable_value(f):
+def get_comparable_value(f: Union[float, int]) -> int:
     """Allow a frequency of type [float] to be compared with =="""
     f = int(round(f))
     return f
@@ -141,15 +142,13 @@ def convert_keys(dictionary):
 def filter_by_parameter(calibrations, parameter, value):
     filtered_data = None
     if value not in calibrations:
-        filtered_data = check_floor_of_parameter(calibrations, parameter, value)
+        filtered_data = check_floor_of_parameter(calibrations, value)
         if filtered_data is None:
-            filtered_data = check_ceiling_of_parameter(calibrations, parameter, value)
+            filtered_data = check_ceiling_of_parameter(calibrations, value)
             if filtered_data is None:
                 logger.debug(calibrations)
                 raise Exception(
-                    "No calibration was performed with {} at {}".format(
-                        parameter, value
-                    )
+                    f"No calibration was performed with {parameter} = {value}"
                 )
     else:
         filtered_data = calibrations[value]
@@ -157,7 +156,7 @@ def filter_by_parameter(calibrations, parameter, value):
     return filtered_data
 
 
-def check_floor_of_parameter(calibrations, parameter, value):
+def check_floor_of_parameter(calibrations, value):
     value = math.floor(value)
     logger.debug(f"Checking floor value of: {value}")
     if value in calibrations:
@@ -166,7 +165,7 @@ def check_floor_of_parameter(calibrations, parameter, value):
         return None
 
 
-def check_ceiling_of_parameter(calibrations, parameter, value):
+def check_ceiling_of_parameter(calibrations, value):
     value = math.ceil(value)
     logger.debug(f"Checking ceiling at: {value}")
     if value in calibrations:
