@@ -74,7 +74,7 @@ def get_disk_smart_data(disk: str) -> dict:
         if line.startswith("SMART overall-health self-assessment test result:"):
             disk_info["test_passed"] = "PASSED" in line.split()[5]
         elif line.startswith("Critical Warning:"):
-            disk_info["critical_warning"] = int(line.split()[2], base=16)
+            disk_info["critical_warning"] = line.split()[2]
         elif line.startswith("Temperature:"):
             disk_info["temperature_degC"] = int(line.split()[1])
         elif line.startswith("Available Spare:"):
