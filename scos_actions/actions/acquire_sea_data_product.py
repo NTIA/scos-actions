@@ -759,7 +759,6 @@ class NasctnSeaDataProduct(Action):
         sensor_meta = {
             "id": self.sensor_definition["sensor_spec"]["id"],
             "sensor_spec": self.sensor_definition["sensor_spec"],
-            "location": self.sensor_definition["location"],
         }
         # Adding location requires the location to be set manually
         try:
