@@ -713,7 +713,7 @@ class NasctnSeaDataProduct(Action):
                     measurement_result["sensor_cal"]["gain_sensor"], 3
                 ),
                 "temperature": round(
-                    self.sigan.sensor_calibration_data["temperature"], 1
+                    measurement_result["sensor_cal"]["temperature"], 1
                 ),
             },
             "ntia-sensor:sigan_settings": {
