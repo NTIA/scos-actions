@@ -129,10 +129,10 @@ def load_from_json(fname: Path):
         "clock_rate_lookup_by_sample_rate",
         "calibration_parameters",
     }
-    if not set(calibration.keys()) >= required_keys:
+    if not calibration.keys() >= required_keys:
         raise Exception(
             "Loaded calibration dictionary is missing required fields."
-            + f"Existing fields: {calibration.keys()}\n"
+            + f"Existing fields: {set(calibration.keys())}\n"
             + f"Required fields: {required_keys}\n"
         )
     # Create and return the Calibration object
