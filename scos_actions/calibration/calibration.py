@@ -123,13 +123,18 @@ def load_from_json(fname: Path):
     with open(fname) as file:
         calibration = json.load(file)
     # Check that the required fields are in the dict
-    if not calibration.keys() >= {
+    required_keys = {
         "last_calibration_datetime",
         "calibration_data",
         "clock_rate_lookup_by_sample_rate",
         "calibration_parameters",
-    }:
-        raise Exception("Loaded calibration dictionary is missing required fields.")
+    }
+    if not set(calibration.keys()) >= required_keys:
+        raise Exception(
+            "Loaded calibration dictionary is missing required fields."
+            + f"Existing fields: {calibration.keys()}\n"
+            + f"Required fields: {required_keys}\n"
+        )
     # Create and return the Calibration object
     return Calibration(
         calibration["last_calibration_datetime"],
