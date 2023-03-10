@@ -19,7 +19,7 @@ from scos_actions.calibration.calibration import (
     load_from_json,
 )
 from scos_actions.tests.resources.utils import easy_gain
-from scos_actions.utils import get_datetime_str_now
+from scos_actions.utils import get_datetime_str_now, parse_datetime_iso_format_str
 
 
 class TestCalibrationFile:
@@ -138,9 +138,7 @@ class TestCalibrationFile:
         cal_data = {}
 
         # Add the simple stuff to new cal format
-        cal_data["calibration_datetime"] = "{}Z".format(
-            datetime.datetime.utcnow().isoformat()
-        )
+        cal_data["calibration_datetime"] = get_datetime_str_now()
         cal_data["sensor_uid"] = "SAMPLE_CALIBRATION"
 
         # Add SR/CF lookup table
@@ -293,7 +291,7 @@ class TestCalibrationFile:
                     break
 
     def test_update(self):
-        calibration_datetime = datetime.datetime.now()
+        calibration_datetime = get_datetime_str_now()
         calibration_params = ["sample_rate", "frequency"]
         calibration_data = {
             100.0: {200.0: {"noise_figure_sensor": 0, "gain_sensor": 0}}
@@ -311,12 +309,8 @@ class TestCalibrationFile:
         cal.update(action_params, update_time, 30.0, 5.0, 21, test_cal_path)
         cal_from_file = load_from_json(test_cal_path)
         test_cal_path.unlink()
-        local = timezone("US/Mountain")
-        local_cal_time = local.localize(cal.calibration_datetime)
-        file_utc_time = local_cal_time.astimezone(pytz.UTC)
-        file_utc_time.isoformat(timespec="milliseconds")
-        cal_time = datetime.datetime.strptime(update_time, "%Y-%m-%dT%H:%M:%S.%fZ")
-        cal_time_utc = pytz.UTC.localize(cal_time)
+        file_utc_time = parse_datetime_iso_format_str(cal.calibration_datetime)
+        cal_time_utc = parse_datetime_iso_format_str(update_time)
         assert file_utc_time.year == cal_time_utc.year
         assert file_utc_time.month == cal_time_utc.month
         assert file_utc_time.day == cal_time_utc.day
