@@ -46,4 +46,4 @@ sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
 logger.info(f"Loading sigan cal file: {SIGAN_CALIBRATION_FILE}")
 sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
 if sensor_calibration:
-    logger.info(f"last sensor cal: {sensor_calibration.calibration_datetime}")
+    logger.info(f"Last sensor cal: {sensor_calibration.last_calibration_datetime}")

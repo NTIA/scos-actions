@@ -186,7 +186,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         measurement_result["frequency_step"] = frequencies[1] - frequencies[0]
         measurement_result["window"] = self.fft_window_type
         measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
-            "calibration_datetime"
+            "datetime"
         ]
         measurement_result["task_id"] = task_id
         measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value

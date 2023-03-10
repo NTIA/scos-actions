@@ -289,7 +289,7 @@ class YFactorCalibration(Action):
             cal_args = [
                 sigan_params[k] for k in sensor_calibration.calibration_parameters
             ]
-            self.sigan.recompute_calibration_data(cal_args)
+            self.sigan.recompute_sensor_calibration_data(cal_args)
             enbw_hz = self.sigan.sensor_calibration_data["enbw_sensor"]
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]

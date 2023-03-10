@@ -4,7 +4,6 @@ import time
 from abc import ABC, abstractmethod
 
 from scos_actions.calibration import sensor_calibration, sigan_calibration
-from scos_actions.calibration.calibration import Calibration
 from scos_actions.capabilities import capabilities
 from scos_actions.hardware.hardware_configuration_exception import (
     HardwareConfigurationException,
@@ -26,7 +25,7 @@ class SignalAnalyzerInterface(ABC):
             "enbw_sigan": None,  # Defaults to sample rate
             "noise_figure_sigan": 0,
             "1db_compression_sigan": 100,
-            "calibration_datetime": get_datetime_str_now(),
+            "datetime": get_datetime_str_now(),
         }
 
         self.DEFAULT_SENSOR_CALIBRATION = {
@@ -37,7 +36,7 @@ class SignalAnalyzerInterface(ABC):
             "gain_preselector": 0,
             "noise_figure_preselector": 0,
             "1db_compression_preselector": 100,
-            "calibration_datetime": get_datetime_str_now(),
+            "datetime": get_datetime_str_now(),
         }
         self.sensor_calibration_data = copy.deepcopy(self.DEFAULT_SENSOR_CALIBRATION)
         self.sigan_calibration_data = copy.deepcopy(self.DEFAULT_SIGAN_CALIBRATION)
@@ -46,7 +45,7 @@ class SignalAnalyzerInterface(ABC):
     def last_calibration_time(self) -> str:
         """Returns the last calibration time from calibration data."""
         return convert_string_to_millisecond_iso_format(
-            sensor_calibration.calibration_datetime
+            sensor_calibration.last_calibration_datetime
         )
 
     @property
@@ -125,17 +124,15 @@ class SignalAnalyzerInterface(ABC):
             )
         return
 
-    def recompute_calibration_data(self, cal_args: Calibration) -> None:
-        """Set the calibration data based on the current tuning"""
-
-        # Try and get the sensor calibration data
+    def recompute_sensor_calibration_data(self, cal_args: list) -> None:
         self.sensor_calibration_data = self.DEFAULT_SENSOR_CALIBRATION.copy()
         if sensor_calibration is not None:
             self.sensor_calibration_data.update(
                 sensor_calibration.get_calibration_dict(cal_args)
             )
 
-        # Try and get the sigan calibration data
+    def recompute_sigan_calibration_data(self, cal_args: list) -> None:
+        """Set the sigan calibration data based on the current tuning"""
         self.sigan_calibration_data = self.DEFAULT_SIGAN_CALIBRATION.copy()
         if sigan_calibration is not None:
             self.sigan_calibration_data.update(

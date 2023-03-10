@@ -138,7 +138,7 @@ class TestCalibrationFile:
         cal_data = {}
 
         # Add the simple stuff to new cal format
-        cal_data["calibration_datetime"] = get_datetime_str_now()
+        cal_data["last_calibration_datetime"] = get_datetime_str_now()
         cal_data["sensor_uid"] = "SAMPLE_CALIBRATION"
 
         # Add SR/CF lookup table
@@ -309,7 +309,7 @@ class TestCalibrationFile:
         cal.update(action_params, update_time, 30.0, 5.0, 21, test_cal_path)
         cal_from_file = load_from_json(test_cal_path)
         test_cal_path.unlink()
-        file_utc_time = parse_datetime_iso_format_str(cal.calibration_datetime)
+        file_utc_time = parse_datetime_iso_format_str(cal.last_calibration_datetime)
         cal_time_utc = parse_datetime_iso_format_str(update_time)
         assert file_utc_time.year == cal_time_utc.year
         assert file_utc_time.month == cal_time_utc.month
