@@ -103,14 +103,14 @@ class Calibration:
         )
 
         # Write updated calibration data to file
-        dict = {
+        cal_dict = {
             "last_calibration_datetime": self.last_calibration_datetime,
             "calibration_parameters": self.calibration_parameters,
             "clock_rate_lookup_by_sample_rate": self.clock_rate_lookup_by_sample_rate,
             "calibration_data": self.calibration_data,
         }
         with open(file_path, "w") as outfile:
-            outfile.write(json.dumps(dict))
+            outfile.write(json.dumps(cal_dict))
 
 
 def get_comparable_value(f: Union[float, int]) -> int:
