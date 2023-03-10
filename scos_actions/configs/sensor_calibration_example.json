@@ -110,5 +110,5 @@
             "sample_rate": 15360000.0
         }
     ],
-    "sensor_uid": "DEFAULT"
+    "sensor_uid": "EXAMPLE"
 }
