@@ -34,18 +34,21 @@ class MeasurementAction(Action):
         data = self.transform_data(measurement_result)
         self.send_signals(task_id, sigmf_builder.metadata, data)
 
-    def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
+    def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
         sigmf_builder = SigMFBuilder()
         self.received_samples = len(measurement_result["data"].flatten())
-        calibration_annotation = CalibrationAnnotation(
-            sample_start=0,
-            sample_count=self.received_samples,
-            sigan_cal=measurement_result["sigan_cal"],
-            sensor_cal=measurement_result["sensor_cal"],
-        )
-        sigmf_builder.add_metadata_generator(
-            type(calibration_annotation).__name__, calibration_annotation
-        )
+        if any(measurement_result[c] is not None for c in ["sensor_cal", "sigan_cal"]):
+            calibration_annotation = CalibrationAnnotation(
+                sample_start=0,
+                sample_count=self.received_samples,
+                sigan_cal=measurement_result["sigan_cal"],
+                sensor_cal=measurement_result["sensor_cal"],
+            )
+            sigmf_builder.add_metadata_generator(
+                type(calibration_annotation).__name__, calibration_annotation
+            )
+        else:
+            logger.info("Skipping CalibrationAnnotation generation")
         f_low, f_high = None, None
         if "frequency_low" in measurement_result:
             f_low = measurement_result["frequency_low"]
