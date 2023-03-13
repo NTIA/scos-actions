@@ -99,10 +99,10 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             self.configure(measurement_params)
             duration_ms = get_parameter(DURATION_MS, measurement_params)
             nskip = get_parameter(NUM_SKIP, measurement_params)
-            gain_adjust = get_parameter(CAL_ADJUST, measurement_params)
+            cal_adjust = get_parameter(CAL_ADJUST, measurement_params)
             sample_rate = self.sigan.sample_rate
             num_samples = int(sample_rate * duration_ms * 1e-3)
-            measurement_result = super().acquire_data(num_samples, nskip, gain_adjust)
+            measurement_result = super().acquire_data(num_samples, nskip, cal_adjust)
             measurement_result.update(measurement_params)
             end_time = utils.get_datetime_str_now()
             measurement_result["start_time"] = start_time

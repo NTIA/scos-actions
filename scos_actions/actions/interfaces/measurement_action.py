@@ -117,17 +117,17 @@ class MeasurementAction(Action):
         )
 
     def acquire_data(
-        self, num_samples: int, nskip: int = 0, gain_adjust: bool = True
+        self, num_samples: int, nskip: int = 0, cal_adjust: bool = True
     ) -> dict:
         logger.debug(
             f"Acquiring {num_samples} IQ samples, skipping the first {nskip} samples"
-            + f" and {'' if gain_adjust else 'not '}applying gain adjustment based"
+            + f" and {'' if cal_adjust else 'not '}applying gain adjustment based"
             + " on calibration data"
         )
         measurement_result = self.sigan.acquire_time_domain_samples(
             num_samples,
             num_samples_skip=nskip,
-            gain_adjust=gain_adjust,
+            gain_adjust=cal_adjust,
         )
 
         return measurement_result
