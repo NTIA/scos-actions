@@ -50,6 +50,7 @@ SAMPLE_RATE = "sample_rate"
 DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
 CLASSIFICATION = "classification"
+CAL_ADJUST = "calibration_adjust"
 
 
 class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
@@ -81,13 +82,14 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         self.duration_ms = get_parameter(DURATION_MS, self.parameters)
         self.frequency_Hz = get_parameter(FREQUENCY, self.parameters)
         self.classification = get_parameter(CLASSIFICATION, self.parameters)
+        self.cal_adjust = get_parameter(CAL_ADJUST, self.parameters)
 
     def execute(self, schedule_entry, task_id) -> dict:
         start_time = utils.get_datetime_str_now()
         # Use the sigan's actual reported instead of requested sample rate
         sample_rate = self.sigan.sample_rate
         num_samples = int(sample_rate * self.duration_ms * 1e-3)
-        measurement_result = self.acquire_data(num_samples, self.nskip)
+        measurement_result = self.acquire_data(num_samples, self.nskip, self.cal_adjust)
         measurement_result["start_time"] = start_time
         end_time = utils.get_datetime_str_now()
         measurement_result.update(self.parameters)
