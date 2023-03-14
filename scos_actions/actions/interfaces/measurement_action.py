@@ -127,7 +127,7 @@ class MeasurementAction(Action):
         measurement_result = self.sigan.acquire_time_domain_samples(
             num_samples,
             num_samples_skip=nskip,
-            gain_adjust=cal_adjust,
+            cal_adjust=cal_adjust,
         )
 
         return measurement_result

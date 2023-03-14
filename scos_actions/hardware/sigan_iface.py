@@ -60,7 +60,7 @@ class SignalAnalyzerInterface(ABC):
         num_samples: int,
         num_samples_skip: int = 0,
         retries: int = 5,
-        gain_adjust: bool = True,
+        cal_adjust: bool = True,
     ) -> dict:
         """
         Acquire time domain IQ samples
@@ -68,7 +68,7 @@ class SignalAnalyzerInterface(ABC):
         :param num_samples: Number of samples to acquire
         :param num_samples_skip: Number of samples to skip
         :param retries: Maximum number of retries on failure
-        :param gain_adjust: If True, scale IQ samples based on calibration data.
+        :param cal_adjust: If True, scale IQ samples based on calibration data.
         :return: dictionary containing data, sample_rate, frequency, capture_time, etc
         """
         pass
@@ -87,7 +87,7 @@ class SignalAnalyzerInterface(ABC):
             return False
         try:
             measurement_result = self.acquire_time_domain_samples(
-                num_samples, gain_adjust=False
+                num_samples, cal_adjust=False
             )
             data = measurement_result["data"]
         except Exception as e:

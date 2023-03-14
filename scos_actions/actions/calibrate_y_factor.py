@@ -258,7 +258,7 @@ class YFactorCalibration(Action):
         # Get noise diode on IQ
         logger.debug("Acquiring IQ samples with noise diode ON")
         noise_on_measurement_result = self.sigan.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip, gain_adjust=False
+            num_samples, num_samples_skip=nskip, cal_adjust=False
         )
         sample_rate = noise_on_measurement_result["sample_rate"]
 
@@ -270,7 +270,7 @@ class YFactorCalibration(Action):
         # Get noise diode off IQ
         logger.debug("Acquiring IQ samples with noise diode OFF")
         noise_off_measurement_result = self.sigan.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip, gain_adjust=False
+            num_samples, num_samples_skip=nskip, cal_adjust=False
         )
         assert (
             sample_rate == noise_off_measurement_result["sample_rate"]

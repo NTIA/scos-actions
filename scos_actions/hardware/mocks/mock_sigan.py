@@ -105,7 +105,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         pass
 
     def acquire_time_domain_samples(
-        self, num_samples, num_samples_skip=0, retries=5, gain_adjust=True
+        self, num_samples, num_samples_skip=0, retries=5, cal_adjust=True
     ):
         logger.warning("Using mock signal analyzer!")
         self.sigan_overload = False
