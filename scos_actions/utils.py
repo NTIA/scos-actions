@@ -42,8 +42,9 @@ def load_from_json(fname: Path):
     try:
         with open(fname) as f:
             return json.load(f)
-    except Exception:
-        logger.exception("Unable to load JSON file {}".format(fname))
+    except Exception as e:
+        logger.error(f"Unable to load JSON file {fname}")
+        raise e
 
 
 def get_iterable_parameters(parameters: dict, sortby: str = "frequency"):
