@@ -79,6 +79,8 @@ IIR_PB_EDGE = "iir_pb_edge_Hz"
 IIR_SB_EDGE = "iir_sb_edge_Hz"
 NUM_FFTS = "nffts"
 APD_BIN_SIZE_DB = "apd_bin_size_dB"
+APD_MIN_BIN_DBM = "apd_min_bin_dBm"
+APD_MAX_BIN_DBM = "apd_max_bin_dBm"
 TD_BIN_SIZE_MS = "td_bin_size_ms"
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
@@ -96,6 +98,7 @@ FFT_SIZE = 875
 FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
+IMPEDANCE_OHMS = 50.0
 
 # Create power detectors
 TD_DETECTOR = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
@@ -162,13 +165,15 @@ def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
         are given as percentages, and amplitudes in dBm referenced to the
         calibration terminal.
     """
-    p, a = get_apd(iqdata, params[APD_BIN_SIZE_DB])
-    # Convert dBV to dBm:
-    # a = a * 2 : dBV --> dB(V^2)
-    # a = a - impedance_dB : dB(V^2) --> dBW
-    # a = a + 27 : dBW --> dBm (+30) and RF/baseband conversion (-3)
-    scale_factor = 27 - convert_linear_to_dB(50.0)  # Hard-coded for 50 Ohms.
-    ne.evaluate("(a*2)+scale_factor", out=a)
+    p, a = get_apd(
+        iqdata,
+        params[APD_BIN_SIZE_DB],
+        params[APD_MAX_BIN_DBM] - 27.0,
+        params[APD_MIN_BIN_DBM] - 27.0,
+        IMPEDANCE_OHMS,
+    )
+    # Convert dBW to dBm (+30) and account for RF/baseband conversion (-3)
+    ne.evaluate("a+27.0", out=a)
     return p, a
 
 
@@ -197,7 +202,7 @@ def get_td_power_results(
     block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
     n_blocks = len(iqdata) // block_size
     iqdata = iqdata.reshape((n_blocks, block_size))
-    iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.0)
+    iq_pwr = calculate_power_watts(iqdata, IMPEDANCE_OHMS)
 
     # Apply mean/max detectors
     td_result = apply_power_detector(iq_pwr, TD_DETECTOR, axis=1)
