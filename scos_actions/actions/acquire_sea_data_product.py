@@ -40,6 +40,7 @@ from scos_actions.hardware import preselector, switches
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.utils import (
     get_cpu_uptime_seconds,
+    get_current_cpu_clock_speed,
     get_current_cpu_temperature,
     get_disk_smart_data,
     get_max_cpu_temperature,
@@ -370,7 +371,9 @@ class NasctnSeaDataProduct(Action):
         self.configure_preselector(self.rf_path)
 
         # Collect all IQ data and spawn data product computation processes
-        all_data, all_idx, dp_procs, cap_meta, cap_entries = ([] for _ in range(5))
+        all_data, all_idx, dp_procs, cap_meta, cap_entries, cpu_speed = (
+            [] for _ in range(6)
+        )
         for parameters in iteration_params:
             measurement_result = self.capture_iq(parameters)
             # Start data product processing but do not block next IQ capture
@@ -383,6 +386,7 @@ class NasctnSeaDataProduct(Action):
             cap_meta_tuple = self.create_channel_metadata(measurement_result)
             cap_meta.append(cap_meta_tuple[0])
             cap_entries.append(cap_meta_tuple[1])
+            cpu_speed.append(get_current_cpu_clock_speed())
 
         # Initialize metadata object
         self.get_sigmf_builder(
@@ -430,7 +434,9 @@ class NasctnSeaDataProduct(Action):
             "ntia-nasctn-sea:median_of_rms_channel_powers", med_rms_ch_pwrs
         )
         self.create_global_data_product_metadata(self.parameters, apd_lengths)
-        self.capture_diagnostics(action_start_tic)  # Add diagnostics to metadata
+        self.capture_diagnostics(
+            action_start_tic, cpu_speed
+        )  # Add diagnostics to metadata
         self.sigmf_builder.build()
 
         measurement_action_completed.send(
@@ -498,7 +504,7 @@ class NasctnSeaDataProduct(Action):
             value = "Unavailable"
         return value
 
-    def capture_diagnostics(self, action_start_tic: float) -> dict:
+    def capture_diagnostics(self, action_start_tic: float, cpu_speeds: list) -> dict:
         """
         Capture diagnostic sensor data.
 
@@ -519,10 +525,11 @@ class NasctnSeaDataProduct(Action):
             SPU power/control tray temperature, SPU power/control tray
             humidity.
 
-        From the SPU computer: systemwide CPU utilization (%) averaged over
-            the action runtime, system load (%) averaged over last 5 minutes,
-            current memory usage (%), SSD SMART health check status, SSD usage
-            percent, CPU temperature, CPU overheating status, CPU uptime, SCOS
+        From the SPU computer: average CPU clock speed during action run,
+            systemwide CPU utilization (%) averaged over the action runtime,
+            system load (%) averaged over last 5 minutes, current memory
+            usage (%), SSD SMART health check status, SSD usage percent,
+            CPU temperature, CPU overheating status, CPU uptime, SCOS
             start time, and SCOS uptime.
 
         The total action runtime is also recorded.
@@ -597,6 +604,9 @@ class NasctnSeaDataProduct(Action):
         cpu_uptime_days = round(get_cpu_uptime_seconds() / (60 * 60 * 24), 4)
 
         computer_metrics = {
+            "maximum_cpu_clock_speed_MHz": round(np.max(cpu_speeds), 2),
+            "minimum_cpu_clock_speed_MHz": round(np.min(cpu_speeds), 2),
+            "mean_cpu_clock_speed_MHz": round(np.mean(cpu_speeds), 2),
             "action_cpu_usage_pct": round(cpu_utilization, 2),
             "system_load_5m_pct": round(load_avg_5m, 2),
             "memory_usage_pct": round(mem_usage_pct, 2),

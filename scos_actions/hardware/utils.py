@@ -29,6 +29,24 @@ def get_cpu_uptime_seconds() -> float:
         raise e
 
 
+def get_current_cpu_clock_speed() -> float:
+    """
+    Get the current clock speed of the CPU running SCOS.
+
+    The clock speed is queried with ``lscpu`` and the returned
+    value is in MHz.
+
+    :return:
+    """
+    try:
+        out = subprocess.check_output(["lscpu", "| grep 'MHz'"]).decode("utf-8")
+        spd = [l.split()[2] for l in out.split("\n") if l.startswith("CPU MHz:")][0]
+        return float(spd)
+    except Exception as e:
+        logger.error("Unable to retrieve current CPU speed")
+        raise e
+
+
 def get_current_cpu_temperature(fahrenheit: bool = False) -> float:
     """
     Get the current temperature of the CPU running SCOS.
