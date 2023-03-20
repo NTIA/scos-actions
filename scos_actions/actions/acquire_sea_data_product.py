@@ -208,17 +208,17 @@ def get_td_power_results(
     td_result = apply_power_detector(iq_pwr, TD_DETECTOR, axis=1)
 
     # Get single value mean/max statistics
-    td_channel_result = np.array([td_result[0].max(), td_result[1].mean()])
+    td_channel_result = np.array([td_result[0].max(), td_result[1].median()])
 
     # Convert to dBm and account for RF/baseband power difference
     td_result, td_channel_result = (
         convert_watts_to_dBm(x) - 3.0 for x in [td_result, td_channel_result]
     )
 
-    channel_max, channel_mean = (np.array(a) for a in td_channel_result)
+    channel_max, channel_median = (np.array(a) for a in td_channel_result)
 
     # packed order is (max, mean)
-    return td_result[0], td_result[1], channel_max, channel_mean
+    return td_result[0], td_result[1], channel_max, channel_median
 
 
 @ray.remote
@@ -310,12 +310,12 @@ def generate_data_product(
 
     # Flatten data product but retain component indices
     # Also, separate single value channel powers
-    max_chan_pwr = DATA_TYPE(data_product[4])
-    mean_chan_pwr = DATA_TYPE(data_product[5])
+    max_max_chan_pwr = DATA_TYPE(data_product[4])
+    med_rms_chan_pwr = DATA_TYPE(data_product[5])
     del data_product[4:6]
     data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
 
-    return data_product, dp_idx, max_chan_pwr, mean_chan_pwr
+    return data_product, dp_idx, max_max_chan_pwr, med_rms_chan_pwr
 
 
 class NasctnSeaDataProduct(Action):
@@ -397,8 +397,8 @@ class NasctnSeaDataProduct(Action):
         # Collect processed data product results
         last_data_len = 0
         results = ray.get(dp_procs)  # Ordering is retained
-        max_ch_pwrs, rms_ch_pwrs, apd_lengths = [], [], []
-        for i, (dp, dp_idx, max_ch_pwr, rms_ch_pwr) in enumerate(results):
+        max_max_ch_pwrs, med_rms_ch_pwrs, apd_lengths = [], [], []
+        for i, (dp, dp_idx, max_ch_pwr, med_ch_pwr) in enumerate(results):
             # Combine channel data
             all_data.extend(dp)
             all_idx.extend((dp_idx + last_data_len).tolist())
@@ -412,8 +412,8 @@ class NasctnSeaDataProduct(Action):
             )
 
             # Collect channel power statistics
-            max_ch_pwrs.append(max_ch_pwr)
-            rms_ch_pwrs.append(rms_ch_pwr)
+            max_max_ch_pwrs.append(max_ch_pwr)
+            med_rms_ch_pwrs.append(med_ch_pwr)
 
             # Get APD result sizes for metadata
             apd_lengths.append(dp_idx[11] - dp_idx[10])
@@ -424,10 +424,10 @@ class NasctnSeaDataProduct(Action):
         # Build metadata and convert data to compressed bytes
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
         self.sigmf_builder.add_to_global(
-            "ntia-nasctn-sea:max_channel_powers", max_ch_pwrs
+            "ntia-nasctn-sea:max_of_max_channel_powers", max_max_ch_pwrs
         )
         self.sigmf_builder.add_to_global(
-            "ntia-nasctn-sea:rms_channel_powers", rms_ch_pwrs
+            "ntia-nasctn-sea:median_of_rms_channel_powers", med_rms_ch_pwrs
         )
         self.create_global_data_product_metadata(self.parameters, apd_lengths)
         self.capture_diagnostics(action_start_tic)  # Add diagnostics to metadata
