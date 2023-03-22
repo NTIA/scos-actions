@@ -311,12 +311,12 @@ def generate_data_product(
 
     # Flatten data product but retain component indices
     # Also, separate single value channel powers
-    max_max_chan_pwr = DATA_TYPE(data_product[4])
+    max_peak_chan_pwr = DATA_TYPE(data_product[4])
     med_rms_chan_pwr = DATA_TYPE(data_product[5])
     del data_product[4:6]
     data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
 
-    return data_product, dp_idx, max_max_chan_pwr, med_rms_chan_pwr
+    return data_product, dp_idx, max_peak_chan_pwr, med_rms_chan_pwr
 
 
 class NasctnSeaDataProduct(Action):
@@ -401,7 +401,7 @@ class NasctnSeaDataProduct(Action):
         # Collect processed data product results
         last_data_len = 0
         results = ray.get(dp_procs)  # Ordering is retained
-        max_max_ch_pwrs, med_rms_ch_pwrs, apd_lengths = [], [], []
+        max_peak_ch_pwrs, med_rms_ch_pwrs, apd_lengths = [], [], []
         for i, (dp, dp_idx, max_ch_pwr, med_ch_pwr) in enumerate(results):
             # Combine channel data
             all_data.extend(dp)
@@ -416,7 +416,7 @@ class NasctnSeaDataProduct(Action):
             )
 
             # Collect channel power statistics
-            max_max_ch_pwrs.append(max_ch_pwr)
+            max_peak_ch_pwrs.append(max_ch_pwr)
             med_rms_ch_pwrs.append(med_ch_pwr)
 
             # Get APD result sizes for metadata
@@ -428,7 +428,7 @@ class NasctnSeaDataProduct(Action):
         # Build metadata and convert data to compressed bytes
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
         self.sigmf_builder.add_to_global(
-            "ntia-nasctn-sea:max_of_max_channel_powers", max_max_ch_pwrs
+            "ntia-nasctn-sea:max_of_peak_channel_powers", max_peak_ch_pwrs
         )
         self.sigmf_builder.add_to_global(
             "ntia-nasctn-sea:median_of_rms_channel_powers", med_rms_ch_pwrs
