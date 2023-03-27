@@ -39,8 +39,8 @@ def get_current_cpu_clock_speed() -> float:
     :return:
     """
     try:
-        out = subprocess.check_output(["lscpu | grep 'MHz'"]).decode("utf-8")
-        spd = [l.split()[2] for l in out.split("\n") if l.startswith("CPU MHz:")][0]
+        out = subprocess.run("lscpu | grep 'MHz'", shell=True, capture_output=True)
+        spd = str(out.stdout).split("\\n")[0].split()[2]
         return float(spd)
     except Exception as e:
         logger.error("Unable to retrieve current CPU speed")
