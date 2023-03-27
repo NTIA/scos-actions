@@ -209,7 +209,7 @@ def get_td_power_results(
     td_result = apply_power_detector(iq_pwr, TD_DETECTOR, axis=1)
 
     # Get single value mean/max statistics
-    td_channel_result = np.array([td_result[0].max(), td_result[1].median()])
+    td_channel_result = np.array([np.mean(td_result[0]), np.median(td_result[1])])
 
     # Convert to dBm and account for RF/baseband power difference
     td_result, td_channel_result = (
