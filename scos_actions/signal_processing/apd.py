@@ -76,6 +76,8 @@ def get_apd(
             min_bin, max_bin = (
                 b + 10.0 * np.log10(impedance_ohms) for b in [min_bin, max_bin]
             )
+        print(f"MIN BIN {min_bin}\nMAX BIN {max_bin}")
+        print(f"BIN SIZE {bin_size_dB}")
         # Generate bins based on bin_size_dB for downsampling
         a = np.arange(min_bin, max_bin + bin_size_dB, bin_size_dB)
         print(f"APD BINS: {a}")
