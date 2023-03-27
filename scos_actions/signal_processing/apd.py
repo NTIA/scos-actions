@@ -45,7 +45,7 @@ def get_apd(
         probabilities, and a contains the APD amplitudes.
     """
     # Convert IQ to amplitudes
-    all_amps = ne.evaluate("abs(time_data).real")
+    all_amps = ne.evaluate("abs(x).real", {"x": time_data})
 
     # Replace any 0 value amplitudes with NaN
     all_amps[all_amps == 0] = np.nan
@@ -78,6 +78,7 @@ def get_apd(
             )
         # Generate bins based on bin_size_dB for downsampling
         a = np.arange(min_bin, max_bin + bin_size_dB, bin_size_dB)
+        print(f"APD BINS: {a}")
         # Get counts of amplitudes exceeding each bin value
         p = sample_ccdf(all_amps, a)
 
@@ -108,7 +109,9 @@ def sample_ccdf(a: np.ndarray, edges: np.ndarray, density: bool = True) -> np.nd
     edge_inds = np.searchsorted(edges, a, side="left")
     bin_counts = np.bincount(edge_inds, minlength=edges.size + 1)
     ccdf = (a.size - bin_counts.cumsum())[:-1]
-
+    print(
+        f"EDGE INDS: {edge_inds}\nBIN COUNTS: {bin_counts}\nCCDF: {ccdf}\nCCDF LEN: {len(ccdf)}"
+    )
     if density:
         ccdf = ccdf.astype("float64")
         ne.evaluate("ccdf/a_size", {"ccdf": ccdf, "a_size": a.size}, out=ccdf)
