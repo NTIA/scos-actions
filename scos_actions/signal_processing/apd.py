@@ -80,11 +80,8 @@ def get_apd(
             min_bin, max_bin = (
                 b + 10.0 * np.log10(impedance_ohms) for b in [min_bin, max_bin]
             )
-        print(f"MIN BIN {min_bin}\nMAX BIN {max_bin}")
-        print(f"BIN SIZE {bin_size_dB}")
         # Generate bins based on bin_size_dB for downsampling
         a = np.arange(min_bin, max_bin + bin_size_dB, bin_size_dB)
-        print(f"APD BINS: {a}")
         # Get counts of amplitudes exceeding each bin value
         p = sample_ccdf(all_amps, a)
 
@@ -115,9 +112,6 @@ def sample_ccdf(a: np.ndarray, edges: np.ndarray, density: bool = True) -> np.nd
     edge_inds = np.searchsorted(edges, a, side="left")
     bin_counts = np.bincount(edge_inds, minlength=edges.size + 1)
     ccdf = (a.size - bin_counts.cumsum())[:-1]
-    print(
-        f"EDGE INDS: {edge_inds}\nBIN COUNTS: {bin_counts}\nCCDF: {ccdf}\nCCDF LEN: {len(ccdf)}"
-    )
     if density:
         ccdf = ccdf.astype("float64")
         ne.evaluate("ccdf/a_size", {"ccdf": ccdf, "a_size": a.size}, out=ccdf)
