@@ -28,10 +28,9 @@ def get_apd(
     and will output the same data size as ``time_data``.
 
     If ``impedance_ohms`` is not provided, output units are determined by
-    ``20*log10(input units)``.
+    ``20*log10(input units)`` (dBV for ``time_data`` in Volts).
     If ``impedance_ohms`` is provided, output units are determined by
-    ``20*log10(input units) - 10*log10(impedance_ohms)``. For example, if
-    the units of ``time_data`` are Volts, the output units will be dBW.
+    ``10*log10(input units squared / Ohms)``. (dBW for ``time_data`` in Volts).
 
     :param time_data: Input complex baseband IQ samples.
     :param bin_size_dB: Amplitude granularity, in dB, for estimating the APD.
@@ -41,6 +40,8 @@ def get_apd(
         same units as the output (dBW for Volts input).
     :param max_bin: The maximum bin edge value for downsampling, in the
         same units as the output (dBW for Volts input).
+    :param impedance_ohms: The system's input impedance, in Ohms. Used
+        to calculate power if provided.
     :return: A tuple (p, a) of NumPy arrays, where p contains the APD
         probabilities, and a contains the APD amplitudes.
     """
