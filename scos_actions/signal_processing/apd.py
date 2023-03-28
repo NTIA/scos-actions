@@ -71,6 +71,10 @@ def get_apd(
         if max_bin is None:
             logger.debug("Setting APD maximum bin edge to maximum recorded amplitude")
             max_bin = np.nanmax(all_amps)
+        if min_bin >= max_bin:
+            logger.error(
+                f"Minimum APD bin {min_bin} is not less than maximum {max_bin}"
+            )
         # Scale bin edges to the correct units if necessary
         if impedance_ohms is not None:
             min_bin, max_bin = (

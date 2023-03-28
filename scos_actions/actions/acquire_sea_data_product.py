@@ -169,8 +169,8 @@ def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     p, a = get_apd(
         iqdata,
         params[APD_BIN_SIZE_DB],
-        params[APD_MAX_BIN_DBM] - 27.0,
         params[APD_MIN_BIN_DBM] - 27.0,
+        params[APD_MAX_BIN_DBM] - 27.0,
         IMPEDANCE_OHMS,
     )
     # Convert dBW to dBm (+30) and account for RF/baseband conversion (-3)
