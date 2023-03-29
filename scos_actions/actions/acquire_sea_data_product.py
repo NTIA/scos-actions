@@ -762,7 +762,13 @@ class NasctnSeaDataProduct(Action):
     ) -> SigMFBuilder:
         """Build SigMF that applies to the entire capture (all channels)"""
         sigmf_builder = SigMFBuilder()
-        sigmf_builder.set_coordinate_system()
+        sigmf_builder.set_geolocation(self.sensor_definition)
+        try:
+            loc = self.sensor_definition["location"]
+            sigmf_builder.set_geolocation(loc["x"], loc["y"], loc["z"])
+        except KeyError as e:
+            logger.error("Set the sensor location in the SCOS admin web UI")
+            raise e
         sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_num_channels(len(iter_params))
@@ -774,17 +780,6 @@ class NasctnSeaDataProduct(Action):
             "id": self.sensor_definition["sensor_spec"]["id"],
             "sensor_spec": self.sensor_definition["sensor_spec"],
         }
-        # Adding location requires the location to be set manually
-        try:
-            sensor_meta["location"] = self.sensor_definition["location"]
-        except KeyError as e:
-            logger.error("Set the sensor location in the SCOS admin web UI")
-            raise e
-
-        sigmf_builder.sigmf_md.set_global_field(
-            "ntia-sensor:sensor",
-            sensor_meta,
-        )
 
         self.sigmf_builder = sigmf_builder
 

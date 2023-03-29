@@ -3,28 +3,40 @@ from enum import Enum
 from sigmf import SigMFFile
 
 GLOBAL_INFO = {
-    "core:version": "v0.0.2",
-    "core:extensions": {
-        "ntia-algorithm": "v1.0.0",
-        "ntia-core": "v1.0.0",
-        "ntia-environment": "v1.0.0",
-        "ntia-location": "v1.0.0",
-        "ntia-scos": "v1.0.0",
-        "ntia-sensor": "v1.0.0",
-        "ntia-nasctn-sea": "v0.4",
-    },
+    "core:version": "v1.0.0",
+    "core:extensions": [
+        {
+            "name": "ntia-algorithm",
+            "version": "v2.0.0",
+            "optional": False,
+        },
+        {
+            "name": "ntia-core",
+            "version": "v1.0.0",
+            "optional": False,
+        },
+        {
+            "name": "ntia-environment",
+            "version": "v1.0.0",
+            "optional": False,
+        },
+        {
+            "name": "ntia-scos",
+            "version": "v1.0.0",
+            "optional": True,
+        },
+        {
+            "name": "ntia-sensor",
+            "version": "v2.0.0",
+            "optional": False,
+        },
+        {
+            "name": "ntia-nasctn-sea",
+            "version": "v0.4",
+            "optional": False,
+        },
+    ],
 }
-
-
-def get_coordinate_system_sigmf():
-    return {
-        "id": "WGS84",
-        "coordinate_system_type": "GeographicCoordinateSystem",
-        "distance_unit": "decimal degrees",
-        "time_unit": "seconds",
-        "elevation_ref": "Above Mean Sea Level",
-        "elevation_unit": "meters",
-    }
 
 
 class MeasurementType(Enum):
@@ -146,9 +158,21 @@ class SigMFBuilder:
     def set_schedule(self, schedule_entry_json):
         self.sigmf_md.set_global_field("ntia-scos:schedule", schedule_entry_json)
 
-    def set_coordinate_system(self, coordinate_system=get_coordinate_system_sigmf()):
+    def set_geolocation(
+        self, longitude: float, latitude: float, altitude: float = None
+    ) -> None:
+        """
+        Set the ``core:geolocation`` field, recording the sensor location.
+
+        :param longitude: (REQUIRED) Sensor longitude, in decimal degrees WGS84.
+        :param latitude: (REQUIRED) Sensor latitude, in decimal degrees WGS84.
+        :param altitude: (OPTIONAL) Sensor altitude, in meters above the WGS84 ellipsoid.
+        """
+        coords = [longitude, latitude]
+        if altitude is not None:
+            coords.append(altitude)
         self.sigmf_md.set_global_field(
-            "ntia-location:coordinate_system", coordinate_system
+            "core:geolocation", {"type": "Point", "coordinates": coords}
         )
 
     def set_capture(
@@ -185,7 +209,6 @@ class SigMFBuilder:
         recording_id=None,
         is_complex=True,
     ):
-        sample_rate = measurement_result["sample_rate"]
         if "calibration_datetime" in measurement_result:
             self.set_last_calibration_time(measurement_result["calibration_datetime"])
 
@@ -193,9 +216,14 @@ class SigMFBuilder:
         self.set_action(
             measurement_result["name"], description, description.splitlines()[0]
         )
-        self.set_coordinate_system()
+        if "location" in sensor_def:
+            self.set_geolocation(
+                sensor_def["location"]["x"],
+                sensor_def["location"]["y"],
+                sensor_def["location"]["z"],
+            )
         self.set_data_type(is_complex=is_complex)
-        self.set_sample_rate(sample_rate)
+        self.set_sample_rate(measurement_result["sample_rate"])
         self.set_schedule(schedule_entry_json)
         self.set_sensor(sensor_def)
         self.set_task(measurement_result["task_id"])
