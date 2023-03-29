@@ -430,7 +430,7 @@ class NasctnSeaDataProduct(Action):
             channel_data.extend(ray.get(ray.get(channel_data_process)))
             toc = perf_counter()
             logger.debug(f"Waited {toc-tic} for channel {i} data")
-            logger.debug(channel_data)
+            logger.debug(f"Channel data list length: {len(channel_data)}")
 
             # Pull out single value channel powers
             max_peak_ch_pwrs.append(DATA_TYPE(channel_data[4]))
