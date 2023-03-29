@@ -427,8 +427,12 @@ class NasctnSeaDataProduct(Action):
             # Now wait for channel data to be processed
             channel_data = []
             tic = perf_counter()
-            for d in ray.get(channel_data_process):
-                channel_data.extend(ray.get(d))
+            for i, d in enumerate(ray.get(channel_data_process)):
+                if i == 3:
+                    # APD requires different handling
+                    channel_data.append(ray.get(d))
+                else:
+                    channel_data.extend(ray.get(d))
             toc = perf_counter()
             logger.debug(f"Waited {toc-tic} for channel {i} data")
             logger.debug(f"Channel data list length: {len(channel_data)}")
