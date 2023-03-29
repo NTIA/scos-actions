@@ -191,8 +191,8 @@ def get_td_power_results(
     """
     Compute mean/max time domain power statistics from IQ samples.
 
-    Mean and max detectors are applied over a configurable time window.
-    Mean and max power values are also reported as single values, with
+    RMS and peak detectors are applied over a configurable time window.
+    Median and max power statistics are also reported as single values, with
     the detectors applied over the entire input IQ sample sequence.
 
     :param iqdata: Complex-valued input waveform samples.
@@ -200,8 +200,8 @@ def get_td_power_results(
         `TD_BIN_SIZE_MS` and `SAMPLE_RATE` keys.
     :return: A tuple of NumPy arrays containing power detector results,
         in dBm referenced to the calibration terminal. The order of the
-        results is (max, mean, max_single_value, mean_single_value). The
-        single_value results will always contain only a single number,
+        results is (peak, rms, max_peak_single_value, median_rms_single_value).
+        The single_value results will always contain only a single number,
         while the length of the other arrays depends on the configured
         detector period.
     """
@@ -211,10 +211,10 @@ def get_td_power_results(
     iqdata = iqdata.reshape((n_blocks, block_size))
     iq_pwr = calculate_power_watts(iqdata, IMPEDANCE_OHMS)
 
-    # Apply mean/max detectors
+    # Apply peak/RMS detectors
     td_result = apply_power_detector(iq_pwr, TD_DETECTOR, axis=1)
 
-    # Get single value mean/max statistics
+    # Get single value median/max statistics
     td_channel_result = np.array([np.mean(td_result[0]), np.median(td_result[1])])
 
     # Convert to dBm and account for RF/baseband power difference
