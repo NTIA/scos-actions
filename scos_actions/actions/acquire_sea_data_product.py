@@ -26,12 +26,9 @@ import lzma
 from time import perf_counter
 from typing import Tuple
 
-import numexpr as ne
 import numpy as np
 import psutil
 import ray
-from its_preselector.configuration_exception import ConfigurationException
-from its_preselector.web_relay import WebRelay
 from scipy.signal import sos2tf, sosfilt
 
 from scos_actions import utils
@@ -149,7 +146,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     )
     fft_result = calculate_pseudo_power(fft_result)
     fft_result = apply_power_detector(fft_result, FFT_DETECTOR)  # (max, mean)
-    ne.evaluate("fft_result/50", out=fft_result)  # Finish conversion to Watts
+    fft_result /= IMPEDANCE_OHMS  # Finish conversion to Watts
     fft_result = np.fft.fftshift(fft_result, axes=(1,))  # Shift frequencies
     fft_result = convert_watts_to_dBm(fft_result)
     fft_result -= 3  # Baseband/RF power conversion
@@ -289,7 +286,7 @@ def get_periodic_frame_power(
     ).reshape(6, Npts)
 
     # Finish conversion to power
-    ne.evaluate("pfp/50", out=pfp)
+    pfp /= IMPEDANCE_OHMS
 
     # Convert to dBm
     pfp = convert_watts_to_dBm(pfp)
