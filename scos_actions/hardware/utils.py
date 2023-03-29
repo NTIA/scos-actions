@@ -94,7 +94,7 @@ def get_disk_smart_data(disk: str) -> dict:
         elif line.startswith("Critical Warning:"):
             disk_info["critical_warning"] = line.split()[2]
         elif line.startswith("Temperature:"):
-            disk_info["temperature_degC"] = int(line.split()[1])
+            disk_info["temp"] = int(line.split()[1])
         elif line.startswith("Available Spare:"):
             disk_info["available_spare"] = int(line.split()[2].rstrip("%"))
         elif line.startswith("Available Spare Threshold:"):
@@ -102,9 +102,9 @@ def get_disk_smart_data(disk: str) -> dict:
         elif line.startswith("Percentage Used:"):
             disk_info["percentage_used"] = int(line.split()[2].rstrip("%"))
         elif line.startswith("Unsafe Shutdowns:"):
-            disk_info["unsafe_shutdown_count"] = int(line.split()[2])
+            disk_info["unsafe_shutdowns"] = int(line.split()[2])
         elif line.startswith("Media and Data Integrity Errors:"):
-            disk_info["media_data_integrity_error_count"] = int(line.split()[5])
+            disk_info["integrity_errors"] = int(line.split()[5])
     return disk_info
 
 
