@@ -565,34 +565,33 @@ class NasctnSeaDataProduct(Action):
                 spu_diagnostics = switch.get_status()
                 del spu_diagnostics["name"]
                 del spu_diagnostics["healthy"]
-                for field, sensor_idx in SPU_SENSORS:
+                for sensor in SPU_SENSORS:
                     try:
-                        value = switch.get_sensor_value(sensor_idx)
-                        spu_diagnostics[field] = value
+                        value = switch.get_sensor_value(SPU_SENSORS[sensor])
+                        spu_diagnostics[sensor] = value
                     except:
-                        logger.debug(f"Unable to read {field} from SPU x410")
+                        logger.debug(f"Unable to read {sensor} from SPU x410")
                         pass
 
         # Read preselector sensors
-        preselector_diagnostics = preselector.get_status()
-        del preselector_diagnostics["name"]
-        del preselector_diagnostics["healthy"]
-        # TODO add more ^
+        preselector_diagnostics = {}
 
-        for field, sensor_idx in PRESELECTOR_SENSORS:
+        for sensor in PRESELECTOR_SENSORS:
             try:
-                value = preselector.get_sensor_value(sensor_idx)
-                preselector_diagnostics[field] = value
+                value = preselector.get_sensor_value(PRESELECTOR_SENSORS[sensor])
+                preselector_diagnostics[sensor] = value
             except:
-                logger.debug(f"Unable to read {field} from preselector")
+                logger.debug(f"Unable to read {sensor} from preselector")
                 pass
 
-        for field, sensor_idx in PRESELECTOR_DIGITAL_INPUTS:
+        for inpt in PRESELECTOR_DIGITAL_INPUTS:
             try:
-                value = preselector.get_digital_input_value(sensor_idx)
-                preselector_diagnostics[field] = value
+                value = preselector.get_digital_input_value(
+                    PRESELECTOR_DIGITAL_INPUTS[inpt]
+                )
+                preselector_diagnostics[inpt] = value
             except:
-                logger.debug(f"Unable to read {field} from preselector")
+                logger.debug(f"Unable to read {inpt} from preselector")
                 pass
 
         # Read computer performance metrics
