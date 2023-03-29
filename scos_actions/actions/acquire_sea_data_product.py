@@ -398,6 +398,15 @@ class NasctnSeaDataProduct(Action):
         iteration_params = utils.get_iterable_parameters(self.parameters)
         self.configure_preselector(self.rf_path)
 
+        # Initialize metadata object
+        self.get_sigmf_builder(
+            # Assumes the sigan correctly uses the configured sample rate.
+            iteration_params[0][SAMPLE_RATE],
+            task_id,
+            schedule_entry,
+            iteration_params,
+        )
+
         # Collect all IQ data and spawn data product computation processes
         all_data, all_idx, dp_procs, cap_meta, cap_entries, cpu_speed = (
             [] for _ in range(6)
@@ -415,16 +424,6 @@ class NasctnSeaDataProduct(Action):
             cap_meta.append(cap_meta_tuple[0])
             cap_entries.append(cap_meta_tuple[1])
             cpu_speed.append(get_current_cpu_clock_speed())
-
-        # Initialize metadata object
-        self.get_sigmf_builder(
-            # Assumes all sample rates are the same, and that the sigan
-            # correctly uses the desired sample rate.
-            iteration_params[0][SAMPLE_RATE],
-            task_id,
-            schedule_entry,
-            iteration_params,
-        )
 
         # Collect processed data product results
         last_data_len = 0
