@@ -302,11 +302,14 @@ def generate_data_product(
     data_product = []
     iqdata = sosfilt(iir_sos, iqdata)
 
+    # Explicitly call ray.put to pass filtered IQ to nested remote procs
+    iqdata_id = ray.put(iqdata)
+
     remote_procs = []
-    remote_procs.append(get_fft_results.remote(iqdata, params))
-    remote_procs.append(get_td_power_results.remote(iqdata, params))
-    remote_procs.append(get_periodic_frame_power.remote(iqdata, params))
-    remote_procs.append(get_apd_results.remote(iqdata, params))
+    remote_procs.append(get_fft_results.remote(iqdata_id, params))
+    remote_procs.append(get_td_power_results.remote(iqdata_id, params))
+    remote_procs.append(get_periodic_frame_power.remote(iqdata_id, params))
+    remote_procs.append(get_apd_results.remote(iqdata_id, params))
     all_results = ray.get(remote_procs)
 
     for dp in all_results:
