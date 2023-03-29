@@ -762,7 +762,6 @@ class NasctnSeaDataProduct(Action):
     ) -> SigMFBuilder:
         """Build SigMF that applies to the entire capture (all channels)"""
         sigmf_builder = SigMFBuilder()
-        sigmf_builder.set_geolocation(self.sensor_definition)
         try:
             loc = self.sensor_definition["location"]
             sigmf_builder.set_geolocation(loc["x"], loc["y"], loc["z"])
@@ -780,6 +779,7 @@ class NasctnSeaDataProduct(Action):
             "id": self.sensor_definition["sensor_spec"]["id"],
             "sensor_spec": self.sensor_definition["sensor_spec"],
         }
+        sigmf_builder.sigmf_md.set_global_field("ntia-sensor:sensor", sensor_meta)
 
         self.sigmf_builder = sigmf_builder
 
