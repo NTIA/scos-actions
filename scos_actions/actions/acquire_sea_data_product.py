@@ -297,35 +297,22 @@ def get_periodic_frame_power(
 @ray.remote
 def generate_data_product(
     iqdata: np.ndarray, params: dict, iir_sos: np.ndarray
-) -> np.ndarray:
+) -> list:
     """Process IQ data and generate the SEA data product."""
-    data_product = []
     iqdata = sosfilt(iir_sos, iqdata)
 
     # Explicitly call ray.put to pass filtered IQ to nested remote procs
     iqdata_id = ray.put(iqdata)
 
-    remote_procs = []
-    remote_procs.append(get_fft_results.remote(iqdata_id, params))
-    remote_procs.append(get_td_power_results.remote(iqdata_id, params))
-    remote_procs.append(get_periodic_frame_power.remote(iqdata_id, params))
-    remote_procs.append(get_apd_results.remote(iqdata_id, params))
-    all_results = ray.get(remote_procs)
+    remote_procs = [
+        get_fft_results.remote(iqdata_id, params),
+        get_td_power_results.remote(iqdata_id, params),
+        get_periodic_frame_power.remote(iqdata_id, params),
+        get_apd_results.remote(iqdata_id, params),
+    ]
 
-    for dp in all_results:
-        data_product.extend(dp)
-
-    del iqdata
-    gc.collect()
-
-    # Flatten data product but retain component indices
-    # Also, separate single value channel powers
-    max_peak_chan_pwr = DATA_TYPE(data_product[4])
-    med_rms_chan_pwr = DATA_TYPE(data_product[5])
-    del data_product[4:6]
-    data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
-
-    return data_product, dp_idx, max_peak_chan_pwr, med_rms_chan_pwr
+    # Return identifiers to avoid waiting for processing to complete
+    return remote_procs
 
 
 class NasctnSeaDataProduct(Action):
@@ -406,11 +393,10 @@ class NasctnSeaDataProduct(Action):
             schedule_entry,
             iteration_params,
         )
+        self.create_global_data_product_metadata(self.parameters)
 
         # Collect all IQ data and spawn data product computation processes
-        all_data, all_idx, dp_procs, cap_meta, cap_entries, cpu_speed = (
-            [] for _ in range(6)
-        )
+        dp_procs, cap_meta, cap_entries, cpu_speed = [], [], [], []
         for parameters in iteration_params:
             measurement_result = self.capture_iq(parameters)
             # Start data product processing but do not block next IQ capture
@@ -427,14 +413,10 @@ class NasctnSeaDataProduct(Action):
 
         # Collect processed data product results
         last_data_len = 0
-        results = ray.get(dp_procs)  # Ordering is retained
-        max_peak_ch_pwrs, med_rms_ch_pwrs = [], []
-        for i, (dp, dp_idx, max_ch_pwr, med_ch_pwr) in enumerate(results):
-            # Combine channel data
-            all_data.extend(dp)
-            all_idx.extend((dp_idx + last_data_len).tolist())
+        all_data, max_peak_ch_pwrs, med_rms_ch_pwrs = [], [], []
 
-            # Add Capture
+        for i, channel_data_process in enumerate(dp_procs):
+            # Add capture metadata
             self.sigmf_builder.set_capture(
                 cap_meta[i]["frequency"],
                 cap_meta[i]["start_time"],
@@ -442,22 +424,31 @@ class NasctnSeaDataProduct(Action):
                 extra_entries=cap_entries[i],
             )
 
-            # Collect channel power statistics
-            max_peak_ch_pwrs.append(max_ch_pwr)
-            med_rms_ch_pwrs.append(med_ch_pwr)
+            # Now wait for channel data to be processed
+            channel_data = []
+            tic = perf_counter()
+            channel_data.extend(ray.get(ray.get(channel_data_process)))
+            toc = perf_counter()
+            logger.debug(f"Waited {toc-tic} for channel {i} data")
+            logger.debug(channel_data)
 
-            # Increment start sample for data combination
+            # Pull out single value channel powers
+            max_peak_ch_pwrs.append(DATA_TYPE(channel_data[4]))
+            med_rms_ch_pwrs.append(DATA_TYPE(channel_data[5]))
+            del channel_data[4:6]
+
+            all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
             last_data_len = len(all_data)
 
         # Build metadata and convert data to compressed bytes
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
         self.sigmf_builder.add_to_global(
-            "nasctn-sea:max_of_peak_channel_powers", max_peak_ch_pwrs
+            "ntia-nasctn-sea:max_of_peak_channel_powers", max_peak_ch_pwrs
         )
         self.sigmf_builder.add_to_global(
-            "nasctn-sea:median_of_rms_channel_powers", med_rms_ch_pwrs
+            "ntia-nasctn-sea:median_of_rms_channel_powers", med_rms_ch_pwrs
         )
-        self.create_global_data_product_metadata(self.parameters)
+        # Get diagnostics last to record action runtime
         self.capture_diagnostics(
             action_start_tic, cpu_speed
         )  # Add diagnostics to metadata
@@ -793,14 +784,10 @@ class NasctnSeaDataProduct(Action):
         self.sigmf_builder = sigmf_builder
 
     @staticmethod
-    def transform_data(data_product: list):
-        """Flatten data product list of arrays (single channel), convert to bytes object, then compress"""
-        # Get indices for start of each component in flattened result
-        data_lengths = [d.size for d in data_product]
-        idx = [0] + np.cumsum(data_lengths[:-1]).tolist()
+    def transform_data(channel_data_products: list):
+        """Flatten data product list of arrays for a single channel."""
         # Flatten data product, reduce dtype
-        data_product = np.hstack(data_product).astype(DATA_TYPE)
-        return data_product, np.array(idx)
+        return np.hstack(channel_data_products).astype(DATA_TYPE)
 
     @staticmethod
     def compress_bytes_data(data: bytes) -> bytes:
