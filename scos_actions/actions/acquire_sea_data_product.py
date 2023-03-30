@@ -191,16 +191,17 @@ def get_td_power_results(
     """
     Compute mean/max time domain power statistics from IQ samples.
 
-    RMS and peak detectors are applied over a configurable time window.
-    Median and max power statistics are also reported as single values, with
-    the detectors applied over the entire input IQ sample sequence.
+    Mean and max detectors are applied over a configurable time window.
+    Median and max power statistics are also computed on the detector
+    results, and reported as single values. The median is computed on
+    the mean detector result, and the max is computed on the max result.
 
     :param iqdata: Complex-valued input waveform samples.
     :param params: Action parameters from YAML, which must include
         `TD_BIN_SIZE_MS` and `SAMPLE_RATE` keys.
     :return: A tuple of NumPy arrays containing power detector results,
         in dBm referenced to the calibration terminal. The order of the
-        results is (peak, rms, max_peak_single_value, median_rms_single_value).
+        results is (max, mean, max_max_single_value, median_mean_single_value).
         The single_value results will always contain only a single number,
         while the length of the other arrays depends on the configured
         detector period.
@@ -211,7 +212,7 @@ def get_td_power_results(
     iqdata = iqdata.reshape((n_blocks, block_size))
     iq_pwr = calculate_power_watts(iqdata, IMPEDANCE_OHMS)
 
-    # Apply peak/RMS detectors
+    # Apply max/mean detectors
     td_result = apply_power_detector(iq_pwr, TD_DETECTOR, axis=1)
 
     # Get single value median/max statistics
@@ -224,7 +225,7 @@ def get_td_power_results(
 
     channel_max, channel_median = (np.array(a) for a in td_channel_result)
 
-    # packed order is (max, mean)
+    # packed order of td_result is (max, mean)
     return td_result[0], td_result[1], channel_max, channel_median
 
 
@@ -239,7 +240,7 @@ def get_periodic_frame_power(
 
     The time axis on the frame time elapsed spans [0, frame_period) binned with step size
     `detector_period`, for a total of `int(frame_period/detector_period)` samples.
-    RMS and peak power detector data are returned. For each type of detector, a time
+    Mean and max power detector data are returned. For each type of detector, a time
     series is returned for (min, mean, max) statistics, which are computed across the
     number of frames (`frame_period/Ts`).
 
@@ -247,8 +248,8 @@ def get_periodic_frame_power(
     :param params: Action parameters from YAML, which must include `SAMPLE_RATE` and
         `PFP_FRAME_PERIOD_MS` keys.
     :param detector_period_s: Sampling period (s) within the frame.
-    :return: A tuple of 6 NumPy arrays for the 6 detector results: (rms_min, rms_max,
-        rms_mean, peak_min, peak_max, peak_mean).
+    :return: A tuple of 6 NumPy arrays for the 6 detector/statistic results: (mean_min,
+        mean_max, mean_mean, max_min, max_max, max_mean).
     :raises ValueError: if detector_period%Ts != 0 or frame_period%detector_period != 0
     """
     sampling_period_s = 1.0 / params[SAMPLE_RATE]
@@ -274,14 +275,14 @@ def get_periodic_frame_power(
     power_bins = calculate_pseudo_power(iq_bins)
 
     # compute statistics first by cycle
-    rms_power = power_bins.mean(axis=0)
-    peak_power = power_bins.max(axis=0)
+    mean_power = power_bins.mean(axis=0)
+    max_power = power_bins.max(axis=0)
 
     # then do the detector
     pfp = np.array(
         [
             apply_power_detector(p, PFP_M3_DETECTOR, axis=1)
-            for p in [rms_power, peak_power]
+            for p in [mean_power, max_power]
         ]
     ).reshape(6, Npts)
 
@@ -413,7 +414,7 @@ class NasctnSeaDataProduct(Action):
 
         # Collect processed data product results
         last_data_len = 0
-        all_data, max_peak_ch_pwrs, med_rms_ch_pwrs = [], [], []
+        all_data, max_max_ch_pwrs, med_mean_ch_pwrs = [], [], []
 
         for i, channel_data_process in enumerate(dp_procs):
             # Add capture metadata
@@ -437,9 +438,9 @@ class NasctnSeaDataProduct(Action):
             logger.debug(f"Waited {toc-tic} for channel {i} data")
             logger.debug(f"Channel data list length: {len(channel_data)}")
 
-            # Pull out single value channel powers
-            max_peak_ch_pwrs.append(DATA_TYPE(channel_data[4]))
-            med_rms_ch_pwrs.append(DATA_TYPE(channel_data[5]))
+            # Pull out single value channel powers (max of max, median of mean)
+            max_max_ch_pwrs.append(DATA_TYPE(channel_data[4]))
+            med_mean_ch_pwrs.append(DATA_TYPE(channel_data[5]))
             del channel_data[4:6]
 
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
@@ -448,10 +449,10 @@ class NasctnSeaDataProduct(Action):
         # Build metadata and convert data to compressed bytes
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
         self.sigmf_builder.add_to_global(
-            "ntia-nasctn-sea:max_of_peak_channel_powers", max_peak_ch_pwrs
+            "ntia-nasctn-sea:max_of_max_channel_powers", max_max_ch_pwrs
         )
         self.sigmf_builder.add_to_global(
-            "ntia-nasctn-sea:median_of_rms_channel_powers", med_rms_ch_pwrs
+            "ntia-nasctn-sea:median_of_mean_channel_powers", med_mean_ch_pwrs
         )
         # Get diagnostics last to record action runtime
         self.capture_diagnostics(
@@ -677,7 +678,7 @@ class NasctnSeaDataProduct(Action):
                         "detector": det,
                         "statistic": stat.value.split("_")[0],
                     }
-                    for det in ["rms", "peak"]
+                    for det in ["mean", "max"]
                     for stat in PFP_M3_DETECTOR
                 ],
                 # Get sample count the same way that data is reshaped for PFP calculation
