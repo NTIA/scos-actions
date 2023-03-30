@@ -398,6 +398,7 @@ class NasctnSeaDataProduct(Action):
 
         # Collect all IQ data and spawn data product computation processes
         dp_procs, cap_meta, cap_entries, cpu_speed = [], [], [], []
+        capture_tic = perf_counter()
         for parameters in iteration_params:
             measurement_result = self.capture_iq(parameters)
             # Start data product processing but do not block next IQ capture
@@ -411,11 +412,15 @@ class NasctnSeaDataProduct(Action):
             cap_meta.append(cap_meta_tuple[0])
             cap_entries.append(cap_meta_tuple[1])
             cpu_speed.append(get_current_cpu_clock_speed())
+        capture_toc = perf_counter()
+        logger.debug(
+            f"Collected all IQ data and started all processing in {capture_toc-capture_tic:.2f} s"
+        )
 
         # Collect processed data product results
         last_data_len = 0
         all_data, max_max_ch_pwrs, med_mean_ch_pwrs = [], [], []
-
+        result_tic = perf_counter()
         for i, channel_data_process in enumerate(dp_procs):
             # Add capture metadata
             self.sigmf_builder.set_capture(
@@ -435,8 +440,7 @@ class NasctnSeaDataProduct(Action):
                 else:
                     channel_data.extend(ray.get(d))
             toc = perf_counter()
-            logger.debug(f"Waited {toc-tic} for channel {i} data")
-            logger.debug(f"Channel data list length: {len(channel_data)}")
+            logger.debug(f"Waited {toc-tic} s for channel {i} data")
 
             # Pull out single value channel powers (max of max, median of mean)
             max_max_ch_pwrs.append(DATA_TYPE(channel_data[4]))
@@ -445,6 +449,8 @@ class NasctnSeaDataProduct(Action):
 
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
             last_data_len = len(all_data)
+        result_toc = perf_counter()
+        logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
 
         # Build metadata and convert data to compressed bytes
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
