@@ -680,7 +680,7 @@ class NasctnSeaDataProduct(Action):
                 "units": "dBm",
             },
             "periodic_frame_power": {
-                "detector": [
+                "traces": [
                     {
                         "detector": det,
                         "statistic": stat.value.split("_")[0],
