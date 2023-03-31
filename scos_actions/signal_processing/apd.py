@@ -64,6 +64,8 @@ def get_apd(
             )
         a = np.sort(all_amps)
         p = 1 - ((np.arange(len(a)) + 1) / len(a))
+        # Replace peak amplitude 0 count with NaN
+        p[-1] = np.nan
     else:
         # Dynamically get bin edges if necessary
         if min_bin is None:
@@ -85,9 +87,8 @@ def get_apd(
         a = np.arange(min_bin, max_bin + bin_size_dB, bin_size_dB)
         # Get counts of amplitudes exceeding each bin value
         p = sample_ccdf(all_amps, a)
-
-    # Replace peak amplitude 0 count with NaN
-    p[-1] = np.nan
+        # Replace any 0 probabilities with NaN
+        p[p == 0] = np.nan
 
     # Scale to power if impedance value provided
     if impedance_ohms is not None:
