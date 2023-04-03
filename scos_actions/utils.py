@@ -1,8 +1,11 @@
 import json
 import logging
 from datetime import datetime
+from pathlib import Path
 
 from dateutil import parser
+
+from scos_actions.status import start_time
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +37,14 @@ def convert_string_to_millisecond_iso_format(timestamp):
     return None
 
 
-def load_from_json(fname):
+def load_from_json(fname: Path):
     logger = logging.getLogger(__name__)
     try:
         with open(fname) as f:
             return json.load(f)
-    except Exception:
-        logger.exception("Unable to load JSON file {}".format(fname))
+    except Exception as e:
+        logger.error(f"Unable to load JSON file {fname}")
+        raise e
 
 
 def get_iterable_parameters(parameters: dict, sortby: str = "frequency"):
@@ -82,10 +86,9 @@ def get_iterable_parameters(parameters: dict, sortby: str = "frequency"):
         for p_key, p_val in params.items():
             if len(p_val) == 1:
                 # Repeat parameter to max length
-                msg = f"Parameter {p_key} has only one value specified.\n"
-                msg += "It will be used for all iterations in the action."
-                logger.warning(msg)
+                logger.debug(f"Parameter {p_key} has only one value specified.")
                 params[p_key] = p_val * max_param_length
+                logger.debug(f"Set {p_key} for all iterations: {params[p_key]}")
             elif len(p_val) < max_param_length:
                 # Don't make assumptions otherwise. Raise an error.
                 msg = f"Parameter {p_key} has {len(p_val)} specified values.\n"
@@ -118,3 +121,10 @@ def get_parameter(p: str, params: dict):
             + f"Available parameters: {params}"
         )
     return params[p]
+
+
+def get_days_up():
+    elapsed = datetime.utcnow() - start_time
+    days = elapsed.days
+    fractional_day = elapsed.seconds / (60 * 60 * 24)
+    return round(days + fractional_day, 4)

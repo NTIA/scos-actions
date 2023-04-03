@@ -1,0 +1,47 @@
+nasctn_sea_data_product:
+  name: test_nasctn_sea_data_product
+  rf_path: antenna
+# IIR filter settings
+  iir_apply: True
+  iir_gpass_dB: 0.1  # Max passband ripple below unity gain
+  iir_gstop_dB: 40  # Minimum stopband attenuation
+  iir_pb_edge_Hz: 5e6  # Passband edge frequency
+  iir_sb_edge_Hz: 5.008e6  # Stopband edge frequency
+# Mean/Max FFT settings
+  fft_size: 175
+  nffts: 320e3
+  fft_window_type: flattop # See scipy.signal.get_window for supported input
+# PFP frame
+  pfp_frame_period_ms: 10
+# APD downsampling settings
+  apd_bin_size_dB: 0.5  # Set to 0 or negative for no downsampling
+  apd_min_bin_dBm: -180
+  apd_max_bin_dBm: -30
+# Time domain power statistics settings
+  td_bin_size_ms: 10
+# Round all power results to X decimal places
+  round_to_places: 2
+# Sigan Settings
+  preamp_enable: True
+  reference_level: -25
+  attenuation: 0
+  sample_rate: 14e6
+# Acquisition settings (3550-3700 MHz in 10 MHz steps, each 4s long)
+  duration_ms: 4000
+  nskip: 0
+  frequency:
+    - 3555e6
+    - 3565e6
+    - 3575e6
+    - 3585e6
+    - 3595e6
+    - 3605e6
+    - 3615e6
+    - 3625e6
+    - 3635e6
+    - 3645e6
+    - 3655e6
+    - 3665e6
+    - 3675e6
+    - 3685e6
+    - 3695e6

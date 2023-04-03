@@ -91,7 +91,7 @@ import logging
 from numpy import float32, ndarray
 
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.annotations import FrequencyDomainDetection
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.signal_processing.fft import (
@@ -120,6 +120,8 @@ SAMPLE_RATE = "sample_rate"
 NUM_SKIP = "nskip"
 NUM_FFTS = "nffts"
 FFT_SIZE = "fft_size"
+CLASSIFICATION = "classification"
+CAL_ADJUST = "calibration_adjust"
 
 
 class SingleFrequencyFftAcquisition(MeasurementAction):
@@ -142,13 +144,17 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     :param sigan: Instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters, sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=None):
+        if gps is None:
+            gps = MockGPS()
         super().__init__(parameters, sigan, gps)
         # Pull parameters from action config
         self.fft_size = get_parameter(FFT_SIZE, self.parameters)
         self.nffts = get_parameter(NUM_FFTS, self.parameters)
         self.nskip = get_parameter(NUM_SKIP, self.parameters)
         self.frequency_Hz = get_parameter(FREQUENCY, self.parameters)
+        self.classification = get_parameter(CLASSIFICATION, self.parameters)
+        self.cal_adjust = get_parameter(CAL_ADJUST, self.parameters)
         # FFT setup
         self.fft_detector = create_power_detector(
             "M4sDetector", ["min", "max", "mean", "median", "sample"]
@@ -161,7 +167,9 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def execute(self, schedule_entry, task_id) -> dict:
         # Acquire IQ data and generate M4S result
         start_time = get_datetime_str_now()
-        measurement_result = self.acquire_data(self.num_samples, self.nskip)
+        measurement_result = self.acquire_data(
+            self.num_samples, self.nskip, self.cal_adjust
+        )
         # Actual sample rate may differ from configured value
         sample_rate_Hz = measurement_result["sample_rate"]
         m4s_result = self.apply_m4s(measurement_result)
@@ -182,13 +190,13 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         measurement_result["frequency_step"] = frequencies[1] - frequencies[0]
         measurement_result["window"] = self.fft_window_type
         measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
-            "calibration_datetime"
+            "datetime"
         ]
         measurement_result["task_id"] = task_id
         measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
-        measurement_result["classification"] = "UNCLASSIFIED"
+        measurement_result["classification"] = self.classification
         return measurement_result
 
     def apply_m4s(self, measurement_result: dict) -> ndarray:

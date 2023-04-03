@@ -6,3 +6,5 @@ single_frequency_fft:
   fft_size: 1024
   nffts: 300
   nskip: 15.36e4
+  calibration_adjust: False
+  classification: UNCLASSIFIED

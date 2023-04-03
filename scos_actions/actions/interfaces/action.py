@@ -3,10 +3,9 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 
 from scos_actions.capabilities import capabilities
-from scos_actions.hardware import gps as mock_gps
 from scos_actions.hardware import preselector
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.utils import ParameterException, get_parameter
-
 
 logger = logging.getLogger(__name__)
 
@@ -32,14 +31,20 @@ class Action(ABC):
 
     PRESELECTOR_PATH_KEY = "rf_path"
 
-    def __init__(self, parameters, sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=None):
+        if gps is None:
+            gps = MockGPS()
         self.parameters = deepcopy(parameters)
         self.sigan = sigan
         self.gps = gps
         self.sensor_definition = capabilities["sensor"]
-        self.has_preselector = (
-            True if "preselector" in self.sensor_definition else False
-        )
+        if (
+            "preselector" in self.sensor_definition
+            and "rf_paths" in self.sensor_definition["preselector"]
+        ):
+            self.has_configurable_preselector = True
+        else:
+            self.has_configurable_preselector = False
 
     def configure(self, measurement_params: dict):
         self.configure_sigan(measurement_params)
@@ -58,7 +63,7 @@ class Action(ABC):
             path = measurement_params[self.PRESELECTOR_PATH_KEY]
             logger.debug(f"Setting preselector RF path: {path}")
             preselector.set_state(path)
-        elif self.has_preselector:
+        elif self.has_configurable_preselector:
             # Require the RF path to be specified if the sensor has a preselector.
             raise ParameterException(
                 f"No {self.PRESELECTOR_PATH_KEY} value specified in the YAML config."

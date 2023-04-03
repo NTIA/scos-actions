@@ -41,20 +41,18 @@ import numpy as np
 
 from scos_actions import utils
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
+    CAL_ADJUST,
+    DURATION_MS,
+    FREQUENCY,
+    NUM_SKIP,
     SingleFrequencyTimeDomainIqAcquisition,
 )
-from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType
+from scos_actions.signals import measurement_action_completed
 from scos_actions.utils import get_parameter
 
 logger = logging.getLogger(__name__)
-
-# Define parameter keys
-FREQUENCY = "frequency"
-SAMPLE_RATE = "sample_rate"
-DURATION_MS = "duration_ms"
-NUM_SKIP = "nskip"
 
 
 class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisition):
@@ -78,7 +76,9 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=None):
+        if gps is None:
+            gps = MockGPS()
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
         num_center_frequencies = len(parameters[FREQUENCY])
 
@@ -99,9 +99,10 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             self.configure(measurement_params)
             duration_ms = get_parameter(DURATION_MS, measurement_params)
             nskip = get_parameter(NUM_SKIP, measurement_params)
+            cal_adjust = get_parameter(CAL_ADJUST, measurement_params)
             sample_rate = self.sigan.sample_rate
             num_samples = int(sample_rate * duration_ms * 1e-3)
-            measurement_result = super().acquire_data(num_samples, nskip)
+            measurement_result = super().acquire_data(num_samples, nskip, cal_adjust)
             measurement_result.update(measurement_params)
             end_time = utils.get_datetime_str_now()
             measurement_result["start_time"] = start_time
@@ -115,7 +116,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             measurement_result["name"] = self.name
             measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
             measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
-            measurement_result["classification"] = "UNCLASSIFIED"
+            measurement_result["classification"] = self.classification
             sigmf_builder = self.get_sigmf_builder(measurement_result)
             self.create_metadata(
                 sigmf_builder, schedule_entry_json, measurement_result, recording_id

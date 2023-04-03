@@ -7,11 +7,11 @@
 
 This repository contains common actions and interfaces to be re-used by SCOS Sensor
 plugins. See the [SCOS Sensor documentation](
-https://github.com/NTIA/scos-sensor/blob/master/README.md)
+<https://github.com/NTIA/scos-sensor/blob/master/README.md>)
 for more information about SCOS Sensor, especially the [Architecture](
-https://github.com/NTIA/scos-sensor/blob/master/README.md#architecture
+<https://github.com/NTIA/scos-sensor/blob/master/README.md#architecture>
 ) and the [Actions and Hardware Support](
-https://github.com/NTIA/scos-sensor/blob/master/README.md#actions-and-hardware-support
+<https://github.com/NTIA/scos-sensor/blob/master/README.md#actions-and-hardware-support>
 ) sections which explain how SCOS Actions is used in the SCOS plugin
 architecture.
 
@@ -285,10 +285,10 @@ You're done.
 #### Writing Custom Actions
 
 "Actions" are one of the main concepts used by [SCOS Sensor](
-https://github.com/NTIA/scos-sensor). At a high level, they are the things that the
+<https://github.com/NTIA/scos-sensor>). At a high level, they are the things that the
 sensor owner wants the sensor to be able to *do*. At a lower level, they are simply
 Python classes with a special method `__call__`. Actions use [Django Signals](
-https://docs.djangoproject.com/en/3.1/topics/signals/) to provide data and results to
+<https://docs.djangoproject.com/en/3.1/topics/signals/>) to provide data and results to
 scos-sensor.
 
 Start by looking at the [`Action` base class](scos_actions/actions/interfaces/action.py).
@@ -306,13 +306,13 @@ Depending on the type of action, a signal should be sent upon action completion.
 enables SCOS Sensor to do something with the results of the action. This could range
 from storing measurement data to recycling a Docker container or to fixing an unhealthy
 connection to the signal analyzer. You can see the available signals in
-[`scos_actions/actions/interfaces/signals.py`](scos_actions/actions/interfaces/signals.py).
+[`scos_actions/signals.py`](scos_actions/signals.py).
 The following signals are currently offered:
 
 - `measurement_action_completed` - signal expects task_id, data, and metadata
 - `location_action_completed` - signal expects latitude and longitude
-- `monitor_action_completed` - signal expects boolean indicating if the signal analyzer
-is healthy
+- `trigger_api_restart` - triggers a restart of the API docker container (where
+scos-sensor runs)
 
 New signals can be added. However, corresponding signal handlers must be added to
 scos-sensor to receive the signals and process the results.
@@ -387,15 +387,15 @@ subsection](#adding-actions) above.
 The final step would be to add a `setup.py` to allow for installation of the new
 repository as a Python package. You can use the [setup.py](setup.py) in this repository
 as a reference. You can find more information about Python packaging [here](
-https://packaging.python.org/tutorials/packaging-projects/). Then add the new
+<https://packaging.python.org/tutorials/packaging-projects/>). Then add the new
 repository as a dependency to [SCOS Sensor's requirements.txt](
-https://github.com/NTIA/scos-sensor/blob/master/src/requirements.txt)
+<https://github.com/NTIA/scos-sensor/blob/master/src/requirements.txt>)
 using the following format:
 `<package_name> @ git+<link_to_github_repo>@<branch_name>`. If
 specific drivers are required for your signal analyzer, you can attempt to link to them
 within the package or create a docker image with the necessary files. You can host the
 docker image as a [GitHub package](
-https://docs.github.com/en/free-pro-team@latest/packages/using-github-packages-with-your-projects-ecosystem/configuring-docker-for-use-with-github-packages
+<https://docs.github.com/en/free-pro-team@latest/packages/using-github-packages-with-your-projects-ecosystem/configuring-docker-for-use-with-github-packages>
 ). Then, when running scos-sensor, set the environment variable
 `BASE_IMAGE=<image tag>`.
 

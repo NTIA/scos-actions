@@ -5,8 +5,8 @@ using a mock signal analyzer.
 import json
 
 from scos_actions.actions.acquire_single_freq_fft import SingleFrequencyFftAcquisition
-from scos_actions.actions.interfaces.signals import measurement_action_completed
-from scos_actions.hardware import sigan
+from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
+from scos_actions.signals import measurement_action_completed
 
 parameters = {
     "name": "test_single_frequency_m4s_action",
@@ -15,6 +15,8 @@ parameters = {
     "sample_rate": 15.36e6,
     "fft_size": 1024,
     "nffts": 300,
+    "nskip": 0,
+    "classification": "UNCLASSIFIED",
 }
 schedule_entry_json = {
     "name": "test_m4s_multi_1",
@@ -48,7 +50,9 @@ def callback(sender, **kwargs):
 
 measurement_action_completed.connect(callback)
 
-action = SingleFrequencyFftAcquisition(parameters=parameters, sigan=sigan)
+action = SingleFrequencyFftAcquisition(
+    parameters=parameters, sigan=MockSignalAnalyzer(randomize_values=True)
+)
 action(schedule_entry_json, 1)
 print("metadata:")
 print(json.dumps(_metadata, indent=4))

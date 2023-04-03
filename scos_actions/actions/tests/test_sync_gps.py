@@ -1,6 +1,10 @@
-from scos_actions.actions.interfaces.signals import location_action_completed
-from scos_actions.actions.tests.utils import SENSOR_DEFINITION
+import subprocess
+import sys
+
+import pytest
+
 from scos_actions.discover import test_actions
+from scos_actions.signals import location_action_completed
 
 SYNC_GPS = {
     "name": "sync_gps",
@@ -23,6 +27,12 @@ def test_detector():
 
     location_action_completed.connect(callback)
     action = test_actions["test_sync_gps"]
-    action(SYNC_GPS, 1)
-    assert _latitude
-    assert _longitude
+    if sys.platform == "linux":
+        action(SYNC_GPS, 1)
+        assert _latitude
+        assert _longitude
+    elif sys.platform == "win32":
+        with pytest.raises(subprocess.CalledProcessError):
+            action(SYNC_GPS, 1)
+    else:
+        raise NotImplementedError("Test not implemented for current OS.")

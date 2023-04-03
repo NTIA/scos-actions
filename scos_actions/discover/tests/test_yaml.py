@@ -1,3 +1,4 @@
+import os
 import tempfile
 
 import pytest
@@ -5,7 +6,7 @@ from ruamel.yaml.scanner import ScannerError
 
 from scos_actions import actions
 from scos_actions.discover.yaml import load_from_yaml
-from scos_actions.hardware import gps
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
 
 INVALID_YAML = b"""\
@@ -24,6 +25,7 @@ this_doesnt_exist:
 """
 
 sigan = MockSignalAnalyzer()
+gps = MockGPS()
 
 
 def test_load_from_yaml_existing():
@@ -35,12 +37,15 @@ def _test_load_from_yaml_check_error(yaml_to_write, expected_error):
     # load_from_yaml loads all `.yml` files in the passed directory, so do a
     # bit of setup to create an invalid yaml tempfile in a temporary directory
     with tempfile.TemporaryDirectory() as tmpdir:
-        with tempfile.NamedTemporaryFile(suffix=".yml", dir=tmpdir) as tmpfile:
+        with tempfile.NamedTemporaryFile(
+            suffix=".yml", dir=tmpdir, delete=False
+        ) as tmpfile:
             tmpfile.write(yaml_to_write)
             tmpfile.seek(0)
-            # Now try to load the invalid yaml file, expecting an error
-            with pytest.raises(expected_error):
-                load_from_yaml(actions.action_classes, sigan, gps=gps, yaml_dir=tmpdir)
+        # Now try to load the invalid yaml file, expecting an error
+        with pytest.raises(expected_error):
+            load_from_yaml(actions.action_classes, sigan, gps=gps, yaml_dir=tmpdir)
+        os.unlink(tmpfile.name)
 
 
 def test_load_from_yaml_parse_error():

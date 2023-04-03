@@ -1,3 +1,4 @@
+from .acquire_sea_data_product import NasctnSeaDataProduct
 from .acquire_single_freq_apd import SingleFrequencyApdAcquisition
 from .acquire_single_freq_fft import SingleFrequencyFftAcquisition
 from .acquire_single_freq_tdomain_iq import SingleFrequencyTimeDomainIqAcquisition
@@ -12,4 +13,5 @@ action_classes = {
     "single_frequency_time_domain_iq": SingleFrequencyTimeDomainIqAcquisition,
     "y_factor_cal": YFactorCalibration,
     "single_frequency_apd": SingleFrequencyApdAcquisition,
+    "nasctn_sea_data_product": NasctnSeaDataProduct,
 }

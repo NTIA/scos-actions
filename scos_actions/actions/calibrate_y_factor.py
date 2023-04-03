@@ -79,7 +79,7 @@ from scipy.signal import sosfilt
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.calibration import sensor_calibration
-from scos_actions.hardware import gps as mock_gps
+from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
 from scos_actions.signal_processing.calibration import (
     get_linear_enr,
@@ -95,6 +95,7 @@ from scos_actions.signal_processing.power_analysis import (
     create_power_detector,
 )
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
+from scos_actions.signals import trigger_api_restart
 from scos_actions.utils import ParameterException, get_parameter
 
 logger = logging.getLogger(__name__)
@@ -138,7 +139,9 @@ class YFactorCalibration(Action):
     :param sigan: instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters, sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=None):
+        if gps is None:
+            gps = MockGPS()
         logger.debug("Initializing calibration action")
         super().__init__(parameters, sigan, gps)
         self.sigan = sigan
@@ -189,6 +192,10 @@ class YFactorCalibration(Action):
                     self.iir_sb_edge_Hz,
                     self.sample_rate,
                 )
+                # And get its ENBW
+                self.iir_enbw_hz = get_iir_enbw(
+                    self.iir_sos, self.iir_num_response_frequencies, self.sample_rate
+                )
             else:
                 raise ParameterException(
                     "Only one set of IIR filter parameters may be specified (including sample rate)."
@@ -221,6 +228,9 @@ class YFactorCalibration(Action):
             IIR_SB_EDGE,
             CAL_SOURCE_IDX,
             TEMP_SENSOR_IDX,
+            IIR_RESP_FREQS,
+            ND_OFF_STATE,
+            ND_ON_STATE,
         ]:
             try:
                 sigan_params.pop(k)
@@ -248,7 +258,7 @@ class YFactorCalibration(Action):
         # Get noise diode on IQ
         logger.debug("Acquiring IQ samples with noise diode ON")
         noise_on_measurement_result = self.sigan.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip, gain_adjust=False
+            num_samples, num_samples_skip=nskip, cal_adjust=False
         )
         sample_rate = noise_on_measurement_result["sample_rate"]
 
@@ -260,7 +270,7 @@ class YFactorCalibration(Action):
         # Get noise diode off IQ
         logger.debug("Acquiring IQ samples with noise diode OFF")
         noise_off_measurement_result = self.sigan.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip, gain_adjust=False
+            num_samples, num_samples_skip=nskip, cal_adjust=False
         )
         assert (
             sample_rate == noise_off_measurement_result["sample_rate"]
@@ -269,9 +279,7 @@ class YFactorCalibration(Action):
         # Apply IIR filtering to both captures if configured
         if self.iir_apply:
             # Estimate of IIR filter ENBW does NOT account for passband ripple in sensor transfer function!
-            enbw_hz = get_iir_enbw(
-                self.iir_sos, self.iir_num_response_frequencies, sample_rate
-            )
+            enbw_hz = self.iir_enbw_hz
             logger.debug("Applying IIR filter to IQ captures")
             noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
             noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
@@ -281,7 +289,7 @@ class YFactorCalibration(Action):
             cal_args = [
                 sigan_params[k] for k in sensor_calibration.calibration_parameters
             ]
-            self.sigan.recompute_calibration_data(cal_args)
+            self.sigan.recompute_sensor_calibration_data(cal_args)
             enbw_hz = self.sigan.sensor_calibration_data["enbw_sensor"]
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]
@@ -391,3 +399,5 @@ class YFactorCalibration(Action):
         if not self.sigan.is_available:
             msg = "acquisition failed: signal analyzer required but not available"
             raise RuntimeError(msg)
+        if not self.sigan.healthy():
+            trigger_api_restart.send(sender=self.__class__)

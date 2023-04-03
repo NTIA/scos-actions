@@ -1,4 +1,4 @@
-"""Mock the UHD USRP module."""
+"""Mock a signal analyzer for testing."""
 import logging
 from collections import namedtuple
 
@@ -30,10 +30,12 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         self._sample_rate = 10e6
         self.clock_rate = 40e6
         self._gain = 0
+        self._attenuation = 0
+        self._preamp_enable = False
+        self._reference_level = -30
         self._overload = False
         self._capture_time = None
         self._is_available = True
-        self._healthy = True
 
         # Simulate returning less than the requested number of samples from
         # self.recv_num_samps
@@ -75,9 +77,37 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     def gain(self, gain):
         self._gain = gain
 
+    @property
+    def attenuation(self):
+        return self._attenuation
+
+    @attenuation.setter
+    def attenuation(self, attenuation):
+        self._attenuation = attenuation
+
+    @property
+    def preamp_enable(self):
+        return self._preamp_enable
+
+    @preamp_enable.setter
+    def preamp_enable(self, preamp_enable):
+        self._preamp_enable = preamp_enable
+
+    @property
+    def reference_level(self):
+        return self._reference_level
+
+    @reference_level.setter
+    def reference_level(self, reference_level):
+        self._reference_level = reference_level
+
+    def connect(self):
+        pass
+
     def acquire_time_domain_samples(
-        self, num_samples, num_samples_skip=0, retries=5, gain_adjust=True
+        self, num_samples, num_samples_skip=0, retries=5, cal_adjust=True
     ):
+        logger.warning("Using mock signal analyzer!")
         self.sigan_overload = False
         self._capture_time = None
         self._num_samples_skip = num_samples_skip
@@ -139,10 +169,6 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     @property
     def last_calibration_time(self):
         return get_datetime_str_now()
-
-    @property
-    def healthy(self):
-        return self._healthy
 
     def update_calibration(self, params):
         pass

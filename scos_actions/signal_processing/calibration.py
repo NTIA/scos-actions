@@ -6,9 +6,9 @@ from scipy.constants import Boltzmann
 
 from scos_actions.hardware import preselector
 from scos_actions.signal_processing.unit_conversion import (
+    convert_celsius_to_fahrenheit,
     convert_celsius_to_kelvins,
     convert_dB_to_linear,
-    convert_fahrenheit_to_celsius,
     convert_linear_to_dB,
     convert_watts_to_dBm,
 )
@@ -110,6 +110,9 @@ def get_temperature(sensor_idx: int = None) -> Tuple[float, float, float]:
     """
     Get the temperature from a preselector sensor.
 
+    The preselector is expected to be configured to return the
+    temperature in degrees Celsius.
+
     The preselector is loaded from `scos_actions.hardware`.
 
     :param sensor_idx: The index of the desired temperature
@@ -125,8 +128,8 @@ def get_temperature(sensor_idx: int = None) -> Tuple[float, float, float]:
     temp = preselector.get_sensor_value(sensor_idx)
     if temp is None:
         raise CalibrationException("Failed to get temperature from sensor.")
-    logger.debug(f"Got temperature from sensor: {temp} deg. Fahrenheit")
-    temp_f = float(temp)
-    temp_c = convert_fahrenheit_to_celsius(temp_f)
+    logger.debug(f"Got temperature from sensor: {temp} deg. Celsius")
+    temp_c = float(temp)
+    temp_f = convert_celsius_to_fahrenheit(temp_c)
     temp_k = convert_celsius_to_kelvins(temp_c)
     return temp_k, temp_c, temp_f
