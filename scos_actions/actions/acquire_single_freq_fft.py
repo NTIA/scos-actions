@@ -121,6 +121,7 @@ NUM_SKIP = "nskip"
 NUM_FFTS = "nffts"
 FFT_SIZE = "fft_size"
 CLASSIFICATION = "classification"
+CAL_ADJUST = "calibration_adjust"
 
 
 class SingleFrequencyFftAcquisition(MeasurementAction):
@@ -153,6 +154,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         self.nskip = get_parameter(NUM_SKIP, self.parameters)
         self.frequency_Hz = get_parameter(FREQUENCY, self.parameters)
         self.classification = get_parameter(CLASSIFICATION, self.parameters)
+        self.cal_adjust = get_parameter(CAL_ADJUST, self.parameters)
         # FFT setup
         self.fft_detector = create_power_detector(
             "M4sDetector", ["min", "max", "mean", "median", "sample"]
@@ -165,7 +167,9 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def execute(self, schedule_entry, task_id) -> dict:
         # Acquire IQ data and generate M4S result
         start_time = get_datetime_str_now()
-        measurement_result = self.acquire_data(self.num_samples, self.nskip)
+        measurement_result = self.acquire_data(
+            self.num_samples, self.nskip, self.cal_adjust
+        )
         # Actual sample rate may differ from configured value
         sample_rate_Hz = measurement_result["sample_rate"]
         m4s_result = self.apply_m4s(measurement_result)
@@ -186,7 +190,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         measurement_result["frequency_step"] = frequencies[1] - frequencies[0]
         measurement_result["window"] = self.fft_window_type
         measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
-            "calibration_datetime"
+            "datetime"
         ]
         measurement_result["task_id"] = task_id
         measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value

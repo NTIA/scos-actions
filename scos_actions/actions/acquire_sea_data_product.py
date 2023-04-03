@@ -26,18 +26,22 @@ import lzma
 from time import perf_counter
 from typing import Tuple
 
-import numexpr as ne
 import numpy as np
 import psutil
 import ray
-from its_preselector.configuration_exception import ConfigurationException
-from its_preselector.web_relay import WebRelay
 from scipy.signal import sos2tf, sosfilt
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware import preselector, switches
 from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.hardware.utils import (
+    get_cpu_uptime_seconds,
+    get_current_cpu_clock_speed,
+    get_current_cpu_temperature,
+    get_disk_smart_data,
+    get_max_cpu_temperature,
+)
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
@@ -73,6 +77,8 @@ IIR_PB_EDGE = "iir_pb_edge_Hz"
 IIR_SB_EDGE = "iir_sb_edge_Hz"
 NUM_FFTS = "nffts"
 APD_BIN_SIZE_DB = "apd_bin_size_dB"
+APD_MIN_BIN_DBM = "apd_min_bin_dBm"
+APD_MAX_BIN_DBM = "apd_max_bin_dBm"
 TD_BIN_SIZE_MS = "td_bin_size_ms"
 FREQUENCY = "frequency"
 SAMPLE_RATE = "sample_rate"
@@ -90,11 +96,26 @@ FFT_SIZE = 875
 FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
+IMPEDANCE_OHMS = 50.0
 
 # Create power detectors
 TD_DETECTOR = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
 FFT_DETECTOR = create_power_detector("FftMeanMaxDetector", ["mean", "max"])
 PFP_M3_DETECTOR = create_power_detector("PfpM3Detector", ["min", "max", "mean"])
+
+# Expected webswitch configuration:
+PRESELECTOR_SENSORS = {
+    "temp": 1,  # Internal temperature, deg C
+    "noise_diode_temp": 2,  # Noise diode temperature, deg C
+    "lna_temp": 3,  # LNA temperature, deg C
+    "humidity": 4,  # Internal humidity, percentage
+}
+PRESELECTOR_DIGITAL_INPUTS = {"door_closed": 1}
+SPU_SENSORS = {
+    "pwr_box_temp": 1,  # Power tray temperature, deg C
+    "rf_box_temp": 2,  # RF tray temperature, deg C
+    "pwr_box_humidity": 3,  # Power tray humidity, percentage
+}
 
 
 @ray.remote
@@ -125,7 +146,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
     )
     fft_result = calculate_pseudo_power(fft_result)
     fft_result = apply_power_detector(fft_result, FFT_DETECTOR)  # (max, mean)
-    ne.evaluate("fft_result/50", out=fft_result)  # Finish conversion to Watts
+    fft_result /= IMPEDANCE_OHMS  # Finish conversion to Watts
     fft_result = np.fft.fftshift(fft_result, axes=(1,))  # Shift frequencies
     fft_result = convert_watts_to_dBm(fft_result)
     fft_result -= 3  # Baseband/RF power conversion
@@ -144,26 +165,27 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
 
 
 @ray.remote
-def get_apd_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
+def get_apd_results(iqdata: np.ndarray, params: dict) -> np.ndarray:
     """
     Generate downsampled APD result from IQ samples.
 
     :param iqdata: Complex-valued input waveform samples.
-    :param params: Action parameters from YAML, which must include an
-        `APD_BIN_SIZE_DB` key.
-    :return: A tuple of NumPy arrays containing the APD amplitude and
-        probability axes, ordered (probabilities, amplitudes). Probabilities
-        are given as percentages, and amplitudes in dBm referenced to the
-        calibration terminal.
+    :param params: Action parameters from YAML, which must include
+        ``APD_BIN_SIZE_DB``, ``APD_MIN_BIN_DBM``, and ``APD_MAX_BIN_DBM`` keys.
+    :return: A NumPy array containing the APD probability axis as percentages.
     """
-    p, a = get_apd(iqdata, params[APD_BIN_SIZE_DB])
-    # Convert dBV to dBm:
-    # a = a * 2 : dBV --> dB(V^2)
-    # a = a - impedance_dB : dB(V^2) --> dBW
-    # a = a + 27 : dBW --> dBm (+30) and RF/baseband conversion (-3)
-    scale_factor = 27 - convert_linear_to_dB(50.0)  # Hard-coded for 50 Ohms.
-    ne.evaluate("(a*2)+scale_factor", out=a)
-    return p, a
+    # get_apd requires amplitude bin edge values in dBW here
+    # Scale input to get_apd to account for:
+    #     dBm -> dBW (-30)
+    #     baseband -> RF power reference (+3)
+    p, a = get_apd(
+        iqdata,
+        params[APD_BIN_SIZE_DB],
+        params[APD_MIN_BIN_DBM] - 27.0,
+        params[APD_MAX_BIN_DBM] - 27.0,
+        IMPEDANCE_OHMS,
+    )
+    return p
 
 
 @ray.remote
@@ -174,16 +196,17 @@ def get_td_power_results(
     Compute mean/max time domain power statistics from IQ samples.
 
     Mean and max detectors are applied over a configurable time window.
-    Mean and max power values are also reported as single values, with
-    the detectors applied over the entire input IQ sample sequence.
+    Median and max power statistics are also computed on the detector
+    results, and reported as single values. The median is computed on
+    the mean detector result, and the max is computed on the max result.
 
     :param iqdata: Complex-valued input waveform samples.
     :param params: Action parameters from YAML, which must include
         `TD_BIN_SIZE_MS` and `SAMPLE_RATE` keys.
     :return: A tuple of NumPy arrays containing power detector results,
         in dBm referenced to the calibration terminal. The order of the
-        results is (max, mean, max_single_value, mean_single_value). The
-        single_value results will always contain only a single number,
+        results is (max, mean, max_max_single_value, median_mean_single_value).
+        The single_value results will always contain only a single number,
         while the length of the other arrays depends on the configured
         detector period.
     """
@@ -191,23 +214,23 @@ def get_td_power_results(
     block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
     n_blocks = len(iqdata) // block_size
     iqdata = iqdata.reshape((n_blocks, block_size))
-    iq_pwr = calculate_power_watts(iqdata, impedance_ohms=50.0)
+    iq_pwr = calculate_power_watts(iqdata, IMPEDANCE_OHMS)
 
-    # Apply mean/max detectors
+    # Apply max/mean detectors
     td_result = apply_power_detector(iq_pwr, TD_DETECTOR, axis=1)
 
-    # Get single value mean/max statistics
-    td_channel_result = np.array([td_result[0].max(), td_result[1].mean()])
+    # Get single value median/max statistics
+    td_channel_result = np.array([np.max(td_result[0]), np.median(td_result[1])])
 
     # Convert to dBm and account for RF/baseband power difference
     td_result, td_channel_result = (
         convert_watts_to_dBm(x) - 3.0 for x in [td_result, td_channel_result]
     )
 
-    channel_max, channel_mean = (np.array(a) for a in td_channel_result)
+    channel_max, channel_median = (np.array(a) for a in td_channel_result)
 
-    # packed order is (max, mean)
-    return td_result[0], td_result[1], channel_max, channel_mean
+    # packed order of td_result is (max, mean)
+    return td_result[0], td_result[1], channel_max, channel_median
 
 
 @ray.remote
@@ -221,7 +244,7 @@ def get_periodic_frame_power(
 
     The time axis on the frame time elapsed spans [0, frame_period) binned with step size
     `detector_period`, for a total of `int(frame_period/detector_period)` samples.
-    RMS and peak power detector data are returned. For each type of detector, a time
+    Mean and max power detector data are returned. For each type of detector, a time
     series is returned for (min, mean, max) statistics, which are computed across the
     number of frames (`frame_period/Ts`).
 
@@ -229,8 +252,8 @@ def get_periodic_frame_power(
     :param params: Action parameters from YAML, which must include `SAMPLE_RATE` and
         `PFP_FRAME_PERIOD_MS` keys.
     :param detector_period_s: Sampling period (s) within the frame.
-    :return: A tuple of 6 NumPy arrays for the 6 detector results: (rms_min, rms_max,
-        rms_mean, peak_min, peak_max, peak_mean).
+    :return: A tuple of 6 NumPy arrays for the 6 detector/statistic results: (mean_min,
+        mean_max, mean_mean, max_min, max_max, max_mean).
     :raises ValueError: if detector_period%Ts != 0 or frame_period%detector_period != 0
     """
     sampling_period_s = 1.0 / params[SAMPLE_RATE]
@@ -245,8 +268,8 @@ def get_periodic_frame_power(
             "detector_period period must be positive integer multiple of the sampling period"
         )
 
-    Nframes = int(np.round(frame_period_s / sampling_period_s))
-    Npts = int(np.round(frame_period_s / detector_period_s))
+    Nframes = int(round(frame_period_s / sampling_period_s))
+    Npts = int(round(frame_period_s / detector_period_s))
 
     # set up dimensions to make the statistics fast
     chunked_shape = (iqdata.shape[0] // Nframes, Npts, Nframes // Npts) + tuple(
@@ -256,19 +279,19 @@ def get_periodic_frame_power(
     power_bins = calculate_pseudo_power(iq_bins)
 
     # compute statistics first by cycle
-    rms_power = power_bins.mean(axis=0)
-    peak_power = power_bins.max(axis=0)
+    mean_power = power_bins.mean(axis=0)
+    max_power = power_bins.max(axis=0)
 
     # then do the detector
     pfp = np.array(
         [
             apply_power_detector(p, PFP_M3_DETECTOR, axis=1)
-            for p in [rms_power, peak_power]
+            for p in [mean_power, max_power]
         ]
     ).reshape(6, Npts)
 
     # Finish conversion to power
-    ne.evaluate("pfp/50", out=pfp)
+    pfp /= IMPEDANCE_OHMS
 
     # Convert to dBm
     pfp = convert_watts_to_dBm(pfp)
@@ -279,32 +302,22 @@ def get_periodic_frame_power(
 @ray.remote
 def generate_data_product(
     iqdata: np.ndarray, params: dict, iir_sos: np.ndarray
-) -> np.ndarray:
+) -> list:
     """Process IQ data and generate the SEA data product."""
-    data_product = []
     iqdata = sosfilt(iir_sos, iqdata)
 
-    remote_procs = []
-    remote_procs.append(get_fft_results.remote(iqdata, params))
-    remote_procs.append(get_td_power_results.remote(iqdata, params))
-    remote_procs.append(get_periodic_frame_power.remote(iqdata, params))
-    remote_procs.append(get_apd_results.remote(iqdata, params))
-    all_results = ray.get(remote_procs)
+    # Explicitly call ray.put to pass filtered IQ to nested remote procs
+    iqdata_id = ray.put(iqdata)
 
-    for dp in all_results:
-        data_product.extend(dp)
+    remote_procs = [
+        get_fft_results.remote(iqdata_id, params),
+        get_td_power_results.remote(iqdata_id, params),
+        get_periodic_frame_power.remote(iqdata_id, params),
+        get_apd_results.remote(iqdata_id, params),
+    ]
 
-    del iqdata
-    gc.collect()
-
-    # Flatten data product but retain component indices
-    # Also, separate single value channel powers
-    max_chan_pwr = DATA_TYPE(data_product[4])
-    mean_chan_pwr = DATA_TYPE(data_product[5])
-    del data_product[4:6]
-    data_product, dp_idx = NasctnSeaDataProduct.transform_data(data_product)
-
-    return data_product, dp_idx, max_chan_pwr, mean_chan_pwr
+    # Return identifiers to avoid waiting for processing to complete
+    return remote_procs
 
 
 class NasctnSeaDataProduct(Action):
@@ -322,6 +335,25 @@ class NasctnSeaDataProduct(Action):
         # Assume preselector is present
         rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
         self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
+
+        # Check that certain parameters are specified only once (not per-channel)
+        assert not any(
+            isinstance(self.parameters[k], list)
+            for k in (
+                IIR_GPASS,
+                IIR_GSTOP,
+                IIR_PB_EDGE,
+                IIR_SB_EDGE,
+                NUM_FFTS,
+                SAMPLE_RATE,
+                DURATION_MS,
+                TD_BIN_SIZE_MS,
+                PFP_FRAME_PERIOD_MS,
+                APD_BIN_SIZE_DB,
+                APD_MAX_BIN_DBM,
+                APD_MIN_BIN_DBM,
+            )
+        )
 
         # Setup/pull config parameters
         self.iir_gpass_dB = utils.get_parameter(IIR_GPASS, self.parameters)
@@ -351,80 +383,98 @@ class NasctnSeaDataProduct(Action):
 
     def __call__(self, schedule_entry, task_id):
         """This is the entrypoint function called by the scheduler."""
-        start_action = perf_counter()
+        action_start_tic = perf_counter()
 
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
         self.test_required_components()
         iteration_params = utils.get_iterable_parameters(self.parameters)
         self.configure_preselector(self.rf_path)
 
+        # Initialize metadata object
+        self.get_sigmf_builder(
+            # Assumes the sigan correctly uses the configured sample rate.
+            iteration_params[0][SAMPLE_RATE],
+            task_id,
+            schedule_entry,
+            iteration_params,
+        )
+        self.create_global_data_product_metadata(self.parameters)
+
         # Collect all IQ data and spawn data product computation processes
-        all_data, all_idx, dp_procs, cap_meta = ([] for _ in range(4))
+        dp_procs, cap_meta, cap_entries, cpu_speed = [], [], [], []
+        capture_tic = perf_counter()
         for parameters in iteration_params:
             measurement_result = self.capture_iq(parameters)
-            cap_meta.append(
-                {
-                    "start_time": measurement_result["start_time"],
-                    "end_time": measurement_result["end_time"],
-                    "sensor_cal": measurement_result["sensor_cal"],
-                    "overload": measurement_result["overload"],
-                }
-            )
             # Start data product processing but do not block next IQ capture
             dp_procs.append(
                 generate_data_product.remote(
                     measurement_result["data"], parameters, self.iir_sos
                 )
             )
-
-        # Initialize metadata object
-        self.get_sigmf_builder(
-            iteration_params[0][SAMPLE_RATE],  # Assumes all sample rates are the same
-            task_id,
-            schedule_entry,  # Uses a single "last calibration time"
-            iteration_params,
+            # Generate capture metadata before sigan reconfigured
+            cap_meta_tuple = self.create_channel_metadata(measurement_result)
+            cap_meta.append(cap_meta_tuple[0])
+            cap_entries.append(cap_meta_tuple[1])
+            cpu_speed.append(get_current_cpu_clock_speed())
+        capture_toc = perf_counter()
+        logger.debug(
+            f"Collected all IQ data and started all processing in {capture_toc-capture_tic:.2f} s"
         )
 
         # Collect processed data product results
         last_data_len = 0
-        results = ray.get(dp_procs)  # Ordering is retained
-        max_ch_pwrs, rms_ch_pwrs, apd_lengths = [], [], []
-        for i, (dp, dp_idx, max_ch_pwr, rms_ch_pwr) in enumerate(results):
-            # Combine channel data
-            all_data.extend(dp)
-            all_idx.extend((dp_idx + last_data_len).tolist())
+        all_data, max_max_ch_pwrs, med_mean_ch_pwrs = [], [], []
+        result_tic = perf_counter()
+        for i, channel_data_process in enumerate(dp_procs):
+            # Add capture metadata
+            self.sigmf_builder.set_capture(
+                cap_meta[i]["frequency"],
+                cap_meta[i]["start_time"],
+                sample_start=last_data_len,
+                extra_entries=cap_entries[i],
+            )
 
-            # Generate metadata for the capture
-            cap_meta[i].update({"sample_start": last_data_len, "sample_count": len(dp)})
-            self.create_channel_metadata(iteration_params[i], cap_meta[i])
+            # Now wait for channel data to be processed
+            channel_data = []
+            tic = perf_counter()
+            for i, d in enumerate(ray.get(channel_data_process)):
+                if i == 3:
+                    # APD requires different handling
+                    channel_data.append(ray.get(d))
+                else:
+                    channel_data.extend(ray.get(d))
+            toc = perf_counter()
+            logger.debug(f"Waited {toc-tic} s for channel {i} data")
 
-            # Collect channel power statistics
-            max_ch_pwrs.append(max_ch_pwr)
-            rms_ch_pwrs.append(rms_ch_pwr)
+            # Pull out single value channel powers (max of max, median of mean)
+            max_max_ch_pwrs.append(DATA_TYPE(channel_data[4]))
+            med_mean_ch_pwrs.append(DATA_TYPE(channel_data[5]))
+            del channel_data[4:6]
 
-            # Get APD result sizes for metadata
-            apd_lengths.append(dp_idx[11] - dp_idx[10])
-
-            # Increment start sample for data combination
+            all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
             last_data_len = len(all_data)
+        result_toc = perf_counter()
+        logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
 
         # Build metadata and convert data to compressed bytes
-        self.sigmf_builder.add_to_global("max_channel_powers_dBm", max_ch_pwrs)
-        self.sigmf_builder.add_to_global("rms_channel_powers_dBm", rms_ch_pwrs)
-        self.create_global_data_product_metadata(self.parameters, apd_lengths)
-        self.capture_diagnostics()  # Add diagnostics to metadata
-        self.sigmf_builder.build()
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
+        self.sigmf_builder.add_to_global(
+            "ntia-nasctn-sea:max_of_max_channel_powers", max_max_ch_pwrs
+        )
+        self.sigmf_builder.add_to_global(
+            "ntia-nasctn-sea:median_of_mean_channel_powers", med_mean_ch_pwrs
+        )
+        # Get diagnostics last to record action runtime
+        self.capture_diagnostics(
+            action_start_tic, cpu_speed
+        )  # Add diagnostics to metadata
+        self.sigmf_builder.build()
 
         measurement_action_completed.send(
             sender=self.__class__,
             task_id=task_id,
             data=all_data,
             metadata=self.sigmf_builder.metadata,
-        )
-        action_done = perf_counter()
-        logger.debug(
-            f"IQ Capture and all data processing completed in {action_done-start_action:.2f}"
         )
 
     def capture_iq(self, params: dict) -> dict:
@@ -450,13 +500,9 @@ class NasctnSeaDataProduct(Action):
         num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
         # Collect IQ data
         measurement_result = self.sigan.acquire_time_domain_samples(num_samples, nskip)
-        end_time = utils.get_datetime_str_now()
         # Store some metadata with the IQ
         measurement_result.update(params)
-        measurement_result["name"] = self.name
         measurement_result["start_time"] = start_time
-        measurement_result["end_time"] = end_time
-        measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         toc = perf_counter()
         logger.debug(
@@ -464,32 +510,7 @@ class NasctnSeaDataProduct(Action):
         )
         return measurement_result
 
-    @staticmethod
-    def read_sensor_if_available(relay: WebRelay, sensor_idx: int):
-        try:
-            value = relay.get_sensor_value(sensor_idx)
-        except ConfigurationException:
-            logger.debug(f"Could not read relay {relay.name} sensor {sensor_idx}")
-            value = "Unavailable"
-        except ValueError:
-            logger.debug(
-                f"Relay {relay.name} sensor {sensor_idx} returned an invalid value."
-            )
-            value = "Unavailable"
-        return value
-
-    @staticmethod
-    def read_digital_input_if_available(relay: WebRelay, sensor_idx: int):
-        try:
-            value = relay.get_digital_input_value(sensor_idx)
-        except ConfigurationException:
-            logger.debug(
-                f"Could not read relay {relay.name} digital input {sensor_idx}"
-            )
-            value = "Unavailable"
-        return value
-
-    def capture_diagnostics(self) -> dict:
+    def capture_diagnostics(self, action_start_tic: float, cpu_speeds: list) -> None:
         """
         Capture diagnostic sensor data.
 
@@ -497,7 +518,7 @@ class NasctnSeaDataProduct(Action):
         sensor preselector and SPU as well as from the SPU computer
         itself. All temperatures are reported in degrees Celsius,
         and humidities in % relative humidity. The diagnostic data is
-        added to self.sigmf_builder as an annotation.
+        added to the SigMF metadata as an object in the global namespace.
 
         The following diagnostic data is collected:
 
@@ -510,9 +531,14 @@ class NasctnSeaDataProduct(Action):
             SPU power/control tray temperature, SPU power/control tray
             humidity.
 
-        From the SPU computer: systemwide CPU utilization (%) averaged over
-            the action runtime, system load (%) averaged over last 5 minutes,
-            current memory usage (%),
+        From the SPU computer: average CPU clock speed during action run,
+            systemwide CPU utilization (%) averaged over the action runtime,
+            system load (%) averaged over last 5 minutes, current memory
+            usage (%), SSD SMART health check status, SSD usage percent,
+            CPU temperature, CPU overheating status, CPU uptime, SCOS
+            start time, and SCOS uptime.
+
+        The total action runtime is also recorded.
 
         Preselector X410 Setup requires:
         internal temperature : oneWireSensor 1, set units to C
@@ -527,33 +553,53 @@ class NasctnSeaDataProduct(Action):
         RF Box Temperature: oneWireSensor 2, set units to C
         Power/Control Box Humidity: oneWireSensor 3
 
-        :param n_samps: The total number of data samples recorded.
+        Various CPU metrics make assumptions about the system: only
+        Intel CPUs are supported.
+
+        Disk health check assumes the SSD is ``/dev/nvme0n1`` and
+        requires the Docker container to have the required privileges
+        or capabilities and device passthrough. For more information,
+        see ``scos_actions.hardware.utils.get_disk_smart_data()``.
+
+        :param action_start_tic: Action start timestamp, as would
+             be returned by ``time.perf_counter()``
         """
         tic = perf_counter()
         # Read SPU sensors
         for switch in switches.values():
             if switch.name == "SPU X410":
-                spu_x410_sensor_values = switch.get_status()
-                del spu_x410_sensor_values["name"]
-                del spu_x410_sensor_values["healthy"]
-                spu_x410_sensor_values[
-                    "pwr_box_temp_degC"
-                ] = self.read_sensor_if_available(switch, 1)
-                spu_x410_sensor_values[
-                    "rf_box_temp_degC"
-                ] = self.read_sensor_if_available(switch, 2)
-                spu_x410_sensor_values[
-                    "pwr_box_humidity_pct"
-                ] = self.read_sensor_if_available(switch, 3)
+                spu_diagnostics = switch.get_status()
+                del spu_diagnostics["name"]
+                del spu_diagnostics["healthy"]
+                for sensor in SPU_SENSORS:
+                    try:
+                        value = switch.get_sensor_value(SPU_SENSORS[sensor])
+                        spu_diagnostics[sensor] = value
+                    except:
+                        logger.debug(f"Unable to read {sensor} from SPU x410")
+                        pass
+                spu_diagnostics["sigan_internal_temp"] = self.sigan.temperature
 
         # Read preselector sensors
-        preselector_sensor_values = {
-            "internal_temp_degC": self.read_sensor_if_available(preselector, 1),
-            "noise_diode_temp_degC": self.read_sensor_if_available(preselector, 2),
-            "lna_temp_degC": self.read_sensor_if_available(preselector, 3),
-            "internal_humidity_pct": self.read_sensor_if_available(preselector, 4),
-            "door_closed": self.read_digital_input_if_available(preselector, 1),
-        }
+        preselector_diagnostics = {}
+
+        for sensor in PRESELECTOR_SENSORS:
+            try:
+                value = preselector.get_sensor_value(PRESELECTOR_SENSORS[sensor])
+                preselector_diagnostics[sensor] = value
+            except:
+                logger.debug(f"Unable to read {sensor} from preselector")
+                pass
+
+        for inpt in PRESELECTOR_DIGITAL_INPUTS:
+            try:
+                value = preselector.get_digital_input_value(
+                    PRESELECTOR_DIGITAL_INPUTS[inpt]
+                )
+                preselector_diagnostics[inpt] = value
+            except:
+                logger.debug(f"Unable to read {inpt} from preselector")
+                pass
 
         # Read computer performance metrics
 
@@ -567,38 +613,39 @@ class NasctnSeaDataProduct(Action):
         mem_usage_pct = psutil.virtual_memory().percent
 
         # CPU temperature
-        cpu_temps = psutil.sensors_temperatures()
-        cpu_temp_degC = cpu_temps["coretemp"][0].current
-        cpu_overheating = cpu_temp_degC >= cpu_temps["coretemp"][0].high
+        cpu_temp_degC = get_current_cpu_temperature()
+        cpu_overheating = cpu_temp_degC > get_max_cpu_temperature()
 
         # Get computer uptime
-        with open("/proc/uptime") as f:
-            cpu_uptime_sec = float(f.readline().split()[0])
-            cpu_uptime_days = round(cpu_uptime_sec / (60 * 60 * 24), 4)
+        cpu_uptime_days = round(get_cpu_uptime_seconds() / (60 * 60 * 24), 2)
 
-        computer_metrics = {
-            "action_cpu_usage_pct": round(cpu_utilization, 2),
-            "system_load_5m_pct": round(load_avg_5m, 2),
-            "memory_usage_pct": round(mem_usage_pct, 2),
-            "disk_usage_pct": round(psutil.disk_usage("/").percent, 2),
-            "cpu_temperature_degC": round(cpu_temp_degC, 2),
+        computer_diagnostics = {
+            "cpu_temp": round(cpu_temp_degC, 1),
             "cpu_overheating": cpu_overheating,
-            "cpu_uptime_days": cpu_uptime_days,
+            "cpu_uptime": cpu_uptime_days,
+            "cpu_max_clock": round(max(cpu_speeds), 1),
+            "cpu_min_clock": round(min(cpu_speeds), 1),
+            "cpu_mean_clock": round(np.mean(cpu_speeds), 1),
+            "action_cpu_usage": round(cpu_utilization, 1),
+            "system_load_5m": round(load_avg_5m, 1),
+            "memory_usage": round(mem_usage_pct, 1),
             "scos_start_time": convert_datetime_to_millisecond_iso_format(start_time),
-            "scos_uptime_days": get_days_up(),
+            "scos_uptime": get_days_up(),
+            "ssd_smart_data": get_disk_smart_data("/dev/nvme0n1"),
         }
         toc = perf_counter()
         logger.debug(f"Got all diagnostics in {toc-tic} s")
 
-        diag = {
-            "diagnostics_datetime": utils.get_datetime_str_now(),
-            "preselector": preselector_sensor_values,
-            "spu_x410": spu_x410_sensor_values,
-            "spu_computer": computer_metrics,
+        diagnostics = {
+            "datetime": utils.get_datetime_str_now(),
+            "preselector": preselector_diagnostics,
+            "spu": spu_diagnostics,
+            "computer": computer_diagnostics,
+            "action_runtime": perf_counter() - action_start_tic,
         }
 
         # Make SigMF annotation from sensor data
-        self.sigmf_builder.add_to_global("diagnostics", diag)
+        self.sigmf_builder.add_to_global("ntia-diagnostics:diagnostics", diagnostics)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
@@ -612,97 +659,111 @@ class NasctnSeaDataProduct(Action):
             trigger_api_restart.send(sender=self.__class__)
         return None
 
-    def create_global_data_product_metadata(
-        self, params: dict, apd_lengths: list
-    ) -> None:
-        # Assumes only one value is set for all channels of the following:
-        # NUM_FFTS, SAMPLE_RATE, DURATION_MS, TD_BIN_SIZE_MS, PFP_FRAME_PERIOD_MS, APD_BIN_SIZE_DB
+    def create_global_data_product_metadata(self, params: dict) -> None:
         num_iq_samples = int(params[SAMPLE_RATE] * params[DURATION_MS] * 1e-3)
         dp_meta = {
-            "digital_filter": {
-                # Approximately a DigitalFilter object from ntia-algorithm
-                "filter_type": "IIR",
-                "IIR_numerator_coefficients": self.iir_numerators.tolist(),
-                "IIR_denominator_coefficients": self.iir_denominators.tolist(),
-                "frequency_cutoff": self.iir_pb_edge_Hz,
-                "ripple_passband": self.iir_gpass_dB,
-                "attenuation_stopband": self.iir_gstop_dB,
-                "frequency_stopband": self.iir_sb_edge_Hz,
-            },
+            "digital_filter": "iir_1",
+            "reference": "noise source output",
             "power_spectral_density": {
-                # Approximately a FrequencyDomainDetection from ntia-algorithm
-                "detector": [d.value for d in FFT_DETECTOR],
+                "traces": [{"statistic": d.value.split("_")[0]} for d in FFT_DETECTOR],
                 # Get sample count the same way that FFT processing truncates the result
-                "sample_count": int(FFT_SIZE * (5 / 7)),
+                "length": int(FFT_SIZE * (5 / 7)),
                 "equivalent_noise_bandwidth": round(
                     get_fft_enbw(FFT_WINDOW, params[SAMPLE_RATE]), 2
                 ),
-                "number_of_samples_in_fft": FFT_SIZE,
-                "number_of_ffts": int(params[NUM_FFTS]),
+                "samples": FFT_SIZE,
+                "ffts": int(params[NUM_FFTS]),
                 "units": "dBm/Hz",
                 "window": FFT_WINDOW_TYPE,
-                "reference": "noise source output",
             },
             "time_series_power": {
-                # Approximately a TimeDomainDetection from ntia-algorithm
-                "detector": [d.value for d in TD_DETECTOR],
+                "traces": [{"detector": d.value.split("_")[0]} for d in TD_DETECTOR],
                 # Get sample count the same way that TD power processing shapes result
-                "sample_count": int(params[DURATION_MS] / params[TD_BIN_SIZE_MS]),
-                "number_of_samples": num_iq_samples,
+                "length": int(params[DURATION_MS] / params[TD_BIN_SIZE_MS]),
+                "samples": num_iq_samples,
                 "units": "dBm",
-                "reference": "noise source output",
             },
             "periodic_frame_power": {
-                # Approximately a TimeDomainDetection from ntia-algorithm
-                "detector": [
-                    f"{m}_{d.value}" for m in ["rms", "peak"] for d in PFP_M3_DETECTOR
+                "traces": [
+                    {
+                        "detector": det,
+                        "statistic": stat.value.split("_")[0],
+                    }
+                    for det in ["mean", "max"]
+                    for stat in PFP_M3_DETECTOR
                 ],
                 # Get sample count the same way that data is reshaped for PFP calculation
-                "sample_count": int(
-                    np.round(
-                        (params[PFP_FRAME_PERIOD_MS] * 1e-3) / PFP_FRAME_RESOLUTION_S
-                    )
+                "length": int(
+                    round((params[PFP_FRAME_PERIOD_MS] * 1e-3) / PFP_FRAME_RESOLUTION_S)
                 ),
                 "units": "dBm",
-                "reference": "noise source output",
             },
             "amplitude_probability_distribution": {
-                "sample_count": apd_lengths,
-                "number_of_samples": num_iq_samples,
+                # Get sample count the same way that downsampling is applied
+                "length": np.arange(
+                    params[APD_MIN_BIN_DBM],
+                    params[APD_MAX_BIN_DBM] + params[APD_BIN_SIZE_DB],
+                    params[APD_BIN_SIZE_DB],
+                ).size,
+                "samples": num_iq_samples,
                 "units": "dBm",
                 "probability_units": "percent",
-                "reference": "noise source output",
-                "power_bin_size": round(2.0 * params[APD_BIN_SIZE_DB], 2),
+                "amplitude_bin_size": params[APD_BIN_SIZE_DB],
+                "min_amplitude": params[APD_MIN_BIN_DBM],
+                "max_amplitude": params[APD_MAX_BIN_DBM],
             },
         }
-        self.sigmf_builder.add_to_global("data_products", dp_meta)
+        self.sigmf_builder.add_to_global("ntia-algorithm:data_products", dp_meta)
+
+        # Create DigitalFilter object
+        iir_filter_meta = [
+            {
+                "id": "iir_1",
+                "filter_type": "IIR",
+                "IIR_numerator_coefficients": self.iir_numerators.tolist(),
+                "IIR_denominator_coefficients": self.iir_denominators.tolist(),
+                "ripple_passband": self.iir_gpass_dB,
+                "attenuation_stopband": self.iir_gstop_dB,
+                "frequency_stopband": self.iir_sb_edge_Hz,
+                "frequency_cutoff": self.iir_pb_edge_Hz,
+            },
+        ]
+        self.sigmf_builder.add_to_global(
+            "ntia-algorithm:digital_filters", iir_filter_meta
+        )
 
     def create_channel_metadata(
         self,
-        params: dict,
-        cap_meta: dict,
-    ) -> SigMFBuilder:
+        measurement_result: dict,
+    ) -> Tuple:
         """Add metadata corresponding to a single-frequency capture in the measurement"""
         # Construct dict of extra info to attach to capture
-        capture_dict = {
-            "overload": cap_meta["overload"],
-            "cal_noise_figure_dB": round(
-                cap_meta["sensor_cal"]["noise_figure_sensor"], 3
-            ),
-            "cal_gain_dB": round(cap_meta["sensor_cal"]["gain_sensor"], 3),
-            "iq_capture_duration_msec": params[DURATION_MS],
-            "sigan_attenuation_dB": params[ATTENUATION],
-            "sigan_preamp_enable": params[PREAMP_ENABLE],
-            "sigan_reference_level_dBm": params[REFERENCE_LEVEL],
+        entries_dict = {
+            "ntia-sensor:overload": measurement_result["overload"],
+            "ntia-sensor:duration": measurement_result[DURATION_MS],
+            "ntia-sensor:sensor_calibration": {
+                "noise_figure": round(
+                    measurement_result["sensor_cal"]["noise_figure_sensor"], 3
+                ),
+                "gain": round(measurement_result["sensor_cal"]["gain_sensor"], 3),
+                "temperature": round(
+                    measurement_result["sensor_cal"]["temperature"], 1
+                ),
+                "datetime": measurement_result["sensor_cal"]["datetime"],
+            },
+            "ntia-sensor:sigan_settings": {
+                "reference_level": self.sigan.reference_level,
+                "attenuation": self.sigan.attenuation,
+                "preamp_enable": self.sigan.preamp_enable,
+            },
         }
-
-        # Add Capture
-        self.sigmf_builder.set_capture(
-            params[FREQUENCY],
-            cap_meta["start_time"],
-            cap_meta["sample_start"],
-            extra_entries=capture_dict,
-        )
+        # Start time and frequency are needed when building
+        # the capture metadata, but should not be in the capture_dict.
+        capture_meta = {
+            "start_time": measurement_result["start_time"],
+            "frequency": self.sigan.frequency,
+        }
+        return capture_meta, entries_dict
 
     def get_sigmf_builder(
         self,
@@ -713,31 +774,32 @@ class NasctnSeaDataProduct(Action):
     ) -> SigMFBuilder:
         """Build SigMF that applies to the entire capture (all channels)"""
         sigmf_builder = SigMFBuilder()
+        try:
+            loc = self.sensor_definition["location"]
+            sigmf_builder.set_geolocation(loc["x"], loc["y"], loc["z"])
+        except KeyError as e:
+            logger.error("Set the sensor location in the SCOS admin web UI")
+            raise e
         sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
         sigmf_builder.set_schedule(schedule_entry)
-        sigmf_builder.set_last_calibration_time(
-            self.sigan.sensor_calibration_data["calibration_datetime"]
-        )  # TODO: this is approximate since each channel is individually calibrated
 
-        sigmf_builder.sigmf_md.set_global_field(
-            "calibration_temperature_degC",
-            round(self.sigan.sensor_calibration_data["temperature"], 1),
-        )
+        # Add some (not all) ntia-sensor metadata
+        sensor_meta = {
+            "id": self.sensor_definition["sensor_spec"]["id"],
+            "sensor_spec": self.sensor_definition["sensor_spec"],
+        }
+        sigmf_builder.sigmf_md.set_global_field("ntia-sensor:sensor", sensor_meta)
 
         self.sigmf_builder = sigmf_builder
 
     @staticmethod
-    def transform_data(data_product: list):
-        """Flatten data product list of arrays (single channel), convert to bytes object, then compress"""
-        # Get indices for start of each component in flattened result
-        data_lengths = [d.size for d in data_product]
-        idx = [0] + np.cumsum(data_lengths[:-1]).tolist()
-        # Flatten data product, reduce dtypem
-        data_product = np.hstack(data_product).astype(DATA_TYPE)
-        return data_product, np.array(idx)
+    def transform_data(channel_data_products: list):
+        """Flatten data product list of arrays for a single channel."""
+        # Flatten data product, reduce dtype
+        return np.hstack(channel_data_products).astype(DATA_TYPE)
 
     @staticmethod
     def compress_bytes_data(data: bytes) -> bytes:

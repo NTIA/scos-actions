@@ -42,8 +42,9 @@ def load_from_json(fname: Path):
     try:
         with open(fname) as f:
             return json.load(f)
-    except Exception:
-        logger.exception("Unable to load JSON file {}".format(fname))
+    except Exception as e:
+        logger.error(f"Unable to load JSON file {fname}")
+        raise e
 
 
 def get_iterable_parameters(parameters: dict, sortby: str = "frequency"):
@@ -85,10 +86,9 @@ def get_iterable_parameters(parameters: dict, sortby: str = "frequency"):
         for p_key, p_val in params.items():
             if len(p_val) == 1:
                 # Repeat parameter to max length
-                msg = f"Parameter {p_key} has only one value specified.\n"
-                msg += "It will be used for all iterations in the action."
-                logger.debug(msg)
+                logger.debug(f"Parameter {p_key} has only one value specified.")
                 params[p_key] = p_val * max_param_length
+                logger.debug(f"Set {p_key} for all iterations: {params[p_key]}")
             elif len(p_val) < max_param_length:
                 # Don't make assumptions otherwise. Raise an error.
                 msg = f"Parameter {p_key} has {len(p_val)} specified values.\n"

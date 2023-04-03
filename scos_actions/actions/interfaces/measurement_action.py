@@ -34,18 +34,21 @@ class MeasurementAction(Action):
         data = self.transform_data(measurement_result)
         self.send_signals(task_id, sigmf_builder.metadata, data)
 
-    def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
+    def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
         sigmf_builder = SigMFBuilder()
         self.received_samples = len(measurement_result["data"].flatten())
-        calibration_annotation = CalibrationAnnotation(
-            sample_start=0,
-            sample_count=self.received_samples,
-            sigan_cal=measurement_result["sigan_cal"],
-            sensor_cal=measurement_result["sensor_cal"],
-        )
-        sigmf_builder.add_metadata_generator(
-            type(calibration_annotation).__name__, calibration_annotation
-        )
+        if any(measurement_result[c] is not None for c in ["sensor_cal", "sigan_cal"]):
+            calibration_annotation = CalibrationAnnotation(
+                sample_start=0,
+                sample_count=self.received_samples,
+                sigan_cal=measurement_result["sigan_cal"],
+                sensor_cal=measurement_result["sensor_cal"],
+            )
+            sigmf_builder.add_metadata_generator(
+                type(calibration_annotation).__name__, calibration_annotation
+            )
+        else:
+            logger.info("Skipping CalibrationAnnotation generation")
         f_low, f_high = None, None
         if "frequency_low" in measurement_result:
             f_low = measurement_result["frequency_low"]
@@ -113,17 +116,23 @@ class MeasurementAction(Action):
             metadata=metadata,
         )
 
-    def acquire_data(self, num_samples, nskip):
+    def acquire_data(
+        self, num_samples: int, nskip: int = 0, cal_adjust: bool = True
+    ) -> dict:
         logger.debug(
-            f"acquiring {num_samples} samples and skipping the first {nskip if nskip else 0} samples"
+            f"Acquiring {num_samples} IQ samples, skipping the first {nskip} samples"
+            + f" and {'' if cal_adjust else 'not '}applying gain adjustment based"
+            + " on calibration data"
         )
         measurement_result = self.sigan.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip
+            num_samples,
+            num_samples_skip=nskip,
+            cal_adjust=cal_adjust,
         )
 
         return measurement_result
 
-    def transform_data(self, measurement_result):
+    def transform_data(self, measurement_result: dict):
         return measurement_result["data"]
 
     @abstractmethod
