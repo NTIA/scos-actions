@@ -9,7 +9,11 @@ capabilities = {}
 logger.info(f"Loading {SENSOR_DEFINITION_FILE}")
 try:
     capabilities["sensor"] = utils.load_from_json(SENSOR_DEFINITION_FILE)
-except Exception:
+except Exception as e:
+    logger.warning(
+        f"Failed to load sensor definition file: {SENSOR_DEFINITION_FILE}"
+        + "\nAn empty sensor definition will be used"
+    )
     capabilities["sensor"] = {}
 
 if FQDN:
