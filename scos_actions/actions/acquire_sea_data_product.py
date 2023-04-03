@@ -174,6 +174,10 @@ def get_apd_results(iqdata: np.ndarray, params: dict) -> np.ndarray:
         ``APD_BIN_SIZE_DB``, ``APD_MIN_BIN_DBM``, and ``APD_MAX_BIN_DBM`` keys.
     :return: A NumPy array containing the APD probability axis as percentages.
     """
+    # get_apd requires amplitude bin edge values in dBW here
+    # Scale input to get_apd to account for:
+    #     dBm -> dBW (-30)
+    #     baseband -> RF power reference (+3)
     p, a = get_apd(
         iqdata,
         params[APD_BIN_SIZE_DB],
