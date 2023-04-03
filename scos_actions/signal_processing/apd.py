@@ -85,6 +85,9 @@ def get_apd(
             )
         # Generate bins based on bin_size_dB for downsampling
         a = np.arange(min_bin, max_bin + bin_size_dB, bin_size_dB)
+        a = np.linspace(
+            min_bin, max_bin, int((max_bin - min_bin) / bin_size_dB) + 1, dtype=float
+        )
         # Get counts of amplitudes exceeding each bin value
         p = sample_ccdf(all_amps, a)
         # Replace any 0 probabilities with NaN
