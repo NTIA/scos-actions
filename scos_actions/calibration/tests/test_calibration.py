@@ -203,7 +203,7 @@ class TestCalibrationFile:
     def test_filter_by_parameter_out_of_range(self):
         calibrations = {200.0: {"some_cal_data"}, 300.0: {"more cal data"}}
         with pytest.raises(Exception) as e_info:
-            cal = filter_by_parameter(calibrations, "frequency", 400.0)
+            cal = filter_by_parameter(calibrations, 400.0)
         assert (
             e_info.value.args[0]
             == "No calibration was performed with frequency at 400.0"
@@ -215,7 +215,7 @@ class TestCalibrationFile:
             300.0: {"Gain": "Gain at 300.0"},
         }
         with pytest.raises(Exception) as e_info:
-            cal = filter_by_parameter(calibrations, "frequency", 150.0)
+            cal = filter_by_parameter(calibrations, 150.0)
         assert (
             e_info.value.args[0]
             == "No calibration was performed with frequency at 150.0"
@@ -329,12 +329,7 @@ class TestCalibrationFile:
     def test_default_sigan_cal_location(self):
         assert sigan_calibration is not None
 
-    def test_filter_by_paramter_floor(self):
-        calibrations = {200.0: {"some_cal_data"}, 300.0: {"more cal data"}}
-        filtered_data = filter_by_parameter(calibrations, "", 200.1234567)
-        assert filtered_data is not None
-
-    def test_filter_by_parameter_ceil(self):
-        calibrations = {700.5e6: {"some_cal_data"}, 300.0: {"more cal data"}}
-        filtered_data = filter_by_parameter(calibrations, "", 700499999.999)
-        assert filtered_data is not None
+    def test_filter_by_paramter_integer(self):
+        calibrations = {"200.0": {"some_cal_data"}, 300.0: {"more cal data"}}
+        filtered_data = filter_by_parameter(calibrations, 200)
+        assert filtered_data is {"some_cal_data"}
