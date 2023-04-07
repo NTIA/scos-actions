@@ -1,6 +1,5 @@
 import json
 import logging
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Union
@@ -186,7 +185,10 @@ def filter_by_parameter(calibrations: dict, value: Union[float, int, bool]) -> d
         filtered_data = calibrations.get(str(value).lower(), None)
         if filtered_data is None and isinstance(value, int):
             # Try equivalent float for ints, i.e., match "1.0" to 1
-            filtered_data = calibrations[str(float(value))]
+            filtered_data = calibrations.get(str(float(value)), None)
+        if filtered_data is None and isinstance(value, float) and value.is_integer():
+            # Check for, e.g., key '25' if value is '25.0'
+            filtered_data = calibrations.get(str(int(value)), None)
         if filtered_data is None:
             raise KeyError
         else:
