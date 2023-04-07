@@ -21,9 +21,11 @@ except Exception as e:
 if capabilities["sensor"]:
     # Generate sensor definition file hash (SHA 512)
     try:
+        _hash = hashlib.sha512()
         with open(SENSOR_DEFINITION_FILE, "rb") as f:
-            digest = hashlib.file_digest(f, "sha512")
-        SENSOR_DEFINITION_HASH = digest.hexdigest()
+            for b in iter(lambda: f.read(4096), b""):
+                _hash.update(b)
+        SENSOR_DEFINITION_HASH = _hash.hexdigest()
         logger.debug("Generated sensor definition hash")
     except Exception as e:
         logger.error(f"Unable to generate sensor definition hash")
