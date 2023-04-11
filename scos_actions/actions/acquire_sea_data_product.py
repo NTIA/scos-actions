@@ -33,6 +33,7 @@ from scipy.signal import sos2tf, sosfilt
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
+from scos_actions.capabilities import SENSOR_DEFINITION_HASH
 from scos_actions.hardware import preselector, switches
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.utils import (
@@ -787,11 +788,13 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_schedule(schedule_entry)
 
         # Add some (not all) ntia-sensor metadata
-        sensor_meta = {
-            "id": self.sensor_definition["sensor_spec"]["id"],
-            "sensor_spec": self.sensor_definition["sensor_spec"],
-        }
-        sigmf_builder.sigmf_md.set_global_field("ntia-sensor:sensor", sensor_meta)
+        sigmf_builder.set_sensor(
+            {
+                "id": self.sensor_definition["sensor_spec"]["id"],
+                "sensor_spec": self.sensor_definition["sensor_spec"],
+                "sensor_sha512": SENSOR_DEFINITION_HASH,
+            }
+        )
 
         self.sigmf_builder = sigmf_builder
 

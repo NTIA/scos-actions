@@ -1,9 +1,10 @@
 import json
 import logging
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Union
+
+from scos_actions.signal_processing.calibration import CalibrationException
 
 logger = logging.getLogger(__name__)
 
@@ -15,12 +16,16 @@ class Calibration:
     calibration_data: dict
     clock_rate_lookup_by_sample_rate: List[Dict[str, float]]
 
-    def get_clock_rate(self, sample_rate):
+    def __post_init__(self):
+        # Convert key names in calibration_data to strings
+        # This means that formatting will always match between
+        # native types provided in Python and data loaded from JSON
+        self.calibration_data = json.loads(json.dumps(self.calibration_data))
+
+    def get_clock_rate(self, sample_rate: Union[float, int]) -> Union[float, int]:
         """Find the clock rate (Hz) using the given sample_rate (samples per second)"""
         for mapping in self.clock_rate_lookup_by_sample_rate:
-            mapped = get_comparable_value(mapping["sample_rate"])
-            actual = get_comparable_value(sample_rate)
-            if mapped == actual:
+            if mapping["sample_rate"] == sample_rate:
                 return mapping["clock_frequency"]
         return sample_rate
 
@@ -35,10 +40,11 @@ class Calibration:
         """
         # Check if the sample rate was calibrated
         cal_data = self.calibration_data
+        # raise Exception(self)
         for i, setting_value in enumerate(cal_params):
             setting = self.calibration_parameters[i]
             logger.debug(f"Looking up calibration for {setting} at {setting_value}")
-            cal_data = filter_by_parameter(cal_data, setting, setting_value)
+            cal_data = filter_by_parameter(cal_data, setting_value)
         logger.debug(f"Got calibration data: {cal_data}")
         return cal_data
 
@@ -81,7 +87,7 @@ class Calibration:
 
         # Get calibration entry by parameters used
         for parameter in self.calibration_parameters:
-            value = params[parameter]
+            value = str(params[parameter]).lower()
             logger.debug(f"Updating calibration at {parameter} = {value}")
             try:
                 cal_data = cal_data[value]
@@ -113,13 +119,21 @@ class Calibration:
             outfile.write(json.dumps(cal_dict))
 
 
-def get_comparable_value(f: Union[float, int]) -> int:
-    """Allow a frequency of type [float] to be compared with =="""
-    f = int(round(f))
-    return f
+def load_from_json(fname: Path) -> Calibration:
+    """
+    Load a calibration from a JSON file.
 
+    The JSON file must contain top-level fields:
+        ``last_calibration_datetime``
+        ``calibration_parameters``
+        ``calibration_data``
+        ``clock_rate_lookup_by_sample_rate``
 
-def load_from_json(fname: Path):
+    :param fname: The ``Path`` to the JSON calibration file.
+    :raises Exception: If the provided file does not include
+        the required keys.
+    :return: The ``Calibration`` object generated from the file.
+    """
     with open(fname) as file:
         calibration = json.load(file)
     # Check that the required fields are in the dict
@@ -129,6 +143,7 @@ def load_from_json(fname: Path):
         "clock_rate_lookup_by_sample_rate",
         "calibration_parameters",
     }
+
     if not calibration.keys() >= required_keys:
         raise Exception(
             "Loaded calibration dictionary is missing required fields."
@@ -139,60 +154,55 @@ def load_from_json(fname: Path):
     return Calibration(
         calibration["last_calibration_datetime"],
         calibration["calibration_parameters"],
-        convert_keys(calibration["calibration_data"]),
+        calibration["calibration_data"],
         calibration["clock_rate_lookup_by_sample_rate"],
     )
 
 
-def convert_keys(dictionary):
-    if isinstance(dictionary, dict):
-        keys = list(dictionary.keys())
-        for key in keys:
-            vals = dictionary[key]
-            try:
-                new_key = float(key)
-                vals = convert_keys(vals)
-                dictionary.pop(key)
-                dictionary[new_key] = vals
-            except Exception:
-                vals = convert_keys(vals)
-                dictionary.pop(key)
-                dictionary[key] = vals
-        return dictionary
-    else:
-        return dictionary
+def filter_by_parameter(calibrations: dict, value: Union[float, int, bool]) -> dict:
+    """
+    Select a certain element by the value of a top-level key in a dictionary.
 
+    This method should be recursively called to select calibration
+    data matching a set of calibration parameters. The ordering of
+    nested dictionaries should match the ordering of the required
+    calibration parameters in the calibration file.
 
-def filter_by_parameter(calibrations, parameter, value):
-    filtered_data = None
-    if value not in calibrations:
-        filtered_data = check_floor_of_parameter(calibrations, value)
+    If ``value`` is a float or bool, ``str(value).lower()`` is used
+    as the dictionary key. If ``value`` is an int, and the previous
+    approach does not work, ``str(float(value))`` is attempted. This
+    allows for value ``1`` to match a key ``"1.0"``.
+
+    :param calibrations: Calibration data dictionary.
+    :param value: The parameter value for filtering. This value should
+        exist as a top-level key in ``calibrations``.
+    :raises CalibrationException: If ``value`` cannot be matched to a
+        top-level key in ``calibrations``, or if ``calibrations`` is not
+        a dict.
+    :return: The value of ``calibrations[value]``, which should be a dict.
+    """
+    try:
+        filtered_data = calibrations.get(str(value).lower(), None)
+        if filtered_data is None and isinstance(value, int):
+            # Try equivalent float for ints, i.e., match "1.0" to 1
+            filtered_data = calibrations.get(str(float(value)), None)
+        if filtered_data is None and isinstance(value, float) and value.is_integer():
+            # Check for, e.g., key '25' if value is '25.0'
+            filtered_data = calibrations.get(str(int(value)), None)
         if filtered_data is None:
-            filtered_data = check_ceiling_of_parameter(calibrations, value)
-            if filtered_data is None:
-                logger.debug(calibrations)
-                raise Exception(
-                    f"No calibration was performed with {parameter} at {value}"
-                )
-    else:
-        filtered_data = calibrations[value]
-
-    return filtered_data
-
-
-def check_floor_of_parameter(calibrations, value):
-    value = math.floor(value)
-    logger.debug(f"Checking floor value of: {value}")
-    if value in calibrations:
-        return calibrations[value]
-    else:
-        return None
-
-
-def check_ceiling_of_parameter(calibrations, value):
-    value = math.ceil(value)
-    logger.debug(f"Checking ceiling at: {value}")
-    if value in calibrations:
-        return calibrations[value]
-    else:
-        return None
+            raise KeyError
+        else:
+            return filtered_data
+    except AttributeError as e:
+        # calibrations does not have ".get()"
+        # Generally means that calibrations is None or not a dict
+        msg = f"Provided calibration data is not a dict: {calibrations}"
+        raise CalibrationException(msg)
+    except KeyError as e:
+        msg = (
+            f"Could not locate calibration data at {value}"
+            + f"\nAttempted lookup using key '{str(value).lower()}'"
+            + f"{f'and {float(value)}' if isinstance(value, int) else ''}"
+            + f"\nUsing calibration data: {calibrations}"
+        )
+        raise CalibrationException(msg)
