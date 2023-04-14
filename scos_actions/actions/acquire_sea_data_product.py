@@ -438,8 +438,8 @@ class NasctnSeaDataProduct(Action):
             # Now wait for channel data to be processed
             channel_data = []
             tic = perf_counter()
-            for i, d in enumerate(ray.get(channel_data_process)):
-                if i == 3:
+            for j, d in enumerate(ray.get(channel_data_process)):
+                if j == 3:
                     # APD requires different handling
                     channel_data.append(ray.get(d))
                 else:
