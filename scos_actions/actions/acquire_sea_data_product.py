@@ -579,7 +579,11 @@ class NasctnSeaDataProduct(Action):
                     except:
                         logger.debug(f"Unable to read {sensor} from SPU x410")
                         pass
-                spu_diagnostics["sigan_internal_temp"] = self.sigan.temperature
+                try:
+                    spu_diagnostics["sigan_internal_temp"] = self.sigan.temperature
+                except:
+                    logger.warning("Unable to read internal sigan temperature")
+                    pass
 
         # Read preselector sensors
         preselector_diagnostics = {}
