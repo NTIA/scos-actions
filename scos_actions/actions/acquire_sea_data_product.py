@@ -577,7 +577,7 @@ class NasctnSeaDataProduct(Action):
                         value = switch.get_sensor_value(SPU_SENSORS[sensor])
                         spu_diagnostics[sensor] = value
                     except:
-                        logger.debug(f"Unable to read {sensor} from SPU x410")
+                        logger.warning(f"Unable to read {sensor} from SPU x410")
                         pass
                 try:
                     spu_diagnostics["sigan_internal_temp"] = self.sigan.temperature
@@ -593,7 +593,7 @@ class NasctnSeaDataProduct(Action):
                 value = preselector.get_sensor_value(PRESELECTOR_SENSORS[sensor])
                 preselector_diagnostics[sensor] = value
             except:
-                logger.debug(f"Unable to read {sensor} from preselector")
+                logger.warning(f"Unable to read {sensor} from preselector")
                 pass
 
         for inpt in PRESELECTOR_DIGITAL_INPUTS:
@@ -603,41 +603,83 @@ class NasctnSeaDataProduct(Action):
                 )
                 preselector_diagnostics[inpt] = value
             except:
-                logger.debug(f"Unable to read {inpt} from preselector")
+                logger.warning(f"Unable to read {inpt} from preselector")
                 pass
 
         # Read computer performance metrics
-
-        # Systemwide CPU utilization (%), averaged over current action runtime
-        cpu_utilization = psutil.cpu_percent(interval=None)
-
-        # Average system load (%) over last 5m
-        load_avg_5m = (psutil.getloadavg()[1] / psutil.cpu_count()) * 100.0
-
-        # Memory usage
-        mem_usage_pct = psutil.virtual_memory().percent
+        computer_diagnostics = {}
 
         # CPU temperature
-        cpu_temp_degC = get_current_cpu_temperature()
-        cpu_overheating = cpu_temp_degC > get_max_cpu_temperature()
+        try:
+            cpu_temp_degC = get_current_cpu_temperature()
+            computer_diagnostics["cpu_temp"] = round(cpu_temp_degC, 1)
+        except:
+            logger.warning("Failed to get current CPU temperature")
 
-        # Get computer uptime
-        cpu_uptime_days = round(get_cpu_uptime_seconds() / (60 * 60 * 24), 2)
+        # CPU overheating
+        try:
+            cpu_overheating = cpu_temp_degC > get_max_cpu_temperature()
+            computer_diagnostics["cpu_overheating"] = cpu_overheating
+        except:
+            logger.warning("Failed to get CPU overheating status")
 
-        computer_diagnostics = {
-            "cpu_temp": round(cpu_temp_degC, 1),
-            "cpu_overheating": cpu_overheating,
-            "cpu_uptime": cpu_uptime_days,
-            "cpu_max_clock": round(max(cpu_speeds), 1),
-            "cpu_min_clock": round(min(cpu_speeds), 1),
-            "cpu_mean_clock": round(np.mean(cpu_speeds), 1),
-            "action_cpu_usage": round(cpu_utilization, 1),
-            "system_load_5m": round(load_avg_5m, 1),
-            "memory_usage": round(mem_usage_pct, 1),
-            "scos_start_time": convert_datetime_to_millisecond_iso_format(start_time),
-            "scos_uptime": get_days_up(),
-            "ssd_smart_data": get_disk_smart_data("/dev/nvme0n1"),
-        }
+        # Computer uptime
+        try:
+            cpu_uptime_days = round(get_cpu_uptime_seconds() / (60 * 60 * 24), 2)
+            computer_diagnostics["cpu_uptime"] = cpu_uptime_days
+        except:
+            logger.warning("Failed to get computer uptime")
+
+        # CPU min/max/mean speeds
+        computer_diagnostics.update(
+            {
+                "cpu_max_clock": round(max(cpu_speeds), 1),
+                "cpu_min_clock": round(min(cpu_speeds), 1),
+                "cpu_mean_clock": round(np.mean(cpu_speeds), 1),
+            }
+        )
+
+        # Systemwide CPU utilization (%), averaged over current action runtime
+        try:
+            cpu_utilization = psutil.cpu_percent(interval=None)
+            computer_diagnostics["action_cpu_usage"] = round(cpu_utilization, 1)
+        except:
+            logger.warning("Failed to get CPU utilization diagnostics")
+
+        # Average system load (%) over last 5m
+        try:
+            load_avg_5m = (psutil.getloadavg()[1] / psutil.cpu_count()) * 100.0
+            computer_diagnostics["system_load_5m"] = round(load_avg_5m, 1)
+        except:
+            logger.warning("Failed to get system load 5m average")
+
+        # Memory usage
+        try:
+            mem_usage_pct = psutil.virtual_memory().percent
+            computer_diagnostics["memory_usage"] = round(mem_usage_pct, 1)
+        except:
+            logger.warning("Failed to get memory usage")
+
+        # SCOS start time
+        try:
+            computer_diagnostics[
+                "scos_start_time"
+            ] = convert_datetime_to_millisecond_iso_format(start_time)
+        except:
+            logger.warning("Failed to get SCOS start time")
+
+        # SCOS uptime
+        try:
+            computer_diagnostics["scos_uptime"] = get_days_up()
+        except:
+            logger.warning("Failed to get SCOS uptime")
+
+        # SSD SMART data
+        try:
+            computer_diagnostics["ssd_smart_data"] = get_disk_smart_data("/dev/nvme0n1")
+        except:
+            logger.warning("Failed to get SSD SMART data")
+
         toc = perf_counter()
         logger.debug(f"Got all diagnostics in {toc-tic} s")
 
