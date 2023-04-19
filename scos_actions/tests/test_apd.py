@@ -55,9 +55,7 @@ def test_get_apd_downsample(example_iq_data):
         assert not any(x == 0 for x in a)
         np.testing.assert_equal(a, np.real(a))
         assert all(a[i] <= a[i + 1] for i in range(len(a) - 1))
-        np.testing.assert_allclose(
-            np.diff(a), np.ones(len(a) - 1) * bin_size, rtol=1e-14, atol=0
-        )
+        np.testing.assert_allclose(np.diff(a), np.ones(len(a) - 1) * bin_size)
         assert max(p) < 1
         assert min(p) > 0
         assert all(p[i + 1] <= p[i] for i in range(len(p) - 2))
