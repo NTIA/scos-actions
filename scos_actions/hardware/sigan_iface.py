@@ -13,7 +13,6 @@ from scos_actions.utils import (
     convert_string_to_millisecond_iso_format,
     get_datetime_str_now,
 )
-from scos_actions.signals import trigger_api_restart
 
 logger = logging.getLogger(__name__)
 
@@ -105,9 +104,6 @@ class SignalAnalyzerInterface(ABC):
         """
         Attempt to cycle signal analyzer power then reconnect.
 
-        Will trigger api container restart if failure to connect to sigan after
-        powercycle.
-
         :param sleep_time: Time (s) to wait for power to cycle, defaults to 2.0
         """
         logger.info("Attempting to power cycle the signal analyzer and reconnect.")
@@ -126,7 +122,6 @@ class SignalAnalyzerInterface(ABC):
             logger.error(
                 f"Unable to reconnect to signal analyzer after power cycling: {e}"
             )
-
         return
 
     def recompute_sensor_calibration_data(self, cal_args: list) -> None:
