@@ -84,10 +84,15 @@ def get_apd(
                 b + 10.0 * np.log10(impedance_ohms) for b in [min_bin, max_bin]
             )
         # Generate bins based on bin_size_dB for downsampling
-        a = np.arange(min_bin, max_bin + bin_size_dB, bin_size_dB)
-        a = np.linspace(
-            min_bin, max_bin, int((max_bin - min_bin) / bin_size_dB) + 1, dtype=float
-        )
+        a = np.arange(min_bin, max_bin + bin_size_dB, bin_size_dB, dtype=float)
+        assert np.isclose(
+            a[1] - a[0], bin_size_dB
+        )  # Checks against undesired arange behavior
+        if not ((max_bin - min_bin) / bin_size_dB).is_integer():
+            logger.debug(
+                "APD downsampling range is not evenly spanned by configured bin size.\n"
+                + f"Check that the following amplitude bin edges are correct: {a}"
+            )
         # Get counts of amplitudes exceeding each bin value
         p = sample_ccdf(all_amps, a)
         # Replace any 0 probabilities with NaN
