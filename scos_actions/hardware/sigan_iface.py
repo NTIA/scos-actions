@@ -126,8 +126,6 @@ class SignalAnalyzerInterface(ABC):
             logger.error(
                 f"Unable to reconnect to signal analyzer after power cycling: {e}"
             )
-            logger.info("Sending signal to trigger api container restart.")
-            trigger_api_restart.send(sender=self.__class__)
 
         return
 
