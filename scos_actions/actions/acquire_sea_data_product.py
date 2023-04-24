@@ -309,6 +309,8 @@ def generate_data_product(
 
     # Explicitly call ray.put to pass filtered IQ to nested remote procs
     iqdata_id = ray.put(iqdata)
+    del iqdata
+    gc.collect()
 
     remote_procs = [
         get_fft_results.remote(iqdata_id, params),
@@ -456,6 +458,9 @@ class NasctnSeaDataProduct(Action):
             last_data_len = len(all_data)
         result_toc = perf_counter()
         logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
+
+        del dp_procs
+        gc.collect()
 
         # Build metadata and convert data to compressed bytes
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
