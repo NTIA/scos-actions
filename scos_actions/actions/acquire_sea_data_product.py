@@ -703,6 +703,7 @@ class NasctnSeaDataProduct(Action):
         """Fail acquisition if a required component is not available."""
         if not self.sigan.is_available:
             msg = "Acquisition failed: signal analyzer is not available"
+            trigger_api_restart.send(sender=self.__class__)
             raise RuntimeError(msg)
         if "SPU X410" not in [s.name for s in switches.values()]:
             msg = "Configuration error: no switch configured with name 'SPU X410'"
