@@ -63,7 +63,6 @@ def get_fft(
     :return: The transformed input, scaled based on the specified
         normalization mode.
     """
-    logger.debug("Computing FFTs")
     # Make sure num_ffts and fft_size are integers
     if isinstance(fft_size, int) and isinstance(num_ffts, int):
         pass
@@ -79,25 +78,16 @@ def get_fft(
 
     # Get num_ffts for default case: as many as possible
     if num_ffts <= 0:
-        logger.info("Number of FFTs not specified. Using as many as possible.")
         num_ffts = int(len(time_data) // fft_size)
-        logger.info(
-            f"Number of FFTs set to {num_ffts} based on specified FFT size {fft_size}"
-        )
 
     # Determine if truncation will occur and raise a warning if so
     if len(time_data) != fft_size * num_ffts:
-        thrown_away_samples = len(time_data) - (fft_size * num_ffts)
-        msg = "Time domain data length is not divisible by num_ffts.\nTime"
-        msg += "domain data will be truncated; Throwing away last "
-        msg += f"{thrown_away_samples} sample(s)."
-        logger.warning(msg)
+        msg = "Time domain data length is not divisible by num_ffts * fft_size.\n"
+        msg += "Try zero-padding the input or adjusting FFT parameters."
+        raise ValueError(msg)
 
     # Resize time data for FFTs
     time_data = np.reshape(time_data[: num_ffts * fft_size], (num_ffts, fft_size))
-    logger.debug(
-        f"Num. FFTs: {num_ffts}, FFT Size: {fft_size}, Data shape: {time_data.shape}"
-    )
 
     # Apply the FFT window if provided
     if fft_window is not None:

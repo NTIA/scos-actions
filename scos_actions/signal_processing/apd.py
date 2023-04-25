@@ -57,11 +57,7 @@ def get_apd(
     ne.evaluate("20*log10(all_amps)", out=all_amps)
 
     if bin_size_dB is None or bin_size_dB == 0:
-        # No downsampling
-        if min_bin is not None or max_bin is not None:
-            logger.warning(
-                f"APD bin edge specified but no downsampling is being performed"
-            )
+        # No downsampling. min_bin and max_bin ignored.
         a = np.sort(all_amps)
         p = 1 - ((np.arange(len(a)) + 1) / len(a))
         # Replace peak amplitude 0 count with NaN
@@ -69,14 +65,17 @@ def get_apd(
     else:
         # Dynamically get bin edges if necessary
         if min_bin is None:
-            logger.debug("Setting APD minimum bin edge to minimum recorded amplitude")
             min_bin = np.nanmin(all_amps)
         if max_bin is None:
-            logger.debug("Setting APD maximum bin edge to maximum recorded amplitude")
             max_bin = np.nanmax(all_amps)
         if min_bin >= max_bin:
-            logger.error(
+            raise ValueError(
                 f"Minimum APD bin {min_bin} is not less than maximum {max_bin}"
+            )
+        # Check that downsampling range is evenly spanned by bins
+        if not ((max_bin - min_bin) / bin_size_dB).is_integer():
+            raise ValueError(
+                "APD downsampling range is not evenly spanned by configured bin size."
             )
         # Scale bin edges to the correct units if necessary
         if impedance_ohms is not None:
@@ -88,11 +87,7 @@ def get_apd(
         assert np.isclose(
             a[1] - a[0], bin_size_dB
         )  # Checks against undesired arange behavior
-        if not ((max_bin - min_bin) / bin_size_dB).is_integer():
-            logger.debug(
-                "APD downsampling range is not evenly spanned by configured bin size.\n"
-                + f"Check that the following amplitude bin edges are correct: {a}"
-            )
+
         # Get counts of amplitudes exceeding each bin value
         p = sample_ccdf(all_amps, a)
         # Replace any 0 probabilities with NaN
@@ -101,8 +96,6 @@ def get_apd(
     # Scale to power if impedance value provided
     if impedance_ohms is not None:
         ne.evaluate("a-(10*log10(impedance_ohms))", out=a)
-
-    logger.debug(f"APD result length: {len(a)} samples.")
 
     return p, a
 

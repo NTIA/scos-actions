@@ -146,7 +146,6 @@ def apply_power_detector(
         detector_functions = [np.min, np.max, np.mean, np.median]
 
     # Get functions based on specified detector
-    logger.debug(f"Applying power detectors: {detectors}")
     applied_detectors = []
     if "min" in detectors:
         applied_detectors.append(detector_functions[0])
