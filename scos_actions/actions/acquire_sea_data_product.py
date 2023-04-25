@@ -72,7 +72,7 @@ logger = logging.getLogger(__name__)
 
 if not ray.is_initialized():
     ray.init(
-        include_dashboard=True,
+        include_dashboard=False,
     )
 
 # Define parameter keys
