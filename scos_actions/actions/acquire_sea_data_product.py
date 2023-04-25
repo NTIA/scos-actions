@@ -70,7 +70,7 @@ from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_d
 
 logger = logging.getLogger(__name__)
 
-if not ray.is_initialized:
+if not ray.is_initialized():
     ray.init(
         include_dashboard=False,
     )
