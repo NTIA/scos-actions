@@ -1,12 +1,7 @@
-import logging
 from typing import Tuple
 
 import numexpr as ne
 import numpy as np
-
-from scos_actions.signal_processing.unit_conversion import convert_linear_to_dB
-
-logger = logging.getLogger(__name__)
 
 
 def get_apd(

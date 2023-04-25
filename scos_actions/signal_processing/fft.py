@@ -1,12 +1,9 @@
-import logging
 import os
 
 import numexpr as ne
 import numpy as np
 from scipy.fft import fft as sp_fft
 from scipy.signal import get_window
-
-logger = logging.getLogger(__name__)
 
 
 def get_fft(

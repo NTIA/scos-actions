@@ -1,10 +1,7 @@
-import logging
 from enum import Enum, EnumMeta
 
 import numexpr as ne
 import numpy as np
-
-logger = logging.getLogger(__name__)
 
 
 def calculate_power_watts(val_volts, impedance_ohms: float = 50.0):
