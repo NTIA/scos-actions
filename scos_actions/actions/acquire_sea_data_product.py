@@ -70,6 +70,11 @@ from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_d
 
 logger = logging.getLogger(__name__)
 
+if not ray.is_initialized:
+    ray.init(
+        include_dashboard=False,
+    )
+
 # Define parameter keys
 RF_PATH = "rf_path"
 IIR_GPASS = "iir_gpass_dB"
