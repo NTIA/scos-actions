@@ -504,7 +504,7 @@ class NasctnSeaDataProduct(Action):
         start_time = utils.get_datetime_str_now()
         tic = perf_counter()
         # Configure signal analyzer
-        self.configure_sigan({k: v for k, v in hw_params.items() if k != RF_PATH})
+        self.configure_sigan(hw_params)
         # Get IQ capture parameters
         duration_ms = utils.get_parameter(DURATION_MS, params)
         nskip = utils.get_parameter(NUM_SKIP, params)
