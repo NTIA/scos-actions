@@ -143,7 +143,7 @@ def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.nd
         fft_window=FFT_WINDOW,
         num_ffts=params[NUM_FFTS],
         shift=False,
-        workers=4,
+        workers=1,
     )
     fft_result = calculate_pseudo_power(fft_result)
     fft_result = apply_power_detector(fft_result, FFT_DETECTOR)  # (max, mean)
