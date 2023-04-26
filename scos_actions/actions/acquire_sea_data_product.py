@@ -307,16 +307,16 @@ def generate_data_product(
     iqdata: ray.ObjectRef, params: dict, iir_sos: np.ndarray
 ) -> list:
     """Process IQ data and generate the SEA data product."""
+    print(f"GEN_DP @ {params[FREQUENCY]/1e6:.1f}: IQ data is {type(iqdata)}")
     iqdata = sosfilt(iir_sos, iqdata)
-    print(
-        f"GEN_DP @ {params[FREQUENCY]/1e6:.1f}: IQ data is {type(iqdata)}, {iqdata[:5]}"
-    )
-
+    print(f"FILTERED IQ @ {params[FREQUENCY]/1e6:.1f}: data is {type(iqdata)}")
+    iqdata_ref = ray.put(iqdata)
+    del iqdata
     remote_procs = [
-        get_fft_results.remote(iqdata, params),
-        get_td_power_results.remote(iqdata, params),
-        get_periodic_frame_power.remote(iqdata, params),
-        get_apd_results.remote(iqdata, params),
+        get_fft_results.remote(iqdata_ref, params),
+        get_td_power_results.remote(iqdata_ref, params),
+        get_periodic_frame_power.remote(iqdata_ref, params),
+        get_apd_results.remote(iqdata_ref, params),
     ]
 
     # Return identifiers to avoid waiting for processing to complete
