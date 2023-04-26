@@ -70,9 +70,7 @@ from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_d
 logger = logging.getLogger(__name__)
 
 if not ray.is_initialized():
-    ray.init(
-        include_dashboard=False,
-    )
+    ray.init()  # Dashboard is enabled if ray[default] is installed
 
 # Define parameter keys
 RF_PATH = "rf_path"
@@ -306,20 +304,19 @@ def get_periodic_frame_power(
 
 @ray.remote
 def generate_data_product(
-    iqdata: np.ndarray, params: dict, iir_sos: np.ndarray
+    iqdata: ray.ObjectRef, params: dict, iir_sos: np.ndarray
 ) -> list:
     """Process IQ data and generate the SEA data product."""
     iqdata = sosfilt(iir_sos, iqdata)
-
-    # Explicitly call ray.put to pass filtered IQ to nested remote procs
-    iqdata_id = ray.put(iqdata)
-    del iqdata
+    print(
+        f"GEN_DP @ {params[FREQUENCY]/1e6:.1f}: IQ data is {type(iqdata)}, {iqdata[:5]}"
+    )
 
     remote_procs = [
-        get_fft_results.remote(iqdata_id, params),
-        get_td_power_results.remote(iqdata_id, params),
-        get_periodic_frame_power.remote(iqdata_id, params),
-        get_apd_results.remote(iqdata_id, params),
+        get_fft_results.remote(iqdata, params),
+        get_td_power_results.remote(iqdata, params),
+        get_periodic_frame_power.remote(iqdata, params),
+        get_apd_results.remote(iqdata, params),
     ]
 
     # Return identifiers to avoid waiting for processing to complete
@@ -412,10 +409,14 @@ class NasctnSeaDataProduct(Action):
         for parameters in iteration_params:
             measurement_result = self.capture_iq(parameters)
             # Start data product processing but do not block next IQ capture
+            tic = perf_counter()
+            iqdata_ref = ray.put(measurement_result["data"])
+            toc = perf_counter()
+            logger.debug(
+                f"Called ray.put for channel IQ in {toc-tic:.2f} s: {measurement_result['data'][:5]}"
+            )
             dp_procs.append(
-                generate_data_product.remote(
-                    measurement_result["data"], parameters, self.iir_sos
-                )
+                generate_data_product.remote(iqdata_ref, parameters, self.iir_sos)
             )
             # Generate capture metadata before sigan reconfigured
             cap_meta_tuple = self.create_channel_metadata(measurement_result)
