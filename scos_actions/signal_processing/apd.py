@@ -52,12 +52,14 @@ def get_apd(
     ne.evaluate("20*log10(all_amps)", out=all_amps)
 
     if bin_size_dB is None or bin_size_dB == 0:
+        downsampling = False
         # No downsampling. min_bin and max_bin ignored.
         a = np.sort(all_amps)
         p = 1 - ((np.arange(len(a)) + 1) / len(a))
         # Replace peak amplitude 0 count with NaN
         p[-1] = np.nan
     else:
+        downsampling = True
         # Dynamically get bin edges if necessary
         if min_bin is None:
             min_bin = np.nanmin(all_amps)
@@ -90,7 +92,10 @@ def get_apd(
 
     # Scale to power if impedance value provided
     if impedance_ohms is not None:
-        ne.evaluate("a-(10*log10(impedance_ohms))", out=a)
+        if downsampling:
+            a -= 10.0 * np.log10(impedance_ohms)
+        else:
+            ne.evaluate("a-(10*log10(impedance_ohms))", out=a)
 
     return p, a
 
