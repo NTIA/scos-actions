@@ -20,7 +20,6 @@ r"""Acquire a NASCTN SEA data product.
 
 Currently in development.
 """
-import gc
 import logging
 import lzma
 from time import perf_counter
