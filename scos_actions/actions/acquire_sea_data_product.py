@@ -331,11 +331,9 @@ def generate_data_product(
     procs.append(get_td_power_results.remote(iqdata_ref, params))
     procs.append(get_periodic_frame_power.remote(iqdata_ref, params))
     procs.append(get_apd_results.remote(iqdata_ref, params))
+    yield procs
 
-    for p in procs:
-        yield ray.get(p)
-
-    del iqdata, procs, p
+    del iqdata, procs
     gc.collect()
 
 
@@ -427,7 +425,7 @@ class NasctnSeaDataProduct(Action):
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
             dp_procs.append(
-                generate_data_product.remote(
+                generate_data_product.remote(  # Copies IQ to Ray object store
                     measurement_result["data"], parameters, self.iir_sos
                 )
             )
@@ -457,19 +455,23 @@ class NasctnSeaDataProduct(Action):
                 extra_entries=cap_entries[i],
             )
 
-            # Now wait for channel data to be processed
+            # Retrieve object references for channel data
+            channel_data_refs = ray.get(channel_data_process)
             channel_data = []
-            tic = perf_counter()
-            for j, d in enumerate(channel_data_process):
-                if j == 1:  # Power-vs-Time results
-                    data = ray.get(d)
+            for j, data_ref in enumerate(channel_data_refs):
+                # Now block until the data is ready
+                data = ray.get(data_ref)
+                if j == 0:
+                    # Power-vs-Time results
                     channel_data.extend(data[:2])
                     max_max_ch_pwrs.append(DATA_TYPE(data[2]))
                     med_mean_ch_pwrs.append(DATA_TYPE(data[3]))
-                if j == 3:  # APD results
-                    channel_data.append(ray.get(d))
+                elif j == 3:
+                    # APD results
+                    channel_data.append(data)
                 else:
-                    channel_data.extend(ray.get(d))
+                    channel_data.extend(data)
+
             toc = perf_counter()
             logger.debug(f"Waited {toc-tic} s for channel {i} data")
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
