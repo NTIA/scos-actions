@@ -318,7 +318,7 @@ def get_periodic_frame_power(
     del power_bins, mean_power, max_power, pfp
 
 
-@ray.remote(num_returns=4)
+@ray.remote(num_returns=1)
 def generate_data_product(
     iqdata: np.ndarray, params: dict, iir_sos: np.ndarray
 ) -> list:
