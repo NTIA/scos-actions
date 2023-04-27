@@ -242,10 +242,9 @@ def get_td_power_results(
     yield td_result[0]  # Max detector result
     yield td_result[1]  # Mean detector result
 
-    # Get channel summary statistics as 0-dim NumPy arrays
+    # Get channel summary statistics as floats
     # Order is max-of-max, median-of-mean
-    for a in td_channel_result:
-        yield np.array(a)
+    yield from td_channel_result
     del td_result
 
 
@@ -461,7 +460,7 @@ class NasctnSeaDataProduct(Action):
             for j, data_ref in enumerate(channel_data_refs):
                 # Now block until the data is ready
                 data = ray.get(data_ref)
-                if j == 0:
+                if j == 1:
                     # Power-vs-Time results
                     channel_data.extend(data[:2])
                     max_max_ch_pwrs.append(DATA_TYPE(data[2]))
