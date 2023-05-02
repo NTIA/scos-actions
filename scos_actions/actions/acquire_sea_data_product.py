@@ -477,6 +477,7 @@ class NasctnSeaDataProduct(Action):
             last_data_len = len(all_data)
         result_toc = perf_counter()
         del dp_procs
+        gc.collect()
         logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
 
         # Build metadata and convert data to compressed bytes
