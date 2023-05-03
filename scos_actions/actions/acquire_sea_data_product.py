@@ -337,7 +337,9 @@ class IQProcessor:
         iqdata = ray.put(sosfilt(self.iir_sos, iqdata))
         # Compute PSD, PVT, PFP, and APD concurrently.
         # Wait until they finish.
-        return ray.get([worker.run.remote(iqdata) for worker in self.workers])
+        yield [worker.run.remote(iqdata) for worker in self.workers]
+        del iqdata
+        gc.collect()
 
 
 class NasctnSeaDataProduct(Action):
@@ -404,9 +406,6 @@ class NasctnSeaDataProduct(Action):
         # Get iterable parameter list
         self.iteration_params = utils.get_iterable_parameters(self.parameters)
 
-        # Initialize IQ processors
-        self.iq_processors = []
-
     def __call__(self, schedule_entry, task_id):
         """This is the entrypoint function called by the scheduler."""
         action_start_tic = perf_counter()
@@ -425,23 +424,15 @@ class NasctnSeaDataProduct(Action):
         )
         self.create_global_data_product_metadata(self.parameters)
 
-        # Initialize IQ processor actors
-        tic = perf_counter()
-        for params in self.iteration_params:
-            self.iq_processors.append(IQProcessor.remote(params, self.iir_sos))
-        toc = perf_counter()
-        logger.debug(f"Initialized all IQProcessor instances in {toc-tic:.2f}")
-
         # Collect all IQ data and spawn data product computation processes
         dp_procs, cap_meta, cap_entries, cpu_speed = [], [], [], []
         capture_tic = perf_counter()
-        for i, parameters in enumerate(self.iteration_params):
+        iq_processor = IQProcessor(self.iteration_params[0], self.iir_sos)
+        for parameters in self.iteration_params:
             measurement_result = self.capture_iq(parameters)
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
-            dp_procs.append(
-                self.iq_processors[i].run.remote(measurement_result["data"])
-            )
+            dp_procs.append(iq_processor.run.remote(measurement_result["data"]))
             del measurement_result["data"]
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc-tic:.2f} s")
