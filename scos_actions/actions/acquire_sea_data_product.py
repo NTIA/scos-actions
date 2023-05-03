@@ -427,7 +427,7 @@ class NasctnSeaDataProduct(Action):
         # Collect all IQ data and spawn data product computation processes
         dp_procs, cap_meta, cap_entries, cpu_speed = [], [], [], []
         capture_tic = perf_counter()
-        iq_processor = IQProcessor(self.iteration_params[0], self.iir_sos)
+        iq_processor = IQProcessor.remote(self.iteration_params[0], self.iir_sos)
         for parameters in self.iteration_params:
             measurement_result = self.capture_iq(parameters)
             # Start data product processing but do not block next IQ capture
