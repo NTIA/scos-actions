@@ -466,14 +466,17 @@ class NasctnSeaDataProduct(Action):
                 # Now block until the data is ready
                 data = ray.get(data_ref)
                 if j == 1:
-                    # Power-vs-Time results
-                    channel_data.extend(data[:2])
-                    max_max_ch_pwrs.append(DATA_TYPE(data[2]))
-                    med_mean_ch_pwrs.append(DATA_TYPE(data[3]))
-                elif j == 3:
-                    # APD results
+                    # Power-vs-Time results, a tuple of arrays
+                    data, summaries = data  # Split the tuple
+                    max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
+                    med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
+                    del summaries
+                if j == 3:  # Separate condition is intentional
+                    # APD result: append instead of extend,
+                    # since the result is a single 1D array
                     channel_data.append(data)
                 else:
+                    # For 2D arrays (PSD, PVT, PFP)
                     channel_data.extend(data)
 
             toc = perf_counter()
@@ -481,7 +484,7 @@ class NasctnSeaDataProduct(Action):
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
             last_data_len = len(all_data)
         result_toc = perf_counter()
-        del dp_procs
+        del dp_procs, iq_processor, channel_data, channel_data_refs
         gc.collect()
         logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
 
