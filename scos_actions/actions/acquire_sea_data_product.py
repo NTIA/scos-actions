@@ -415,7 +415,7 @@ class IQProcessor:
         # Filter IQ and place it in the object store
         iqdata = ray.put(sosfilt(self.iir_sos, iqdata))
         # Compute PSD, PVT, PFP, and APD concurrently.
-        # Wait until they finish.
+        # Do not wait until they finish. Yield references to their results.
         yield [worker.run.remote(iqdata) for worker in self.workers]
         del iqdata
         gc.collect()
