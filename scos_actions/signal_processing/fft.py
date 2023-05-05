@@ -5,6 +5,8 @@ import numpy as np
 from scipy.fft import fft as sp_fft
 from scipy.signal import get_window
 
+from scos_actions.signal_processing import NUMEXPR_THRESHOLD
+
 
 def get_fft(
     time_data: np.ndarray,
@@ -87,7 +89,10 @@ def get_fft(
 
     # Apply the FFT window if provided
     if fft_window is not None:
-        ne.evaluate("time_data*fft_window", out=time_data)
+        if time_data.size > NUMEXPR_THRESHOLD:
+            ne.evaluate("time_data*fft_window", out=time_data)
+        else:
+            time_data *= fft_window
 
     # Take the FFT
     complex_fft = sp_fft(time_data, norm=norm, workers=workers)

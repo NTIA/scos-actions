@@ -3,6 +3,8 @@ from typing import Tuple
 import numexpr as ne
 import numpy as np
 
+from scos_actions.signal_processing import NUMEXPR_THRESHOLD
+
 
 def get_apd(
     time_data: np.ndarray,
@@ -41,14 +43,15 @@ def get_apd(
         probabilities, and a contains the APD amplitudes.
     """
     # Convert IQ to amplitudes
-    all_amps = ne.evaluate("abs(x).real", {"x": time_data})
+    if time_data.size > NUMEXPR_THRESHOLD:
+        all_amps = ne.evaluate("abs(x).real", {"x": time_data})
+    else:
+        all_amps = np.abs(time_data)
 
     # Replace any 0 value amplitudes with NaN
     all_amps[all_amps == 0] = np.nan
 
     # Convert amplitudes from V to pseudo-power
-    # Do not use utils.convert_linear_to_dB since the input
-    # here is always an array, and generally a large one.
     ne.evaluate("20*log10(all_amps)", out=all_amps)
 
     if bin_size_dB is None or bin_size_dB == 0:
