@@ -157,5 +157,5 @@ def is_stable(sos: np.ndarray) -> bool:
     :return: True if the filter is stable, False if not.
     """
     _, poles, _ = sos2zpk(sos)
-    stable = all([True if p < 1 else False for p in np.square(np.abs(poles))])
+    stable = all([p < 1 for p in np.square(np.abs(poles))])
     return stable

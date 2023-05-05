@@ -61,14 +61,13 @@ def get_fft(
         normalization mode.
     """
     # Make sure num_ffts and fft_size are integers
-    if isinstance(fft_size, int) and isinstance(num_ffts, int):
-        pass
-    else:
-        if fft_size == int(fft_size):
+    if type(fft_size) is not int:
+        if isinstance(fft_size, float) and fft_size.is_integer():
             fft_size = int(fft_size)
         else:
             raise ValueError(f"fft_size must be an integer, not {type(fft_size)}.")
-        if num_ffts == int(num_ffts):
+    if type(num_ffts) is not int:
+        if isinstance(num_ffts, float) and num_ffts.is_integer():
             num_ffts = int(num_ffts)
         else:
             raise ValueError(f"num_ffts must be an integer, not {type(num_ffts)}.")
@@ -77,7 +76,7 @@ def get_fft(
     if num_ffts <= 0:
         num_ffts = int(len(time_data) // fft_size)
 
-    # Determine if truncation will occur and raise a warning if so
+    # Ensure that fft_size * num_ffts is the length of the input data
     if len(time_data) != fft_size * num_ffts:
         msg = "Time domain data length is not divisible by num_ffts * fft_size.\n"
         msg += "Try zero-padding the input or adjusting FFT parameters."
@@ -88,14 +87,14 @@ def get_fft(
 
     # Apply the FFT window if provided
     if fft_window is not None:
-        time_data = ne.evaluate("time_data*fft_window")
+        ne.evaluate("time_data*fft_window", out=time_data)
 
     # Take the FFT
     complex_fft = sp_fft(time_data, norm=norm, workers=workers)
 
     # Shift the frequencies if desired
     if shift:
-        complex_fft = np.fft.fftshift(complex_fft)
+        complex_fft = np.fft.fftshift(complex_fft, axes=(1,))
     return complex_fft
 
 
@@ -143,7 +142,7 @@ def get_fft_window_correction(window: np.ndarray, correction_type: str) -> float
     if correction_type == "amplitude":
         window_correction = 1.0 / np.mean(window)
     elif correction_type == "energy":
-        window_correction = np.sqrt(1.0 / np.mean(window**2))
+        window_correction = 1.0 / np.sqrt(np.mean(window**2))
     else:
         raise ValueError(f"Invalid window correction type: {correction_type}")
 
@@ -168,8 +167,7 @@ def get_fft_frequencies(
     :return: A list of values representing the frequency axis of the
         FFT.
     """
-    time_step = 1.0 / sample_rate
-    frequencies = np.fft.fftfreq(fft_size, time_step)
+    frequencies = np.fft.fftfreq(fft_size, 1.0 / sample_rate)
     frequencies = np.fft.fftshift(frequencies) + center_frequency
     return frequencies.tolist()
 
