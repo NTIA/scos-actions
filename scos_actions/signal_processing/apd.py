@@ -43,16 +43,19 @@ def get_apd(
         probabilities, and a contains the APD amplitudes.
     """
     # Convert IQ to amplitudes
-    if time_data.size > NUMEXPR_THRESHOLD:
-        all_amps = ne.evaluate("abs(x).real", {"x": time_data})
-    else:
+    if time_data.size < NUMEXPR_THRESHOLD:
         all_amps = np.abs(time_data)
+    else:
+        all_amps = ne.evaluate("abs(x).real", {"x": time_data})
 
     # Replace any 0 value amplitudes with NaN
     all_amps[all_amps == 0] = np.nan
 
     # Convert amplitudes from V to pseudo-power
-    ne.evaluate("20*log10(all_amps)", out=all_amps)
+    if time_data.size < NUMEXPR_THRESHOLD:
+        all_amps = 20.0 * np.log10(all_amps)
+    else:
+        ne.evaluate("20*log10(all_amps)", out=all_amps)
 
     if bin_size_dB is None or bin_size_dB == 0:
         downsampling = False
@@ -98,7 +101,10 @@ def get_apd(
         if downsampling:
             a -= 10.0 * np.log10(impedance_ohms)
         else:
-            ne.evaluate("a-(10*log10(impedance_ohms))", out=a)
+            if a.size < NUMEXPR_THRESHOLD:
+                a -= 10.0 * np.log10(impedance_ohms)
+            else:
+                ne.evaluate("a-(10*log10(impedance_ohms))", out=a)
 
     return p, a
 
@@ -120,6 +126,9 @@ def sample_ccdf(a: np.ndarray, edges: np.ndarray, density: bool = True) -> np.nd
     ccdf = (a.size - bin_counts.cumsum())[:-1]
     if density:
         ccdf = ccdf.astype("float64")
-        ne.evaluate("ccdf/a_size", {"ccdf": ccdf, "a_size": a.size}, out=ccdf)
+        if a.size < NUMEXPR_THRESHOLD:
+            ccdf /= a.size
+        else:
+            ne.evaluate("ccdf/a_size", {"ccdf": ccdf, "a_size": a.size}, out=ccdf)
 
     return ccdf
