@@ -180,3 +180,7 @@ def test_filter_quantiles():
     for q in bad_hi_q:
         with pytest.raises(ValueError):
             _ = pa.filter_quantiles(test_data, lo_q, q)
+    # Complex input should raise TypeError
+    test_complex_data = test_data + 1j * test_data
+    with pytest.raises(TypeError):
+        _ = pa.filter_quantiles(test_complex_data, lo_q, hi_q)

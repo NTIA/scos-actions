@@ -192,15 +192,16 @@ def filter_quantiles(x: np.ndarray, q_lo: float, q_hi: float) -> np.ndarray:
     """
     Replace values outside specified quantiles with NaN.
 
-    :param x: Input N-dimensional data array.
+    :param x: Input N-dimensional data array. Complex valued arrays
+        are not supported.
     :param q_lo: Lower quantile, 0 <= q_lo < q_hi.
     :param q_hi: Upper quantile, q_lo < q_hi <= 1.
     :return: The input data array, with values outside the
         specified quantile replaced with NaN (numpy.nan).
     :raises ValueError: If either ``q_lo`` or ``q_hi`` is not
         within its valid range (listed above).
-    :raises TypeError: If ``x`` is not a NumPy array with a size
-        greater than 1.
+    :raises TypeError: If ``x`` is not a real-valued NumPy array
+        with a size greater than 1.
     """
     if q_lo < 0 or q_lo >= q_hi:
         raise ValueError("q_lo must satistfy 0 <= q_lo < q_hi")
@@ -210,6 +211,8 @@ def filter_quantiles(x: np.ndarray, q_lo: float, q_hi: float) -> np.ndarray:
         raise TypeError("Input data must be a NumPy array")
     if x.size <= 1:
         raise TypeError("Input data must have length greater than 1")
+    if np.iscomplexobj(x):
+        raise TypeError("Input data must be real, not complex")
     lo, hi = np.quantile(x, [q_lo, q_hi])  # Works on flattened array
     if x.size < NUMEXPR_THRESHOLD:
         x = np.where((x <= lo) | (x > hi), np.nan, x)
