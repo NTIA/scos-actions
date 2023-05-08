@@ -5,6 +5,8 @@ from typing import Union
 import numexpr as ne
 import numpy as np
 
+from scos_actions.signal_processing import NUMEXPR_THRESHOLD
+
 
 def suppress_divide_by_zero_when_testing():
     # If testing, don't output divide-by-zero warnings from log10
@@ -22,14 +24,14 @@ def convert_watts_to_dBm(
 
     Calculation: ``10 * log10(val_watts) + 30``
 
-    NumPy is used for scalar inputs.
-    NumExpr is used to speed up the operation for arrays.
+    NumPy is used for scalar inputs and small arrays.
+    NumExpr is used to speed up the operation for large arrays.
 
     :param val_watts: A value, or array of values, in Watts.
     :return: The input val_watts, converted to dBm.
     """
     suppress_divide_by_zero_when_testing()
-    if np.isscalar(val_watts):
+    if np.isscalar(val_watts) or val_watts.size < NUMEXPR_THRESHOLD:
         val_dBm = 10.0 * np.log10(val_watts) + 30
     else:
         val_dBm = ne.evaluate("10*log10(val_watts)+30")
@@ -42,13 +44,13 @@ def convert_dBm_to_watts(val_dBm: Union[float, np.ndarray]) -> Union[float, np.n
 
     Calculation: ``10^((val_dBm - 30) / 10)``
 
-    NumPy is used for scalar inputs.
-    NumExpr is used to speed up the operation for arrays.
+    NumPy is used for scalar inputs and small arrays.
+    NumExpr is used to speed up the operation for large arrays.
 
     :param val_dBm: A value, or array of values, in dBm.
     :return: The input val_dBm, converted to Watts.
     """
-    if np.isscalar(val_dBm):
+    if np.isscalar(val_dBm) or val_dBm.size < NUMEXPR_THRESHOLD:
         val_watts = 10.0 ** ((val_dBm - 30) / 10)
     else:
         val_watts = ne.evaluate("10**((val_dBm-30)/10)")
@@ -63,15 +65,15 @@ def convert_linear_to_dB(
 
     Calculation: ``10 * log10(val_linear)``
 
-    NumPy is used for scalar inputs.
-    NumExpr is used to speed up the operation for arrays.
+    NumPy is used for scalar inputs and small arrays.
+    NumExpr is used to speed up the operation for large arrays.
 
     :param val_linear: A value, or array of values, in linear
         units.
     :return: The input val_linear, converted to dB.
     """
     suppress_divide_by_zero_when_testing()
-    if np.isscalar(val_linear):
+    if np.isscalar(val_linear) or val_linear.size < NUMEXPR_THRESHOLD:
         val_dB = 10.0 * np.log10(val_linear)
     else:
         val_dB = ne.evaluate("10*log10(val_linear)")
@@ -84,14 +86,14 @@ def convert_dB_to_linear(val_dB: Union[float, np.ndarray]) -> Union[float, np.nd
 
     Calculation: ``10^(val_dB / 10)``
 
-    NumPy is used for scalar inputs.
-    NumExpr is used to speed up the operation for arrays.
+    NumPy is used for scalar inputs and small arrays.
+    NumExpr is used to speed up the operation for large arrays.
 
     :param val_dB: A value, or array of values, in dB.
     :return: The input val_dB, converted to corresponding
         linear units.
     """
-    if np.isscalar(val_dB):
+    if np.isscalar(val_dB) or val_dB.size < NUMEXPR_THRESHOLD:
         val_linear = 10.0 ** (val_dB / 10.0)
     else:
         val_linear = ne.evaluate("10**(val_dB/10)")

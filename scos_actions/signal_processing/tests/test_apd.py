@@ -1,3 +1,4 @@
+import numexpr as ne
 import numpy as np
 import pytest
 
@@ -30,6 +31,7 @@ def test_get_apd_nan_handling():
 
 def test_get_apd_no_downsample(example_iq_data):
     bin_sizes = [None, 0]
+    impedance = 50
     for bin_size in bin_sizes:
         apd_result = apd.get_apd(example_iq_data, bin_size)
         assert isinstance(apd_result, tuple)
@@ -40,26 +42,42 @@ def test_get_apd_no_downsample(example_iq_data):
         assert not any(x == 0 for x in a)
         np.testing.assert_equal(a, np.real(a))
         assert all(a[i] <= a[i + 1] for i in range(len(a) - 1))
-        assert max(p) < 1
-        assert min(p) > 0
+        assert np.nanmax(p) <= 1
+        assert np.nanmin(p) > 0
         assert all(p[i + 1] <= p[i] for i in range(len(p) - 2))
         assert np.isnan(p[-1])
+        # Check against version with impedance provided
+        scaled_p, scaled_a = apd.get_apd(
+            example_iq_data, bin_size, impedance_ohms=impedance
+        )
+        np.testing.assert_allclose(a - 10.0 * np.log10(impedance), scaled_a)
+        np.testing.assert_array_equal(p, scaled_p)
 
 
 def test_get_apd_downsample(example_iq_data):
-    bin_sizes = [0.5, 0.25, 0.15]
+    with pytest.raises(ValueError):
+        _ = apd.get_apd(example_iq_data, 0.5, 100, 99)
+    with pytest.raises(ValueError):
+        _ = apd.get_apd(example_iq_data, 1.0, 90, 100.6)
+    bin_sizes = [1.0, 0.5, 0.25]
     for bin_size in bin_sizes:
-        p, a = apd.get_apd(example_iq_data, bin_size)
+        min_bin = np.nanmin(ne.evaluate("20*log10(abs(example_iq_data).real)"))
+        max_bin = np.nanmax(ne.evaluate("20*log10(abs(example_iq_data).real)"))
+        p, a = apd.get_apd(example_iq_data, bin_size, round(min_bin), round(max_bin))
         assert len(p) == len(a)
         assert len(p) < len(example_iq_data)
-        assert not any(x == 0 for x in a)
         np.testing.assert_equal(a, np.real(a))
         assert all(a[i] <= a[i + 1] for i in range(len(a) - 1))
         np.testing.assert_allclose(np.diff(a), np.ones(len(a) - 1) * bin_size)
-        assert max(p) < 1
-        assert min(p) > 0
-        assert all(p[i + 1] <= p[i] for i in range(len(p) - 2))
-        assert np.isnan(p[-1])
+        assert np.nanmax(p) <= 1
+        assert np.nanmin(p) > 0
+    # Test impedance scaling
+    impedance = 50.0
+    min_bin, max_bin = -100, 100
+    # In this case, the bin edges are internally scaled but then converted back
+    p, a = apd.get_apd(example_iq_data, 1.0, min_bin, max_bin, impedance)
+    assert np.nanmin(a) == min_bin
+    assert np.nanmax(a) == max_bin
 
 
 def test_sample_ccdf():
