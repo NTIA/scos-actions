@@ -80,27 +80,3 @@ allow-direct-references = true
 
 [tool.hatch.version]
 path = "scos_actions/__init__.py"
-
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = py{38,39,310}
-skip_missing_interpreters = True
-skipsdist = True
-
-[testenv]
-commands =
-    pip install .[test]
-    pytest
-
-[testenv:coverage]
-commands =
-    pip install .[test]
-    pytest --cov --cov-append --cov-report=term-missing --no-cov-on-fail
-
-[coverage:run]
-omit =
-    .tox/*
-    */tests/*
-    scos_actions/settings.py
-"""
