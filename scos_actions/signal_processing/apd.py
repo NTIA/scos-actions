@@ -1,12 +1,9 @@
-import logging
 from typing import Tuple
 
 import numexpr as ne
 import numpy as np
 
-from scos_actions.signal_processing.unit_conversion import convert_linear_to_dB
-
-logger = logging.getLogger(__name__)
+from scos_actions.signal_processing import NUMEXPR_THRESHOLD
 
 
 def get_apd(
@@ -46,37 +43,42 @@ def get_apd(
         probabilities, and a contains the APD amplitudes.
     """
     # Convert IQ to amplitudes
-    all_amps = ne.evaluate("abs(x).real", {"x": time_data})
+    if time_data.size < NUMEXPR_THRESHOLD:
+        all_amps = np.abs(time_data)
+    else:
+        all_amps = ne.evaluate("abs(x).real", {"x": time_data})
 
     # Replace any 0 value amplitudes with NaN
     all_amps[all_amps == 0] = np.nan
 
     # Convert amplitudes from V to pseudo-power
-    # Do not use utils.convert_linear_to_dB since the input
-    # here is always an array, and generally a large one.
-    ne.evaluate("20*log10(all_amps)", out=all_amps)
+    if time_data.size < NUMEXPR_THRESHOLD:
+        all_amps = 20.0 * np.log10(all_amps)
+    else:
+        ne.evaluate("20*log10(all_amps)", out=all_amps)
 
     if bin_size_dB is None or bin_size_dB == 0:
-        # No downsampling
-        if min_bin is not None or max_bin is not None:
-            logger.warning(
-                f"APD bin edge specified but no downsampling is being performed"
-            )
+        downsampling = False
+        # No downsampling. min_bin and max_bin ignored.
         a = np.sort(all_amps)
         p = 1 - ((np.arange(len(a)) + 1) / len(a))
         # Replace peak amplitude 0 count with NaN
         p[-1] = np.nan
     else:
+        downsampling = True
         # Dynamically get bin edges if necessary
         if min_bin is None:
-            logger.debug("Setting APD minimum bin edge to minimum recorded amplitude")
             min_bin = np.nanmin(all_amps)
         if max_bin is None:
-            logger.debug("Setting APD maximum bin edge to maximum recorded amplitude")
             max_bin = np.nanmax(all_amps)
         if min_bin >= max_bin:
-            logger.error(
+            raise ValueError(
                 f"Minimum APD bin {min_bin} is not less than maximum {max_bin}"
+            )
+        # Check that downsampling range is evenly spanned by bins
+        if not ((max_bin - min_bin) / bin_size_dB).is_integer():
+            raise ValueError(
+                "APD downsampling range is not evenly spanned by configured bin size."
             )
         # Scale bin edges to the correct units if necessary
         if impedance_ohms is not None:
@@ -88,11 +90,7 @@ def get_apd(
         assert np.isclose(
             a[1] - a[0], bin_size_dB
         )  # Checks against undesired arange behavior
-        if not ((max_bin - min_bin) / bin_size_dB).is_integer():
-            logger.debug(
-                "APD downsampling range is not evenly spanned by configured bin size.\n"
-                + f"Check that the following amplitude bin edges are correct: {a}"
-            )
+
         # Get counts of amplitudes exceeding each bin value
         p = sample_ccdf(all_amps, a)
         # Replace any 0 probabilities with NaN
@@ -100,9 +98,13 @@ def get_apd(
 
     # Scale to power if impedance value provided
     if impedance_ohms is not None:
-        ne.evaluate("a-(10*log10(impedance_ohms))", out=a)
-
-    logger.debug(f"APD result length: {len(a)} samples.")
+        if downsampling:
+            a -= 10.0 * np.log10(impedance_ohms)
+        else:
+            if a.size < NUMEXPR_THRESHOLD:
+                a -= 10.0 * np.log10(impedance_ohms)
+            else:
+                ne.evaluate("a-(10*log10(impedance_ohms))", out=a)
 
     return p, a
 
@@ -124,6 +126,9 @@ def sample_ccdf(a: np.ndarray, edges: np.ndarray, density: bool = True) -> np.nd
     ccdf = (a.size - bin_counts.cumsum())[:-1]
     if density:
         ccdf = ccdf.astype("float64")
-        ne.evaluate("ccdf/a_size", {"ccdf": ccdf, "a_size": a.size}, out=ccdf)
+        if a.size < NUMEXPR_THRESHOLD:
+            ccdf /= a.size
+        else:
+            ne.evaluate("ccdf/a_size", {"ccdf": ccdf, "a_size": a.size}, out=ccdf)
 
     return ccdf

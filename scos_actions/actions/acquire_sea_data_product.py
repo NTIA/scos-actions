@@ -23,6 +23,7 @@ Currently in development.
 import gc
 import logging
 import lzma
+from enum import EnumMeta
 from time import perf_counter
 from typing import Tuple
 
@@ -60,15 +61,16 @@ from scos_actions.signal_processing.power_analysis import (
     calculate_pseudo_power,
     create_power_detector,
 )
-from scos_actions.signal_processing.unit_conversion import (
-    convert_linear_to_dB,
-    convert_watts_to_dBm,
-)
+from scos_actions.signal_processing.unit_conversion import convert_linear_to_dB
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
 from scos_actions.status import start_time
 from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
 
 logger = logging.getLogger(__name__)
+
+if not ray.is_initialized():
+    # Dashboard is only enabled if ray[default] is installed
+    ray.init()
 
 # Define parameter keys
 RF_PATH = "rf_path"
@@ -120,205 +122,303 @@ SPU_SENSORS = {
 
 
 @ray.remote
-def get_fft_results(iqdata: np.ndarray, params: dict) -> Tuple[np.ndarray, np.ndarray]:
+class PowerSpectralDensity:
     """
-    Compute data product mean/max FFT results from IQ samples.
+    Compute data product mean/max PSD results from IQ samples.
 
     The result is a PSD, with amplitudes in dBm/Hz referenced to the
-    calibration terminal. The result is truncated in frequency to the
-    middle 10 MHz (middle 625 out of 875 total DFT samples). Some parts
-    of this function are hard-coded or depend on constants.
-
-    :param iqdata: Complex-valued input waveform samples.
-    :param params: Action parameters from YAML, which must include
-        `NUM_FFTS` and `SAMPLE_RATE` keys.
-    :return: A tuple, which contains 2 NumPy arrays of power-detected
-        PSD amplitudes, ordered (max, mean).
+    calibration terminal (assuming IQ data has been scaled for calibration).
+    The result is truncated in frequency to the middle 10 MHz (middle 625 out
+    of 875 total DFT samples).
     """
-    # IQ data already scaled for calibrated gain
-    fft_result = get_fft(
-        time_data=iqdata,
-        fft_size=FFT_SIZE,
-        norm="backward",
-        fft_window=FFT_WINDOW,
-        num_ffts=params[NUM_FFTS],
-        shift=False,
-        workers=4,
-    )
-    fft_result = calculate_pseudo_power(fft_result)
-    fft_result = apply_power_detector(fft_result, FFT_DETECTOR)  # (max, mean)
-    fft_result /= IMPEDANCE_OHMS  # Finish conversion to Watts
-    fft_result = np.fft.fftshift(fft_result, axes=(1,))  # Shift frequencies
-    fft_result = convert_watts_to_dBm(fft_result)
-    fft_result -= 3  # Baseband/RF power conversion
-    fft_result -= 10.0 * np.log10(params[SAMPLE_RATE] * FFT_SIZE)  # PSD scaling
-    fft_result += 2.0 * convert_linear_to_dB(FFT_WINDOW_ECF)  # Window energy correction
 
-    # Truncate FFT result to middle 625 samples (middle 10 MHz from 14 MHz)
-    # bw_trim = (params[SAMPLE_RATE] / 1.4) / 5  # Bandwidth to trim from each side: 2 MHz
-    # delta_f = params[SAMPLE_RATE] / FFT_SIZE  # 875 bins -> 16 kHz
-    # bin_start = int(bw_trim / delta_f)  # Bin 125
-    bin_start = int(FFT_SIZE / 7)  # bin_start = 125 with FFT_SIZE 875
-    bin_end = FFT_SIZE - bin_start  # bin_end = 750 with FFT_SIZE 875
-    fft_result = fft_result[:, bin_start:bin_end]  # See comments above
-
-    return fft_result[0], fft_result[1]
-
-
-@ray.remote
-def get_apd_results(iqdata: np.ndarray, params: dict) -> np.ndarray:
-    """
-    Generate downsampled APD result from IQ samples.
-
-    :param iqdata: Complex-valued input waveform samples.
-    :param params: Action parameters from YAML, which must include
-        ``APD_BIN_SIZE_DB``, ``APD_MIN_BIN_DBM``, and ``APD_MAX_BIN_DBM`` keys.
-    :return: A NumPy array containing the APD probability axis as percentages.
-    """
-    # get_apd requires amplitude bin edge values in dBW here
-    # Scale input to get_apd to account for:
-    #     dBm -> dBW (-30)
-    #     baseband -> RF power reference (+3)
-    p, a = get_apd(
-        iqdata,
-        params[APD_BIN_SIZE_DB],
-        params[APD_MIN_BIN_DBM] - 27.0,
-        params[APD_MAX_BIN_DBM] - 27.0,
-        IMPEDANCE_OHMS,
-    )
-    return p
-
-
-@ray.remote
-def get_td_power_results(
-    iqdata: np.ndarray, params: dict
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Compute mean/max time domain power statistics from IQ samples.
-
-    Mean and max detectors are applied over a configurable time window.
-    Median and max power statistics are also computed on the detector
-    results, and reported as single values. The median is computed on
-    the mean detector result, and the max is computed on the max result.
-
-    :param iqdata: Complex-valued input waveform samples.
-    :param params: Action parameters from YAML, which must include
-        `TD_BIN_SIZE_MS` and `SAMPLE_RATE` keys.
-    :return: A tuple of NumPy arrays containing power detector results,
-        in dBm referenced to the calibration terminal. The order of the
-        results is (max, mean, max_max_single_value, median_mean_single_value).
-        The single_value results will always contain only a single number,
-        while the length of the other arrays depends on the configured
-        detector period.
-    """
-    # Reshape IQ data into blocks
-    block_size = int(params[TD_BIN_SIZE_MS] * params[SAMPLE_RATE] * 1e-3)
-    n_blocks = len(iqdata) // block_size
-    iqdata = iqdata.reshape((n_blocks, block_size))
-    iq_pwr = calculate_power_watts(iqdata, IMPEDANCE_OHMS)
-
-    # Apply max/mean detectors
-    td_result = apply_power_detector(iq_pwr, TD_DETECTOR, axis=1)
-
-    # Get single value median/max statistics
-    td_channel_result = np.array([np.max(td_result[0]), np.median(td_result[1])])
-
-    # Convert to dBm and account for RF/baseband power difference
-    td_result, td_channel_result = (
-        convert_watts_to_dBm(x) - 3.0 for x in [td_result, td_channel_result]
-    )
-
-    channel_max, channel_median = (np.array(a) for a in td_channel_result)
-
-    # packed order of td_result is (max, mean)
-    return td_result[0], td_result[1], channel_max, channel_median
-
-
-@ray.remote
-def get_periodic_frame_power(
-    iqdata: np.ndarray,
-    params: dict,
-    detector_period_s: float = PFP_FRAME_RESOLUTION_S,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Compute a time series of periodic frame power statistics.
-
-    The time axis on the frame time elapsed spans [0, frame_period) binned with step size
-    `detector_period`, for a total of `int(frame_period/detector_period)` samples.
-    Mean and max power detector data are returned. For each type of detector, a time
-    series is returned for (min, mean, max) statistics, which are computed across the
-    number of frames (`frame_period/Ts`).
-
-    :param iqdata: Complex-valued input waveform samples.
-    :param params: Action parameters from YAML, which must include `SAMPLE_RATE` and
-        `PFP_FRAME_PERIOD_MS` keys.
-    :param detector_period_s: Sampling period (s) within the frame.
-    :return: A tuple of 6 NumPy arrays for the 6 detector/statistic results: (mean_min,
-        mean_max, mean_mean, max_min, max_max, max_mean).
-    :raises ValueError: if detector_period%Ts != 0 or frame_period%detector_period != 0
-    """
-    sampling_period_s = 1.0 / params[SAMPLE_RATE]
-    frame_period_s = 1e-3 * params[PFP_FRAME_PERIOD_MS]
-    if not np.isclose(frame_period_s % sampling_period_s, 0, 1e-6):
-        raise ValueError(
-            "frame period must be positive integer multiple of the sampling period"
+    def __init__(
+        self,
+        sample_rate_Hz: float,
+        num_ffts: int,
+        fft_size: int = FFT_SIZE,
+        fft_window: np.ndarray = FFT_WINDOW,
+        window_ecf: float = FFT_WINDOW_ECF,
+        detector: EnumMeta = FFT_DETECTOR,
+        impedance_ohms: float = IMPEDANCE_OHMS,
+    ):
+        self.detector = detector
+        self.fft_size = fft_size
+        self.fft_window = fft_window
+        self.num_ffts = num_ffts
+        # Get truncation points: truncate FFT result to middle 625 samples (middle 10 MHz from 14 MHz)
+        self.bin_start = int(fft_size / 7)  # bin_start = 125 with FFT_SIZE 875
+        self.bin_end = fft_size - self.bin_start  # bin_end = 750 with FFT_SIZE 875
+        # Compute the amplitude shift for PSD scaling. The FFT result
+        # is in pseudo-power log units and must be scaled to a PSD.
+        self.fft_scale_factor = (
+            -10.0 * np.log10(impedance_ohms)  # Pseudo-power to power
+            + 27.0  # Watts to dBm (+30) and baseband to RF (-3)
+            - 10.0 * np.log10(sample_rate_Hz * fft_size)  # PSD scaling
+            + 20.0 * np.log10(window_ecf)  # Window energy correction
         )
 
-    if not np.isclose(detector_period_s % sampling_period_s, 0, 1e-6):
-        raise ValueError(
-            "detector_period period must be positive integer multiple of the sampling period"
+    def run(self, iq: ray.ObjectRef) -> np.ndarray:
+        """
+        Compute power spectral densities from IQ samples.
+
+        :param iq: Complex-valued input waveform samples (which should
+            already exist in the Ray object store).
+        :return: A 2D NumPy array of statistical detector results computed
+            from PSD amplitudes, ordered (max, mean).
+        """
+        fft_result = get_fft(
+            iq, self.fft_size, "backward", self.fft_window, self.num_ffts, False, 1
+        )
+        fft_result = calculate_pseudo_power(fft_result)
+        fft_result = apply_power_detector(fft_result, self.detector)  # (max, mean)
+        fft_result = np.fft.fftshift(fft_result, axes=(1,))  # Shift frequencies
+        fft_result = fft_result[
+            :, self.bin_start : self.bin_end
+        ]  # Truncation to middle bins
+        fft_result = 10.0 * np.log10(fft_result) + self.fft_scale_factor
+
+        # Returned order is (max, mean)
+        return fft_result
+
+
+@ray.remote
+class AmplitudeProbabilityDistribution:
+    """
+    Compute a downsampled amplitude probability distribution from IQ samples.
+
+    The result is the probability axis of the downsampled APD. Downsampling is
+    configurable through defining a bin size, minimum bin value, and maximum bin
+    value for binning amplitudes. The amplitude data can be reconstructed if these
+    three parameters are known.
+    """
+
+    def __init__(
+        self,
+        bin_size_dB: float,
+        min_bin_dBm_baseband: float,
+        max_bin_dBm_baseband: float,
+        impedance_ohms: float = IMPEDANCE_OHMS,
+    ):
+        self.bin_size_dB = bin_size_dB
+        self.impedance_ohms = impedance_ohms
+        # get_apd requires amplitude bin edge values in dBW
+        # Scale input to get_apd to account for:
+        #     dBm -> dBW (-30)
+        #     baseband -> RF power reference (+3)
+        self.min_bin_dBW_RF = min_bin_dBm_baseband - 27.0
+        self.max_bin_dBW_RF = max_bin_dBm_baseband - 27.0
+
+    def run(self, iq: ray.ObjectRef) -> np.ndarray:
+        """
+        Generate the downsampled APD result from IQ samples.
+
+        :param iq: Complex-valued input waveform samples (which should
+            already exist in the Ray object store).
+        :return: A NumPy array containing the APD probability axis as percentages.
+        """
+        p, _ = get_apd(
+            iq,
+            self.bin_size_dB,
+            self.min_bin_dBW_RF,
+            self.max_bin_dBW_RF,
+            self.impedance_ohms,
+        )
+        return p
+
+
+@ray.remote
+class PowerVsTime:
+    """
+    Compute mean/max PVT results and summary statistics from IQ samples.
+
+    The results are two NumPy arrays. The first contains the full PVT detector
+    results (``detector`` results with ``bin_size_ms`` resolution). The second
+    contains two values: the maximum of the first detector result, and the median
+    of the second detector result. These are used to obtain max-of-max and median-of-
+    mean channel power summary statistics.
+    """
+
+    def __init__(
+        self,
+        sample_rate_Hz: float,
+        bin_size_ms: float,
+        impedance_ohms: float = IMPEDANCE_OHMS,
+        detector: EnumMeta = TD_DETECTOR,
+    ):
+        self.block_size = int(bin_size_ms * sample_rate_Hz * 1e-3)
+        self.detector = detector
+        self.impedance_ohms = impedance_ohms
+
+    def run(self, iq: ray.ObjectRef) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Compute power versus time results from IQ samples.
+
+        :param iq: Complex-valued input waveform samples (which should
+            already exist in the Ray object store).
+        :return: Two NumPy arrays: the first has shape (2, 400) and
+            the second is 1D with length 2. The first array contains
+            the (max, mean) detector results and the second array contains
+            the (max-of-max, median-of-mean) summary statistics.
+        """
+        # Reshape IQ data into blocks and calculate power
+        n_blocks = len(iq) // self.block_size
+        iq_pwr = calculate_power_watts(
+            iq.reshape((n_blocks, self.block_size)), self.impedance_ohms
+        )
+        # Apply max/mean detectors
+        pvt_result = apply_power_detector(iq_pwr, self.detector, axis=1)
+        # Get single value median/max statistics
+        pvt_summary = np.array([pvt_result[0].max(), np.median(pvt_result[1])])
+        # Convert to dBm and account for RF/baseband power difference
+        # Note: convert_watts_to_dBm is not used to avoid NumExpr usage
+        # for the relatively small arrays
+        pvt_result, pvt_summary = (
+            10.0 * np.log10(x) + 27.0 for x in [pvt_result, pvt_summary]
+        )
+        # Return order ((max array, mean array), (max-of-max, median-of-mean))
+        return pvt_result, pvt_summary
+
+
+@ray.remote
+class PeriodicFramePower:
+    """
+    Compute periodic frame power results from IQ samples.
+
+    The result is a 2D NumPy array, with the shape depending on the
+    parameters which initialize this worker. In current form, the result
+    is a (6, 560) NumPy array. Power samples are chunked into periodic frames,
+    and statistical detectors are applied twice.
+    """
+
+    def __init__(
+        self,
+        sample_rate_Hz: float,
+        frame_period_ms: float,
+        detector_period_s: float = PFP_FRAME_RESOLUTION_S,
+        impedance_ohms: float = IMPEDANCE_OHMS,
+        detector: EnumMeta = PFP_M3_DETECTOR,
+    ):
+        self.impedance_ohms = impedance_ohms
+        sampling_period_s = 1.0 / sample_rate_Hz
+        frame_period_s = 1e-3 * frame_period_ms
+        if not np.isclose(frame_period_s % sampling_period_s, 0, 1e-6):
+            raise ValueError(
+                "Frame period must be a positive integer multiple of sampling period"
+            )
+        if not np.isclose(detector_period_s % sampling_period_s, 0, 1e-6):
+            raise ValueError(
+                "Detector period must be a positive integer multiple of sampling period"
+            )
+        self.n_frames = int(round(frame_period_s / sampling_period_s))
+        self.n_points = int(round(frame_period_s / detector_period_s))
+        self.n_detectors = len(detector)
+        self.detector = detector
+        # PFP result is in pseudo-power log units, and needs to be scaled by
+        # adding the following factor
+        self.pfp_scale_factor = (
+            -10.0 * np.log10(impedance_ohms)  # Conversion from pseudo-power
+            + 27.0  # dBW to dBm (+30), baseband to RF (-3)
         )
 
-    Nframes = int(round(frame_period_s / sampling_period_s))
-    Npts = int(round(frame_period_s / detector_period_s))
+    def run(self, iq: ray.ObjectRef) -> np.ndarray:
+        """
+        Compute periodic frame power results from IQ samples.
 
-    # set up dimensions to make the statistics fast
-    chunked_shape = (iqdata.shape[0] // Nframes, Npts, Nframes // Npts) + tuple(
-        [iqdata.shape[1]] if iqdata.ndim == 2 else []
-    )
-    iq_bins = iqdata.reshape(chunked_shape)
-    power_bins = calculate_pseudo_power(iq_bins)
+        :param iq: Complex-valued input waveform samples (which should
+            already exist in the Ray object store).
+        :return: A (6, 560) NumPy array containing the PFP results.
+            The order is (min-of-mean, max-of-mean, mean-of-mean,
+            min-of-max, max-of-max, mean-of-max).
+        """
+        # Set up dimensions to make the statistics fast
+        chunked_shape = (
+            iq.shape[0] // self.n_frames,
+            self.n_points,
+            self.n_frames // self.n_points,
+        ) + tuple([iq.shape[1]] if iq.ndim == 2 else [])
+        power_bins = calculate_pseudo_power(iq.reshape(chunked_shape))
+        # compute statistics first by cycle
+        mean_power = power_bins.mean(axis=0)
+        max_power = power_bins.max(axis=0)
+        del power_bins
 
-    # compute statistics first by cycle
-    mean_power = power_bins.mean(axis=0)
-    max_power = power_bins.max(axis=0)
+        # then do the detector
+        pfp = np.array(
+            [
+                apply_power_detector(p, self.detector, axis=1)
+                for p in [mean_power, max_power]
+            ]
+        ).reshape(self.n_detectors * 2, self.n_points)
 
-    # then do the detector
-    pfp = np.array(
-        [
-            apply_power_detector(p, PFP_M3_DETECTOR, axis=1)
-            for p in [mean_power, max_power]
+        # Finish conversion to power and scale result
+        pfp = 10.0 * np.log10(pfp) + self.pfp_scale_factor
+        return pfp
+
+
+@ray.remote
+class IQProcessor:
+    """
+    Supervisor actor for IQ processing.
+
+    Note: the current implementation in ``__call__`` makes the
+    assumption that all ``params`` used are identical for each
+    consecutive capture (i.e., each channel). The ``params`` which
+    fall under this assumption are: ``SAMPLE_RATE``, ``NUM_FFTS``,
+    ``TD_BIN_SIZE_MS``, ``PFP_FRAME_PERIOD_MS``, ``APD_BIN_SIZE_DB``,
+    ``APD_MIN_BIN_DBM``, and ``APD_MAX_BIN_DBM``. A single set of IIR
+    second-order-sections (``iir_sos``) is also used for filtering.
+
+    Upon initialization of this supervisor actor, workers are spawned
+    for each of the components of the data product. Initializing these
+    processes allows for certain parts of the computation, which do not
+    depend on the IQ data, to be performed ahead-of-time. The workers are
+    stateful, and reuse the initialized values for each consecutive run.
+
+    The ``run`` method can be called to filter and process IQ samples.
+    Filtering happens before the remote workers are called, which run
+    concurrently. The ``run`` method returns Ray object references
+    immediately, which can be later used to retrieve the procesed results.
+    """
+
+    def __init__(self, params: dict, iir_sos: np.ndarray):
+        # initialize worker processes
+        self.iir_sos = iir_sos
+        self.fft_worker = PowerSpectralDensity.remote(
+            params[SAMPLE_RATE], params[NUM_FFTS]
+        )
+        self.pvt_worker = PowerVsTime.remote(
+            params[SAMPLE_RATE], params[TD_BIN_SIZE_MS]
+        )
+        self.pfp_worker = PeriodicFramePower.remote(
+            params[SAMPLE_RATE], params[PFP_FRAME_PERIOD_MS]
+        )
+        self.apd_worker = AmplitudeProbabilityDistribution.remote(
+            params[APD_BIN_SIZE_DB], params[APD_MIN_BIN_DBM], params[APD_MAX_BIN_DBM]
+        )
+        self.workers = [
+            self.fft_worker,
+            self.pvt_worker,
+            self.pfp_worker,
+            self.apd_worker,
         ]
-    ).reshape(6, Npts)
+        del params
 
-    # Finish conversion to power
-    pfp /= IMPEDANCE_OHMS
+    def run(self, iqdata: np.ndarray) -> list:
+        """
+        Filter the input IQ data and concurrently compute FFT, PVT, PFP, and APD results.
 
-    # Convert to dBm
-    pfp = convert_watts_to_dBm(pfp)
-    pfp -= 3  # RF/baseband
-    return tuple(pfp)
-
-
-@ray.remote
-def generate_data_product(
-    iqdata: np.ndarray, params: dict, iir_sos: np.ndarray
-) -> list:
-    """Process IQ data and generate the SEA data product."""
-    iqdata = sosfilt(iir_sos, iqdata)
-
-    # Explicitly call ray.put to pass filtered IQ to nested remote procs
-    iqdata_id = ray.put(iqdata)
-
-    remote_procs = [
-        get_fft_results.remote(iqdata_id, params),
-        get_td_power_results.remote(iqdata_id, params),
-        get_periodic_frame_power.remote(iqdata_id, params),
-        get_apd_results.remote(iqdata_id, params),
-    ]
-
-    # Return identifiers to avoid waiting for processing to complete
-    return remote_procs
+        :param iqdata: Complex-valued input waveform samples.
+        :return: A list of Ray object references which can be used to
+            retrieve the processed results. The order is [FFT, PVT, PFP, APD].
+        """
+        # Filter IQ and place it in the object store
+        iqdata = ray.put(sosfilt(self.iir_sos, iqdata))
+        # Compute PSD, PVT, PFP, and APD concurrently.
+        # Do not wait until they finish. Yield references to their results.
+        yield [worker.run.remote(iqdata) for worker in self.workers]
+        del iqdata
+        gc.collect()
 
 
 class NasctnSeaDataProduct(Action):
@@ -382,36 +482,39 @@ class NasctnSeaDataProduct(Action):
         ]:
             self.parameters.pop(key)
 
+        # Get iterable parameter list
+        self.iteration_params = utils.get_iterable_parameters(self.parameters)
+
     def __call__(self, schedule_entry, task_id):
         """This is the entrypoint function called by the scheduler."""
         action_start_tic = perf_counter()
 
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
         self.test_required_components()
-        iteration_params = utils.get_iterable_parameters(self.parameters)
         self.configure_preselector(self.rf_path)
 
         # Initialize metadata object
         self.get_sigmf_builder(
             # Assumes the sigan correctly uses the configured sample rate.
-            iteration_params[0][SAMPLE_RATE],
+            self.iteration_params[0][SAMPLE_RATE],
             task_id,
             schedule_entry,
-            iteration_params,
+            self.iteration_params,
         )
         self.create_global_data_product_metadata(self.parameters)
 
         # Collect all IQ data and spawn data product computation processes
         dp_procs, cap_meta, cap_entries, cpu_speed = [], [], [], []
         capture_tic = perf_counter()
-        for parameters in iteration_params:
+        iq_processor = IQProcessor.remote(self.iteration_params[0], self.iir_sos)
+        for parameters in self.iteration_params:
             measurement_result = self.capture_iq(parameters)
             # Start data product processing but do not block next IQ capture
-            dp_procs.append(
-                generate_data_product.remote(
-                    measurement_result["data"], parameters, self.iir_sos
-                )
-            )
+            tic = perf_counter()
+            dp_procs.append(iq_processor.run.remote(measurement_result["data"]))
+            del measurement_result["data"]
+            toc = perf_counter()
+            logger.debug(f"IQ data delivered for processing in {toc-tic:.2f} s")
             # Generate capture metadata before sigan reconfigured
             cap_meta_tuple = self.create_channel_metadata(measurement_result)
             cap_meta.append(cap_meta_tuple[0])
@@ -435,26 +538,33 @@ class NasctnSeaDataProduct(Action):
                 extra_entries=cap_entries[i],
             )
 
-            # Now wait for channel data to be processed
+            # Retrieve object references for channel data
+            channel_data_refs = ray.get(channel_data_process)
             channel_data = []
-            tic = perf_counter()
-            for j, d in enumerate(ray.get(channel_data_process)):
-                if j == 3:
-                    # APD requires different handling
-                    channel_data.append(ray.get(d))
+            for j, data_ref in enumerate(channel_data_refs):
+                # Now block until the data is ready
+                data = ray.get(data_ref)
+                if j == 1:
+                    # Power-vs-Time results, a tuple of arrays
+                    data, summaries = data  # Split the tuple
+                    max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
+                    med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
+                    del summaries
+                if j == 3:  # Separate condition is intentional
+                    # APD result: append instead of extend,
+                    # since the result is a single 1D array
+                    channel_data.append(data)
                 else:
-                    channel_data.extend(ray.get(d))
+                    # For 2D arrays (PSD, PVT, PFP)
+                    channel_data.extend(data)
+
             toc = perf_counter()
             logger.debug(f"Waited {toc-tic} s for channel {i} data")
-
-            # Pull out single value channel powers (max of max, median of mean)
-            max_max_ch_pwrs.append(DATA_TYPE(channel_data[4]))
-            med_mean_ch_pwrs.append(DATA_TYPE(channel_data[5]))
-            del channel_data[4:6]
-
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
             last_data_len = len(all_data)
         result_toc = perf_counter()
+        del dp_procs, iq_processor, channel_data, channel_data_refs
+        gc.collect()
         logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
 
         # Build metadata and convert data to compressed bytes
@@ -494,7 +604,7 @@ class NasctnSeaDataProduct(Action):
         start_time = utils.get_datetime_str_now()
         tic = perf_counter()
         # Configure signal analyzer
-        self.configure_sigan({k: v for k, v in hw_params.items() if k != RF_PATH})
+        self.configure_sigan(hw_params)
         # Get IQ capture parameters
         duration_ms = utils.get_parameter(DURATION_MS, params)
         nskip = utils.get_parameter(NUM_SKIP, params)
@@ -842,6 +952,9 @@ class NasctnSeaDataProduct(Action):
                 "sensor_sha512": SENSOR_DEFINITION_HASH,
             }
         )
+
+        # Mark data as UNCLASSIFIED
+        sigmf_builder.add_to_global("ntia-core:classification", "UNCLASSIFIED")
 
         self.sigmf_builder = sigmf_builder
 

@@ -1,14 +1,7 @@
-import logging
-from multiprocessing.sharedctypes import Value
 from typing import Tuple, Union
 
-import numexpr as ne
 import numpy as np
 from scipy.signal import ellip, ellipord, firwin, kaiserord, sos2zpk, sosfreqz
-
-from scos_actions.signal_processing.unit_conversion import convert_linear_to_dB
-
-logger = logging.getLogger(__name__)
 
 
 def generate_elliptic_iir_low_pass_filter(
@@ -46,7 +39,6 @@ def generate_elliptic_iir_low_pass_filter(
         pb_edge_Hz, sb_edge_Hz, gpass_dB, gstop_dB, False, sample_rate_Hz
     )
     sos = ellip(ord, gpass_dB, gstop_dB, wn, "lowpass", False, "sos", sample_rate_Hz)
-    logger.debug(f"Generated low-pass IIR filter with order {ord}.")
     return sos
 
 
@@ -79,9 +71,6 @@ def generate_fir_low_pass_filter(
         "lowpass",
         True,
         fs=sample_rate_Hz,
-    )
-    logger.debug(
-        f"Generated Type {'I' if ord % 2 == 0 else 'II'} low-pass FIR filter with order {ord} and length {ord + 1}."
     )
     return taps
 
@@ -150,10 +139,6 @@ def get_iir_enbw(
         raise ValueError(
             "Supplied frequency values must fall within +/- Nyquist frequency at baseband."
         )
-    logger.debug(
-        f"Calculating filter ENBW using a frequency response of {len(worN)} points "
-        + f"from {min(worN)} Hz to {max(worN)} Hz."
-    )
     w, h = get_iir_frequency_response(sos, worN, sample_rate_Hz)
     dw = np.mean(np.diff(w))
     h = np.abs(h) ** 2.0
@@ -172,5 +157,5 @@ def is_stable(sos: np.ndarray) -> bool:
     :return: True if the filter is stable, False if not.
     """
     _, poles, _ = sos2zpk(sos)
-    stable = all([True if p < 1 else False for p in np.square(np.abs(poles))])
+    stable = all([p < 1 for p in np.square(np.abs(poles))])
     return stable
