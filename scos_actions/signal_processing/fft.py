@@ -90,7 +90,7 @@ def get_fft(
     # Apply the FFT window if provided
     if fft_window is not None:
         if time_data.size > NUMEXPR_THRESHOLD:
-            ne.evaluate("time_data*fft_window", out=time_data)
+            ne.evaluate("time_data*fft_window", out=time_data, casting="same_kind")
         else:
             time_data *= fft_window
 
