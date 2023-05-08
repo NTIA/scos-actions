@@ -384,9 +384,9 @@ passing the gps object to the `SyncGps` constructor, and the signal analyzer obj
 the `MonitorSignalAnalyzer` constructor. See the example in the [Adding Actions
 subsection](#adding-actions) above.
 
-The final step would be to add a `setup.py` to allow for installation of the new
-repository as a Python package. You can use the [setup.py](setup.py) in this repository
-as a reference. You can find more information about Python packaging [here](
+The final step would be to add a `pyproject.toml` to allow for installation of the new
+repository as a Python package. You can use the [pyproject.toml](pyproject.toml) in this
+repository as a reference. You can find more information about Python packaging [here](
 <https://packaging.python.org/tutorials/packaging-projects/>). Then add the new
 repository as a dependency to [SCOS Sensor's requirements.txt](
 <https://github.com/NTIA/scos-sensor/blob/master/src/requirements.txt>)
