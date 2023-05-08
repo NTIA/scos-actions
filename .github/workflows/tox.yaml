@@ -19,7 +19,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progess: true
+  cancel-in-progress: true
 
 jobs:
   run-all-tests:
