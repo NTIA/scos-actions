@@ -28,7 +28,7 @@ def test_convert_watts_to_dBm(small_array_len):
         r = uc.convert_watts_to_dBm(val)
         if isinstance(val, np.ndarray):
             np.testing.assert_array_equal(r, np.ones_like(val) * correct_val)
-        elif isinstance:
+        else:
             assert r == correct_val
 
     for v, c in zip(test_inputs, correct_results):
@@ -49,7 +49,7 @@ def test_convert_dBm_to_watts(small_array_len):
         r = uc.convert_dBm_to_watts(val)
         if isinstance(val, np.ndarray):
             np.testing.assert_array_equal(r, np.ones_like(val) * correct_val)
-        elif isinstance:
+        else:
             assert r == correct_val
 
     for v, c in zip(test_inputs, correct_results):
@@ -70,7 +70,7 @@ def test_convert_linear_to_dB(small_array_len):
         r = uc.convert_linear_to_dB(val)
         if isinstance(val, np.ndarray):
             np.testing.assert_array_equal(r, np.ones_like(val) * correct_val)
-        elif isinstance:
+        else:
             assert r == correct_val
 
     for v, c in zip(test_inputs, correct_results):
@@ -91,7 +91,7 @@ def test_convert_dB_to_linear(small_array_len):
         r = uc.convert_dB_to_linear(val)
         if isinstance(val, np.ndarray):
             np.testing.assert_array_equal(r, np.ones_like(val) * correct_val)
-        elif isinstance:
+        else:
             assert r == correct_val
 
     for v, c in zip(test_inputs, correct_results):
@@ -112,7 +112,7 @@ def test_convert_kelvins_to_celsius(small_array_len):
         r = uc.convert_kelvins_to_celsius(val)
         if isinstance(val, np.ndarray):
             np.testing.assert_array_equal(r, np.ones_like(val) * correct_val)
-        elif isinstance:
+        else:
             assert r == correct_val
 
     for v, c in zip(test_inputs, correct_results):
@@ -132,7 +132,7 @@ def test_convert_celsius_to_kelvins(small_array_len):
         r = uc.convert_celsius_to_kelvins(val)
         if isinstance(val, np.ndarray):
             np.testing.assert_array_equal(r, np.ones_like(val) * correct_val)
-        elif isinstance:
+        else:
             assert r == correct_val
 
     for v, c in zip(test_inputs, correct_results):
@@ -152,7 +152,7 @@ def test_convert_fahrenheit_to_celsius(small_array_len):
         r = uc.convert_fahrenheit_to_celsius(val)
         if isinstance(val, np.ndarray):
             np.testing.assert_array_equal(r, np.ones_like(val) * correct_val)
-        elif isinstance:
+        else:
             assert r == correct_val
 
     for v, c in zip(test_inputs, correct_results):
@@ -172,7 +172,7 @@ def test_convert_celsius_to_fahrenheit(small_array_len):
         r = uc.convert_celsius_to_fahrenheit(val)
         if isinstance(val, np.ndarray):
             np.testing.assert_array_equal(r, np.ones_like(val) * correct_val)
-        elif isinstance:
+        else:
             assert r == correct_val
 
     for v, c in zip(test_inputs, correct_results):
