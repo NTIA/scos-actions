@@ -6,14 +6,16 @@ on:
     branches:
       - master
     paths:
-      - scos_actions
-      - .github/workflows
+      - 'scos_actions/**'
+      - '.github/workflows/**'
+      - 'pyproject.toml'
   pull_request:
     branches:
       - master
     paths:
-      - scos_actions
-      - .github/workflows
+      - 'scos_actions/**'
+      - '.github/workflows/**'
+      - 'pyproject.toml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
