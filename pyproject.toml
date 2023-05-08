@@ -38,6 +38,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 
 dependencies = [
@@ -56,15 +57,15 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "pytest>=7.1.2",
-    "pytest-cov>=3.0.0",
-    "tox>=3.0",
+    "pytest>=7.3.1,<8.0",
+    "pytest-cov>=4.0.0,<5.0",
+    "tox>=4.5.1,<5.0",
 ]
 dev = [
     "scos-actions[test]",
-    "hatchling>=1.6.0,<2.0",
-    "pre-commit>=2.20.0",
-    "twine>=4.0.1,<5.0",
+    "hatchling>=1.14.1,<2.0",
+    "pre-commit>=3.3.1,<4.0",
+    "twine>=4.0.2,<5.0",
 ]
 
 [project.urls]
