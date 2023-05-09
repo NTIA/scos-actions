@@ -9,6 +9,7 @@ on:
       - 'scos_actions/**'
       - '.github/workflows/**'
       - 'pyproject.toml'
+      - 'tox.ini'
   pull_request:
     branches:
       - master
@@ -16,6 +17,7 @@ on:
       - 'scos_actions/**'
       - '.github/workflows/**'
       - 'pyproject.toml'
+      - 'tox.ini'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
