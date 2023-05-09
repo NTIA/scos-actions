@@ -86,7 +86,7 @@ def get_fft(
 
     # Resize time data for FFTs
     time_data = np.reshape(time_data[: num_ffts * fft_size], (num_ffts, fft_size))
-    out_data = np.empty(len(time_data))
+    out_data = np.empty(time_data.shape)
     # Apply the FFT window if provided
     if fft_window is not None:
         if time_data.size > NUMEXPR_THRESHOLD:
