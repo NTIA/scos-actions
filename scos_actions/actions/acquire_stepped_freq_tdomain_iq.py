@@ -158,10 +158,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             "name": self.name,
             "num_center_frequencies": self.num_center_frequencies,
             "center_frequencies": ", ".join(
-                [
-                    "{:.2f} MHz".format(param[FREQUENCY] / 1e6)
-                    for param in self.iterable_params
-                ]
+                [f"{param[FREQUENCY] / 1e6:.2f} MHz" for param in self.iterable_params]
             ),
             "acquisition_plan": acquisition_plan,
             "min_duration_ms": min_duration_ms,

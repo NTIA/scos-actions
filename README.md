@@ -405,4 +405,4 @@ See [LICENSE](LICENSE.md).
 
 ## Contact
 
-For technical questions about SCOS Actions, contact Justin Haze, jhaze@ntia.gov
+For technical questions about SCOS Actions, contact Justin Haze, [jhaze@ntia.gov](mailto:jhaze@ntia.gov)
