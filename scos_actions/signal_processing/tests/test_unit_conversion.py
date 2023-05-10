@@ -37,6 +37,9 @@ def test_convert_watts_to_dBm(small_array_len):
             test_convert(int(v), c)
         test_convert(np.ones(small_array_len) * v, c)
         test_convert(np.ones(NUMEXPR_THRESHOLD) * v, c)
+        large_readonly = np.ones(NUMEXPR_THRESHOLD) * v
+        large_readonly.setflags(write=False)
+        test_convert(large_readonly, c)
 
 
 def test_convert_dBm_to_watts(small_array_len):
@@ -58,6 +61,9 @@ def test_convert_dBm_to_watts(small_array_len):
             test_convert(int(v), c)
         test_convert(np.ones(small_array_len) * v, c)
         test_convert(np.ones(NUMEXPR_THRESHOLD) * v, c)
+        large_readonly = np.ones(NUMEXPR_THRESHOLD) * v
+        large_readonly.setflags(write=False)
+        test_convert(large_readonly, c)
 
 
 def test_convert_linear_to_dB(small_array_len):
@@ -79,6 +85,9 @@ def test_convert_linear_to_dB(small_array_len):
             test_convert(int(v), c)
         test_convert(np.ones(small_array_len) * v, c)
         test_convert(np.ones(NUMEXPR_THRESHOLD) * v, c)
+        large_readonly = np.ones(NUMEXPR_THRESHOLD) * v
+        large_readonly.setflags(write=False)
+        test_convert(large_readonly, c)
 
 
 def test_convert_dB_to_linear(small_array_len):
@@ -100,6 +109,9 @@ def test_convert_dB_to_linear(small_array_len):
             test_convert(int(v), c)
         test_convert(np.ones(small_array_len) * v, c)
         test_convert(np.ones(NUMEXPR_THRESHOLD) * v, c)
+        large_readonly = np.ones(NUMEXPR_THRESHOLD) * v
+        large_readonly.setflags(write=False)
+        test_convert(large_readonly, c)
 
 
 def test_convert_kelvins_to_celsius(small_array_len):
