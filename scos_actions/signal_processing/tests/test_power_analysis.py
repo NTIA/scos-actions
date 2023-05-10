@@ -19,6 +19,13 @@ def large_array():
 
 
 @pytest.fixture
+def large_readonly_array():
+    x = np.ones(NUMEXPR_THRESHOLD * 2) * TEST_VAL_CPLX
+    x.setflags(write=False)
+    return x
+
+
+@pytest.fixture
 def small_array():
     return np.ones(NUMEXPR_THRESHOLD // 2) * TEST_VAL_CPLX
 
@@ -44,8 +51,8 @@ def true_scalars(complex_scalar, real_scalar):
 
 
 @pytest.fixture
-def all_arrays(large_array, small_array, scalar_array):
-    return [large_array, small_array, scalar_array]
+def all_arrays(large_array, small_array, scalar_array, large_readonly_array):
+    return [large_array, small_array, scalar_array, large_readonly_array]
 
 
 def test_calculate_power_watts(all_arrays, true_scalars):

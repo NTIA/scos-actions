@@ -1,8 +1,10 @@
+import itertools
+
 import numexpr as ne
 import numpy as np
 import pytest
 
-from scos_actions.signal_processing import apd
+from scos_actions.signal_processing import NUMEXPR_THRESHOLD, apd
 
 rng = np.random.default_rng()
 
@@ -20,6 +22,14 @@ def example_iq_data():
     return samps
 
 
+@pytest.fixture
+def example_large_iq_data():
+    n_samps = NUMEXPR_THRESHOLD + 1
+    std_dev = np.sqrt(2) / 2.0
+    samps = rng.normal(0, std_dev, n_samps) + 1j * rng.normal(0, std_dev, n_samps)
+    return samps
+
+
 def test_get_apd_nan_handling():
     # All zero amplitudes should be converted to NaN
     # Peak amplitude 0 count should be replaced with NaN
@@ -29,15 +39,20 @@ def test_get_apd_nan_handling():
     assert all(np.isnan(a))
 
 
-def test_get_apd_no_downsample(example_iq_data):
+def test_get_apd_no_downsample(example_iq_data, example_large_iq_data):
     bin_sizes = [None, 0]
+    immutable = [True, False]
     impedance = 50
-    for bin_size in bin_sizes:
-        apd_result = apd.get_apd(example_iq_data, bin_size)
+    for bin_size, readonly, iq in itertools.product(
+        bin_sizes, immutable, (example_iq_data, example_large_iq_data)
+    ):
+        if readonly:
+            iq.setflags(write=False)
+        apd_result = apd.get_apd(iq, bin_size)
         assert isinstance(apd_result, tuple)
         assert len(apd_result) == 2
         assert all(isinstance(x, np.ndarray) for x in apd_result)
-        assert all(len(x) == len(example_iq_data) for x in apd_result)
+        assert all(len(x) == len(iq) for x in apd_result)
         p, a = apd_result
         assert not any(x == 0 for x in a)
         np.testing.assert_equal(a, np.real(a))
@@ -47,25 +62,28 @@ def test_get_apd_no_downsample(example_iq_data):
         assert all(p[i + 1] <= p[i] for i in range(len(p) - 2))
         assert np.isnan(p[-1])
         # Check against version with impedance provided
-        scaled_p, scaled_a = apd.get_apd(
-            example_iq_data, bin_size, impedance_ohms=impedance
-        )
+        scaled_p, scaled_a = apd.get_apd(iq, bin_size, impedance_ohms=impedance)
         np.testing.assert_allclose(a - 10.0 * np.log10(impedance), scaled_a)
         np.testing.assert_array_equal(p, scaled_p)
 
 
-def test_get_apd_downsample(example_iq_data):
+def test_get_apd_downsample(example_iq_data, example_large_iq_data):
     with pytest.raises(ValueError):
         _ = apd.get_apd(example_iq_data, 0.5, 100, 99)
     with pytest.raises(ValueError):
         _ = apd.get_apd(example_iq_data, 1.0, 90, 100.6)
     bin_sizes = [1.0, 0.5, 0.25]
-    for bin_size in bin_sizes:
-        min_bin = np.nanmin(ne.evaluate("20*log10(abs(example_iq_data).real)"))
-        max_bin = np.nanmax(ne.evaluate("20*log10(abs(example_iq_data).real)"))
-        p, a = apd.get_apd(example_iq_data, bin_size, round(min_bin), round(max_bin))
+    immutable = [True, False]
+    for bin_size, readonly, iq in itertools.product(
+        bin_sizes, immutable, (example_iq_data, example_large_iq_data)
+    ):
+        if readonly:
+            iq.setflags(write=False)
+        min_bin = np.nanmin(ne.evaluate("20*log10(abs(iq).real)"))
+        max_bin = np.nanmax(ne.evaluate("20*log10(abs(iq).real)"))
+        p, a = apd.get_apd(iq, bin_size, round(min_bin), round(max_bin))
         assert len(p) == len(a)
-        assert len(p) < len(example_iq_data)
+        assert len(p) < len(iq)
         np.testing.assert_equal(a, np.real(a))
         assert all(a[i] <= a[i + 1] for i in range(len(a) - 1))
         np.testing.assert_allclose(np.diff(a), np.ones(len(a) - 1) * bin_size)

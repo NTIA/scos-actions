@@ -86,10 +86,12 @@ def get_fft(
 
     # Resize time data for FFTs
     time_data = np.reshape(time_data[: num_ffts * fft_size], (num_ffts, fft_size))
-
     # Apply the FFT window if provided
     if fft_window is not None:
         if time_data.size > NUMEXPR_THRESHOLD:
+            time_data = (
+                time_data.copy()
+            )  # Avoids operand array error on read-only input data
             ne.evaluate("time_data*fft_window", out=time_data, casting="same_kind")
         else:
             time_data *= fft_window
