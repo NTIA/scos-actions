@@ -86,16 +86,18 @@ def get_fft(
 
     # Resize time data for FFTs
     time_data = np.reshape(time_data[: num_ffts * fft_size], (num_ffts, fft_size))
-    out_data = np.empty(time_data.shape, dtype=time_data.dtype)
     # Apply the FFT window if provided
     if fft_window is not None:
         if time_data.size > NUMEXPR_THRESHOLD:
-            ne.evaluate("time_data*fft_window", out=out_data, casting="same_kind")
+            time_data = (
+                time_data.copy()
+            )  # Avoids operand array error on read-only input data
+            ne.evaluate("time_data*fft_window", out=time_data, casting="same_kind")
         else:
-            out_data = time_data * fft_window
+            time_data *= fft_window
 
     # Take the FFT
-    complex_fft = sp_fft(out_data, norm=norm, workers=workers)
+    complex_fft = sp_fft(time_data, norm=norm, workers=workers)
 
     # Shift the frequencies if desired
     if shift:
