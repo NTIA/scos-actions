@@ -79,11 +79,11 @@ def test_get_apd_downsample(example_iq_data, example_large_iq_data):
     ):
         if readonly:
             iq.setflags(write=False)
-        min_bin = np.nanmin(ne.evaluate("20*log10(abs(example_iq_data).real)"))
-        max_bin = np.nanmax(ne.evaluate("20*log10(abs(example_iq_data).real)"))
-        p, a = apd.get_apd(example_iq_data, bin_size, round(min_bin), round(max_bin))
+        min_bin = np.nanmin(ne.evaluate("20*log10(abs(iq).real)"))
+        max_bin = np.nanmax(ne.evaluate("20*log10(abs(iq).real)"))
+        p, a = apd.get_apd(iq, bin_size, round(min_bin), round(max_bin))
         assert len(p) == len(a)
-        assert len(p) < len(example_iq_data)
+        assert len(p) < len(iq)
         np.testing.assert_equal(a, np.real(a))
         assert all(a[i] <= a[i + 1] for i in range(len(a) - 1))
         np.testing.assert_allclose(np.diff(a), np.ones(len(a) - 1) * bin_size)
