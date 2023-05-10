@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from scipy.signal import get_window
 
-from scos_actions.signal_processing import fft
+from scos_actions.signal_processing import NUMEXPR_THRESHOLD, fft
 
 # Define the correct calculations. Simplified expressions are used
 # in fft.get_fft_window_correction and fft.get_fft_enbw
@@ -64,11 +64,17 @@ def test_get_fft():
 
     # Test with no window or normalization
     result = fft.get_fft(iq(), fft_size, "forward", None, num_ffts, False)
-    # Check return type/shape just once
     assert isinstance(result, np.ndarray)
     assert result.dtype == np.complex128
     assert result.shape == (num_ffts, fft_size)
     # Results here should be signal_amplitude in DC bin, zero elsewhere
+    np.testing.assert_allclose(result[:, 0], np.ones(num_ffts) * signal_amplitude)
+    np.testing.assert_allclose(result[:, 1:], np.zeros((num_ffts, fft_size - 1)))
+
+    # Test on immutable array
+    iqdata_readonly = iq()
+    iqdata_readonly.setflags(write=False)
+    result = fft.get_fft(iqdata_readonly, fft_size, "forward", None, num_ffts, False)
     np.testing.assert_allclose(result[:, 0], np.ones(num_ffts) * signal_amplitude)
     np.testing.assert_allclose(result[:, 1:], np.zeros((num_ffts, fft_size - 1)))
 
@@ -95,6 +101,26 @@ def test_get_fft():
     )
     np.testing.assert_allclose(
         result[:, fft_size // 2 + 1 :], np.zeros((num_ffts, fft_size // 2 - 1))
+    )
+
+    # Test large input case (when NumExpr is used in get_fft to apply windowing)
+    num_ffts = (NUMEXPR_THRESHOLD // fft_size) + 1
+    result = fft.get_fft(
+        iq(num_ffts * fft_size), fft_size, "forward", window, num_ffts, False
+    )
+    # Results here should be signal_amplitude * window_acf in DC bin
+    np.testing.assert_allclose(
+        result[:, 0] * window_acf, np.ones(num_ffts) * signal_amplitude
+    )
+
+    # Test large immutable input with windowing
+    iqdatalarge_readonly = iq(num_ffts * fft_size)
+    iqdatalarge_readonly.setflags(write=False)
+    result = fft.get_fft(
+        iqdatalarge_readonly, fft_size, "forward", window, num_ffts, False
+    )
+    np.testing.assert_allclose(
+        result[:, 0] * window_acf, np.ones(num_ffts) * signal_amplitude
     )
 
 
