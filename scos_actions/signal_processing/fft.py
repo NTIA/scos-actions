@@ -1,4 +1,3 @@
-import logging
 import os
 
 import numexpr as ne
@@ -6,7 +5,7 @@ import numpy as np
 from scipy.fft import fft as sp_fft
 from scipy.signal import get_window
 
-logger = logging.getLogger(__name__)
+from scos_actions.signal_processing import NUMEXPR_THRESHOLD
 
 
 def get_fft(
@@ -63,52 +62,46 @@ def get_fft(
     :return: The transformed input, scaled based on the specified
         normalization mode.
     """
-    logger.debug("Computing FFTs")
     # Make sure num_ffts and fft_size are integers
-    if isinstance(fft_size, int) and isinstance(num_ffts, int):
-        pass
-    else:
-        if fft_size == int(fft_size):
+    if type(fft_size) is not int:
+        if isinstance(fft_size, float) and fft_size.is_integer():
             fft_size = int(fft_size)
         else:
             raise ValueError(f"fft_size must be an integer, not {type(fft_size)}.")
-        if num_ffts == int(num_ffts):
+    if type(num_ffts) is not int:
+        if isinstance(num_ffts, float) and num_ffts.is_integer():
             num_ffts = int(num_ffts)
         else:
             raise ValueError(f"num_ffts must be an integer, not {type(num_ffts)}.")
 
     # Get num_ffts for default case: as many as possible
     if num_ffts <= 0:
-        logger.info("Number of FFTs not specified. Using as many as possible.")
         num_ffts = int(len(time_data) // fft_size)
-        logger.info(
-            f"Number of FFTs set to {num_ffts} based on specified FFT size {fft_size}"
-        )
 
-    # Determine if truncation will occur and raise a warning if so
+    # Ensure that fft_size * num_ffts is the length of the input data
     if len(time_data) != fft_size * num_ffts:
-        thrown_away_samples = len(time_data) - (fft_size * num_ffts)
-        msg = "Time domain data length is not divisible by num_ffts.\nTime"
-        msg += "domain data will be truncated; Throwing away last "
-        msg += f"{thrown_away_samples} sample(s)."
-        logger.warning(msg)
+        msg = "Time domain data length is not divisible by num_ffts * fft_size.\n"
+        msg += "Try zero-padding the input or adjusting FFT parameters."
+        raise ValueError(msg)
 
     # Resize time data for FFTs
     time_data = np.reshape(time_data[: num_ffts * fft_size], (num_ffts, fft_size))
-    logger.debug(
-        f"Num. FFTs: {num_ffts}, FFT Size: {fft_size}, Data shape: {time_data.shape}"
-    )
-
     # Apply the FFT window if provided
     if fft_window is not None:
-        time_data = ne.evaluate("time_data*fft_window")
+        if time_data.size > NUMEXPR_THRESHOLD:
+            time_data = (
+                time_data.copy()
+            )  # Avoids operand array error on read-only input data
+            ne.evaluate("time_data*fft_window", out=time_data, casting="same_kind")
+        else:
+            time_data *= fft_window
 
     # Take the FFT
     complex_fft = sp_fft(time_data, norm=norm, workers=workers)
 
     # Shift the frequencies if desired
     if shift:
-        complex_fft = np.fft.fftshift(complex_fft)
+        complex_fft = np.fft.fftshift(complex_fft, axes=(1,))
     return complex_fft
 
 
@@ -156,7 +149,7 @@ def get_fft_window_correction(window: np.ndarray, correction_type: str) -> float
     if correction_type == "amplitude":
         window_correction = 1.0 / np.mean(window)
     elif correction_type == "energy":
-        window_correction = np.sqrt(1.0 / np.mean(window**2))
+        window_correction = 1.0 / np.sqrt(np.mean(window**2))
     else:
         raise ValueError(f"Invalid window correction type: {correction_type}")
 
@@ -181,8 +174,7 @@ def get_fft_frequencies(
     :return: A list of values representing the frequency axis of the
         FFT.
     """
-    time_step = 1.0 / sample_rate
-    frequencies = np.fft.fftfreq(fft_size, time_step)
+    frequencies = np.fft.fftfreq(fft_size, 1.0 / sample_rate)
     frequencies = np.fft.fftshift(frequencies) + center_frequency
     return frequencies.tolist()
 

@@ -1,10 +1,9 @@
-import logging
 from enum import Enum, EnumMeta
 
 import numexpr as ne
 import numpy as np
 
-logger = logging.getLogger(__name__)
+from scos_actions.signal_processing import NUMEXPR_THRESHOLD
 
 
 def calculate_power_watts(val_volts, impedance_ohms: float = 50.0):
@@ -13,8 +12,8 @@ def calculate_power_watts(val_volts, impedance_ohms: float = 50.0):
 
     Calculation: (abs(val_volts)^2) / impedance_ohms
 
-    NumPy is used for scalar inputs.
-    NumExpr is used to speed up the operation for arrays.
+    NumPy is used for scalar inputs and small arrays.
+    NumExpr is used to speed up the operation for large arrays.
 
     The calculation assumes 50 Ohm impedance by default.
 
@@ -25,7 +24,7 @@ def calculate_power_watts(val_volts, impedance_ohms: float = 50.0):
     :return: The input val_volts, converted to Watts. The
         returned quantity is always real.
     """
-    if np.isscalar(val_volts):
+    if np.isscalar(val_volts) or val_volts.size < NUMEXPR_THRESHOLD:
         power = (np.abs(val_volts) ** 2.0) / impedance_ohms
     else:
         power = ne.evaluate("(abs(val_volts).real**2)/impedance_ohms")
@@ -42,8 +41,8 @@ def calculate_pseudo_power(val):
     computing the power of many samples before data reduction
     by a detector.
 
-    NumPy is used for scalar inputs.
-    NumExpr is used to speed up the operation for arrays.
+    NumPy is used for scalar inputs and small arrays.
+    NumExpr is used to speed up the operation for large arrays.
 
     :param val: A value, or array of values, to be converted
         to 'pseudo-power' (magnitude-squared). The input may be
@@ -51,7 +50,7 @@ def calculate_pseudo_power(val):
     :return: The input val, converted to 'pseudo-power' (magnitude-
         squared). The returned quantity is always real.
     """
-    if np.isscalar(val):
+    if np.isscalar(val) or val.size < NUMEXPR_THRESHOLD:
         ps_pwr = np.abs(val) ** 2.0
     else:
         ps_pwr = ne.evaluate("abs(val).real**2")
@@ -74,9 +73,15 @@ def create_power_detector(name: str, detectors: list) -> EnumMeta:
         contents are: 'min', 'max', 'mean', 'median', and 'sample'.
 
     :return: The detector enumeration created based on the input parameters.
+    :raises ValueError: If ``detectors`` contains unknown detector types.
     """
     # Construct 2-tuples to create enumeration
     _args = []
+    # Check for invalid inputs
+    allowed_detectors = ["min", "max", "mean", "median", "sample"]
+    if not set(allowed_detectors) >= set(detectors):
+        raise ValueError(f"Detectors must be one of {allowed_detectors}")
+    # Use separate conditions to maintain ordering
     if "min" in detectors:
         _args.append(("min", "min_power"))
     if "max" in detectors:
@@ -136,6 +141,11 @@ def apply_power_detector(
         equal to the number of detectors applied. For 2-D inputs, the number
         of rows is equal to the number of detectors applied, and the number
         of columns is equal to the number of columns in the input array.
+    :raises ValueError: If NaN values exist in the data and ``ignore_nan`` is
+        False. In this case, all detectors will always return NaN if NaN is
+        present in the input data, except for the sample detector. If this
+        error is encountered, check that your input data is what you expect, and
+        optionally enable ``ignore_nan``.
     """
     # Get detector names from detector enumeration
     detectors = [d.name for _, d in enumerate(detector)]
@@ -143,10 +153,11 @@ def apply_power_detector(
     if ignore_nan:
         detector_functions = [np.nanmin, np.nanmax, np.nanmean, np.nanmedian]
     else:
+        if np.isnan(data).any():
+            raise ValueError("Data contains NaN values but ``ignore_nan`` is False.")
         detector_functions = [np.min, np.max, np.mean, np.median]
 
     # Get functions based on specified detector
-    logger.debug(f"Applying power detectors: {detectors}")
     applied_detectors = []
     if "min" in detectors:
         applied_detectors.append(detector_functions[0])
@@ -161,7 +172,17 @@ def apply_power_detector(
     # Add sample detector result if configured
     if "sample" in detectors:
         rng = np.random.default_rng()
-        result.append(data[rng.integers(0, data.shape[0], 1)][0])
+        if axis == 0:
+            # Pick out a random entire row
+            sample_result = data[rng.integers(0, data.shape[0], 1)][0]
+        elif axis == 1:
+            # Pick out a random entire column
+            sample_result = data.T[rng.integers(0, data.shape[0], 1)][0]
+        else:
+            raise NotImplementedError(
+                "Sample detector not implemented for axes above 1"
+            )
+        result.append(sample_result)
         del rng
     result = np.array(result, dtype=dtype)
     return result
@@ -171,12 +192,31 @@ def filter_quantiles(x: np.ndarray, q_lo: float, q_hi: float) -> np.ndarray:
     """
     Replace values outside specified quantiles with NaN.
 
-    :param x: Input N-dimensional data array.
+    :param x: Input N-dimensional data array. Complex valued arrays
+        are not supported.
     :param q_lo: Lower quantile, 0 <= q_lo < q_hi.
     :param q_hi: Upper quantile, q_lo < q_hi <= 1.
     :return: The input data array, with values outside the
         specified quantile replaced with NaN (numpy.nan).
+    :raises ValueError: If either ``q_lo`` or ``q_hi`` is not
+        within its valid range (listed above).
+    :raises TypeError: If ``x`` is not a real-valued NumPy array
+        with a size greater than 1.
     """
+    if q_lo < 0 or q_lo >= q_hi:
+        raise ValueError("q_lo must satistfy 0 <= q_lo < q_hi")
+    if q_hi > 1 or q_hi <= q_lo:
+        raise ValueError("q_hi must satisfy q_lo < q_hi <= 1")
+    if not isinstance(x, np.ndarray):
+        raise TypeError("Input data must be a NumPy array")
+    if x.size <= 1:
+        raise TypeError("Input data must have length greater than 1")
+    if np.iscomplexobj(x):
+        raise TypeError("Input data must be real, not complex")
     lo, hi = np.quantile(x, [q_lo, q_hi])  # Works on flattened array
-    nan = np.nan
-    return ne.evaluate("x + where((x<=lo)|(x>hi), nan, 0)")
+    if x.size < NUMEXPR_THRESHOLD:
+        x = np.where((x <= lo) | (x > hi), np.nan, x)
+    else:
+        nan = np.nan
+        x = ne.evaluate("x + where((x<=lo)|(x>hi), nan, 0)")
+    return x

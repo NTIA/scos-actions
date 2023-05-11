@@ -39,7 +39,7 @@ def load_switches(switch_dir: Path) -> dict:
     return switch_dict
 
 
-def load_preslector_from_file(preselector_config_file: Path):
+def load_preselector_from_file(preselector_config_file: Path):
     if preselector_config_file is None:
         return None
     else:
@@ -70,6 +70,6 @@ def load_preselector(preselector_config, module, preselector_class_name):
 
 register_component_with_status.connect(status_registration_handler)
 logger.info("Connected status registration handler")
-preselector = load_preslector_from_file(PRESELECTOR_CONFIG_FILE)
+preselector = load_preselector_from_file(PRESELECTOR_CONFIG_FILE)
 switches = load_switches(SWITCH_CONFIGS_DIR)
 logger.info("Loaded {switch_count} switches.".format(switch_count=(len(switches))))

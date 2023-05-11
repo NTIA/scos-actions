@@ -58,7 +58,7 @@ def y_factor(
         logger.debug(f"Mean power off: {mean_off_dBm:.2f} dBm")
     y = convert_dB_to_linear(mean_on_dBm - mean_off_dBm)
     noise_factor = enr_linear / (y - 1.0)
-    gain_dB = convert_watts_to_dBm(np.mean(pwr_noise_on_watts)) - convert_watts_to_dBm(
+    gain_dB = mean_on_dBm - convert_watts_to_dBm(
         Boltzmann * temp_kelvins * enbw_hz * (enr_linear + noise_factor)
     )
     noise_figure_dB = convert_linear_to_dB(noise_factor)
