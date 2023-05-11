@@ -138,14 +138,14 @@ available tests in a virtual environment against all supported versions of Pytho
 Running `pytest` directly is faster but running `tox` is a more thorough test.
 
 The following commands can be used to run tests. Note, for tox to run with all Python
-versions listed in the tox configuration (in [pyproject.toml](pyproject.toml)), all
+versions listed in the tox configuration (in [`tox.ini`](tox.ini)), all
 those versions must be installed on your system. Any missing versions will be skipped.
 
 ```bash
 pytest          # faster, but less thorough
-tox             # tests code in clean virtual environments, with multiple versions of python
+pytest --cov    # check where test coverage lacks
+tox             # tests code in clean virtual environments, with multiple versions of Python
 tox --recreate  # forces recreation of tox virtual environments
-tox -e coverage # check where test coverage lacks
 ```
 
 ### Adding Actions
@@ -384,9 +384,9 @@ passing the gps object to the `SyncGps` constructor, and the signal analyzer obj
 the `MonitorSignalAnalyzer` constructor. See the example in the [Adding Actions
 subsection](#adding-actions) above.
 
-The final step would be to add a `setup.py` to allow for installation of the new
-repository as a Python package. You can use the [setup.py](setup.py) in this repository
-as a reference. You can find more information about Python packaging [here](
+The final step would be to add a `pyproject.toml` to allow for installation of the new
+repository as a Python package. You can use the [pyproject.toml](pyproject.toml) in this
+repository as a reference. You can find more information about Python packaging [here](
 <https://packaging.python.org/tutorials/packaging-projects/>). Then add the new
 repository as a dependency to [SCOS Sensor's requirements.txt](
 <https://github.com/NTIA/scos-sensor/blob/master/src/requirements.txt>)
@@ -405,4 +405,4 @@ See [LICENSE](LICENSE.md).
 
 ## Contact
 
-For technical questions about SCOS Actions, contact Justin Haze, jhaze@ntia.gov
+For technical questions about SCOS Actions, contact Justin Haze, [jhaze@ntia.gov](mailto:jhaze@ntia.gov)
