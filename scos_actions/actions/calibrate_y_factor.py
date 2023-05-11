@@ -322,7 +322,7 @@ class YFactorCalibration(Action):
         logger.debug(f"Gain: {gain:.2f} dB")
 
         # Detail results contain only FFT version of result for now
-        return "Noise Figure: {}, Gain: {}".format(noise_figure, gain)
+        return f"Noise Figure: {noise_figure}, Gain: {gain}"
 
     @property
     def description(self):

@@ -21,7 +21,7 @@ class SyncGps(Action):
         dt = self.gps.get_gps_time()
         date_cmd = ["date", "-s", "{:}".format(dt.strftime("%Y/%m/%d %H:%M:%S"))]
         subprocess.check_output(date_cmd, shell=True)
-        logger.info("Set system time to GPS time {}".format(dt.ctime()))
+        logger.info(f"Set system time to GPS time {dt.ctime()}")
 
         location = self.gps.get_location()
         if location is None:

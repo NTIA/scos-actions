@@ -81,13 +81,13 @@ class TestCalibrationFile:
         # Check if the point was calculated correctly
         tolerance = 1e-5
         msg = "Scale factor not correctly calculated!\r\n"
-        msg = "{}    Expected value:   {}\r\n".format(msg, calc_gain_sigan)
-        msg = "{}    Calculated value: {}\r\n".format(msg, interp_gain_siggan)
-        msg = "{}    Tolerance: {}\r\n".format(msg, tolerance)
-        msg = "{}    Test: {}\r\n".format(msg, reason)
-        msg = "{}    Sample Rate: {}({})\r\n".format(msg, sr / 1e6, sr_m / 1e6)
-        msg = "{}    Frequency: {}({})\r\n".format(msg, f / 1e6, f_m / 1e6)
-        msg = "{}    Gain: {}({})\r\n".format(msg, g, g_m)
+        msg = f"{msg}    Expected value:   {calc_gain_sigan}\r\n"
+        msg = f"{msg}    Calculated value: {interp_gain_siggan}\r\n"
+        msg = f"{msg}    Tolerance: {tolerance}\r\n"
+        msg = f"{msg}    Test: {reason}\r\n"
+        msg = f"{msg}    Sample Rate: {sr / 1e6}({sr_m / 1e6})\r\n"
+        msg = f"{msg}    Frequency: {f / 1e6}({f_m / 1e6})\r\n"
+        msg = f"{msg}    Gain: {g}({g_m})\r\n"
         msg = (
             "{}    Formula: -1 * (Gain - Frequency[GHz] - Sample Rate[MHz])\r\n".format(
                 msg

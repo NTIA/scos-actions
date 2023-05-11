@@ -136,14 +136,14 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
                 if retries > 0:
                     msg = "USRP error: requested {} samples, but got {}."
                     logger.warning(msg.format(num_samples + num_samples_skip, data_len))
-                    logger.warning("Retrying {} more times.".format(retries))
+                    logger.warning(f"Retrying {retries} more times.")
                     retries = retries - 1
                 else:
                     err = "Failed to acquire correct number of samples "
-                    err += "{} times in a row.".format(max_retries)
+                    err += f"{max_retries} times in a row."
                     raise RuntimeError(err)
             else:
-                logger.debug("Successfully acquired {} samples.".format(num_samples))
+                logger.debug(f"Successfully acquired {num_samples} samples.")
                 return {
                     "data": data,
                     "overload": self._overload,
