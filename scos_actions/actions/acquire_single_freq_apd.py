@@ -63,7 +63,6 @@ import numpy as np
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.hardware import gps as mock_gps
 from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.unit_conversion import convert_linear_to_dB
@@ -97,7 +96,7 @@ class SingleFrequencyApdAcquisition(MeasurementAction):
     :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, sigan, gps=mock_gps):
+    def __init__(self, parameters, sigan, gps=None):
         super().__init__(parameters, sigan, gps)
         # Pull parameters from action config
         self.nskip = get_parameter(NUM_SKIP, self.parameters)
