@@ -1,9 +1,20 @@
 # NTIA/ITS SCOS Actions Plugin
 
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/NTIA/scos-actions?display_name=tag&sort=semver)
-![GitHub all releases](https://img.shields.io/github/downloads/NTIA/scos-actions/total)
-![GitHub issues](https://img.shields.io/github/issues/NTIA/scos-actions)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![GitHub release (latest SemVer)][latest-release-semver-badge]][github-releases]
+[![GitHub Actions Test Status][github-actions-test-badge]][github-actions-tox-link]
+[![GitHub all releases][github-download-count-badge]][github-releases]
+[![GitHub issues][github-issue-count-badge]][github-issues]
+[![Code style: black][code-style-badge]][code-style-repo]
+
+[github-actions-tox-link]: https://github.com/NTIA/scos-actions/actions/workflows/tox.yaml
+[github-actions-test-badge]: https://github.com/NTIA/scos-actions/actions/workflows/tox.yaml/badge.svg
+[code-style-badge]: https://img.shields.io/badge/code%20style-black-000000.svg
+[code-style-repo]: https://github.com/psf/black
+[latest-release-semver-badge]: https://img.shields.io/github/v/release/NTIA/scos-actions?display_name=tag&sort=semver
+[github-releases]: https://github.com/NTIA/scos-actions/releases
+[github-download-count-badge]: https://img.shields.io/github/downloads/NTIA/scos-actions/total
+[github-issue-count-badge]: https://img.shields.io/github/issues/NTIA/scos-actions
+[github-issues]: https://github.com/NTIA/scos-actions/issues
 
 This repository contains common actions and interfaces to be re-used by SCOS Sensor
 plugins. See the [SCOS Sensor documentation](
