@@ -108,52 +108,53 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         self, num_samples, num_samples_skip=0, retries=5, cal_adjust=True
     ):
         logger.warning("Using mock signal analyzer!")
-        self.sigan_overload = False
-        self._capture_time = None
-        self._num_samples_skip = num_samples_skip
+        raise Exception("Mock signal analyzer acquire_time_domain_samples fail")
+        # self.sigan_overload = False
+        # self._capture_time = None
+        # self._num_samples_skip = num_samples_skip
 
-        # Try to acquire the samples
-        max_retries = retries
-        data = []
-        while True:
-            if self.times_failed_recv < self.times_to_fail_recv:
-                self.times_failed_recv += 1
-                data = np.ones(0, dtype=np.complex64)
-            else:
-                self._capture_time = get_datetime_str_now()
-                if self.randomize_values:
-                    i = np.random.normal(0.5, 0.5, num_samples)
-                    q = np.random.normal(0.5, 0.5, num_samples)
-                    rand_iq = np.empty(num_samples, dtype=np.complex64)
-                    rand_iq.real = i
-                    rand_iq.imag = q
-                    data = rand_iq
-                else:
-                    data = np.ones(num_samples, dtype=np.complex64)
+        # # Try to acquire the samples
+        # max_retries = retries
+        # data = []
+        # while True:
+        #     if self.times_failed_recv < self.times_to_fail_recv:
+        #         self.times_failed_recv += 1
+        #         data = np.ones(0, dtype=np.complex64)
+        #     else:
+        #         self._capture_time = get_datetime_str_now()
+        #         if self.randomize_values:
+        #             i = np.random.normal(0.5, 0.5, num_samples)
+        #             q = np.random.normal(0.5, 0.5, num_samples)
+        #             rand_iq = np.empty(num_samples, dtype=np.complex64)
+        #             rand_iq.real = i
+        #             rand_iq.imag = q
+        #             data = rand_iq
+        #         else:
+        #             data = np.ones(num_samples, dtype=np.complex64)
 
-            data_len = len(data)
-            if not len(data) == num_samples:
-                if retries > 0:
-                    msg = "USRP error: requested {} samples, but got {}."
-                    logger.warning(msg.format(num_samples + num_samples_skip, data_len))
-                    logger.warning(f"Retrying {retries} more times.")
-                    retries = retries - 1
-                else:
-                    err = "Failed to acquire correct number of samples "
-                    err += f"{max_retries} times in a row."
-                    raise RuntimeError(err)
-            else:
-                logger.debug(f"Successfully acquired {num_samples} samples.")
-                return {
-                    "data": data,
-                    "overload": self._overload,
-                    "frequency_low": self._frequency,
-                    "frequency_high": self._frequency,
-                    "gain": self._gain,
-                    "sample_rate": self._sample_rate,
-                    "capture_time": self._capture_time,
-                    "calibration_annotation": self.create_calibration_annotation(),
-                }
+        #     data_len = len(data)
+        #     if not len(data) == num_samples:
+        #         if retries > 0:
+        #             msg = "USRP error: requested {} samples, but got {}."
+        #             logger.warning(msg.format(num_samples + num_samples_skip, data_len))
+        #             logger.warning(f"Retrying {retries} more times.")
+        #             retries = retries - 1
+        #         else:
+        #             err = "Failed to acquire correct number of samples "
+        #             err += f"{max_retries} times in a row."
+        #             raise RuntimeError(err)
+        #     else:
+        #         logger.debug(f"Successfully acquired {num_samples} samples.")
+        #         return {
+        #             "data": data,
+        #             "overload": self._overload,
+        #             "frequency_low": self._frequency,
+        #             "frequency_high": self._frequency,
+        #             "gain": self._gain,
+        #             "sample_rate": self._sample_rate,
+        #             "capture_time": self._capture_time,
+        #             "calibration_annotation": self.create_calibration_annotation(),
+        #         }
 
     def create_calibration_annotation(self):
         annotation_md = {
