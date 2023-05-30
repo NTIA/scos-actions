@@ -41,7 +41,6 @@ from scos_actions.hardware.utils import (
     get_cpu_uptime_seconds,
     get_current_cpu_clock_speed,
     get_current_cpu_temperature,
-    get_disk_smart_data,
     get_max_cpu_temperature,
 )
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
@@ -667,11 +666,6 @@ class NasctnSeaDataProduct(Action):
         Various CPU metrics make assumptions about the system: only
         Intel CPUs are supported.
 
-        Disk health check assumes the SSD is ``/dev/nvme0n1`` and
-        requires the Docker container to have the required privileges
-        or capabilities and device passthrough. For more information,
-        see ``scos_actions.hardware.utils.get_disk_smart_data()``.
-
         :param action_start_tic: Action start timestamp, as would
              be returned by ``time.perf_counter()``
         """
@@ -783,12 +777,6 @@ class NasctnSeaDataProduct(Action):
             computer_diagnostics["scos_uptime"] = get_days_up()
         except:
             logger.warning("Failed to get SCOS uptime")
-
-        # SSD SMART data
-        try:
-            computer_diagnostics["ssd_smart_data"] = get_disk_smart_data("/dev/nvme0n1")
-        except:
-            logger.warning("Failed to get SSD SMART data")
 
         toc = perf_counter()
         logger.debug(f"Got all diagnostics in {toc-tic} s")
