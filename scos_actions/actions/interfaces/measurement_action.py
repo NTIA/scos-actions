@@ -41,7 +41,6 @@ class MeasurementAction(Action):
         sigmf_builder.set_sample_rate(measurement_result["sample_rate"])
         self.received_samples = len(measurement_result["data"].flatten())
         sigmf_builder.set_data_type(is_complex=self.is_complex())
-        sigmf_builder.set_sample_rate(measurement_result["sample_rate"])
         sigmf_builder.set_task(measurement_result["task_id"])
         sigmf_builder.set_classification(measurement_result["classification"])
         return sigmf_builder
