@@ -403,7 +403,7 @@ class SigMFBuilder:
 
     def add_capture(self, capture: CaptureSegment) -> None:
         capture_obj = capture.json_obj
-        sample_start = capture_obj.pop("sample_start")
+        sample_start = capture_obj.pop("core:sample_start")
         self.sigmf_md.add_capture(sample_start, metadata=capture_obj)
 
     def add_annotation(self, start_index, length, annotation_md):
