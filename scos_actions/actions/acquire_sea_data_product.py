@@ -46,6 +46,7 @@ from scos_actions.hardware.utils import (
 )
 from scos_actions.metadata.interfaces import (
     ntia_algorithm,
+    ntia_core,
     ntia_diagnostics,
     ntia_scos,
     ntia_sensor,
@@ -70,7 +71,7 @@ from scos_actions.signal_processing.power_analysis import (
 )
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
 from scos_actions.status import start_time
-from scos_actions.utils import get_days_up
+from scos_actions.utils import get_days_up, get_value_if_exists
 
 logger = logging.getLogger(__name__)
 
@@ -939,6 +940,23 @@ class NasctnSeaDataProduct(Action):
     ) -> SigMFBuilder:
         """Build SigMF that applies to the entire capture (all channels)"""
         sigmf_builder = SigMFBuilder()
+
+        schedule_entry_obj = ntia_scos.ScheduleEntry(
+            schedule_entry["name"],  # name should be unique
+            schedule_entry["name"],
+            start=get_value_if_exists("start", schedule_entry),
+            stop=get_value_if_exists("stop", schedule_entry),
+            interval=get_value_if_exists("interval", schedule_entry),
+            priority=get_value_if_exists("priority", schedule_entry),
+        )
+        sigmf_builder.set_schedule(schedule_entry_obj)
+
+        action_obj = ntia_scos.Action(
+            name=self.name,
+            summary=self.summary,
+        )
+        sigmf_builder.set_action(action_obj)
+
         try:
             loc = self.sensor_definition["location"]
             sigmf_builder.set_geolocation(loc["x"], loc["y"], loc["z"])
@@ -949,15 +967,15 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
-        sigmf_builder.set_schedule(ntia_scos.ScheduleEntry.from_(schedule_entry))
 
         # Add some (not all) ntia-sensor metadata
         sigmf_builder.set_sensor(
-            {
-                "id": self.sensor_definition["sensor_spec"]["id"],
-                "sensor_spec": self.sensor_definition["sensor_spec"],
-                "sensor_sha512": SENSOR_DEFINITION_HASH,
-            }
+            ntia_sensor.Sensor(
+                sensor_spec=ntia_core.HardwareSpec(
+                    id=self.sensor_definition["sensor_spec"]["id"],
+                ),
+                sensor_sha512=SENSOR_DEFINITION_HASH,
+            )
         )
 
         # Mark data as UNCLASSIFIED
