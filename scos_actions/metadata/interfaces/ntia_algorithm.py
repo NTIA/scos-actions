@@ -5,7 +5,7 @@ from typing import List, Optional, Union
 from scos_actions.metadata.interfaces.sigmf_object import SigMFObject
 
 
-class FilterType(Enum):
+class FilterType(str, Enum):
     IIR = "IIR"
     FIR = "FIR"
 
