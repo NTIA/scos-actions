@@ -419,33 +419,6 @@ class SigMFBuilder:
     def add_to_global(self, key, value):
         self.sigmf_md.set_global_field(key, value)
 
-    def set_base_sigmf_global(
-        self,
-        schedule_entry_metadata_obj: ScheduleEntry,
-        action_metadata_obj: Action,
-        sensor_def: dict,
-        measurement_result: dict,
-        recording_id=None,
-        is_complex=True,
-    ):
-        if "calibration_datetime" in measurement_result:
-            self.set_last_calibration_time(measurement_result["calibration_datetime"])
-
-        if "location" in sensor_def:
-            self.set_geolocation(
-                sensor_def["location"]["x"],
-                sensor_def["location"]["y"],
-                sensor_def["location"]["z"],
-            )
-        self.set_data_type(is_complex=is_complex)
-        self.set_sample_rate(measurement_result["sample_rate"])
-        self.set_schedule(schedule_entry_metadata_obj)
-        self.set_action(action_metadata_obj)
-        self.set_sensor(Sensor.from_sensor_definition(sensor_def))
-        self.set_task(measurement_result["task_id"])
-        if recording_id:
-            self.set_recording(recording_id)
-
     def add_metadata_generator(self, key, generator):
         self.metadata_generators[key] = generator
 

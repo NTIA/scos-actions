@@ -1,7 +1,5 @@
 from sigmf.validate import validate as sigmf_validate
 
-from scos_actions.capabilities import capabilities
-
 SENSOR_DEFINITION = {
     "id": "",
     "sensor_spec": {"id": "", "model": "greyhound"},
@@ -12,7 +10,7 @@ SENSOR_DEFINITION = {
 
 
 def check_metadata_fields(metadata, entry_name, action_name, task_id, recording=None):
-    assert sigmf_validate(metadata)
+    assert sigmf_validate(metadata), sigmf_validate(metadata)
     # schema_validate(sigmf_metadata, schema)
     assert "ntia-scos:action" in metadata["global"]
     try:
@@ -25,7 +23,9 @@ def check_metadata_fields(metadata, entry_name, action_name, task_id, recording=
     assert metadata["global"]["ntia-scos:task"] == task_id
     if recording:
         assert "ntia-scos:recording" in metadata["global"]
-        assert metadata["global"]["ntia-scos:recording"] == recording
+        assert metadata["global"]["ntia-scos:recording"] == recording, metadata[
+            "global"
+        ]["ntia-scos:recording"]
     else:
         assert "ntia-scos:recording" not in metadata["global"]
 

@@ -47,6 +47,7 @@ from scos_actions.hardware.utils import (
 from scos_actions.metadata.interfaces import (
     ntia_algorithm,
     ntia_diagnostics,
+    ntia_scos,
     ntia_sensor,
 )
 from scos_actions.metadata.interfaces.capture import CaptureSegment
@@ -948,7 +949,7 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
-        sigmf_builder.set_schedule(schedule_entry)
+        sigmf_builder.set_schedule(ntia_scos.ScheduleEntry.from_(schedule_entry))
 
         # Add some (not all) ntia-sensor metadata
         sigmf_builder.set_sensor(

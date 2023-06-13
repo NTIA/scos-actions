@@ -5,7 +5,9 @@ from copy import deepcopy
 from scos_actions.capabilities import capabilities
 from scos_actions.hardware import preselector
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.utils import ParameterException, get_parameter
+from scos_actions.metadata.interfaces import ntia_scos, ntia_sensor
+from scos_actions.metadata.sigmf_builder import SigMFBuilder
+from scos_actions.utils import ParameterException, get_parameter, get_value_if_exists
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +73,45 @@ class Action(ABC):
         else:
             # No preselector in use, so do not require an RF path
             pass
+
+    def get_sigmf_builder(self, schedule_entry: dict) -> SigMFBuilder:
+        """
+        Set the `sigmf_builder` instance variable to an initialized SigMFBuilder.
+
+        Schedule entry and action information will be populated using `ntia-scos`
+        fields, and sensor metadata will be filled using `ntia-sensor` fields.
+        """
+        sigmf_builder = SigMFBuilder()
+
+        schedule_entry_obj = ntia_scos.ScheduleEntry(
+            schedule_entry["name"],  # name should be unique
+            schedule_entry["name"],
+            start=get_value_if_exists("start", schedule_entry),
+            stop=get_value_if_exists("stop", schedule_entry),
+            interval=get_value_if_exists("interval", schedule_entry),
+            priority=get_value_if_exists("priority", schedule_entry),
+            roles=get_value_if_exists("roles", schedule_entry),
+        )
+        sigmf_builder.set_schedule(schedule_entry_obj)
+
+        action_obj = ntia_scos.Action(
+            name=self.name,
+            description=self.description,
+            summary=self.summary,
+        )
+        sigmf_builder.set_action(action_obj)
+
+        if "location" in self.sensor_definition:
+            sigmf_builder.set_geolocation(
+                self.sensor_definition["location"]["x"],
+                self.sensor_definition["location"]["y"],
+                self.sensor_definition["location"]["z"],
+            )
+        sigmf_builder.set_sensor(
+            ntia_sensor.Sensor.from_sensor_definition(self.sensor_definition)
+        )
+
+        return sigmf_builder
 
     @property
     def summary(self):

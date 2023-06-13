@@ -29,54 +29,44 @@ class MeasurementAction(Action):
         self.test_required_components()
         self.configure(self.parameters)
         measurement_result = self.execute(schedule_entry, task_id)
-        sigmf_builder = self.get_sigmf_builder(measurement_result)
-        self.create_metadata(sigmf_builder, schedule_entry, measurement_result)
+        sigmf_builder = self.get_sigmf_builder(measurement_result, schedule_entry)
+        self.create_metadata(schedule_entry, measurement_result)
         data = self.transform_data(measurement_result)
         self.send_signals(task_id, sigmf_builder.metadata, data)
 
-    def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
-        sigmf_builder = SigMFBuilder()
-        self._action_metadata_obj = ntia_scos.Action(
-            name=self.name,
-            description=self.description,
-            summary=self.summary,
-        )
+    def get_sigmf_builder(
+        self, measurement_result: dict, schedule_entry: dict
+    ) -> SigMFBuilder:
+        sigmf_builder = super().get_sigmf_builder(schedule_entry)
+        sigmf_builder.set_sample_rate(measurement_result["sample_rate"])
         self.received_samples = len(measurement_result["data"].flatten())
+        sigmf_builder.set_data_type(is_complex=self.is_complex())
+        sigmf_builder.set_sample_rate(measurement_result["sample_rate"])
+        sigmf_builder.set_task(measurement_result["task_id"])
         sigmf_builder.set_classification(measurement_result["classification"])
         return sigmf_builder
 
     def create_metadata(
         self,
-        sigmf_builder: SigMFBuilder,
         schedule_entry: dict,
         measurement_result: dict,
         recording: int = None,
-    ):
-        schedule_entry_obj = ntia_scos.ScheduleEntry(
-            schedule_entry["name"],  # name should be unique
-            schedule_entry["name"],
-            start=get_value_if_exists("start", schedule_entry),
-            stop=get_value_if_exists("stop", schedule_entry),
-            interval=get_value_if_exists("interval", schedule_entry),
-            priority=get_value_if_exists("priority", schedule_entry),
-            roles=get_value_if_exists("roles", schedule_entry),
-        )
-        action_obj = ntia_scos.Action(
-            name=self.name,
-            description=self.description,
-            summary=self.summary,
-        )
+    ) -> SigMFBuilder:
+        sigmf_builder = self.get_sigmf_builder(measurement_result, schedule_entry)
 
-        sigmf_builder.set_base_sigmf_global(
-            schedule_entry_obj,
-            action_obj,
-            self.sensor_definition,
-            measurement_result,
-            recording,
-            self.is_complex(),
-        )
-        sigmf_builder.set_action(self._action_metadata_obj)
+        if "calibration_datetime" in measurement_result:
+            sigmf_builder.set_last_calibration_time(
+                measurement_result["calibration_datetime"]
+            )
+
+        sigmf_builder.set_data_type(is_complex=self.is_complex())
+        sigmf_builder.set_sample_rate(measurement_result["sample_rate"])
+        sigmf_builder.set_task(measurement_result["task_id"])
+        if recording is not None:
+            sigmf_builder.set_recording(recording)
+
         sigmf_builder.build()
+        return sigmf_builder
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""

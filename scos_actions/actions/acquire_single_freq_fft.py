@@ -243,8 +243,10 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**definitions)
 
-    def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
-        sigmf_builder = super().get_sigmf_builder(measurement_result)
+    def get_sigmf_builder(
+        self, measurement_result: dict, schedule_entry: dict
+    ) -> SigMFBuilder:
+        sigmf_builder = super().get_sigmf_builder(measurement_result, schedule_entry)
         dft_obj = ntia_algorithm.DFT(
             id="fft_1",
             equivalent_noise_bandwidth=measurement_result["enbw"],
