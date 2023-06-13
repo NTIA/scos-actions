@@ -736,7 +736,7 @@ class NasctnSeaDataProduct(Action):
         except:
             logger.warning("Failed to get CPU overheating status")
         try:  # SCOS start time
-            cpu_diag["scos_start_time"] = start_time
+            cpu_diag["scos_start"] = start_time
         except:
             logger.warning("Failed to get SCOS start time")
         try:  # SCOS uptime
