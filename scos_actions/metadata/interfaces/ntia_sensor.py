@@ -213,15 +213,15 @@ class Calibration(SigMFObject):
     :param temperature: Temperature during calibration, in degrees Celsius.
     """
 
-    datetime: Optional[Union[datetime, str]]
-    gain: Optional[float]
-    noise_figure: Optional[float]
-    compression_point: Optional[float]
-    enbw: Optional[float]
-    mean_noise_power: Optional[float]
-    mean_noise_power_units: Optional[str]
-    reference: Optional[str]
-    temperature: Optional[float]
+    datetime: Optional[Union[datetime, str]] = None
+    gain: Optional[float] = None
+    noise_figure: Optional[float] = None
+    compression_point: Optional[float] = None
+    enbw: Optional[float] = None
+    mean_noise_power: Optional[float] = None
+    mean_noise_power_units: Optional[str] = None
+    reference: Optional[str] = None
+    temperature: Optional[float] = None
 
     def __post_init__(self):
         super().__post_init__()
