@@ -895,7 +895,7 @@ class NasctnSeaDataProduct(Action):
             [psd_graph, pvt_graph, pfp_graph, apd_graph]
         )
         self.total_channel_data_length = (
-            psd_length * FFT_DETECTOR
+            psd_length * len(FFT_DETECTOR)
             + pvt_length * len(TD_DETECTOR)
             + pfp_length * len(PFP_M3_DETECTOR) * 2
             + apd_graph.length
