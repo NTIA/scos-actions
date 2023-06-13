@@ -44,6 +44,12 @@ from scos_actions.hardware.utils import (
     get_disk_smart_data,
     get_max_cpu_temperature,
 )
+from scos_actions.metadata.interfaces import (
+    ntia_algorithm,
+    ntia_diagnostics,
+    ntia_sensor,
+)
+from scos_actions.metadata.interfaces.capture import CaptureSegment
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
@@ -61,10 +67,9 @@ from scos_actions.signal_processing.power_analysis import (
     calculate_pseudo_power,
     create_power_detector,
 )
-from scos_actions.signal_processing.unit_conversion import convert_linear_to_dB
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
 from scos_actions.status import start_time
-from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
+from scos_actions.utils import get_days_up
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +105,7 @@ FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
 IMPEDANCE_OHMS = 50.0
+DATA_REFERENCE_POINT = "Noise source output"
 
 # Create power detectors
 TD_DETECTOR = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
@@ -501,24 +507,22 @@ class NasctnSeaDataProduct(Action):
             schedule_entry,
             self.iteration_params,
         )
-        self.create_global_data_product_metadata(self.parameters)
+        self.create_global_data_product_metadata()
 
         # Collect all IQ data and spawn data product computation processes
-        dp_procs, cap_meta, cap_entries, cpu_speed = [], [], [], []
+        dp_procs, cpu_speed = [], []
         capture_tic = perf_counter()
-        iq_processor = IQProcessor.remote(self.iteration_params[0], self.iir_sos)
-        for parameters in self.iteration_params:
+        self.iq_processor = IQProcessor.remote(self.iteration_params[0], self.iir_sos)
+        for i, parameters in enumerate(self.iteration_params):
             measurement_result = self.capture_iq(parameters)
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
-            dp_procs.append(iq_processor.run.remote(measurement_result["data"]))
+            dp_procs.append(self.iq_processor.run.remote(measurement_result["data"]))
             del measurement_result["data"]
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc-tic:.2f} s")
-            # Generate capture metadata before sigan reconfigured
-            cap_meta_tuple = self.create_channel_metadata(measurement_result)
-            cap_meta.append(cap_meta_tuple[0])
-            cap_entries.append(cap_meta_tuple[1])
+            # Create capture segment with channel-specific metadata before sigan is reconfigured
+            self.create_capture_segment(i, measurement_result)
             cpu_speed.append(get_current_cpu_clock_speed())
         capture_toc = perf_counter()
         logger.debug(
@@ -526,59 +530,42 @@ class NasctnSeaDataProduct(Action):
         )
 
         # Collect processed data product results
-        last_data_len = 0
         all_data, max_max_ch_pwrs, med_mean_ch_pwrs = [], [], []
         result_tic = perf_counter()
-        for i, channel_data_process in enumerate(dp_procs):
-            # Add capture metadata
-            self.sigmf_builder.set_capture(
-                cap_meta[i]["frequency"],
-                cap_meta[i]["start_time"],
-                sample_start=last_data_len,
-                extra_entries=cap_entries[i],
-            )
-
+        for channel_data_process in dp_procs:
             # Retrieve object references for channel data
             channel_data_refs = ray.get(channel_data_process)
             channel_data = []
-            for j, data_ref in enumerate(channel_data_refs):
+            for i, data_ref in enumerate(channel_data_refs):
                 # Now block until the data is ready
                 data = ray.get(data_ref)
-                if j == 1:
+                if i == 1:
                     # Power-vs-Time results, a tuple of arrays
                     data, summaries = data  # Split the tuple
                     max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
                     med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
                     del summaries
-                if j == 3:  # Separate condition is intentional
+                if i == 3:  # Separate condition is intentional
                     # APD result: append instead of extend,
                     # since the result is a single 1D array
                     channel_data.append(data)
                 else:
                     # For 2D arrays (PSD, PVT, PFP)
                     channel_data.extend(data)
-
             toc = perf_counter()
-            logger.debug(f"Waited {toc-tic} s for channel {i} data")
+            logger.debug(f"Waited {toc-tic} s for channel data")
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
-            last_data_len = len(all_data)
         result_toc = perf_counter()
-        del dp_procs, iq_processor, channel_data, channel_data_refs
+        del dp_procs, self.iq_processor, channel_data, channel_data_refs
         gc.collect()
         logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
 
         # Build metadata and convert data to compressed bytes
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
-        self.sigmf_builder.add_to_global(
-            "ntia-nasctn-sea:max_of_max_channel_powers", max_max_ch_pwrs
-        )
-        self.sigmf_builder.add_to_global(
-            "ntia-nasctn-sea:median_of_mean_channel_powers", med_mean_ch_pwrs
-        )
+        self.sigmf_builder.set_max_of_max_channel_powers(max_max_ch_pwrs)
+        self.sigmf_builder.set_median_of_mean_channel_powers(med_mean_ch_pwrs)
         # Get diagnostics last to record action runtime
-        self.capture_diagnostics(
-            action_start_tic, cpu_speed
-        )  # Add diagnostics to metadata
+        self.capture_diagnostics(action_start_tic, cpu_speed)
         self.sigmf_builder.build()
 
         measurement_action_completed.send(
@@ -676,133 +663,102 @@ class NasctnSeaDataProduct(Action):
              be returned by ``time.perf_counter()``
         """
         tic = perf_counter()
-        # Read SPU sensors
+
         for switch in switches.values():
             if switch.name == "SPU X410":
-                spu_diagnostics = switch.get_status()
-                del spu_diagnostics["name"]
-                del spu_diagnostics["healthy"]
+                spu_diag = switch.get_status()
+                del spu_diag["name"]
+                del spu_diag["healthy"]
                 for sensor in SPU_SENSORS:
                     try:
                         value = switch.get_sensor_value(SPU_SENSORS[sensor])
-                        spu_diagnostics[sensor] = value
+                        spu_diag[sensor] = value
                     except:
                         logger.warning(f"Unable to read {sensor} from SPU x410")
-                        pass
                 try:
-                    spu_diagnostics["sigan_internal_temp"] = self.sigan.temperature
+                    spu_diag["sigan_internal_temp"] = self.sigan.temperature
                 except:
                     logger.warning("Unable to read internal sigan temperature")
-                    pass
+        # Rename key for use with **
+        spu_diag["aux_28v_powered"] = spu_diag.pop("28v_aux_powered")
 
         # Read preselector sensors
-        preselector_diagnostics = {}
-
+        ps_diag = {}
         for sensor in PRESELECTOR_SENSORS:
             try:
                 value = preselector.get_sensor_value(PRESELECTOR_SENSORS[sensor])
-                preselector_diagnostics[sensor] = value
+                ps_diag[sensor] = value
             except:
                 logger.warning(f"Unable to read {sensor} from preselector")
-                pass
-
         for inpt in PRESELECTOR_DIGITAL_INPUTS:
             try:
                 value = preselector.get_digital_input_value(
                     PRESELECTOR_DIGITAL_INPUTS[inpt]
                 )
-                preselector_diagnostics[inpt] = value
+                ps_diag[inpt] = value
             except:
                 logger.warning(f"Unable to read {inpt} from preselector")
-                pass
 
         # Read computer performance metrics
-        computer_diagnostics = {}
-
-        # CPU temperature
-        try:
-            cpu_temp_degC = get_current_cpu_temperature()
-            computer_diagnostics["cpu_temp"] = round(cpu_temp_degC, 1)
-        except:
-            logger.warning("Failed to get current CPU temperature")
-
-        # CPU overheating
-        try:
-            cpu_overheating = cpu_temp_degC > get_max_cpu_temperature()
-            computer_diagnostics["cpu_overheating"] = cpu_overheating
-        except:
-            logger.warning("Failed to get CPU overheating status")
-
-        # Computer uptime
-        try:
-            cpu_uptime_days = round(get_cpu_uptime_seconds() / (60 * 60 * 24), 2)
-            computer_diagnostics["cpu_uptime"] = cpu_uptime_days
+        cpu_diag = {  # Start with CPU min/max/mean speeds
+            "cpu_max_clock": round(max(cpu_speeds), 1),
+            "cpu_min_clock": round(min(cpu_speeds), 1),
+            "cpu_mean_clock": round(np.mean(cpu_speeds), 1),
+        }
+        try:  # Computer uptime (days)
+            cpu_diag["cpu_uptime"] = round(get_cpu_uptime_seconds() / (60 * 60 * 24), 2)
         except:
             logger.warning("Failed to get computer uptime")
-
-        # CPU min/max/mean speeds
-        computer_diagnostics.update(
-            {
-                "cpu_max_clock": round(max(cpu_speeds), 1),
-                "cpu_min_clock": round(min(cpu_speeds), 1),
-                "cpu_mean_clock": round(np.mean(cpu_speeds), 1),
-            }
-        )
-
-        # Systemwide CPU utilization (%), averaged over current action runtime
-        try:
+        try:  # System CPU utilization (%), averaged over current action runtime
             cpu_utilization = psutil.cpu_percent(interval=None)
-            computer_diagnostics["action_cpu_usage"] = round(cpu_utilization, 1)
+            cpu_diag["action_cpu_usage"] = round(cpu_utilization, 1)
         except:
             logger.warning("Failed to get CPU utilization diagnostics")
-
-        # Average system load (%) over last 5m
-        try:
+        try:  # Average system load (%) over last 5m
             load_avg_5m = (psutil.getloadavg()[1] / psutil.cpu_count()) * 100.0
-            computer_diagnostics["system_load_5m"] = round(load_avg_5m, 1)
+            cpu_diag["system_load_5m"] = round(load_avg_5m, 1)
         except:
             logger.warning("Failed to get system load 5m average")
-
-        # Memory usage
-        try:
+        try:  # Memory usage
             mem_usage_pct = psutil.virtual_memory().percent
-            computer_diagnostics["memory_usage"] = round(mem_usage_pct, 1)
+            cpu_diag["memory_usage"] = round(mem_usage_pct, 1)
         except:
             logger.warning("Failed to get memory usage")
-
-        # SCOS start time
-        try:
-            computer_diagnostics[
-                "scos_start_time"
-            ] = convert_datetime_to_millisecond_iso_format(start_time)
+        try:  # CPU temperature
+            cpu_temp_degC = get_current_cpu_temperature()
+            cpu_diag["cpu_temp"] = round(cpu_temp_degC, 1)
+        except:
+            logger.warning("Failed to get current CPU temperature")
+        try:  # CPU overheating
+            cpu_diag["cpu_overheating"] = cpu_temp_degC > get_max_cpu_temperature()
+        except:
+            logger.warning("Failed to get CPU overheating status")
+        try:  # SCOS start time
+            cpu_diag["scos_start_time"] = start_time
         except:
             logger.warning("Failed to get SCOS start time")
-
-        # SCOS uptime
-        try:
-            computer_diagnostics["scos_uptime"] = get_days_up()
+        try:  # SCOS uptime
+            cpu_diag["scos_uptime"] = get_days_up()
         except:
             logger.warning("Failed to get SCOS uptime")
-
-        # SSD SMART data
-        try:
-            computer_diagnostics["ssd_smart_data"] = get_disk_smart_data("/dev/nvme0n1")
+        try:  # SSD SMART data
+            smart_data = get_disk_smart_data("/dev/nvme0n1")
+            cpu_diag["ssd_smart_data"] = ntia_diagnostics.SsdSmartData(**smart_data)
         except:
             logger.warning("Failed to get SSD SMART data")
 
         toc = perf_counter()
         logger.debug(f"Got all diagnostics in {toc-tic} s")
-
         diagnostics = {
             "datetime": utils.get_datetime_str_now(),
-            "preselector": preselector_diagnostics,
-            "spu": spu_diagnostics,
-            "computer": computer_diagnostics,
+            "preselector": ntia_diagnostics.Preselector(**ps_diag),
+            "spu": ntia_diagnostics.SPU(**spu_diag),
+            "computer": ntia_diagnostics.Computer(**cpu_diag),
             "action_runtime": perf_counter() - action_start_tic,
         }
 
-        # Make SigMF annotation from sensor data
-        self.sigmf_builder.add_to_global("ntia-diagnostics:diagnostics", diagnostics)
+        # Add diagnostics to SigMF global object
+        self.sigmf_builder.set_diagnostics(ntia_diagnostics.Diagnostics(**diagnostics))
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
@@ -817,111 +773,161 @@ class NasctnSeaDataProduct(Action):
             trigger_api_restart.send(sender=self.__class__)
         return None
 
-    def create_global_data_product_metadata(self, params: dict) -> None:
-        num_iq_samples = int(params[SAMPLE_RATE] * params[DURATION_MS] * 1e-3)
-        dp_meta = {
-            "digital_filter": "iir_1",
-            "reference": "noise source output",
-            "power_spectral_density": {
-                "traces": [{"statistic": d.value.split("_")[0]} for d in FFT_DETECTOR],
-                # Get sample count the same way that FFT processing truncates the result
-                "length": int(FFT_SIZE * (5 / 7)),
-                "equivalent_noise_bandwidth": round(
-                    get_fft_enbw(FFT_WINDOW, params[SAMPLE_RATE]), 2
-                ),
-                "samples": FFT_SIZE,
-                "ffts": int(params[NUM_FFTS]),
-                "units": "dBm/Hz",
-                "window": FFT_WINDOW_TYPE,
-            },
-            "time_series_power": {
-                "traces": [{"detector": d.value.split("_")[0]} for d in TD_DETECTOR],
-                # Get sample count the same way that TD power processing shapes result
-                "length": int(params[DURATION_MS] / params[TD_BIN_SIZE_MS]),
-                "samples": num_iq_samples,
-                "units": "dBm",
-            },
-            "periodic_frame_power": {
-                "traces": [
-                    {
-                        "detector": det,
-                        "statistic": stat.value.split("_")[0],
-                    }
-                    for det in ["mean", "max"]
-                    for stat in PFP_M3_DETECTOR
-                ],
-                # Get sample count the same way that data is reshaped for PFP calculation
-                "length": int(
-                    round((params[PFP_FRAME_PERIOD_MS] * 1e-3) / PFP_FRAME_RESOLUTION_S)
-                ),
-                "units": "dBm",
-            },
-            "amplitude_probability_distribution": {
-                # Get sample count the same way that downsampling is applied
-                "length": np.arange(
-                    params[APD_MIN_BIN_DBM],
-                    params[APD_MAX_BIN_DBM] + params[APD_BIN_SIZE_DB],
-                    params[APD_BIN_SIZE_DB],
-                ).size,
-                "samples": num_iq_samples,
-                "units": "dBm",
-                "probability_units": "percent",
-                "amplitude_bin_size": params[APD_BIN_SIZE_DB],
-                "min_amplitude": params[APD_MIN_BIN_DBM],
-                "max_amplitude": params[APD_MAX_BIN_DBM],
-            },
-        }
-        self.sigmf_builder.add_to_global("ntia-algorithm:data_products", dp_meta)
+    def create_global_data_product_metadata(self) -> None:
+        p = self.parameters
+        num_iq_samples = int(p[SAMPLE_RATE] * p[DURATION_MS] * 1e-3)
+        iir_obj = ntia_algorithm.DigitalFilter(
+            id="iir_1",
+            filter_type=ntia_algorithm.FilterType.IIR,
+            feedforward_coefficients=self.iir_numerators.tolist(),
+            feedback_coefficients=self.iir_denominators.tolist(),
+            attenuation_cutoff=self.iir_gstop_dB,
+            frequency_cutoff=self.iir_sb_edge_Hz,
+            description="5 MHz lowpass filter used as complex 10 MHz bandpass for channelization",
+        )
+        self.sigmf_builder.set_processing([iir_obj.id])
 
-        # Create DigitalFilter object
-        iir_filter_meta = [
-            {
-                "id": "iir_1",
-                "filter_type": "IIR",
-                "IIR_numerator_coefficients": self.iir_numerators.tolist(),
-                "IIR_denominator_coefficients": self.iir_denominators.tolist(),
-                "ripple_passband": self.iir_gpass_dB,
-                "attenuation_stopband": self.iir_gstop_dB,
-                "frequency_stopband": self.iir_sb_edge_Hz,
-                "frequency_cutoff": self.iir_pb_edge_Hz,
-            },
-        ]
-        self.sigmf_builder.add_to_global(
-            "ntia-algorithm:digital_filters", iir_filter_meta
+        dft_obj = ntia_algorithm.DFT(
+            id="psd_fft",
+            equivalent_noise_bandwidth=round(
+                get_fft_enbw(FFT_WINDOW, p[SAMPLE_RATE]), 2
+            ),
+            samples=FFT_SIZE,
+            dfts=int(p[NUM_FFTS]),
+            window=FFT_WINDOW_TYPE,
+            baseband=True,
+            description=f"First and last {int(FFT_SIZE / 7)} samples from {FFT_SIZE}-point FFT discarded",
+        )
+        self.sigmf_builder.set_processing_info([iir_obj, dft_obj])
+
+        psd_length = int(FFT_SIZE * (5 / 7))
+        psd_bin_center_offset = p[SAMPLE_RATE] / FFT_SIZE / 2
+        psd_x_axis__Hz = np.arange(psd_length) * (
+            (p[SAMPLE_RATE] / FFT_SIZE)
+            - (p[SAMPLE_RATE] * (5 / 7) / 2)
+            + psd_bin_center_offset
+        )
+        psd_graph = ntia_algorithm.Graph(
+            name="Power Spectral Density",
+            series=[d.value.split("_")[0] for d in FFT_DETECTOR],  # ["max", "mean"]
+            length=int(FFT_SIZE * (5 / 7)),
+            x_units="Hz",
+            x_start=[psd_x_axis__Hz[0]],
+            x_stop=[psd_x_axis__Hz[-1]],
+            x_step=[p[SAMPLE_RATE] / FFT_SIZE],
+            y_units="dBm/Hz",
+            processing=[dft_obj.id],
+            reference=DATA_REFERENCE_POINT,
+            description=(
+                "Max- and mean-detected power spectral density, with the "
+                + f"first and last {int(FFT_SIZE / 7)} samples discarded. "
+                + "FFTs computed on IIR-filtered data."
+            ),
         )
 
-    def create_channel_metadata(
+        pvt_length = int(p[DURATION_MS] / p[TD_BIN_SIZE_MS])
+        pvt_x_axis__s = np.arange(pvt_length) * (p[DURATION_MS] / 1e3 / pvt_length)
+        pvt_graph = ntia_algorithm.Graph(
+            name="Power vs. Time",
+            series=[d.value.split("_")[0] for d in TD_DETECTOR],  # ["max", "mean"]
+            length=pvt_length,
+            x_units="s",
+            x_start=[pvt_x_axis__s[0]],
+            x_stop=[pvt_x_axis__s[-1]],
+            x_step=[pvt_x_axis__s[1] - pvt_x_axis__s[0]],
+            y_units="dBm",
+            reference=DATA_REFERENCE_POINT,
+            description=(
+                "Max- and mean-detected channel power vs. time, with "
+                + f"an integration time of {p[TD_BIN_SIZE_MS]} ms. "
+                + "Each data point represents the result of a statistical "
+                + f"detector applied over the previous {p[TD_BIN_SIZE_MS]}."
+                + f" In total, {num_iq_samples} IQ samples were used as the input."
+            ),
+        )
+
+        pfp_length = int(round((p[PFP_FRAME_PERIOD_MS] / 1e3) / PFP_FRAME_RESOLUTION_S))
+        pfp_x_axis__s = np.arange(pfp_length) * (
+            p[DURATION_MS] / 1e3 / pfp_length / pvt_length
+        )
+        pfp_graph = ntia_algorithm.Graph(
+            name="Periodic Frame Power",
+            series=[
+                f"{det}_{stat.value.split('_')[0]}"
+                for det in ["mean_max"]
+                for stat in PFP_M3_DETECTOR
+            ],
+            length=pfp_length,
+            x_units="s",
+            x_start=[pfp_x_axis__s[0]],
+            x_stop=[pfp_x_axis__s[-1]],
+            x_step=[pfp_x_axis__s[1] - pfp_x_axis__s[0]],
+            y_units="dBm",
+            reference=DATA_REFERENCE_POINT,
+            description=(""),
+        )
+
+        apd_y_axis__dBm = np.arange(
+            p[APD_MIN_BIN_DBM],
+            p[APD_MAX_BIN_DBM] + p[APD_BIN_SIZE_DB],
+            p[APD_BIN_SIZE_DB],
+        )
+        apd_graph = ntia_algorithm.Graph(
+            name="Amplitude Probability Distribution",
+            length=apd_y_axis__dBm.size,
+            x_units="percent",
+            y_units="dBm",
+            y_start=p[APD_MIN_BIN_DBM],
+            y_stop=p[APD_MAX_BIN_DBM] + p[APD_BIN_SIZE_DB],
+            y_step=p[APD_BIN_SIZE_DB],
+            description=(
+                f"Estimate of the APD, using a {p[APD_BIN_SIZE_DB]} dB "
+                + "bin size for amplitude values. The data payload includes"
+                + " probability values, as percentages, indicating the "
+                + "probability that a given IQ sample exceeds the corresponding"
+                + " amplitudes, the y-axis values recorded by this metadata object."
+            ),
+        )
+
+        self.sigmf_builder.set_data_products(
+            [psd_graph, pvt_graph, pfp_graph, apd_graph]
+        )
+        self.total_channel_data_length = (
+            psd_length * FFT_DETECTOR
+            + pvt_length * len(TD_DETECTOR)
+            + pfp_length * len(PFP_M3_DETECTOR) * 2
+            + apd_graph.length
+        )
+
+    def create_capture_segment(
         self,
+        channel_idx: int,
         measurement_result: dict,
-    ) -> Tuple:
+    ) -> None:
         """Add metadata corresponding to a single-frequency capture in the measurement"""
-        # Construct dict of extra info to attach to capture
-        entries_dict = {
-            "ntia-sensor:overload": measurement_result["overload"],
-            "ntia-sensor:duration": measurement_result[DURATION_MS],
-            "ntia-sensor:sensor_calibration": {
-                "noise_figure": round(
+
+        capture_segment = CaptureSegment(
+            sample_start=channel_idx * self.total_channel_data_length,
+            frequency=self.sigan.frequency,
+            datetime=measurement_result["start_time"],
+            duration=measurement_result[DURATION_MS],
+            overload=measurement_result["overload"],
+            sensor_calibration=ntia_sensor.Calibration(
+                datetime=measurement_result["sensor_cal"]["datetime"],
+                gain=round(measurement_result["sensor_cal"]["gain_sensor"], 3),
+                noise_figure=round(
                     measurement_result["sensor_cal"]["noise_figure_sensor"], 3
                 ),
-                "gain": round(measurement_result["sensor_cal"]["gain_sensor"], 3),
-                "temperature": round(
-                    measurement_result["sensor_cal"]["temperature"], 1
-                ),
-                "datetime": measurement_result["sensor_cal"]["datetime"],
-            },
-            "ntia-sensor:sigan_settings": {
-                "reference_level": self.sigan.reference_level,
-                "attenuation": self.sigan.attenuation,
-                "preamp_enable": self.sigan.preamp_enable,
-            },
-        }
-        # Start time and frequency are needed when building
-        # the capture metadata, but should not be in the capture_dict.
-        capture_meta = {
-            "start_time": measurement_result["start_time"],
-            "frequency": self.sigan.frequency,
-        }
-        return capture_meta, entries_dict
+                temperature=round(measurement_result["sensor_cal"]["temperature"], 1),
+                reference=DATA_REFERENCE_POINT,
+            ),
+            sigan_settings=ntia_sensor.SiganSettings(
+                reference_level=self.sigan.reference_level,
+                attenuation=self.sigan.attenuation,
+                preamp_enable=self.sigan.preamp_enable,
+            ),
+        )
+        self.sigmf_builder.add_capture(capture_segment)
 
     def get_sigmf_builder(
         self,

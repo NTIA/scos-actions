@@ -92,8 +92,8 @@ from numpy import float32, ndarray
 
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.metadata.annotations import FrequencyDomainDetection
-from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
+from scos_actions.metadata.interfaces import ntia_algorithm
+from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.signal_processing.fft import (
     get_fft,
     get_fft_enbw,
@@ -183,8 +183,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
             self.fft_size, sample_rate_Hz, self.frequency_Hz
         )
         measurement_result.update(self.parameters)
-        measurement_result["description"] = self.description
-        measurement_result["domain"] = Domain.FREQUENCY.value
         measurement_result["frequency_start"] = frequencies[0]
         measurement_result["frequency_stop"] = frequencies[-1]
         measurement_result["frequency_step"] = frequencies[1] - frequencies[0]
@@ -193,7 +191,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
             "datetime"
         ]
         measurement_result["task_id"] = task_id
-        measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         measurement_result["classification"] = self.classification
@@ -248,24 +245,38 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
 
     def get_sigmf_builder(self, measurement_result) -> SigMFBuilder:
         sigmf_builder = super().get_sigmf_builder(measurement_result)
-        for i, detector in enumerate(self.fft_detector):
-            fft_annotation = FrequencyDomainDetection(
-                sample_start=i * self.fft_size,
-                sample_count=self.fft_size,
-                detector=detector.value,
-                number_of_ffts=self.nffts,
-                number_of_samples_in_fft=self.fft_size,
-                window=self.fft_window_type,
-                equivalent_noise_bandwidth=measurement_result["enbw"],
-                units="dBm",
-                reference="preselector input",
-                frequency_start=measurement_result["frequency_start"],
-                frequency_stop=measurement_result["frequency_stop"],
-                frequency_step=measurement_result["frequency_step"],
-            )
-            sigmf_builder.add_metadata_generator(
-                type(fft_annotation).__name__ + "_" + detector.value, fft_annotation
-            )
+        dft_obj = ntia_algorithm.DFT(
+            id="fft_1",
+            equivalent_noise_bandwidth=measurement_result["enbw"],
+            samples=self.fft_size,
+            dfts=self.nffts,
+            window=self.fft_window_type,
+            baseband=False,
+            description="Discrete Fourier transform computed using the FFT algorithm",
+        )
+
+        sigmf_builder.set_processing(dft_obj.id)
+        sigmf_builder.set_processing_info([dft_obj])
+
+        m4s_graph = ntia_algorithm.Graph(
+            name="M4S Detector Result",
+            series=[det.value for det in self.fft_detector],
+            length=self.fft_size,
+            x_units="Hz",
+            x_start=measurement_result["frequency_start"],
+            x_stop=measurement_result["frequency_stop"],
+            x_step=measurement_result["frequency_step"],
+            y_units="dBm",
+            reference="preselector input",
+            description=(
+                "Results of min, max, mean, and median statistical detectors, "
+                + f"along with a random sampling, from a set of {self.nffts} "
+                + f"DFTs, each of length {self.fft_size}, computed from IQ data."
+            ),
+        )
+
+        sigmf_builder.set_data_products([m4s_graph])
+
         return sigmf_builder
 
     def is_complex(self) -> bool:

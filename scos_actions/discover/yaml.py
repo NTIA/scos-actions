@@ -33,6 +33,6 @@ def load_from_yaml(action_classes, sigan, gps, yaml_dir: Path = ACTION_DEFINITIO
                 logger.exception(exc)
                 raise exc
             except Exception as exc:
-                logger.error("Unable to load yaml:", exc)
+                logger.error("Unable to load yaml:", exc, class_name, parameters)
                 raise exc
     return parsed_actions

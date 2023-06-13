@@ -38,8 +38,6 @@ from numpy import complex64
 from scos_actions import utils
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.metadata.annotations import TimeDomainDetection
-from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.utils import get_parameter
 
 logger = logging.getLogger(__name__)
@@ -94,32 +92,14 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         end_time = utils.get_datetime_str_now()
         measurement_result.update(self.parameters)
         measurement_result["end_time"] = end_time
-        measurement_result["domain"] = Domain.TIME.value
-        measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result["task_id"] = task_id
         measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
             "datetime"
         ]
-        measurement_result["description"] = self.description
         measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         measurement_result["classification"] = self.classification
         return measurement_result
-
-    def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
-        sigmf_builder = super().get_sigmf_builder(measurement_result)
-        time_domain_annotation = TimeDomainDetection(
-            sample_start=0,
-            sample_count=self.received_samples,
-            detector="sample_iq",
-            number_of_samples=self.received_samples,
-            units="volts",
-            reference="preselector input",
-        )
-        sigmf_builder.add_metadata_generator(
-            type(time_domain_annotation).__name__, time_domain_annotation
-        )
-        return sigmf_builder
 
     @property
     def description(self):

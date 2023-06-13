@@ -15,7 +15,10 @@ def check_metadata_fields(metadata, entry_name, action_name, task_id, recording=
     assert sigmf_validate(metadata)
     # schema_validate(sigmf_metadata, schema)
     assert "ntia-scos:action" in metadata["global"]
-    assert metadata["global"]["ntia-scos:action"]["name"] == action_name
+    try:
+        assert metadata["global"]["ntia-scos:action"]["name"] == action_name
+    except KeyError:
+        raise Exception(metadata["global"])
     assert "ntia-scos:schedule" in metadata["global"]
     assert metadata["global"]["ntia-scos:schedule"]["name"] == entry_name
     assert "ntia-scos:task" in metadata["global"]
@@ -26,10 +29,4 @@ def check_metadata_fields(metadata, entry_name, action_name, task_id, recording=
     else:
         assert "ntia-scos:recording" not in metadata["global"]
 
-    assert "ntia-core:measurement" in metadata["global"]
-    assert metadata["global"]["ntia-core:measurement"]["time_start"]
-    assert metadata["global"]["ntia-core:measurement"]["time_stop"]
-    assert metadata["global"]["ntia-core:measurement"]["frequency_tuned_low"]
-    assert metadata["global"]["ntia-core:measurement"]["frequency_tuned_high"]
-    assert metadata["global"]["ntia-core:measurement"]["domain"]
-    assert metadata["global"]["ntia-core:measurement"]["measurement_type"]
+    assert metadata["global"]["ntia-core:classification"]

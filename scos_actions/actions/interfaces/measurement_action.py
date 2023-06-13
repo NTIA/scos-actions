@@ -3,10 +3,10 @@ from abc import abstractmethod
 
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.metadata.annotations import CalibrationAnnotation, SensorAnnotation
-from scos_actions.metadata.measurement_global import MeasurementMetadata
+from scos_actions.metadata.interfaces import ntia_scos
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.signals import measurement_action_completed
+from scos_actions.utils import get_value_if_exists
 
 logger = logging.getLogger(__name__)
 
@@ -36,70 +36,46 @@ class MeasurementAction(Action):
 
     def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
         sigmf_builder = SigMFBuilder()
+        self._action_metadata_obj = ntia_scos.Action(
+            name=self.name,
+            description=self.description,
+            summary=self.summary,
+        )
         self.received_samples = len(measurement_result["data"].flatten())
-        if any(measurement_result[c] is not None for c in ["sensor_cal", "sigan_cal"]):
-            calibration_annotation = CalibrationAnnotation(
-                sample_start=0,
-                sample_count=self.received_samples,
-                sigan_cal=measurement_result["sigan_cal"],
-                sensor_cal=measurement_result["sensor_cal"],
-            )
-            sigmf_builder.add_metadata_generator(
-                type(calibration_annotation).__name__, calibration_annotation
-            )
-        else:
-            logger.info("Skipping CalibrationAnnotation generation")
-        f_low, f_high = None, None
-        if "frequency_low" in measurement_result:
-            f_low = measurement_result["frequency_low"]
-        elif "frequency" in measurement_result:
-            f_low = measurement_result["frequency"]
-            f_high = measurement_result["frequency"]
-        if "frequency_high" in measurement_result:
-            f_high = measurement_result["frequency_high"]
-
-        measurement_metadata = MeasurementMetadata(
-            domain=measurement_result["domain"],
-            measurement_type=measurement_result["measurement_type"],
-            time_start=measurement_result["start_time"],
-            time_stop=measurement_result["end_time"],
-            frequency_tuned_low=f_low,
-            frequency_tuned_high=f_high,
-            classification=measurement_result["classification"],
-        )
-        sigmf_builder.add_metadata_generator(
-            type(measurement_metadata).__name__, measurement_metadata
-        )
-
-        sensor_annotation = SensorAnnotation(
-            sample_start=0,
-            sample_count=self.received_samples,
-            overload=measurement_result["overload"]
-            if "overload" in measurement_result
-            else None,
-            attenuation_setting_sigan=measurement_result["attenuation"]
-            if "attenuation" in measurement_result
-            else None,
-            gain_setting_sigan=measurement_result["gain"]
-            if "gain" in measurement_result
-            else None,
-        )
-        sigmf_builder.add_metadata_generator(
-            type(sensor_annotation).__name__, sensor_annotation
-        )
+        sigmf_builder.set_classification(measurement_result["classification"])
         return sigmf_builder
 
     def create_metadata(
-        self, sigmf_builder, schedule_entry, measurement_result, recording=None
+        self,
+        sigmf_builder: SigMFBuilder,
+        schedule_entry: dict,
+        measurement_result: dict,
+        recording: int = None,
     ):
+        schedule_entry_obj = ntia_scos.ScheduleEntry(
+            schedule_entry["name"],  # name should be unique
+            schedule_entry["name"],
+            start=get_value_if_exists("start", schedule_entry),
+            stop=get_value_if_exists("stop", schedule_entry),
+            interval=get_value_if_exists("interval", schedule_entry),
+            priority=get_value_if_exists("priority", schedule_entry),
+            roles=get_value_if_exists("roles", schedule_entry),
+        )
+        action_obj = ntia_scos.Action(
+            name=self.name,
+            description=self.description,
+            summary=self.summary,
+        )
+
         sigmf_builder.set_base_sigmf_global(
-            schedule_entry,
+            schedule_entry_obj,
+            action_obj,
             self.sensor_definition,
             measurement_result,
             recording,
             self.is_complex(),
         )
-        sigmf_builder.add_sigmf_capture(sigmf_builder, measurement_result)
+        sigmf_builder.set_action(self._action_metadata_obj)
         sigmf_builder.build()
 
     def test_required_components(self):

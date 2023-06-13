@@ -16,7 +16,7 @@ except Exception as e:
         f"Failed to load sensor definition file: {SENSOR_DEFINITION_FILE}"
         + "\nAn empty sensor definition will be used"
     )
-    capabilities["sensor"] = {}
+    capabilities["sensor"] = {"sensor_spec": {"id": "unknown"}}
 
 if capabilities["sensor"]:
     # Generate sensor definition file hash (SHA 512)
@@ -33,6 +33,4 @@ if capabilities["sensor"]:
         logger.debug(e)
 
 if FQDN:
-    capabilities["sensor"]["id"] = FQDN
-else:
-    capabilities["sensor"]["id"] = "unknown"
+    capabilities["sensor"]["sensor_spec"]["id"] = FQDN
