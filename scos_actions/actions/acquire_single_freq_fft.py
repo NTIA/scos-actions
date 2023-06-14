@@ -270,7 +270,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
             ),
         )
 
-        self.sigmf_builder.set_processing(dft_obj.id)
+        self.sigmf_builder.set_processing([dft_obj.id])
         self.sigmf_builder.set_processing_info([dft_obj])
         self.sigmf_builder.set_data_products([m4s_graph])
 
