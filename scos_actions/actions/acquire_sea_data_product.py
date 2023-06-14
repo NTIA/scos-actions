@@ -108,7 +108,7 @@ FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
 IMPEDANCE_OHMS = 50.0
-DATA_REFERENCE_POINT = "Noise source output"
+DATA_REFERENCE_POINT = "noise source output"
 
 # Create power detectors
 TD_DETECTOR = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
@@ -525,7 +525,10 @@ class NasctnSeaDataProduct(Action):
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc-tic:.2f} s")
             # Create capture segment with channel-specific metadata before sigan is reconfigured
+            tic = perf_counter()
             self.create_capture_segment(i, measurement_result)
+            toc = perf_counter()
+            logger.debug(f"Created capture metadata in {toc-tic:.2f} s")
             cpu_speed.append(get_current_cpu_clock_speed())
         capture_toc = perf_counter()
         logger.debug(
@@ -568,7 +571,9 @@ class NasctnSeaDataProduct(Action):
         self.sigmf_builder.set_max_of_max_channel_powers(max_max_ch_pwrs)
         self.sigmf_builder.set_median_of_mean_channel_powers(med_mean_ch_pwrs)
         # Get diagnostics last to record action runtime
-        self.capture_diagnostics(action_start_tic, cpu_speed)
+        self.capture_diagnostics(
+            action_start_tic, cpu_speed
+        )  # Add diagnostics to metadata
         self.sigmf_builder.build()
 
         measurement_action_completed.send(
@@ -666,7 +671,7 @@ class NasctnSeaDataProduct(Action):
              be returned by ``time.perf_counter()``
         """
         tic = perf_counter()
-
+        # Read SPU sensors
         for switch in switches.values():
             if switch.name == "SPU X410":
                 spu_diag = switch.get_status()
@@ -676,14 +681,15 @@ class NasctnSeaDataProduct(Action):
                     try:
                         value = switch.get_sensor_value(SPU_SENSORS[sensor])
                         spu_diag[sensor] = value
+                        if sensor == "28v_aux_powered":
+                            # Rename key for use with **
+                            spu_diag["aux_28v_powered"] = spu_diag.pop(sensor)
                     except:
                         logger.warning(f"Unable to read {sensor} from SPU x410")
                 try:
                     spu_diag["sigan_internal_temp"] = self.sigan.temperature
                 except:
                     logger.warning("Unable to read internal sigan temperature")
-        # Rename key for use with **
-        spu_diag["aux_28v_powered"] = spu_diag.pop("28v_aux_powered")
 
         # Read preselector sensors
         ps_diag = {}
@@ -953,13 +959,14 @@ class NasctnSeaDataProduct(Action):
         """Build SigMF that applies to the entire capture (all channels)"""
         sigmf_builder = SigMFBuilder()
 
+        # Keep only keys supported by ntia-scos ScheduleEntry SigMF
         schedule_entry_cleaned = {
             k: v
             for k, v in schedule_entry.items()
             if k in ["id", "name", "start", "stop", "interval", "priority", "roles"]
         }
         if "id" not in schedule_entry_cleaned:
-            # If there is no ID, reuse the "name" as the ID as well
+            # If there is no ID, reuse the "name" as the ID
             schedule_entry_cleaned["id"] = schedule_entry_cleaned["name"]
         schedule_entry_obj = ntia_scos.ScheduleEntry(**schedule_entry_cleaned)
         sigmf_builder.set_schedule(schedule_entry_obj)
@@ -967,6 +974,7 @@ class NasctnSeaDataProduct(Action):
         action_obj = ntia_scos.Action(
             name=self.name,
             summary=self.summary,
+            # Do not include lengthy description
         )
         sigmf_builder.set_action(action_obj)
 
