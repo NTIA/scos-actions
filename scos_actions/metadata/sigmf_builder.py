@@ -433,7 +433,7 @@ class SigMFBuilder:
                         v[i] = msgspec_dec_dict.decode(msgspec_enc.encode(item))
                 self.sigmf_md._metadata["global"][k] = v
         for i, capture in enumerate(self.sigmf_md._metadata["captures"]):
-            for k, v in capture:
+            for k, v in capture.items():
                 if issubclass(type(v), msgspec.Struct):
                     self.sigmf_md._metadata["captures"][i][k] = msgspec_dec_dict.decode(
                         msgspec_enc.encode(v)
