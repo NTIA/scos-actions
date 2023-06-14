@@ -34,7 +34,7 @@ from scipy.signal import sos2tf, sosfilt
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.capabilities import SENSOR_DEFINITION_HASH
+from scos_actions.capabilities import SENSOR_DEFINITION_HASH, SENSOR_LOCATION
 from scos_actions.hardware import preselector, switches
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.utils import (
@@ -57,6 +57,7 @@ from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
     get_fft,
     get_fft_enbw,
+    get_fft_frequencies,
     get_fft_window,
     get_fft_window_correction,
 )
@@ -71,7 +72,7 @@ from scos_actions.signal_processing.power_analysis import (
 )
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
 from scos_actions.status import start_time
-from scos_actions.utils import get_days_up, get_value_if_exists
+from scos_actions.utils import get_days_up
 
 logger = logging.getLogger(__name__)
 
@@ -809,13 +810,16 @@ class NasctnSeaDataProduct(Action):
             - (p[SAMPLE_RATE] * (5 / 7) / 2)
             + psd_bin_center_offset
         )
+        psd_bin_start = int(FFT_SIZE / 7)  # bin_start = 125 with FFT_SIZE 875
+        psd_bin_end = FFT_SIZE - psd_bin_start  # bin_end = 750 with FFT_SIZE 875
+        psd_x_axis__Hz = get_fft_frequencies(FFT_SIZE, 14e6, 0.0)  # Baseband
         psd_graph = ntia_algorithm.Graph(
             name="Power Spectral Density",
             series=[d.value.split("_")[0] for d in FFT_DETECTOR],  # ["max", "mean"]
             length=int(FFT_SIZE * (5 / 7)),
             x_units="Hz",
-            x_start=[psd_x_axis__Hz[0]],
-            x_stop=[psd_x_axis__Hz[-1]],
+            x_start=[psd_x_axis__Hz[psd_bin_start]],
+            x_stop=[psd_x_axis__Hz[psd_bin_end]],
             x_step=[p[SAMPLE_RATE] / FFT_SIZE],
             y_units="dBm/Hz",
             processing=[dft_obj.id],
@@ -856,7 +860,7 @@ class NasctnSeaDataProduct(Action):
             name="Periodic Frame Power",
             series=[
                 f"{det}_{stat.value.split('_')[0]}"
-                for det in ["mean_max"]
+                for det in ["mean", "max"]
                 for stat in PFP_M3_DETECTOR
             ],
             length=pfp_length,
@@ -866,7 +870,13 @@ class NasctnSeaDataProduct(Action):
             x_step=[pfp_x_axis__s[1] - pfp_x_axis__s[0]],
             y_units="dBm",
             reference=DATA_REFERENCE_POINT,
-            description=(""),
+            description=(
+                "Channelized eriodic frame power statistics reported over"
+                + f" a {p[PFP_FRAME_PERIOD_MS]} ms frame period, with frame resolution"
+                + f" of {PFP_FRAME_RESOLUTION_S} s. Mean and max detectors are first "
+                + f"applied over the frame resolution, then {PFP_M3_DETECTOR} statistics"
+                + " are computed on samples sharing the same index within the frame period."
+            ),
         )
 
         apd_y_axis__dBm = np.arange(
@@ -879,9 +889,9 @@ class NasctnSeaDataProduct(Action):
             length=apd_y_axis__dBm.size,
             x_units="percent",
             y_units="dBm",
-            y_start=p[APD_MIN_BIN_DBM],
-            y_stop=p[APD_MAX_BIN_DBM] + p[APD_BIN_SIZE_DB],
-            y_step=p[APD_BIN_SIZE_DB],
+            y_start=[apd_y_axis__dBm[0]],
+            y_stop=[apd_y_axis__dBm[-1]],
+            y_step=[apd_y_axis__dBm[1] - apd_y_axis__dBm[0]],
             description=(
                 f"Estimate of the APD, using a {p[APD_BIN_SIZE_DB]} dB "
                 + "bin size for amplitude values. The data payload includes"
@@ -941,14 +951,15 @@ class NasctnSeaDataProduct(Action):
         """Build SigMF that applies to the entire capture (all channels)"""
         sigmf_builder = SigMFBuilder()
 
-        schedule_entry_obj = ntia_scos.ScheduleEntry(
-            schedule_entry["name"],  # name should be unique
-            schedule_entry["name"],
-            start=get_value_if_exists("start", schedule_entry),
-            stop=get_value_if_exists("stop", schedule_entry),
-            interval=get_value_if_exists("interval", schedule_entry),
-            priority=get_value_if_exists("priority", schedule_entry),
-        )
+        schedule_entry_cleaned = {
+            k: v
+            for k, v in schedule_entry.items()
+            if k in ["id", "name", "start", "stop", "interval", "priority", "roles"]
+        }
+        if "id" not in schedule_entry_cleaned:
+            # If there is no ID, reuse the "name" as the ID as well
+            schedule_entry_cleaned["id"] = schedule_entry_cleaned["name"]
+        schedule_entry_obj = ntia_scos.ScheduleEntry(**schedule_entry_cleaned)
         sigmf_builder.set_schedule(schedule_entry_obj)
 
         action_obj = ntia_scos.Action(
@@ -957,18 +968,18 @@ class NasctnSeaDataProduct(Action):
         )
         sigmf_builder.set_action(action_obj)
 
-        try:
-            loc = self.sensor_definition["location"]
-            sigmf_builder.set_geolocation(loc["x"], loc["y"], loc["z"])
-        except KeyError as e:
+        if SENSOR_LOCATION is not None:
+            sigmf_builder.set_geolocation(SENSOR_LOCATION)
+        else:
             logger.error("Set the sensor location in the SCOS admin web UI")
-            raise e
+            raise RuntimeError
+
         sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
 
-        # Add some (not all) ntia-sensor metadata
+        # Add (minimal) ntia-sensor metadata: ID + hash
         sigmf_builder.set_sensor(
             ntia_sensor.Sensor(
                 sensor_spec=ntia_core.HardwareSpec(

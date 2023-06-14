@@ -126,11 +126,3 @@ def get_days_up():
     days = elapsed.days
     fractional_day = elapsed.seconds / (60 * 60 * 24)
     return round(days + fractional_day, 4)
-
-
-def get_value_if_exists(key_name: str, d: dict):
-    """Get a value from a dictionary, or None if the key doesn't exist."""
-    try:
-        return d[key_name]
-    except KeyError:
-        return None

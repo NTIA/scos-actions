@@ -1,11 +1,11 @@
-from dataclasses import dataclass
 from typing import Optional
 
-from scos_actions.metadata.interfaces.sigmf_object import SigMFObject
+import msgspec
+
+from scos_actions.metadata.utils import SIGMF_OBJECT_KWARGS
 
 
-@dataclass
-class Environment(SigMFObject):
+class Environment(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating a `ntia-environment` `Environment` object.
 
@@ -23,18 +23,3 @@ class Environment(SigMFObject):
     humidity: Optional[float] = None
     weather: Optional[str] = None
     description: Optional[str] = None
-
-    def __post_init__(self):
-        super().__post_init__()
-        # Define SigMF key names
-        self.obj_keys.update(
-            {
-                "category": "category",
-                "temperature": "temperature",
-                "humidity": "humidity",
-                "weather": "weather",
-                "description": "description",
-            }
-        )
-        # Create metadata object
-        super().create_json_object()

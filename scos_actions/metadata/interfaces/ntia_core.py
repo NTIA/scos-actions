@@ -1,15 +1,13 @@
-from dataclasses import dataclass
 from typing import List, Optional
 
-from scos_actions.metadata.interfaces.sigmf_object import SigMFObject
+import msgspec
+
+from scos_actions.metadata.utils import SIGMF_OBJECT_KWARGS
 
 
-@dataclass
-class HardwareSpec(SigMFObject):
+class HardwareSpec(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-core` `HardwareSpec` objects.
-
-    The `id` parameter is required.
 
     :param id: Unique ID of hardware, e.g., serial number.
     :param model: Hardware make and model.
@@ -19,36 +17,16 @@ class HardwareSpec(SigMFObject):
         URL to online datasheets.
     """
 
-    id: Optional[str] = None
+    id: str
     model: Optional[str] = None
     version: Optional[str] = None
     description: Optional[str] = None
     supplemental_information: Optional[str] = None
 
-    def __post_init__(self):
-        super().__post_init__()
-        # Ensure required keys have been set
-        self.check_required(self.id, "id")
-        # Define SigMF key names
-        self.obj_keys.update(
-            {
-                "id": "id",
-                "model": "model",
-                "version": "version",
-                "description": "description",
-                "supplemental_information": "supplemental_information",
-            }
-        )
-        # Create metadata object
-        super().create_json_object()
 
-
-@dataclass
-class Antenna(SigMFObject):
+class Antenna(msgspec.Struct, rename={"antenna_type": "type"}, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-core` `Antenna` objects.
-
-    The `antenna_spec` parameter is required.
 
     :param antenna_spec: Metadata to describe the antenna.
     :param antenna_type: Antenna type, e.g. `"dipole"`, `"biconical"`, `"monopole"`,
@@ -72,7 +50,7 @@ class Antenna(SigMFObject):
     :param elevation_angle: Angle of main beam in elevation plane from horizontal, in degrees.
     """
 
-    antenna_spec: Optional[HardwareSpec] = None
+    antenna_spec: HardwareSpec
     antenna_type: Optional[str] = None
     frequency_low: Optional[float] = None
     frequency_high: Optional[float] = None
@@ -88,31 +66,3 @@ class Antenna(SigMFObject):
     steerable: Optional[bool] = None
     azimuth_angle: Optional[float] = None
     elevation_angle: Optional[float] = None
-
-    def __post_init__(self):
-        super().__post_init__()
-        # Ensure required keys have been set
-        self.check_required(self.antenna_spec, "antenna_spec")
-        # Define SigMF key names
-        self.obj_keys.update(
-            {
-                "antenna_spec": "antenna_spec",
-                "antenna_type": "type",
-                "frequency_low": "frequency_low",
-                "frequency_high": "frequency_high",
-                "polarization": "polarization",
-                "cross_polar_discrimination": "cross_polar_discrimination",
-                "gain": "gain",
-                "horizontal_gain_pattern": "horizontal_gain_pattern",
-                "vertical_gain_pattern": "vertical_gain_pattern",
-                "horizontal_beamwidth": "horizontal_beamwidth",
-                "vertical_beamwidth": "vertical_beamwidth",
-                "voltage_standing_wave_ratio": "voltage_standing_wave_ratio",
-                "cable_loss": "cable_loss",
-                "steerable": "steerable",
-                "azimuth_angle": "azimuth_angle",
-                "elevation_angle": "elevation_angle",
-            }
-        )
-        # Create metadata object
-        super().create_json_object()

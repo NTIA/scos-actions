@@ -1,11 +1,13 @@
-from dataclasses import dataclass
 from typing import Optional
 
-from scos_actions.metadata.interfaces.sigmf_object import SigMFObject
+import msgspec
+
+from scos_actions.metadata.utils import SIGMF_OBJECT_KWARGS, prepend_core_namespace
 
 
-@dataclass
-class AnnotationSegment(SigMFObject):
+class AnnotationSegment(
+    msgspec.Struct, rename=prepend_core_namespace, **SIGMF_OBJECT_KWARGS
+):
     """
     Interface for generating SigMF Annotation Segment objects.
 
@@ -22,7 +24,7 @@ class AnnotationSegment(SigMFObject):
     :param uuid: A RFC-4122 compliant UUID string of the form `xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx`.
     """
 
-    sample_start: Optional[int] = None
+    sample_start: int
     sample_count: Optional[int] = None
     generator: Optional[str] = "SCOS"
     label: Optional[str] = None
@@ -30,22 +32,3 @@ class AnnotationSegment(SigMFObject):
     freq_lower_edge: Optional[float] = None
     freq_upper_edge: Optional[float] = None
     uuid: Optional[str] = None
-
-    def __post_init__(self):
-        super().__post_init__()
-        # Ensure required keys have been set
-        self.check_required(self.sample_start, "sample_start")
-        # Define SigMF key names
-        self.obj_keys.update(
-            {
-                "sample_start": "core:sample_start",
-                "sample_count": "core:sample_count",
-                "generator": "core:generator",
-                "label": "core:label",
-                "comment": "core:comment",
-                "freq_lower_edge": "core:freq_lower_edge",
-                "freq_upper_edge": "core:freq_upper_edge",
-            }
-        )
-        # Create metadata object
-        super().create_json_object()

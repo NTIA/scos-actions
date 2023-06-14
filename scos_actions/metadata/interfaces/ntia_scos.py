@@ -1,17 +1,13 @@
-from dataclasses import dataclass
-from datetime import datetime
-from typing import List, Optional, Union
+from typing import List, Optional
 
-from scos_actions.metadata.interfaces.sigmf_object import SigMFObject
-from scos_actions.utils import convert_datetime_to_millisecond_iso_format
+import msgspec
+
+from scos_actions.metadata.utils import SIGMF_OBJECT_KWARGS
 
 
-@dataclass
-class Action(SigMFObject):
+class Action(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-scos` `Action` objects.
-
-    The `name` parameter is required.
 
     :param name: Name of the action assigned to the schedule entry. MUST
         be unique on the sensor.
@@ -19,37 +15,21 @@ class Action(SigMFObject):
     :param summary: A short summary of what the action does.
     """
 
-    name: Optional[str] = None
+    name: Optional[str]
     description: Optional[str] = None
     summary: Optional[str] = None
 
-    def __post_init__(self):
-        super().__post_init__()
-        # Ensure required keys have been set
-        self.check_required(self.name, "name")
-        # Define SigMF key names
-        self.obj_keys.update(
-            {
-                "name": "name",
-                "description": "description",
-                "summary": "summary",
-            }
-        )
-        # Create metadata object
-        super().create_json_object()
 
-
-@dataclass
-class ScheduleEntry(SigMFObject):
+class ScheduleEntry(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-scos` `ScheduleEntry` objects.
 
-    The `id` and `name` parameters are required.
-
     :param id: Unique identifier for the `ScheduleEntry`.
     :param name: User-specified name of the schedule.
-    :param start: Requested time to schedule the first task.
+    :param start: Requested time to schedule the first task. Must be
+        an ISO 8601 formatted string.
     :param stop: Requested time to end execution of tasks under the schedule.
+        Must be an ISO 8601 formatted string.
     :param interval: Seconds between tasks, in seconds.
     :param priority: The priority of the schedule. Lower numbers indicate
         higher priority.
@@ -57,35 +37,10 @@ class ScheduleEntry(SigMFObject):
         the schedule.
     """
 
-    id: Optional[str] = None
-    name: Optional[str] = None
-    start: Optional[Union[datetime, str]] = None
-    stop: Optional[Union[datetime, str]] = None
+    id: Optional[str]
+    name: Optional[str]
+    start: Optional[str] = None
+    stop: Optional[str] = None
     interval: Optional[int] = None
     priority: Optional[int] = None
     roles: Optional[List[str]] = None
-
-    def __post_init__(self):
-        super().__post_init__()
-        # Ensure required keys have been set
-        self.check_required(self.id, "id")
-        self.check_required(self.name, "name")
-        # Convert datetime to string if needed
-        if isinstance(self.start, datetime):
-            self.start = convert_datetime_to_millisecond_iso_format(self.start)
-        if isinstance(self.stop, datetime):
-            self.stop = convert_datetime_to_millisecond_iso_format(self.stop)
-        # Define SigMF key names
-        self.obj_keys.update(
-            {
-                "id": "id",
-                "name": "name",
-                "start": "start",
-                "stop": "stop",
-                "interval": "interval",
-                "priority": "priority",
-                "roles": "roles",
-            }
-        )
-        # Create metadata object
-        super().create_json_object()

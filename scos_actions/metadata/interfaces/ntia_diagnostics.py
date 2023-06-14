@@ -1,13 +1,11 @@
-from dataclasses import dataclass
-from datetime import datetime
-from typing import Optional, Union
+from typing import Optional
 
-from scos_actions.metadata.interfaces.sigmf_object import SigMFObject
-from scos_actions.utils import convert_datetime_to_millisecond_iso_format
+import msgspec
+
+from scos_actions.metadata.utils import SIGMF_OBJECT_KWARGS
 
 
-@dataclass
-class Preselector(SigMFObject):
+class Preselector(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-diagnostics` `Preselector` objects.
 
@@ -24,24 +22,10 @@ class Preselector(SigMFObject):
     humidity: Optional[float] = None
     door_closed: Optional[bool] = False
 
-    def __post_init__(self):
-        super().__post_init__()
-        # Define SigMF key names
-        self.obj_keys.update(
-            {
-                "temp": "temp",
-                "noise_diode_temp": "noise_diode_temp",
-                "lna_temp": "lna_temp",
-                "humidity": "humidity",
-                "door_closed": "door_closed",
-            }
-        )
-        # Create metadata object
-        super().create_json_object()
 
-
-@dataclass
-class SPU(SigMFObject):
+class SPU(
+    msgspec.Struct, rename={"aux_28v_powered": "28v_aux_powered"}, **SIGMF_OBJECT_KWARGS
+):
     """
     Interface for generating `ntia-diagnostics` `SPU` objects.
 
@@ -65,26 +49,8 @@ class SPU(SigMFObject):
     rf_box_temp: Optional[float] = None
     sigan_internal_temp: Optional[float] = None
 
-    def __post_init__(self):
-        super().__post_init__()
-        # Define SigMF key names
-        self.obj_keys.update(
-            {
-                "rf_tray_powered": "rf_tray_powered",
-                "preselector_powered": "preselector_powered",
-                "aux_28v_powered": "28v_aux_powered",
-                "pwr_box_temp": "pwr_box_temp",
-                "pwr_box_humidity": "pwr_box_humidity",
-                "rf_box_temp": "rf_box_temp",
-                "sigan_internal_temp": "sigan_internal_temp",
-            }
-        )
-        # Create metadata object
-        super().create_json_object()
 
-
-@dataclass
-class SsdSmartData(SigMFObject):
+class SsdSmartData(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-diagnostics` `SsdSmartData` objects.
 
@@ -117,27 +83,8 @@ class SsdSmartData(SigMFObject):
     unsafe_shutdowns: Optional[int] = None
     integrity_errors: Optional[int] = None
 
-    def __post_init__(self):
-        super().__post_init__()
-        # Define SigMF key names
-        self.obj_keys.update(
-            {
-                "test_passed": "test_passed",
-                "critical_warning": "critical_warning",
-                "temp": "temp",
-                "available_spare": "available_spare",
-                "available_spare_threshold": "available_spare_threshold",
-                "percentage_used": "percentage_used",
-                "unsafe_shutdowns": "unsafe_shutdowns",
-                "integrity_errors": "integrity_errors",
-            }
-        )
-        # Create metadata object
-        super().create_json_object()
 
-
-@dataclass
-class Computer(SigMFObject):
+class Computer(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-diagnostics` `Computer` objects.
 
@@ -151,7 +98,8 @@ class Computer(SigMFObject):
     :param memory_usage: Average percent of memory used during action execution.
     :param cpu_overheating: Whether the CPU is overheating.
     :param cpu_temp: CPU temperature, in degrees Celsius.
-    :param scos_start: The time at which the SCOS API container started.
+    :param scos_start: The time at which the SCOS API container started. Must be
+        an ISO 8601 formatted string.
     :param scos_uptime: Number of days since the SCOS API container started.
     :param ssd_smart_data: Information provided by the drive Self-Monitoring,
         Analysis, and Reporting Technology.
@@ -166,70 +114,25 @@ class Computer(SigMFObject):
     memory_usage: Optional[float] = None
     cpu_overheating: Optional[bool] = None
     cpu_temp: Optional[float] = None
-    scos_start: Optional[Union[datetime, str]] = None
+    scos_start: Optional[str] = None
     scos_uptime: Optional[float] = None
     ssd_smart_data: Optional[SsdSmartData] = None
 
-    def __post_init__(self):
-        super().__post_init__()
-        # Convert datetime to string if needed
-        if isinstance(self.scos_start, datetime):
-            self.scos_start = convert_datetime_to_millisecond_iso_format(
-                self.scos_start
-            )
-        # Define SigMF key names
-        self.obj_keys.update(
-            {
-                "cpu_min_clock": "cpu_min_clock",
-                "cpu_max_clock": "cpu_max_clock",
-                "cpu_mean_clock": "cpu_mean_clock",
-                "cpu_uptime": "cpu_uptime",
-                "action_cpu_usage": "action_cpu_usage",
-                "system_load_5m": "system_load_5m",
-                "memory_usage": "memory_usage",
-                "cpu_overheating": "cpu_overheating",
-                "cpu_temp": "cpu_temp",
-                "scos_start": "scos_start",
-                "scos_uptime": "scos_uptime",
-                "ssd_smart_data": "ssd_smart_data",
-            }
-        )
-        # Create metadata object
-        super().create_json_object()
 
-
-@dataclass
-class Diagnostics(SigMFObject):
+class Diagnostics(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-diagnostics` `Diagnostics` objects.
 
-    :param datetime: The time at which the diagnostics were gathered.
+    :param datetime: The time at which the diagnostics were gathered. Must be
+        an ISO 8601 formatted string.
     :param preselector: Metadata to capture preselector diagnostics.
     :param spu: Metadata to capture signal processing unit diagnostics.
     :param computer: Metadata to capture computer diagnostics.
     :param action_runtime: Total action execution time, in seconds.
     """
 
-    datetime: Optional[Union[datetime, str]] = None
+    datetime: Optional[str] = None
     preselector: Optional[Preselector] = None
     spu: Optional[SPU] = None
     computer: Optional[Computer] = None
     action_runtime: Optional[float] = None
-
-    def __post_init__(self):
-        super().__post_init__()
-        # Convert datetime to string if needed
-        if isinstance(self.datetime, datetime):
-            self.datetime = convert_datetime_to_millisecond_iso_format(self.datetime)
-        # Define SigMF key names
-        self.obj_keys.update(
-            {
-                "datetime": "datetime",
-                "preselector": "preselector",
-                "spu": "spu",
-                "computer": "computer",
-                "action_runtime": "action_runtime",
-            }
-        )
-        # Create metadata object
-        super().create_json_object()

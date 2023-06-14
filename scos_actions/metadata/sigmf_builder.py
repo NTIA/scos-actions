@@ -237,21 +237,13 @@ class SigMFBuilder:
         """
         self.sigmf_md.set_global_field("core:metadata_only", metadata_only)
 
-    def set_geolocation(
-        self, longitude: float, latitude: float, altitude: float = None
-    ) -> None:
+    def set_geolocation(self, geolocation: dict) -> None:
         """
         Set the value of the Global "core:geolocation" field.
 
-        :param longitude: Recording system longitude in WGS84 decimal degrees.
-        :param latitude: Recording system latitude in WGS84 decimal degrees.
-        :param altitude: (Optional) Recording system altitude in meters above the
-            WGS84 ellipsoid.
+        :param geolocation: A dictionary containing the GeoJSON Point representation
+            of the sensor's location.
         """
-        geolocation = {"type": "Point"}
-        geolocation["coordinates"] = [longitude, latitude]
-        if altitude is not None:
-            geolocation["coordinates"].append(altitude)
         self.sigmf_md.set_global_field("core:geolocation", geolocation)
 
     # core:extensions omitted, set by GLOBAL_INFO above
@@ -273,10 +265,7 @@ class SigMFBuilder:
 
         :param data_products: List of data products produced for each capture.
         """
-        data_products_resolved = [dp.json_obj for dp in data_products]
-        self.sigmf_md.set_global_field(
-            "ntia-algorithm:data_products", data_products_resolved
-        )
+        self.sigmf_md.set_global_field("ntia-algorithm:data_products", data_products)
 
     def set_processing(self, processing: List[str]) -> None:
         """
@@ -298,9 +287,8 @@ class SigMFBuilder:
             Supported objects include `DigitalFilter` and `DFT`. The IDs of any processing
             performed on ALL data products should be listed in `ntia-algorithm:processing`.
         """
-        processing_info_resolved = [p.json_obj for p in processing_info]
         self.sigmf_md.set_global_field(
-            "ntia-algorithm:processing_info", processing_info_resolved
+            "ntia-algorithm:processing_info", processing_info
         )
 
     ### ntia-core v2.0.0 ###
@@ -322,9 +310,7 @@ class SigMFBuilder:
 
         :param diagnostics: Metadata for capturing component diagnostics.
         """
-        self.sigmf_md.set_global_field(
-            "ntia-diagnostics:diagnostics", diagnostics.json_obj
-        )
+        self.sigmf_md.set_global_field("ntia-diagnostics:diagnostics", diagnostics)
 
     ### ntia-nasctn-sea v0.4.0 ###
 
@@ -362,7 +348,7 @@ class SigMFBuilder:
         :param schedule: Metadata that describes the schedule that caused an
             action to be performed.
         """
-        self.sigmf_md.set_global_field("ntia-scos:schedule", schedule.json_obj)
+        self.sigmf_md.set_global_field("ntia-scos:schedule", schedule)
 
     def set_action(self, action: Action) -> None:
         """
@@ -370,7 +356,7 @@ class SigMFBuilder:
 
         :param action: Metadata that describes the action that was performed.
         """
-        self.sigmf_md.set_global_field("ntia-scos:action", action.json_obj)
+        self.sigmf_md.set_global_field("ntia-scos:action", action)
 
     def set_task(self, task: int) -> None:
         """
@@ -399,12 +385,12 @@ class SigMFBuilder:
 
         :param sensor: Describes the sensor model components.
         """
-        self.sigmf_md.set_global_field("ntia-sensor:sensor", sensor.json_obj)
+        self.sigmf_md.set_global_field("ntia-sensor:sensor", sensor)
 
     def add_capture(self, capture: CaptureSegment) -> None:
-        capture_obj = capture.json_obj
-        sample_start = capture_obj.pop("core:sample_start")
-        self.sigmf_md.add_capture(sample_start, metadata=capture_obj)
+        capture_dict = dict(capture)
+        sample_start = capture_dict.pop("core:sample_start")
+        self.sigmf_md.add_capture(sample_start, metadata=capture_dict)
 
     def add_annotation(self, start_index, length, annotation_md):
         self.sigmf_md.add_annotation(
