@@ -1,7 +1,6 @@
 import json
 from typing import List, Union
 
-import msgspec
 from sigmf import SigMFFile
 
 from scos_actions.metadata.interfaces.capture import CaptureSegment
@@ -9,6 +8,7 @@ from scos_actions.metadata.interfaces.ntia_algorithm import DFT, DigitalFilter, 
 from scos_actions.metadata.interfaces.ntia_diagnostics import Diagnostics
 from scos_actions.metadata.interfaces.ntia_scos import Action, ScheduleEntry
 from scos_actions.metadata.interfaces.ntia_sensor import Sensor
+from scos_actions.metadata.utils import msgspec_enc
 
 # Global info which is ALWAYS true for SCOS-generated recordings
 GLOBAL_INFO = {
@@ -390,7 +390,7 @@ class SigMFBuilder:
         self.sigmf_md.set_global_field("ntia-sensor:sensor", sensor)
 
     def add_capture(self, capture: CaptureSegment) -> None:
-        capture_dict = json.loads(msgspec.json.encode(capture))
+        capture_dict = json.loads(msgspec_enc.encode(capture))
         sample_start = capture_dict.pop("core:sample_start")
         self.sigmf_md.add_capture(sample_start, metadata=capture_dict)
 

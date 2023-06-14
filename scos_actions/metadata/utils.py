@@ -1,4 +1,7 @@
-from typing import Optional
+from typing import Any, Optional
+
+import msgspec
+import numpy as np
 
 SIGMF_OBJECT_KWARGS = {
     "omit_defaults": True,
@@ -27,3 +30,14 @@ def construct_geojson_point(
     if altitude is not None:
         geolocation["coordinates"].append(altitude)
     return geolocation
+
+
+def _enc_hook(obj: Any) -> Any:
+    if isinstance(obj, np.float64):
+        return float(obj)
+    else:
+        return obj
+
+
+# A reusable encoder with custom hook to ensure serialization
+msgspec_enc = msgspec.json.Encoder(enc_hook=_enc_hook)
