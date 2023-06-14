@@ -421,11 +421,22 @@ class SigMFBuilder:
         # be used natively throughout SCOS. This would require changing
         # the serialization implementations in SCOS Sensor, which makes sense
         # to do when a python library is created to support sigmf-ns-ntia
-        for k, v in self.sigmf_md._metadata.items():
+        for k, v in self.sigmf_md._metadata["global"].items():
             if issubclass(type(v), msgspec.Struct):
                 # Recursion is not needed: encode/decode will convert nested objects
-                self.sigmf_md._metadata[k] = msgspec_dec_dict.decode(
+                self.sigmf_md._metadata["global"][k] = msgspec_dec_dict.decode(
                     msgspec_enc.encode(v)
                 )
+            if isinstance(v, list):
+                for i, item in enumerate(v):
+                    if issubclass(type(item), msgspec.Struct):
+                        v[i] = msgspec_dec_dict.decode(msgspec_enc.encode(item))
+                self.sigmf_md._metadata["global"][k] = v
+        for i, capture in enumerate(self.sigmf_md._metadata["captures"]):
+            for k, v in capture:
+                if issubclass(type(v), msgspec.Struct):
+                    self.sigmf_md._metadata["captures"][i][k] = msgspec_dec_dict.decode(
+                        msgspec_enc.encode(v)
+                    )
         for metadata_creator in self.metadata_generators.values():
             metadata_creator.create_metadata(self)
