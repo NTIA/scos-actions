@@ -574,7 +574,6 @@ class NasctnSeaDataProduct(Action):
         self.capture_diagnostics(
             action_start_tic, cpu_speed
         )  # Add diagnostics to metadata
-        self.sigmf_builder.build()
 
         measurement_action_completed.send(
             sender=self.__class__,

@@ -62,6 +62,7 @@ class SigMFBuilder:
 
     @property
     def metadata(self):
+        self.build()
         return self.sigmf_md._metadata
 
     def set_data_type(

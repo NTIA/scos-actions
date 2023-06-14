@@ -30,7 +30,6 @@ class MeasurementAction(Action):
         measurement_result = self.execute(schedule_entry, task_id)
         self.get_sigmf_builder(schedule_entry)  # Initializes SigMFBuilder
         self.create_metadata(measurement_result)  # Fill metadata
-        self.sigmf_builder.build()
         data = self.transform_data(measurement_result)
         self.send_signals(task_id, self.sigmf_builder.metadata, data)
 
