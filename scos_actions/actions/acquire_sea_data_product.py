@@ -72,7 +72,7 @@ from scos_actions.signal_processing.power_analysis import (
 )
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
 from scos_actions.status import start_time
-from scos_actions.utils import get_days_up
+from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
 
 logger = logging.getLogger(__name__)
 
@@ -737,7 +737,9 @@ class NasctnSeaDataProduct(Action):
         except:
             logger.warning("Failed to get CPU overheating status")
         try:  # SCOS start time
-            cpu_diag["scos_start"] = start_time
+            cpu_diag["scos_start"] = convert_datetime_to_millisecond_iso_format(
+                start_time
+            )
         except:
             logger.warning("Failed to get SCOS start time")
         try:  # SCOS uptime
@@ -757,7 +759,7 @@ class NasctnSeaDataProduct(Action):
             "preselector": ntia_diagnostics.Preselector(**ps_diag),
             "spu": ntia_diagnostics.SPU(**spu_diag),
             "computer": ntia_diagnostics.Computer(**cpu_diag),
-            "action_runtime": perf_counter() - action_start_tic,
+            "action_runtime": round(perf_counter() - action_start_tic, 2),
         }
 
         # Add diagnostics to SigMF global object
