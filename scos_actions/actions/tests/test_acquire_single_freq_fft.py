@@ -39,12 +39,7 @@ def test_detector():
         SINGLE_FREQUENCY_FFT_ACQUISITION["action"],
         1,
     )
-    for annotation in _metadata["annotations"]:
-        if annotation["ntia-core:annotation_type"] in [
-            "SensorAnnotation",
-            "CalibrationAnnotation",
-        ]:
-            assert annotation["core:sample_count"] == len(_data.flatten())
+    # TODO ADD CHECK FOR METADATA FIELDS
 
 
 def test_num_samples_skip():

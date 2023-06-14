@@ -25,8 +25,6 @@ class CaptureSegment(
     """
     Interface for generating SigMF Capture Segment Objects.
 
-    The `sample_start` parameter is required.
-
     Optionally supports extensions defined in `ntia-sensor`.
 
     :param sample_start: The sample index in the Dataset file at which this

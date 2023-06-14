@@ -992,7 +992,7 @@ class NasctnSeaDataProduct(Action):
         )
 
         # Mark data as UNCLASSIFIED
-        sigmf_builder.add_to_global("ntia-core:classification", "UNCLASSIFIED")
+        sigmf_builder.set_classification("UNCLASSIFIED")
 
         self.sigmf_builder = sigmf_builder
 

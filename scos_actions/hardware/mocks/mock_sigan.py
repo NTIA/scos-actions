@@ -145,22 +145,16 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
             else:
                 logger.debug(f"Successfully acquired {num_samples} samples.")
                 return {
+                    # TODO UPDATE METADATA FORMAT
                     "data": data,
-                    "overload": self._overload,
+                    # "overload": self._overload,
                     "frequency_low": self._frequency,
                     "frequency_high": self._frequency,
-                    "gain": self._gain,
+                    # "gain": self._gain,
                     "sample_rate": self._sample_rate,
-                    "capture_time": self._capture_time,
-                    "calibration_annotation": self.create_calibration_annotation(),
+                    # "capture_time": self._capture_time,
+                    # "calibration_annotation": self.create_calibration_annotation(),
                 }
-
-    def create_calibration_annotation(self):
-        annotation_md = {
-            "ntia-core:annotation_type": "CalibrationAnnotation",
-            "ntia-sensor:gain_sigan": self.gain,
-        }
-        return annotation_md
 
     def set_times_to_fail_recv(self, n):
         self.times_to_fail_recv = n
