@@ -515,12 +515,12 @@ class NasctnSeaDataProduct(Action):
         # Collect all IQ data and spawn data product computation processes
         dp_procs, cpu_speed = [], []
         capture_tic = perf_counter()
-        self.iq_processor = IQProcessor.remote(self.iteration_params[0], self.iir_sos)
+        iq_processor = IQProcessor.remote(self.iteration_params[0], self.iir_sos)
         for i, parameters in enumerate(self.iteration_params):
             measurement_result = self.capture_iq(parameters)
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
-            dp_procs.append(self.iq_processor.run.remote(measurement_result["data"]))
+            dp_procs.append(iq_processor.run.remote(measurement_result["data"]))
             del measurement_result["data"]
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc-tic:.2f} s")
@@ -559,7 +559,7 @@ class NasctnSeaDataProduct(Action):
             logger.debug(f"Waited {toc-tic} s for channel data")
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
         result_toc = perf_counter()
-        del dp_procs, self.iq_processor, channel_data, channel_data_refs
+        del dp_procs, iq_processor, channel_data, channel_data_refs
         gc.collect()
         logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
 
