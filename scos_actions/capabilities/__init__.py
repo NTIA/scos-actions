@@ -43,6 +43,3 @@ if "location" in capabilities["sensor"]:
         )
     except:
         logger.warning("Failed to get sensor location from sensor definition.")
-
-if FQDN:
-    capabilities["sensor"]["sensor_spec"]["id"] = FQDN
