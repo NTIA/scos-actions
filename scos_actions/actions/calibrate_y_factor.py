@@ -201,7 +201,7 @@ class YFactorCalibration(Action):
                     "Only one set of IIR filter parameters may be specified (including sample rate)."
                 )
 
-    def __call__(self, schedule_entry_json, task_id):
+    def __call__(self, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
         detail = ""

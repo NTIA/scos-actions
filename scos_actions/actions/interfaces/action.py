@@ -40,6 +40,7 @@ class Action(ABC):
         self.sigan = sigan
         self.gps = gps
         self.sensor_definition = capabilities["sensor"]
+        self.sigmf_builder = None
         if (
             "preselector" in self.sensor_definition
             and "rf_paths" in self.sensor_definition["preselector"]
@@ -74,7 +75,7 @@ class Action(ABC):
             # No preselector in use, so do not require an RF path
             pass
 
-    def get_sigmf_builder(self, schedule_entry: dict) -> SigMFBuilder:
+    def get_sigmf_builder(self, schedule_entry: dict) -> None:
         """
         Set the `sigmf_builder` instance variable to an initialized SigMFBuilder.
 
@@ -105,7 +106,7 @@ class Action(ABC):
             sigmf_builder.set_geolocation(SENSOR_LOCATION)
         sigmf_builder.set_sensor(ntia_sensor.Sensor(**self.sensor_definition))
 
-        return sigmf_builder
+        self.sigmf_builder = sigmf_builder
 
     @property
     def summary(self):

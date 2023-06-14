@@ -1,9 +1,10 @@
 import logging
 from abc import abstractmethod
 
+import numpy as np
+
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.signals import measurement_action_completed
 
 logger = logging.getLogger(__name__)
@@ -23,47 +24,66 @@ class MeasurementAction(Action):
         super().__init__(parameters, sigan, gps)
         self.received_samples = 0
 
-    def __call__(self, schedule_entry, task_id):
+    def __call__(self, schedule_entry: dict, task_id: int):
         self.test_required_components()
         self.configure(self.parameters)
         measurement_result = self.execute(schedule_entry, task_id)
-        sigmf_builder = self.get_sigmf_builder(measurement_result, schedule_entry)
-        sigmf_builder = self.create_metadata(schedule_entry, measurement_result)
+        self.get_sigmf_builder(schedule_entry)  # Initializes SigMFBuilder
+        self.create_metadata(measurement_result)  # Fill metadata
+        self.sigmf_builder.build()
         data = self.transform_data(measurement_result)
-        self.send_signals(task_id, sigmf_builder.metadata, data)
-
-    def get_sigmf_builder(
-        self, measurement_result: dict, schedule_entry: dict
-    ) -> SigMFBuilder:
-        sigmf_builder = super().get_sigmf_builder(schedule_entry)
-        sigmf_builder.set_sample_rate(measurement_result["sample_rate"])
-        self.received_samples = len(measurement_result["data"].flatten())
-        sigmf_builder.set_data_type(is_complex=self.is_complex())
-        sigmf_builder.set_task(measurement_result["task_id"])
-        sigmf_builder.set_classification(measurement_result["classification"])
-        return sigmf_builder
+        self.send_signals(task_id, self.sigmf_builder.metadata, data)
 
     def create_metadata(
         self,
-        schedule_entry: dict,
         measurement_result: dict,
         recording: int = None,
-    ) -> SigMFBuilder:
-        sigmf_builder = self.get_sigmf_builder(measurement_result, schedule_entry)
-
-        if "calibration_datetime" in measurement_result:
-            sigmf_builder.set_last_calibration_time(
-                measurement_result["calibration_datetime"]
+    ) -> None:
+        """Add SigMF metadata to the `sigmf_builder` from the `measurement_result`."""
+        # Set the received_samples instance variable
+        if "data" in measurement_result:
+            if isinstance(measurement_result["data"], np.ndarray):
+                self.received_samples = len(measurement_result["data"].flatten())
+            else:
+                try:
+                    self.received_samples = len(measurement_result["data"])
+                except TypeError:
+                    logger.warning(
+                        "Failed to get received sample count from measurement result."
+                    )
+        else:
+            logger.warning(
+                "Failed to get received sample count from measurement result."
             )
 
-        sigmf_builder.set_data_type(is_complex=self.is_complex())
-        sigmf_builder.set_sample_rate(measurement_result["sample_rate"])
-        sigmf_builder.set_task(measurement_result["task_id"])
-        if recording is not None:
-            sigmf_builder.set_recording(recording)
+        # Fill metadata fields using the measurement result
+        warning_str = "Measurement result is missing a '{}' value"
+        try:
+            self.sigmf_builder.set_sample_rate(measurement_result["sample_rate"])
+        except KeyError:
+            logger.warning(warning_str.format("sample_rate"))
+        try:
+            self.sigmf_builder.set_task(measurement_result["task_id"])
+        except KeyError:
+            logger.warning(warning_str.format("task_id"))
+        try:
+            self.sigmf_builder.set_classification(measurement_result["classification"])
+        except KeyError:
+            logger.warning(warning_str.format("classification"))
+        try:
+            self.sigmf_builder.set_last_calibration_time(
+                measurement_result["calibration_datetime"]
+            )
+        except KeyError:
+            logger.warning(warning_str.format("calibration_datetime"))
 
-        sigmf_builder.build()
-        return sigmf_builder
+        # Set data type metadata using is_complex method
+        # This assumes data is 32-bit little endian floating point
+        self.sigmf_builder.set_data_type(is_complex=self.is_complex())
+
+        # Set the recording, if provided
+        if recording is not None:
+            self.sigmf_builder.set_recording(recording)
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""

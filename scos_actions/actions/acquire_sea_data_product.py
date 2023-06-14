@@ -954,7 +954,7 @@ class NasctnSeaDataProduct(Action):
         task_id: int,
         schedule_entry: dict,
         iter_params: list,
-    ) -> SigMFBuilder:
+    ) -> None:
         """Build SigMF that applies to the entire capture (all channels)"""
         sigmf_builder = SigMFBuilder()
 

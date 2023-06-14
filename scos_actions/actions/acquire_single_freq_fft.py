@@ -93,7 +93,6 @@ from numpy import float32, ndarray
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.interfaces import ntia_algorithm
-from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.signal_processing.fft import (
     get_fft,
     get_fft_enbw,
@@ -164,7 +163,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         self.fft_window = get_fft_window(self.fft_window_type, self.fft_size)
         self.fft_window_acf = get_fft_window_correction(self.fft_window, "amplitude")
 
-    def execute(self, schedule_entry, task_id) -> dict:
+    def execute(self, schedule_entry: dict, task_id: int) -> dict:
         # Acquire IQ data and generate M4S result
         start_time = get_datetime_str_now()
         measurement_result = self.acquire_data(
@@ -243,10 +242,8 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         # __doc__ refers to the module docstring at the top of the file
         return __doc__.format(**definitions)
 
-    def get_sigmf_builder(
-        self, measurement_result: dict, schedule_entry: dict
-    ) -> SigMFBuilder:
-        sigmf_builder = super().get_sigmf_builder(measurement_result, schedule_entry)
+    def create_metadata(self, measurement_result: dict, recording: int = None) -> None:
+        super().create_metadata(measurement_result, recording)
         dft_obj = ntia_algorithm.DFT(
             id="fft_1",
             equivalent_noise_bandwidth=measurement_result["enbw"],
@@ -256,10 +253,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
             baseband=False,
             description="Discrete Fourier transform computed using the FFT algorithm",
         )
-
-        sigmf_builder.set_processing(dft_obj.id)
-        sigmf_builder.set_processing_info([dft_obj])
-
         m4s_graph = ntia_algorithm.Graph(
             name="M4S Detector Result",
             series=[det.value for det in self.fft_detector],
@@ -277,9 +270,9 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
             ),
         )
 
-        sigmf_builder.set_data_products([m4s_graph])
-
-        return sigmf_builder
+        self.sigmf_builder.set_processing(dft_obj.id)
+        self.sigmf_builder.set_processing_info([dft_obj])
+        self.sigmf_builder.set_data_products([m4s_graph])
 
     def is_complex(self) -> bool:
         return False
