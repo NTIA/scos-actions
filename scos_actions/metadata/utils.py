@@ -41,3 +41,6 @@ def _enc_hook(obj: Any) -> Any:
 
 # A reusable encoder with custom hook to ensure serialization
 msgspec_enc = msgspec.json.Encoder(enc_hook=_enc_hook)
+
+# A reusable decoder which outputs a Python dictionary
+msgspec_dec_dict = msgspec.json.Decoder(type=dict)

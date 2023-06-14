@@ -1,10 +1,8 @@
 import logging
-from copy import deepcopy
 from typing import List, Optional
 
 import msgspec
 
-from scos_actions.capabilities import SENSOR_DEFINITION_HASH
 from scos_actions.metadata.interfaces.ntia_core import Antenna, HardwareSpec
 from scos_actions.metadata.interfaces.ntia_environment import Environment
 from scos_actions.metadata.utils import SIGMF_OBJECT_KWARGS

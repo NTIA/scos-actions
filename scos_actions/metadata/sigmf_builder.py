@@ -1,6 +1,7 @@
 import json
 from typing import List, Union
 
+import msgspec
 from sigmf import SigMFFile
 
 from scos_actions.metadata.interfaces.capture import CaptureSegment
@@ -8,7 +9,7 @@ from scos_actions.metadata.interfaces.ntia_algorithm import DFT, DigitalFilter, 
 from scos_actions.metadata.interfaces.ntia_diagnostics import Diagnostics
 from scos_actions.metadata.interfaces.ntia_scos import Action, ScheduleEntry
 from scos_actions.metadata.interfaces.ntia_sensor import Sensor
-from scos_actions.metadata.utils import msgspec_enc
+from scos_actions.metadata.utils import msgspec_dec_dict, msgspec_enc
 
 # Global info which is ALWAYS true for SCOS-generated recordings
 GLOBAL_INFO = {
@@ -414,5 +415,17 @@ class SigMFBuilder:
         self.metadata_generators.pop(key, "")
 
     def build(self):
+        # Convert msgspec Structs to dictionaries to support
+        # serialization by standard json.dumps (e.g., in SCOS Sensor)
+        # NOTE: This should be removed in the future, and msgspec should
+        # be used natively throughout SCOS. This would require changing
+        # the serialization implementations in SCOS Sensor, which makes sense
+        # to do when a python library is created to support sigmf-ns-ntia
+        for k, v in self.sigmf_md._metadata.items():
+            if issubclass(type(v), msgspec.Struct):
+                # Recursion is not needed: encode/decode will convert nested objects
+                self.sigmf_md._metadata[k] = msgspec_dec_dict.decode(
+                    msgspec_enc.encode(v)
+                )
         for metadata_creator in self.metadata_generators.values():
             metadata_creator.create_metadata(self)
