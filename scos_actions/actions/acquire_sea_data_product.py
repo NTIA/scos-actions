@@ -919,8 +919,8 @@ class NasctnSeaDataProduct(Action):
         """Add metadata corresponding to a single-frequency capture in the measurement"""
 
         capture_segment = CaptureSegment(
-            sample_start=channel_idx * self.total_channel_data_length,
-            frequency=self.sigan.frequency,
+            sample_start=float(channel_idx * self.total_channel_data_length),
+            frequency=float(self.sigan.frequency),
             datetime=measurement_result["start_time"],
             duration=measurement_result[DURATION_MS],
             overload=measurement_result["overload"],
@@ -934,9 +934,9 @@ class NasctnSeaDataProduct(Action):
                 reference=DATA_REFERENCE_POINT,
             ),
             sigan_settings=ntia_sensor.SiganSettings(
-                reference_level=self.sigan.reference_level,
-                attenuation=self.sigan.attenuation,
-                preamp_enable=self.sigan.preamp_enable,
+                reference_level=float(self.sigan.reference_level),
+                attenuation=float(self.sigan.attenuation),
+                preamp_enable=float(self.sigan.preamp_enable),
             ),
         )
         self.sigmf_builder.add_capture(capture_segment)
