@@ -1,5 +1,7 @@
+import json
 from typing import List, Union
 
+import msgspec
 from sigmf import SigMFFile
 
 from scos_actions.metadata.interfaces.capture import CaptureSegment
@@ -388,7 +390,7 @@ class SigMFBuilder:
         self.sigmf_md.set_global_field("ntia-sensor:sensor", sensor)
 
     def add_capture(self, capture: CaptureSegment) -> None:
-        capture_dict = dict(capture)
+        capture_dict = json.loads(msgspec.json.encode(capture))
         sample_start = capture_dict.pop("core:sample_start")
         self.sigmf_md.add_capture(sample_start, metadata=capture_dict)
 
