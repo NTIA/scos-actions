@@ -681,15 +681,14 @@ class NasctnSeaDataProduct(Action):
                     try:
                         value = switch.get_sensor_value(SPU_SENSORS[sensor])
                         spu_diag[sensor] = value
-                        if sensor == "28v_aux_powered":
-                            # Rename key for use with **
-                            spu_diag["aux_28v_powered"] = spu_diag.pop(sensor)
                     except:
                         logger.warning(f"Unable to read {sensor} from SPU x410")
                 try:
                     spu_diag["sigan_internal_temp"] = self.sigan.temperature
                 except:
                     logger.warning("Unable to read internal sigan temperature")
+        # Rename key for use with **
+        spu_diag["aux_28v_powered"] = spu_diag.pop("28v_aux_powered")
 
         # Read preselector sensors
         ps_diag = {}
