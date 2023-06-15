@@ -100,7 +100,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         sigan_settings = self.get_sigan_settings(measurement_result)
         measurement_result["capture_segment"] = self.create_capture_segment(
             sample_start=0,
-            datetime=measurement_result["capture_time"],
+            start_time=measurement_result["capture_time"],
             center_frequency_Hz=self.frequency_Hz,
             duration_ms=self.duration_ms,
             overload=measurement_result["overload"],
