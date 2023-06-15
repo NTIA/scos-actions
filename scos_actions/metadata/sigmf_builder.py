@@ -26,9 +26,14 @@ GLOBAL_INFO = {
             "optional": False,
         },
         {
+            "name": "ntia-diagnostics",
+            "version": "v1.0.0",
+            "optional": True,
+        },
+        {
             "name": "ntia-environment",
             "version": "v1.0.0",
-            "optional": False,
+            "optional": True,
         },
         {
             "name": "ntia-scos",
@@ -43,7 +48,7 @@ GLOBAL_INFO = {
         {
             "name": "ntia-nasctn-sea",
             "version": "v0.4.0",
-            "optional": False,
+            "optional": True,
         },
     ],
     "core:recorder": "SCOS",
@@ -194,7 +199,7 @@ class SigMFBuilder:
         """
         self.sigmf_md.set_global_field("core:data_doi", data_doi)
 
-    # core:recorder omitted, set by GLOBAL_INFO above
+    # core:recorder omitted, set by GLOBAL_INFO on metadata init
 
     def set_license(self, license: str) -> None:
         """
@@ -250,7 +255,7 @@ class SigMFBuilder:
         """
         self.sigmf_md.set_global_field("core:geolocation", geolocation)
 
-    # core:extensions omitted, set by GLOBAL_INFO above
+    # core:extensions omitted, set dynamically when metadata is built
 
     def set_collection(self, collection: str) -> None:
         """
