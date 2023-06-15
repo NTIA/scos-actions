@@ -268,7 +268,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
             x_step=[frequencies[1] - frequencies[0]],
             y_units="dBm",
             reference="preselector input",
-            processing=[dft_obj.id],
             description=(
                 "Results of min, max, mean, and median statistical detectors, "
                 + f"along with a random sampling, from a set of {self.nffts} "
