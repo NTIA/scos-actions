@@ -111,30 +111,34 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             measurement_result["task_id"] = task_id
             measurement_result["name"] = self.name
             measurement_result["classification"] = self.classification
-            sigan_cal = self.sigan.sigan_calibration_data
-            sensor_cal = self.sigan.sensor_calibration_data
-            if "1db_compression_point" in sigan_cal:
-                sigan_cal["compression_point"] = sigan_cal.pop("1db_compression_point")
-            if "1db_compression_point" in sensor_cal:
-                sensor_cal["compression_point"] = sensor_cal.pop(
-                    "1db_compression_point"
-                )
             sigan_settings = self.get_sigan_settings(measurement_result)
-            measurement_result["capture_segment"] = CaptureSegment(
+            capture_segment = CaptureSegment(
                 sample_start=0,
                 global_index=saved_samples,
                 frequency=measurement_params[FREQUENCY],
                 datetime=measurement_result["capture_time"],
                 duration=duration_ms,
                 overload=measurement_result["overload"],
-                sensor_calibration=ntia_sensor.Calibration(
-                    **sensor_cal if sensor_cal is not None else None
-                ),
-                sigan_calibration=ntia_sensor.Calibration(
-                    **sigan_cal if sigan_cal is not None else None
-                ),
                 sigan_settings=sigan_settings,
             )
+            sigan_cal = self.sigan.sigan_calibration_data
+            sensor_cal = self.sigan.sensor_calibration_data
+            if sigan_cal is not None:
+                if "1db_compression_point" in sigan_cal:
+                    sigan_cal["compression_point"] = sigan_cal.pop(
+                        "1db_compression_point"
+                    )
+                capture_segment.sigan_calibration = ntia_sensor.Calibration(**sigan_cal)
+            if sensor_cal is not None:
+                if "1db_compression_point" in sensor_cal:
+                    sensor_cal["compression_point"] = sensor_cal.pop(
+                        "1db_compression_point"
+                    )
+                    capture_segment.sensor_calibration = ntia_sensor.Calibration(
+                        **sensor_cal
+                    )
+            measurement_result["capture_segment"] = capture_segment
+
             self.create_metadata(measurement_result, recording_id)
             measurement_action_completed.send(
                 sender=self.__class__,
