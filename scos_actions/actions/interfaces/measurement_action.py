@@ -47,10 +47,15 @@ class MeasurementAction(Action):
     ) -> CaptureSegment:
         sigan_cal = self.sigan.sigan_calibration_data
         sensor_cal = self.sigan.sensor_calibration_data
-        if "1db_compression_point" in sigan_cal:
-            sigan_cal["compression_point"] = sigan_cal.pop("1db_compression_point")
-        if "1db_compression_point" in sensor_cal:
-            sensor_cal["compression_point"] = sensor_cal.pop("1db_compression_point")
+        # Rename compression point keys if they exist
+        if sigan_cal is not None:
+            if "1db_compression_point" in sigan_cal:
+                sigan_cal["compression_point"] = sigan_cal.pop("1db_compression_point")
+        if sensor_cal is not None:
+            if "1db_compression_point" in sensor_cal:
+                sensor_cal["compression_point"] = sensor_cal.pop(
+                    "1db_compression_point"
+                )
         capture_segment = CaptureSegment(
             sample_start=sample_start,
             frequency=center_frequency_Hz,
