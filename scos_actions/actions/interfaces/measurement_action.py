@@ -43,33 +43,30 @@ class MeasurementAction(Action):
         center_frequency_Hz: float,
         duration_ms: int,
         overload: bool,
-        sigan_settings: ntia_sensor.SiganSettings,
+        sigan_settings: Union[ntia_sensor.SiganSettings, None],
     ) -> CaptureSegment:
-        sigan_cal = self.sigan.sigan_calibration_data
-        sensor_cal = self.sigan.sensor_calibration_data
-        # Rename compression point keys if they exist
-        if sigan_cal is not None:
-            if "1db_compression_point" in sigan_cal:
-                sigan_cal["compression_point"] = sigan_cal.pop("1db_compression_point")
-        if sensor_cal is not None:
-            if "1db_compression_point" in sensor_cal:
-                sensor_cal["compression_point"] = sensor_cal.pop(
-                    "1db_compression_point"
-                )
         capture_segment = CaptureSegment(
             sample_start=sample_start,
             frequency=center_frequency_Hz,
             datetime=start_time,
             duration=duration_ms,
             overload=overload,
-            sensor_calibration=ntia_sensor.Calibration(
-                **sensor_cal if sensor_cal is not None else None
-            ),
-            sigan_calibration=ntia_sensor.Calibration(
-                **sigan_cal if sigan_cal is not None else None
-            ),
             sigan_settings=sigan_settings,
         )
+        sigan_cal = self.sigan.sigan_calibration_data
+        sensor_cal = self.sigan.sensor_calibration_data
+        # Rename compression point keys if they exist
+        # then set calibration metadata if it exists
+        if sensor_cal is not None:
+            if "1db_compression_point" in sensor_cal:
+                sensor_cal["compression_point"] = sensor_cal.pop(
+                    "1db_compression_point"
+                )
+            capture_segment.sensor_calibration = ntia_sensor.Calibration(**sensor_cal)
+        if sigan_cal is not None:
+            if "1db_compression_point" in sigan_cal:
+                sigan_cal["compression_point"] = sigan_cal.pop("1db_compression_point")
+            capture_segment.sigan_calibration = ntia_sensor.Calibration(**sigan_cal)
         return capture_segment
 
     def create_metadata(
