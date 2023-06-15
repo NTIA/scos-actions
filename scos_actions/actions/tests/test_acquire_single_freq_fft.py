@@ -35,11 +35,50 @@ def test_detector():
     assert _metadata
     check_metadata_fields(
         _metadata,
+        action,
         SINGLE_FREQUENCY_FFT_ACQUISITION["name"],
         SINGLE_FREQUENCY_FFT_ACQUISITION["action"],
         1,
     )
-    # TODO ADD CHECK FOR METADATA FIELDS
+    assert "ntia-algorithm:processing" in _metadata["global"]
+    assert len(_metadata["global"]["ntia-algorithm:processing"]) == 1
+    assert _metadata["global"]["ntia-algorithm:processing"][0] == "fft_1"
+    assert "ntia-algorithm:processing_info" in _metadata["global"]
+    assert len(_metadata["global"]["ntia-algorithm:processing_info"]) == 1
+    assert all(
+        [
+            k in _metadata["global"]["ntia-algorithm:processing_info"][0]
+            for k in [
+                "id",
+                "equivalent_noise_bandwidth",
+                "samples",
+                "dfts",
+                "window",
+                "baseband",
+                "description",
+            ]
+        ]
+    )
+    assert _metadata["global"]["ntia-algorithm:processing_info"][0]["id"] == "fft_1"
+    assert "ntia-algorithm:data_products" in _metadata["global"]
+    assert len(_metadata["global"]["ntia-algorithm:data_products"]) == 1
+    assert all(
+        [
+            k in _metadata["global"]["ntia-algorithm:data_products"][0]
+            for k in [
+                "name",
+                "series",
+                "length",
+                "x_units",
+                "x_start",
+                "x_stop",
+                "x_step",
+                "y_units",
+                "reference",
+                "description",
+            ]
+        ]
+    )
 
 
 def test_num_samples_skip():

@@ -35,11 +35,24 @@ def test_metadata_timedomain_iq_single_acquisition():
     assert _task_id == 1
     check_metadata_fields(
         _metadata,
+        action,
         SINGLE_TIMEDOMAIN_IQ_ACQUISITION["name"],
         SINGLE_TIMEDOMAIN_IQ_ACQUISITION["action"],
         1,
     )
-    # TODO ADD METADATA CHECKS
+    assert len(_metadata["captures"]) == 1
+    assert all(
+        [
+            k in _metadata["captures"][0]
+            for k in [
+                "core:frequency",
+                "core:datetime",
+                "ntia-sensor:duration",
+                "ntia-sensor:overload",
+                "core:sample_start",
+            ]
+        ]
+    )
 
 
 def test_required_components():
