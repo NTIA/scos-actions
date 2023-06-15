@@ -3,97 +3,81 @@
         "10000000.0": {
             "650000000.0": {
                 "40.0": {
-                    "1db_compression_preselector": 100.0,
-                    "1db_compression_sensor": 22.88826982982973,
-                    "enbw_sensor": 8647759.416132875,
-                    "gain_preselector": -53.52288239232973,
-                    "gain_sensor": -11.4609954908858,
-                    "noise_figure_preselector": 53.84375778724545,
-                    "noise_figure_sensor": 63.41318984193854,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 },
                 "60.0": {
-                    "1db_compression_preselector": 100.0,
-                    "1db_compression_sensor": -12.01558627670844,
-                    "enbw_sensor": 8647759.416132875,
-                    "gain_preselector": -37.668526285791565,
-                    "gain_sensor": 24.21453104658883,
-                    "noise_figure_preselector": 0.0,
-                    "noise_figure_sensor": 43.936313078858596,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 }
             },
             "660000000.0": {
                 "40.0": {
-                    "1db_compression_preselector": 100.0,
-                    "1db_compression_sensor": 14.815411445163491,
-                    "enbw_sensor": 8647759.416132875,
-                    "gain_preselector": -45.45918238856349,
-                    "gain_sensor": -3.2419118232375297,
-                    "noise_figure_preselector": 43.896824420057754,
-                    "noise_figure_sensor": 55.60600295988542,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 },
                 "60.0": {
-                    "1db_compression_preselector": 100.0,
-                    "1db_compression_sensor": -24.395188069672265,
-                    "enbw_sensor": 8647759.416132875,
-                    "gain_preselector": -25.297182873727742,
-                    "gain_sensor": 36.7974615682031,
-                    "noise_figure_preselector": 0.0,
-                    "noise_figure_sensor": 32.2556068936354,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 }
             }
         },
         "15360000.0": {
             "650000000.0": {
                 "40.0": {
-                    "1db_compression_preselector": 100.0,
-                    "1db_compression_sensor": 22.88826982982973,
-                    "enbw_sensor": 13514344.20534668,
-                    "gain_preselector": -52.76164940142695,
-                    "gain_sensor": -10.673238889128093,
-                    "noise_figure_preselector": 54.3608132296346,
-                    "noise_figure_sensor": 62.74144898998765,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 },
                 "60.0": {
-                    "1db_compression_preselector": 100.0,
-                    "1db_compression_sensor": -12.01558627670844,
-                    "enbw_sensor": 13514344.20534668,
-                    "gain_preselector": -37.32810238667156,
-                    "gain_sensor": 24.607739475146914,
-                    "noise_figure_preselector": 0.0,
-                    "noise_figure_sensor": 43.46341072929226,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 }
             },
             "660000000.0": {
                 "40.0": {
-                    "1db_compression_preselector": 100.0,
-                    "1db_compression_sensor": 14.815411445163491,
-                    "enbw_sensor": 13514344.20534668,
-                    "gain_preselector": -45.41381192475457,
-                    "gain_sensor": -3.164039249124528,
-                    "noise_figure_preselector": 42.465522818637275,
-                    "noise_figure_sensor": 55.388770977528765,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 },
                 "60.0": {
-                    "1db_compression_preselector": 100.0,
-                    "1db_compression_sensor": -24.395188069672265,
-                    "enbw_sensor": 13514344.20534668,
-                    "gain_preselector": -25.335877791172386,
-                    "gain_sensor": 36.809934375339544,
-                    "noise_figure_preselector": 0.0,
-                    "noise_figure_sensor": 31.862565841489413,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 }
             }
         }
     },
-    "last_calibration_datetime": "2019-09-20T02:03:38.967055Z",
+    "last_calibration_datetime": "1970-01-01T00:00:00.000000Z",
     "calibration_frequency_divisions": [],
     "calibration_parameters": [
         "sample_rate",
@@ -110,5 +94,6 @@
             "sample_rate": 15360000.0
         }
     ],
-    "sensor_uid": "EXAMPLE"
+    "sensor_uid": "EXAMPLE",
+    "calibration_reference": "noise source output"
 }

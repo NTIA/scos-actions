@@ -5,6 +5,7 @@ from copy import deepcopy
 from scos_actions.capabilities import SENSOR_LOCATION, capabilities
 from scos_actions.hardware import preselector
 from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
 from scos_actions.metadata.interfaces import ntia_scos, ntia_sensor
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.utils import ParameterException, get_parameter
@@ -49,21 +50,22 @@ class Action(ABC):
         else:
             self.has_configurable_preselector = False
 
-    def configure(self, measurement_params: dict):
-        self.configure_sigan(measurement_params)
-        self.configure_preselector(measurement_params)
+    def configure(self, params: dict):
+        self.configure_sigan(params)
+        self.configure_preselector(params)
 
-    def configure_sigan(self, measurement_params: dict):
-        for key, value in measurement_params.items():
+    def configure_sigan(self, params: dict):
+        sigan_params = {k: v for k, v in params.items() if k in SIGAN_SETTINGS_KEYS}
+        for key, value in sigan_params.items():
             if hasattr(self.sigan, key):
                 logger.debug(f"Applying setting to sigan: {key}: {value}")
                 setattr(self.sigan, key, value)
             else:
                 logger.warning(f"Sigan does not have attribute {key}")
 
-    def configure_preselector(self, measurement_params: dict):
-        if self.PRESELECTOR_PATH_KEY in measurement_params:
-            path = measurement_params[self.PRESELECTOR_PATH_KEY]
+    def configure_preselector(self, params: dict):
+        if self.PRESELECTOR_PATH_KEY in params:
+            path = params[self.PRESELECTOR_PATH_KEY]
             logger.debug(f"Setting preselector RF path: {path}")
             preselector.set_state(path)
         elif self.has_configurable_preselector:

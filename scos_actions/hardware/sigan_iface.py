@@ -17,26 +17,36 @@ from scos_actions.utils import (
 logger = logging.getLogger(__name__)
 
 
+# All setting names for all supported sigans
+SIGAN_SETTINGS_KEYS = [
+    "sample_rate",
+    "frequency",
+    "gain",
+    "attenuation",
+    "reference_level",
+    "preamp_enable",
+]
+
+
 class SignalAnalyzerInterface(ABC):
     def __init__(self):
         # Define the default calibration dicts
         self.DEFAULT_SIGAN_CALIBRATION = {
-            "gain_sigan": None,  # Defaults to gain setting
-            "enbw_sigan": None,  # Defaults to sample rate
-            "noise_figure_sigan": 0,
-            "1db_compression_sigan": 100,
             "datetime": get_datetime_str_now(),
+            "gain": None,  # Defaults to gain setting
+            "enbw": None,  # Defaults to sample rate
+            "noise_figure": 0,
+            "1db_compression_point": 100,
+            "temperature": 26.85,
         }
 
         self.DEFAULT_SENSOR_CALIBRATION = {
-            "gain_sensor": None,  # Defaults to sigan gain
-            "enbw_sensor": None,  # Defaults to sigan enbw
-            "noise_figure_sensor": None,  # Defaults to sigan noise figure
-            "1db_compression_sensor": None,  # Defaults to sigan compression + preselector gain
-            "gain_preselector": 0,
-            "noise_figure_preselector": 0,
-            "1db_compression_preselector": 100,
             "datetime": get_datetime_str_now(),
+            "gain": None,  # Defaults to sigan gain
+            "enbw": None,  # Defaults to sigan enbw
+            "noise_figure": None,  # Defaults to sigan noise figure
+            "1db_compression_point": None,  # Defaults to sigan compression + preselector gain
+            "temperature": 26.85,
         }
         self.sensor_calibration_data = copy.deepcopy(self.DEFAULT_SENSOR_CALIBRATION)
         self.sigan_calibration_data = copy.deepcopy(self.DEFAULT_SIGAN_CALIBRATION)

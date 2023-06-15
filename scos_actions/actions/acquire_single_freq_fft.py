@@ -92,7 +92,8 @@ from numpy import float32, ndarray
 
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.metadata.interfaces import ntia_algorithm
+from scos_actions.metadata.interfaces import ntia_algorithm, ntia_sensor
+from scos_actions.metadata.interfaces.capture import CaptureSegment
 from scos_actions.signal_processing.fft import (
     get_fft,
     get_fft_enbw,
@@ -165,7 +166,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
 
     def execute(self, schedule_entry: dict, task_id: int) -> dict:
         # Acquire IQ data and generate M4S result
-        start_time = get_datetime_str_now()
         measurement_result = self.acquire_data(
             self.num_samples, self.nskip, self.cal_adjust
         )
@@ -175,24 +175,24 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
 
         # Save measurement results
         measurement_result["data"] = m4s_result
-        measurement_result["start_time"] = start_time
-        measurement_result["end_time"] = get_datetime_str_now()
-        measurement_result["enbw"] = get_fft_enbw(self.fft_window, sample_rate_Hz)
-        frequencies = get_fft_frequencies(
-            self.fft_size, sample_rate_Hz, self.frequency_Hz
-        )
         measurement_result.update(self.parameters)
-        measurement_result["frequency_start"] = frequencies[0]
-        measurement_result["frequency_stop"] = frequencies[-1]
-        measurement_result["frequency_step"] = frequencies[1] - frequencies[0]
-        measurement_result["window"] = self.fft_window_type
         measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
             "datetime"
         ]
         measurement_result["task_id"] = task_id
-        measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
-        measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         measurement_result["classification"] = self.classification
+
+        # Build capture metadata
+        sigan_settings = self.get_sigan_settings(measurement_result)
+        measurement_result["capture_segment"] = self.create_capture_segment(
+            0,
+            measurement_result["capture_time"],
+            self.frequency_Hz,
+            int(self.num_samples / sample_rate_Hz),
+            measurement_result["overload"],
+            sigan_settings,
+        )
+
         return measurement_result
 
     def apply_m4s(self, measurement_result: dict) -> ndarray:
@@ -246,21 +246,26 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         super().create_metadata(measurement_result, recording)
         dft_obj = ntia_algorithm.DFT(
             id="fft_1",
-            equivalent_noise_bandwidth=measurement_result["enbw"],
+            equivalent_noise_bandwidth=get_fft_enbw(
+                self.fft_window, measurement_result["sample_rate"]
+            ),
             samples=self.fft_size,
             dfts=self.nffts,
             window=self.fft_window_type,
             baseband=False,
             description="Discrete Fourier transform computed using the FFT algorithm",
         )
+        frequencies = get_fft_frequencies(
+            self.fft_size, measurement_result["sample_rate"], self.frequency_Hz
+        )
         m4s_graph = ntia_algorithm.Graph(
             name="M4S Detector Result",
             series=[det.value for det in self.fft_detector],
             length=self.fft_size,
             x_units="Hz",
-            x_start=measurement_result["frequency_start"],
-            x_stop=measurement_result["frequency_stop"],
-            x_step=measurement_result["frequency_step"],
+            x_start=frequencies[0],
+            x_stop=frequencies[-1],
+            x_step=frequencies[1] - frequencies[0],
             y_units="dBm",
             reference="preselector input",
             description=(

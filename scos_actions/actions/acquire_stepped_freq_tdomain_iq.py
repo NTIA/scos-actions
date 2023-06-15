@@ -48,6 +48,8 @@ from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     SingleFrequencyTimeDomainIqAcquisition,
 )
 from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.metadata.interfaces import ntia_sensor
+from scos_actions.metadata.interfaces.capture import CaptureSegment
 from scos_actions.signals import measurement_action_completed
 from scos_actions.utils import get_parameter
 
@@ -91,11 +93,11 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
         self.get_sigmf_builder(schedule_entry)
+        saved_samples = 0
 
         for recording_id, measurement_params in enumerate(
             self.iterable_params, start=1
         ):
-            start_time = utils.get_datetime_str_now()
             self.configure(measurement_params)
             duration_ms = get_parameter(DURATION_MS, measurement_params)
             nskip = get_parameter(NUM_SKIP, measurement_params)
@@ -105,13 +107,34 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             measurement_result = super().acquire_data(num_samples, nskip, cal_adjust)
             measurement_result.update(measurement_params)
             end_time = utils.get_datetime_str_now()
-            measurement_result["start_time"] = start_time
             measurement_result["end_time"] = end_time
             measurement_result["task_id"] = task_id
             measurement_result["name"] = self.name
-            measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
-            measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
             measurement_result["classification"] = self.classification
+            sigan_cal = self.sigan.sigan_calibration_data
+            sensor_cal = self.sigan.sensor_calibration_data
+            if "1db_compression_point" in sigan_cal:
+                sigan_cal["compression_point"] = sigan_cal.pop("1db_compression_point")
+            if "1db_compression_point" in sensor_cal:
+                sensor_cal["compression_point"] = sensor_cal.pop(
+                    "1db_compression_point"
+                )
+            sigan_settings = self.get_sigan_settings(measurement_result)
+            measurement_result["capture_segment"] = CaptureSegment(
+                sample_start=0,
+                global_index=saved_samples,
+                frequency=measurement_params[FREQUENCY],
+                datetime=measurement_result["capture_time"],
+                duration=duration_ms,
+                overload=measurement_result["overload"],
+                sensor_calibration=ntia_sensor.Calibration(
+                    **sensor_cal if sensor_cal is not None else None
+                ),
+                sigan_calibration=ntia_sensor.Calibration(
+                    **sigan_cal if sigan_cal is not None else None
+                ),
+                sigan_settings=sigan_settings,
+            )
             self.create_metadata(measurement_result, recording_id)
             measurement_action_completed.send(
                 sender=self.__class__,
@@ -119,6 +142,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                 data=measurement_result["data"],
                 metadata=self.sigmf_builder.metadata,
             )
+            saved_samples += num_samples
 
     @property
     def description(self):

@@ -1,10 +1,13 @@
 import logging
 from abc import abstractmethod
+from typing import Union
 
 import numpy as np
 
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.metadata.interfaces import ntia_sensor
+from scos_actions.metadata.interfaces.capture import CaptureSegment
 from scos_actions.signals import measurement_action_completed
 
 logger = logging.getLogger(__name__)
@@ -32,6 +35,37 @@ class MeasurementAction(Action):
         self.create_metadata(measurement_result)  # Fill metadata
         data = self.transform_data(measurement_result)
         self.send_signals(task_id, self.sigmf_builder.metadata, data)
+
+    def create_capture_segment(
+        self,
+        sample_start: int,
+        start_time: str,
+        center_frequency_Hz: float,
+        duration_ms: int,
+        overload: bool,
+        sigan_settings: ntia_sensor.SiganSettings,
+    ) -> CaptureSegment:
+        sigan_cal = self.sigan.sigan_calibration_data
+        sensor_cal = self.sigan.sensor_calibration_data
+        if "1db_compression_point" in sigan_cal:
+            sigan_cal["compression_point"] = sigan_cal.pop("1db_compression_point")
+        if "1db_compression_point" in sensor_cal:
+            sensor_cal["compression_point"] = sensor_cal.pop("1db_compression_point")
+        capture_segment = CaptureSegment(
+            sample_start=sample_start,
+            frequency=center_frequency_Hz,
+            datetime=start_time,
+            duration=duration_ms,
+            overload=overload,
+            sensor_calibration=ntia_sensor.Calibration(
+                **sensor_cal if sensor_cal is not None else None
+            ),
+            sigan_calibration=ntia_sensor.Calibration(
+                **sigan_cal if sigan_cal is not None else None
+            ),
+            sigan_settings=sigan_settings,
+        )
+        return capture_segment
 
     def create_metadata(
         self,
@@ -75,6 +109,10 @@ class MeasurementAction(Action):
             )
         except KeyError:
             logger.warning(warning_str.format("calibration_datetime"))
+        try:
+            self.sigmf_builder.add_capture(measurement_result["capture_segment"])
+        except KeyError:
+            logger.warning(warning_str.format("capture_segment"))
 
         # Set data type metadata using is_complex method
         # This assumes data is 32-bit little endian floating point
@@ -83,6 +121,26 @@ class MeasurementAction(Action):
         # Set the recording, if provided
         if recording is not None:
             self.sigmf_builder.set_recording(recording)
+
+    def get_sigan_settings(
+        self, measurement_result: dict
+    ) -> Union[ntia_sensor.SiganSettings, None]:
+        """
+        Retrieve any sigan settings from the measurement result dict, and return
+        a `ntia-sensor` `SiganSettings` object. Values are pulled from the
+        `measurement_result` dict if their keys match the names of fields in
+        the `SiganSettings` object. If no matches are made, `None` is returned.
+        """
+        sigan_settings = {
+            k: v
+            for k, v in measurement_result.items()
+            if k in ntia_sensor.SiganSettings.__struct_fields__
+        }
+        if sigan_settings == {}:
+            sigan_settings = None
+        else:
+            sigan_settings = ntia_sensor.SiganSettings(**sigan_settings)
+        return sigan_settings
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""

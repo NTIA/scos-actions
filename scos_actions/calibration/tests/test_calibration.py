@@ -65,7 +65,7 @@ class TestCalibrationFile:
 
         # Get the scale factor from the algorithm
         interp_cal_data = self.sample_cal.get_calibration_dict([sr, f, g])
-        interp_gain_siggan = interp_cal_data["gain_sigan"]
+        interp_gain_siggan = interp_cal_data["gain"]
 
         # Save the point so we don't duplicate
         self.pytest_points.append(
@@ -73,7 +73,7 @@ class TestCalibrationFile:
                 "sample_rate": int(sr),
                 "frequency": f,
                 "setting_value": g,
-                "gain_sigan": calc_gain_sigan,
+                "gain": calc_gain_sigan,
                 "test": reason,
             }
         )
@@ -165,9 +165,9 @@ class TestCalibrationFile:
 
                     # Create the data point
                     cal_data_point = {
-                        "gain_sigan": gain_sigan,
-                        "noise_figure_sigan": self.dummy_noise_figure,
-                        "1dB_compression_sigan": self.dummy_compression,
+                        "gain": gain_sigan,
+                        "noise_figure": self.dummy_noise_figure,
+                        "1dB_compression_point": self.dummy_compression,
                     }
 
                     # Add the generated dicts to the parent lists
@@ -284,9 +284,7 @@ class TestCalibrationFile:
     def test_update(self):
         calibration_datetime = get_datetime_str_now()
         calibration_params = ["sample_rate", "frequency"]
-        calibration_data = {
-            100.0: {200.0: {"noise_figure_sensor": 0, "gain_sensor": 0}}
-        }
+        calibration_data = {100.0: {200.0: {"noise_figure": 0, "gain": 0}}}
         clock_rate_lookup_by_sample_rate = {}
         cal = Calibration(
             calibration_datetime,
@@ -307,13 +305,10 @@ class TestCalibrationFile:
         assert file_utc_time.day == cal_time_utc.day
         assert file_utc_time.hour == cal_time_utc.hour
         assert file_utc_time.minute == cal_time_utc.minute
-        assert cal.calibration_data["100.0"]["200.0"]["gain_sensor"] == 30.0
-        assert cal.calibration_data["100.0"]["200.0"]["noise_figure_sensor"] == 5.0
-        assert cal_from_file.calibration_data["100.0"]["200.0"]["gain_sensor"] == 30.0
-        assert (
-            cal_from_file.calibration_data["100.0"]["200.0"]["noise_figure_sensor"]
-            == 5.0
-        )
+        assert cal.calibration_data["100.0"]["200.0"]["gain"] == 30.0
+        assert cal.calibration_data["100.0"]["200.0"]["noise_figure"] == 5.0
+        assert cal_from_file.calibration_data["100.0"]["200.0"]["gain"] == 30.0
+        assert cal_from_file.calibration_data["100.0"]["200.0"]["noise_figure"] == 5.0
 
     def test_default_sensor_cal(self):
         assert sensor_calibration is not None

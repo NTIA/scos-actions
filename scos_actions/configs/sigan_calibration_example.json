@@ -1,89 +1,84 @@
 {
     "calibration_data": {
         "10000000.0": {
-            "1000000000.0": {
+            "650000000.0": {
                 "40.0": {
-                    "1db_compression_sigan": -30.01887197,
-                    "enbw_sigan": 9410000.0,
-                    "gain_sigan": 41.82669749103832,
-                    "noise_figure_sigan": 9.81794335394,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 },
                 "60.0": {
-                    "1db_compression_sigan": -49.07887197,
-                    "enbw_sigan": 9410000.0,
-                    "gain_sigan": 61.51883710545802,
-                    "noise_figure_sigan": 6.37934743402,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 }
             },
-            "1010000000.0": {
+            "660000000.0": {
                 "40.0": {
-                    "1db_compression_sigan": -30.0234101519,
-                    "enbw_sigan": 9410000.0,
-                    "gain_sigan": 41.911225305340025,
-                    "noise_figure_sigan": 9.6722432533,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 },
                 "60.0": {
-                    "1db_compression_sigan": -49.0867101519,
-                    "enbw_sigan": 9410000.0,
-                    "gain_sigan": 61.71602551422552,
-                    "noise_figure_sigan": 6.15257415651,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 }
             }
         },
         "15360000.0": {
-            "1000000000.0": {
+            "650000000.0": {
                 "40.0": {
-                    "1db_compression_sigan": -30.01887197,
-                    "enbw_sigan": 14404000.0,
-                    "gain_sigan": 41.8653066100388,
-                    "noise_figure_sigan": 9.83114263857,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 },
                 "60.0": {
-                    "1db_compression_sigan": -49.07887197,
-                    "enbw_sigan": 14404000.0,
-                    "gain_sigan": 61.601697203630934,
-                    "noise_figure_sigan": 6.14258085722,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 }
             },
-            "1010000000.0": {
+            "660000000.0": {
                 "40.0": {
-                    "1db_compression_sigan": -30.0234101519,
-                    "enbw_sigan": 14404000.0,
-                    "gain_sigan": 41.94968461667905,
-                    "noise_figure_sigan": 9.73601364761,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 },
                 "60.0": {
-                    "1db_compression_sigan": -49.0867101519,
-                    "enbw_sigan": 14404000.0,
-                    "gain_sigan": 61.68858519460153,
-                    "noise_figure_sigan": 6.01688281449,
-                    "datetime": "2019-09-20T02:03:38.967055Z"
+                    "datetime": "1970-01-01T00:00:00.000000Z",
+                    "gain": -30.0,
+                    "noise_figure": 1.5,
+                    "1db_compression_point": 22.5,
+                    "enbw": 10000000.0,
+                    "temperature": 26.85
                 }
             }
         }
     },
-    "last_calibration_datetime": "2019-09-20T02:03:38.967055Z",
-    "calibration_frequency_divisions": [
-        {
-            "lower_bound": 1299999999,
-            "upper_bound": 1300000000
-        },
-        {
-            "lower_bound": 2199999998,
-            "upper_bound": 2200000000
-        },
-        {
-            "lower_bound": 3999999995,
-            "upper_bound": 4000000000
-        }
-    ],
+    "last_calibration_datetime": "1970-01-01T00:00:00.000000Z",
+    "calibration_frequency_divisions": [],
     "calibration_parameters": [
         "sample_rate",
         "frequency",
@@ -99,5 +94,6 @@
             "sample_rate": 15360000.0
         }
     ],
-    "sensor_uid": "EXAMPLE"
+    "sensor_uid": "EXAMPLE",
+    "calibration_reference": "noise source output"
 }

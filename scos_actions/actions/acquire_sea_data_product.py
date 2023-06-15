@@ -584,21 +584,9 @@ class NasctnSeaDataProduct(Action):
 
     def capture_iq(self, params: dict) -> dict:
         """Acquire a single gap-free stream of IQ samples."""
-        # Downselect params to limit meaningless logger warnings
-        hw_params = {
-            k: params[k]
-            for k in [
-                ATTENUATION,
-                PREAMP_ENABLE,
-                REFERENCE_LEVEL,
-                SAMPLE_RATE,
-                FREQUENCY,
-            ]
-        }
-        start_time = utils.get_datetime_str_now()
         tic = perf_counter()
         # Configure signal analyzer
-        self.configure_sigan(hw_params)
+        self.configure_sigan(params)
         # Get IQ capture parameters
         duration_ms = utils.get_parameter(DURATION_MS, params)
         nskip = utils.get_parameter(NUM_SKIP, params)
@@ -607,7 +595,6 @@ class NasctnSeaDataProduct(Action):
         measurement_result = self.sigan.acquire_time_domain_samples(num_samples, nskip)
         # Store some metadata with the IQ
         measurement_result.update(params)
-        measurement_result["start_time"] = start_time
         measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         toc = perf_counter()
         logger.debug(
@@ -927,15 +914,13 @@ class NasctnSeaDataProduct(Action):
         capture_segment = CaptureSegment(
             sample_start=channel_idx * self.total_channel_data_length,
             frequency=self.sigan.frequency,
-            datetime=measurement_result["start_time"],
+            datetime=measurement_result["capture_time"],
             duration=measurement_result[DURATION_MS],
             overload=measurement_result["overload"],
             sensor_calibration=ntia_sensor.Calibration(
                 datetime=measurement_result["sensor_cal"]["datetime"],
-                gain=round(measurement_result["sensor_cal"]["gain_sensor"], 3),
-                noise_figure=round(
-                    measurement_result["sensor_cal"]["noise_figure_sensor"], 3
-                ),
+                gain=round(measurement_result["sensor_cal"]["gain"], 3),
+                noise_figure=round(measurement_result["sensor_cal"]["noise_figure"], 3),
                 temperature=round(measurement_result["sensor_cal"]["temperature"], 1),
                 reference=DATA_REFERENCE_POINT,
             ),
