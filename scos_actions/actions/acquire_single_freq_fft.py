@@ -185,12 +185,12 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         # Build capture metadata
         sigan_settings = self.get_sigan_settings(measurement_result)
         measurement_result["capture_segment"] = self.create_capture_segment(
-            0,
-            measurement_result["capture_time"],
-            self.frequency_Hz,
-            int(self.num_samples / sample_rate_Hz),
-            measurement_result["overload"],
-            sigan_settings,
+            sample_start=0,
+            datetime=measurement_result["capture_time"],
+            center_frequency_Hz=self.frequency_Hz,
+            duration_ms=int(self.num_samples / sample_rate_Hz),
+            overload=measurement_result["overload"],
+            sigan_settings=sigan_settings,
         )
 
         return measurement_result
