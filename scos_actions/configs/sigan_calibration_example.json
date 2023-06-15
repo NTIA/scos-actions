@@ -4,7 +4,7 @@
             "650000000.0": {
                 "40.0": {
                     "datetime": "1970-01-01T00:00:00.000000Z",
-                    "gain": -30.0,
+                    "gain": 30.0,
                     "noise_figure": 1.5,
                     "1db_compression_point": 22.5,
                     "enbw": 10000000.0,
@@ -12,7 +12,7 @@
                 },
                 "60.0": {
                     "datetime": "1970-01-01T00:00:00.000000Z",
-                    "gain": -30.0,
+                    "gain": 30.0,
                     "noise_figure": 1.5,
                     "1db_compression_point": 22.5,
                     "enbw": 10000000.0,
@@ -22,7 +22,7 @@
             "660000000.0": {
                 "40.0": {
                     "datetime": "1970-01-01T00:00:00.000000Z",
-                    "gain": -30.0,
+                    "gain": 30.0,
                     "noise_figure": 1.5,
                     "1db_compression_point": 22.5,
                     "enbw": 10000000.0,
@@ -30,7 +30,7 @@
                 },
                 "60.0": {
                     "datetime": "1970-01-01T00:00:00.000000Z",
-                    "gain": -30.0,
+                    "gain": 30.0,
                     "noise_figure": 1.5,
                     "1db_compression_point": 22.5,
                     "enbw": 10000000.0,
@@ -42,7 +42,7 @@
             "650000000.0": {
                 "40.0": {
                     "datetime": "1970-01-01T00:00:00.000000Z",
-                    "gain": -30.0,
+                    "gain": 30.0,
                     "noise_figure": 1.5,
                     "1db_compression_point": 22.5,
                     "enbw": 10000000.0,
@@ -50,7 +50,7 @@
                 },
                 "60.0": {
                     "datetime": "1970-01-01T00:00:00.000000Z",
-                    "gain": -30.0,
+                    "gain": 30.0,
                     "noise_figure": 1.5,
                     "1db_compression_point": 22.5,
                     "enbw": 10000000.0,
@@ -60,7 +60,7 @@
             "660000000.0": {
                 "40.0": {
                     "datetime": "1970-01-01T00:00:00.000000Z",
-                    "gain": -30.0,
+                    "gain": 30.0,
                     "noise_figure": 1.5,
                     "1db_compression_point": 22.5,
                     "enbw": 10000000.0,
@@ -68,7 +68,7 @@
                 },
                 "60.0": {
                     "datetime": "1970-01-01T00:00:00.000000Z",
-                    "gain": -30.0,
+                    "gain": 30.0,
                     "noise_figure": 1.5,
                     "1db_compression_point": 22.5,
                     "enbw": 10000000.0,
