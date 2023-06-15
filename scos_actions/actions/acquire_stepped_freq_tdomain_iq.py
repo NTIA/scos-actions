@@ -124,7 +124,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                 sample_start=0,
                 global_index=saved_samples,
                 frequency=measurement_params[FREQUENCY],
-                start_time=measurement_result["capture_time"],
+                datetime=measurement_result["capture_time"],
                 duration=duration_ms,
                 overload=measurement_result["overload"],
                 sensor_calibration=ntia_sensor.Calibration(
