@@ -145,11 +145,9 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
             else:
                 logger.debug(f"Successfully acquired {num_samples} samples.")
                 return {
-                    # TODO UPDATE METADATA FORMAT
                     "data": data,
                     "overload": self._overload,
-                    "frequency_low": self._frequency,
-                    "frequency_high": self._frequency,
+                    "frequency": self._frequency,
                     "gain": self._gain,
                     "attenuation": self._attenuation,
                     "preamp_enable": self._preamp_enable,
