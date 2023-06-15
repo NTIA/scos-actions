@@ -812,7 +812,7 @@ class NasctnSeaDataProduct(Action):
             length=int(FFT_SIZE * (5 / 7)),
             x_units="Hz",
             x_start=[psd_x_axis__Hz[psd_bin_start]],
-            x_stop=[psd_x_axis__Hz[psd_bin_end]],
+            x_stop=[psd_x_axis__Hz[psd_bin_end - 1]],  # -1 for zero-indexed array
             x_step=[p[SAMPLE_RATE] / FFT_SIZE],
             y_units="dBm/Hz",
             processing=[dft_obj.id],
@@ -864,10 +864,10 @@ class NasctnSeaDataProduct(Action):
             y_units="dBm",
             reference=DATA_REFERENCE_POINT,
             description=(
-                "Channelized eriodic frame power statistics reported over"
+                "Channelized periodic frame power statistics reported over"
                 + f" a {p[PFP_FRAME_PERIOD_MS]} ms frame period, with frame resolution"
                 + f" of {PFP_FRAME_RESOLUTION_S} s. Mean and max detectors are first "
-                + f"applied over the frame resolution, then {PFP_M3_DETECTOR} statistics"
+                + f"applied over the frame resolution, then {[d.value for d in PFP_M3_DETECTOR]} statistics"
                 + " are computed on samples sharing the same index within the frame period."
             ),
         )
