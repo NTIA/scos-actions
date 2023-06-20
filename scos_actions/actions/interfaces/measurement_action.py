@@ -6,8 +6,8 @@ import numpy as np
 
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.metadata.interfaces import ntia_sensor
-from scos_actions.metadata.interfaces.capture import CaptureSegment
+from scos_actions.metadata.structs import ntia_sensor
+from scos_actions.metadata.structs.capture import CaptureSegment
 from scos_actions.signals import measurement_action_completed
 
 logger = logging.getLogger(__name__)

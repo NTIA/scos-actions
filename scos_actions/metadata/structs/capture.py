@@ -2,7 +2,7 @@ from typing import Optional
 
 import msgspec
 
-from scos_actions.metadata.interfaces.ntia_sensor import Calibration, SiganSettings
+from scos_actions.metadata.structs.ntia_sensor import Calibration, SiganSettings
 from scos_actions.metadata.utils import SIGMF_OBJECT_KWARGS
 
 capture_segment_rename_map = {

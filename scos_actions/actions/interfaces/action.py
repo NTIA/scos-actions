@@ -6,8 +6,8 @@ from scos_actions.capabilities import SENSOR_LOCATION, capabilities
 from scos_actions.hardware import preselector
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
-from scos_actions.metadata.interfaces import ntia_scos, ntia_sensor
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
+from scos_actions.metadata.structs import ntia_scos, ntia_sensor
 from scos_actions.utils import ParameterException, get_parameter
 
 logger = logging.getLogger(__name__)

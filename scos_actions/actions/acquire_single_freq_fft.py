@@ -92,8 +92,8 @@ from numpy import float32, ndarray
 
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.metadata.interfaces import ntia_algorithm, ntia_sensor
-from scos_actions.metadata.interfaces.capture import CaptureSegment
+from scos_actions.metadata.structs import ntia_algorithm, ntia_sensor
+from scos_actions.metadata.structs.capture import CaptureSegment
 from scos_actions.signal_processing.fft import (
     get_fft,
     get_fft_enbw,

@@ -3,8 +3,8 @@ from typing import List, Optional
 
 import msgspec
 
-from scos_actions.metadata.interfaces.ntia_core import Antenna, HardwareSpec
-from scos_actions.metadata.interfaces.ntia_environment import Environment
+from scos_actions.metadata.structs.ntia_core import Antenna, HardwareSpec
+from scos_actions.metadata.structs.ntia_environment import Environment
 from scos_actions.metadata.utils import SIGMF_OBJECT_KWARGS
 
 logger = logging.getLogger(__name__)

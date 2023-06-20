@@ -44,15 +44,15 @@ from scos_actions.hardware.utils import (
     get_disk_smart_data,
     get_max_cpu_temperature,
 )
-from scos_actions.metadata.interfaces import (
+from scos_actions.metadata.sigmf_builder import SigMFBuilder
+from scos_actions.metadata.structs import (
     ntia_algorithm,
     ntia_core,
     ntia_diagnostics,
     ntia_scos,
     ntia_sensor,
 )
-from scos_actions.metadata.interfaces.capture import CaptureSegment
-from scos_actions.metadata.sigmf_builder import SigMFBuilder
+from scos_actions.metadata.structs.capture import CaptureSegment
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
     get_fft,

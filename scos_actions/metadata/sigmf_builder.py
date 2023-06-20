@@ -4,11 +4,11 @@ from typing import List, Union
 import msgspec
 from sigmf import SigMFFile
 
-from scos_actions.metadata.interfaces.capture import CaptureSegment
-from scos_actions.metadata.interfaces.ntia_algorithm import DFT, DigitalFilter, Graph
-from scos_actions.metadata.interfaces.ntia_diagnostics import Diagnostics
-from scos_actions.metadata.interfaces.ntia_scos import Action, ScheduleEntry
-from scos_actions.metadata.interfaces.ntia_sensor import Sensor
+from scos_actions.metadata.structs.capture import CaptureSegment
+from scos_actions.metadata.structs.ntia_algorithm import DFT, DigitalFilter, Graph
+from scos_actions.metadata.structs.ntia_diagnostics import Diagnostics
+from scos_actions.metadata.structs.ntia_scos import Action, ScheduleEntry
+from scos_actions.metadata.structs.ntia_sensor import Sensor
 from scos_actions.metadata.utils import msgspec_dec_dict, msgspec_enc
 
 # Global info which is ALWAYS true for SCOS-generated recordings
