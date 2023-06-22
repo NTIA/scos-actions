@@ -92,12 +92,12 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     def __call__(self, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
-        self.get_sigmf_builder(schedule_entry)
         saved_samples = 0
 
         for recording_id, measurement_params in enumerate(
             self.iterable_params, start=1
         ):
+            self.get_sigmf_builder(schedule_entry)
             self.configure(measurement_params)
             duration_ms = get_parameter(DURATION_MS, measurement_params)
             nskip = get_parameter(NUM_SKIP, measurement_params)
