@@ -193,7 +193,7 @@ class Sensor(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     :param sensor_sha512: SHA-512 hash of the sensor definition.
     """
 
-    sensor_spec: Optional[HardwareSpec]
+    sensor_spec: HardwareSpec
     antenna: Optional[Antenna] = None
     preselector: Optional[Preselector] = None
     signal_analyzer: Optional[SignalAnalyzer] = None

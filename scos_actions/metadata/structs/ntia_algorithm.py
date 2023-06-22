@@ -30,8 +30,8 @@ class DigitalFilter(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     :param description: Supplemental description of the filter.
     """
 
-    id: Optional[str]
-    filter_type: Optional[FilterType]
+    id: str
+    filter_type: FilterType
     feedforward_coefficients: Optional[List[float]] = None
     feedback_coefficients: Optional[List[float]] = None
     attenuation_cutoff: Optional[float] = None
@@ -48,7 +48,7 @@ class Graph(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     :param series:
     """
 
-    name: Optional[str]
+    name: str
     series: Optional[List[str]] = None
     length: Optional[int] = None
     x_units: Optional[str] = None
@@ -84,10 +84,10 @@ class DFT(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     :param description: Supplemental description of the processing.
     """
 
-    id: Optional[str]
-    equivalent_noise_bandwidth: Optional[float]
-    samples: Optional[int]
-    dfts: Optional[int]
-    window: Optional[str]
-    baseband: Optional[bool]
+    id: str
+    equivalent_noise_bandwidth: float
+    samples: int
+    dfts: int
+    window: str
+    baseband: bool
     description: Optional[str] = None

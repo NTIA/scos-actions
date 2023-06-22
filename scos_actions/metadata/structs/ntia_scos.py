@@ -15,7 +15,7 @@ class Action(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     :param summary: A short summary of what the action does.
     """
 
-    name: Optional[str]
+    name: str
     description: Optional[str] = None
     summary: Optional[str] = None
 
@@ -37,8 +37,8 @@ class ScheduleEntry(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
         the schedule.
     """
 
-    id: Optional[str]
-    name: Optional[str]
+    id: str
+    name: str
     start: Optional[str] = None
     stop: Optional[str] = None
     interval: Optional[int] = None
