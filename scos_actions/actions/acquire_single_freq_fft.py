@@ -92,8 +92,7 @@ from numpy import float32, ndarray
 
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.metadata.structs import ntia_algorithm, ntia_sensor
-from scos_actions.metadata.structs.capture import CaptureSegment
+from scos_actions.metadata.structs import ntia_algorithm
 from scos_actions.signal_processing.fft import (
     get_fft,
     get_fft_enbw,
@@ -110,7 +109,7 @@ from scos_actions.signal_processing.unit_conversion import (
     convert_linear_to_dB,
     convert_watts_to_dBm,
 )
-from scos_actions.utils import get_datetime_str_now, get_parameter
+from scos_actions.utils import get_parameter
 
 logger = logging.getLogger(__name__)
 
