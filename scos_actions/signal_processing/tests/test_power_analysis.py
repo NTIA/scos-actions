@@ -77,15 +77,15 @@ def test_calculate_pseudo_power(all_arrays, true_scalars):
         assert ps_pwr == answer
 
 
-def test_create_power_detector():
+def test_create_statistical_detector():
     # Ensure construction works with multiple inputs
     dets_correct_order = ["min", "max", "mean", "median", "sample"]
     dets_random_order = ["median", "max", "min", "sample", "mean"]
     # Detectors should always come out in "correct" order
     dets_correct_subset = ["max", "median", "sample"]
     dets_random_subset = ["max", "sample", "median"]
-    det_enum = pa.create_power_detector("test", dets_random_order)
-    det_subset_enum = pa.create_power_detector("subset", dets_random_subset)
+    det_enum = pa.create_statistical_detector("test", dets_random_order)
+    det_subset_enum = pa.create_statistical_detector("subset", dets_random_subset)
     # Check enum lengths
     assert isinstance(det_enum, EnumMeta)
     assert isinstance(det_subset_enum, EnumMeta)
@@ -95,17 +95,17 @@ def test_create_power_detector():
     assert dets_correct_order == [d.name for d in det_enum]
     assert dets_correct_subset == [d.name for d in det_subset_enum]
     # Check enum values
-    assert [f"{d}_power" for d in dets_correct_order] == [d.value for d in det_enum]
-    assert [f"{d}_power" for d in dets_correct_subset] == [
-        d.value for d in det_subset_enum
-    ]
+    correct_ordered_names = ["minimum", "maximum", "mean", "median", "sample"]
+    correct_ordered_names_subset = ["maximum", "median", "sample"]
+    assert correct_ordered_names == [d.value for d in det_enum]
+    assert correct_ordered_names_subset == [d.value for d in det_subset_enum]
     # Invalid input causes ValueError
     dets_with_invalid = ["max", "mean", "invalid"]
     with pytest.raises(ValueError):
-        _ = pa.create_power_detector("invalid", dets_with_invalid)
+        _ = pa.create_statistical_detector("invalid", dets_with_invalid)
 
 
-def test_apply_power_detector():
+def test_apply_statistical_detector():
     data_dim0_len = 10
     data_dim1_len = 5
     n_detectors = 5
@@ -122,11 +122,13 @@ def test_apply_power_detector():
     correct_result_2D_ax1 = np.array(
         [correct_result + 10 * i for i in range(data_dim1_len)]
     ).T
-    det = pa.create_power_detector("test", ["min", "max", "mean", "median", "sample"])
-    det_r = pa.apply_power_detector(test_data, det)
-    det_r_odd = pa.apply_power_detector(test_data_odd, det)
-    det_r_2D_ax0 = pa.apply_power_detector(test_data_2D.copy(), det)
-    det_r_2D_ax1 = pa.apply_power_detector(test_data_2D.copy(), det, axis=1)
+    det = pa.create_statistical_detector(
+        "test", ["min", "max", "mean", "median", "sample"]
+    )
+    det_r = pa.apply_statistical_detector(test_data, det)
+    det_r_odd = pa.apply_statistical_detector(test_data_odd, det)
+    det_r_2D_ax0 = pa.apply_statistical_detector(test_data_2D.copy(), det)
+    det_r_2D_ax1 = pa.apply_statistical_detector(test_data_2D.copy(), det, axis=1)
     np.testing.assert_array_equal(correct_result, det_r[: n_detectors - 1])
     np.testing.assert_array_equal(correct_result_odd, det_r_odd[: n_detectors - 1])
     assert det_r_2D_ax0.shape == (n_detectors, data_dim0_len)
@@ -145,14 +147,16 @@ def test_apply_power_detector():
 
     # Test nan failure if not ignored
     test_nan_data = np.array([1, 2, 3, np.nan])
-    ignorenan_result = pa.apply_power_detector(test_nan_data, det, ignore_nan=True)
+    ignorenan_result = pa.apply_statistical_detector(
+        test_nan_data, det, ignore_nan=True
+    )
     np.testing.assert_array_equal(
         ignorenan_result[: n_detectors - 1], np.array([1, 3, 2, 2])
     )
     with pytest.raises(
         ValueError, match="Data contains NaN values but ``ignore_nan`` is False."
     ):
-        _ = pa.apply_power_detector(test_nan_data, det)
+        _ = pa.apply_statistical_detector(test_nan_data, det)
 
 
 def test_filter_quantiles():

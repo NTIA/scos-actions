@@ -65,10 +65,10 @@ from scos_actions.signal_processing.filtering import (
     generate_elliptic_iir_low_pass_filter,
 )
 from scos_actions.signal_processing.power_analysis import (
-    apply_power_detector,
+    apply_statistical_detector,
     calculate_power_watts,
     calculate_pseudo_power,
-    create_power_detector,
+    create_statistical_detector,
 )
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
 from scos_actions.status import start_time
@@ -111,9 +111,9 @@ IMPEDANCE_OHMS = 50.0
 DATA_REFERENCE_POINT = "noise source output"
 
 # Create power detectors
-TD_DETECTOR = create_power_detector("TdMeanMaxDetector", ["mean", "max"])
-FFT_DETECTOR = create_power_detector("FftMeanMaxDetector", ["mean", "max"])
-PFP_M3_DETECTOR = create_power_detector("PfpM3Detector", ["min", "max", "mean"])
+TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["mean", "max"])
+FFT_DETECTOR = create_statistical_detector("FftMeanMaxDetector", ["mean", "max"])
+PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
 
 # Expected webswitch configuration:
 PRESELECTOR_SENSORS = {
@@ -180,7 +180,9 @@ class PowerSpectralDensity:
             iq, self.fft_size, "backward", self.fft_window, self.num_ffts, False, 1
         )
         fft_result = calculate_pseudo_power(fft_result)
-        fft_result = apply_power_detector(fft_result, self.detector)  # (max, mean)
+        fft_result = apply_statistical_detector(
+            fft_result, self.detector
+        )  # (max, mean)
         fft_result = np.fft.fftshift(fft_result, axes=(1,))  # Shift frequencies
         fft_result = fft_result[
             :, self.bin_start : self.bin_end
@@ -276,7 +278,7 @@ class PowerVsTime:
             iq.reshape((n_blocks, self.block_size)), self.impedance_ohms
         )
         # Apply max/mean detectors
-        pvt_result = apply_power_detector(iq_pwr, self.detector, axis=1)
+        pvt_result = apply_statistical_detector(iq_pwr, self.detector, axis=1)
         # Get single value median/max statistics
         pvt_summary = np.array([pvt_result[0].max(), np.median(pvt_result[1])])
         # Convert to dBm and account for RF/baseband power difference
@@ -355,7 +357,7 @@ class PeriodicFramePower:
         # then do the detector
         pfp = np.array(
             [
-                apply_power_detector(p, self.detector, axis=1)
+                apply_statistical_detector(p, self.detector, axis=1)
                 for p in [mean_power, max_power]
             ]
         ).reshape(self.n_detectors * 2, self.n_points)
@@ -808,7 +810,7 @@ class NasctnSeaDataProduct(Action):
         psd_x_axis__Hz = get_fft_frequencies(FFT_SIZE, 14e6, 0.0)  # Baseband
         psd_graph = ntia_algorithm.Graph(
             name="Power Spectral Density",
-            series=[d.value.split("_")[0] for d in FFT_DETECTOR],  # ["max", "mean"]
+            series=[d.value for d in FFT_DETECTOR],  # ["max", "mean"]
             length=int(FFT_SIZE * (5 / 7)),
             x_units="Hz",
             x_start=[psd_x_axis__Hz[psd_bin_start]],
@@ -828,7 +830,7 @@ class NasctnSeaDataProduct(Action):
         pvt_x_axis__s = np.arange(pvt_length) * (p[DURATION_MS] / 1e3 / pvt_length)
         pvt_graph = ntia_algorithm.Graph(
             name="Power vs. Time",
-            series=[d.value.split("_")[0] for d in TD_DETECTOR],  # ["max", "mean"]
+            series=[d.value for d in TD_DETECTOR],  # ["max", "mean"]
             length=pvt_length,
             x_units="s",
             x_start=[pvt_x_axis__s[0]],
@@ -852,7 +854,7 @@ class NasctnSeaDataProduct(Action):
         pfp_graph = ntia_algorithm.Graph(
             name="Periodic Frame Power",
             series=[
-                f"{det}_{stat.value.split('_')[0]}"
+                f"{det}_{stat.value}"
                 for det in ["mean", "max"]
                 for stat in PFP_M3_DETECTOR
             ],

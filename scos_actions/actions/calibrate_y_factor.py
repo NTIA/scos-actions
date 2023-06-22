@@ -93,7 +93,7 @@ from scos_actions.signal_processing.filtering import (
 )
 from scos_actions.signal_processing.power_analysis import (
     calculate_power_watts,
-    create_power_detector,
+    create_statistical_detector,
 )
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
 from scos_actions.signals import trigger_api_restart
@@ -147,7 +147,6 @@ class YFactorCalibration(Action):
         super().__init__(parameters, sigan, gps)
         self.sigan = sigan
         self.iteration_params = utils.get_iterable_parameters(parameters)
-        self.power_detector = create_power_detector("MeanDetector", ["mean"])
 
         # IIR Filter Setup
         try:

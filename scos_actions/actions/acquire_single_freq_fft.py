@@ -101,9 +101,9 @@ from scos_actions.signal_processing.fft import (
     get_fft_window_correction,
 )
 from scos_actions.signal_processing.power_analysis import (
-    apply_power_detector,
+    apply_statistical_detector,
     calculate_power_watts,
-    create_power_detector,
+    create_statistical_detector,
 )
 from scos_actions.signal_processing.unit_conversion import (
     convert_linear_to_dB,
@@ -160,7 +160,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         else:
             self.data_reference = "signal analyzer input"
         # FFT setup
-        self.fft_detector = create_power_detector(
+        self.fft_detector = create_statistical_detector(
             "M4sDetector", ["min", "max", "mean", "median", "sample"]
         )
         self.fft_window_type = "flattop"
@@ -210,7 +210,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
             self.nffts,
         )
         power_fft = calculate_power_watts(complex_fft)
-        m4s_result = apply_power_detector(power_fft, self.fft_detector, float32)
+        m4s_result = apply_statistical_detector(power_fft, self.fft_detector, float32)
         m4s_result = convert_watts_to_dBm(m4s_result)
         # Scaling applied:
         #   RF/Baseband power conversion (-3 dB)
