@@ -1,11 +1,13 @@
 import logging
 from abc import abstractmethod
+from typing import Union
+
+import numpy as np
 
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.metadata.annotations import CalibrationAnnotation, SensorAnnotation
-from scos_actions.metadata.measurement_global import MeasurementMetadata
-from scos_actions.metadata.sigmf_builder import SigMFBuilder
+from scos_actions.metadata.structs import ntia_sensor
+from scos_actions.metadata.structs.capture import CaptureSegment
 from scos_actions.signals import measurement_action_completed
 
 logger = logging.getLogger(__name__)
@@ -25,82 +27,122 @@ class MeasurementAction(Action):
         super().__init__(parameters, sigan, gps)
         self.received_samples = 0
 
-    def __call__(self, schedule_entry, task_id):
+    def __call__(self, schedule_entry: dict, task_id: int):
         self.test_required_components()
         self.configure(self.parameters)
         measurement_result = self.execute(schedule_entry, task_id)
-        sigmf_builder = self.get_sigmf_builder(measurement_result)
-        self.create_metadata(sigmf_builder, schedule_entry, measurement_result)
+        self.get_sigmf_builder(schedule_entry)  # Initializes SigMFBuilder
+        self.create_metadata(measurement_result)  # Fill metadata
         data = self.transform_data(measurement_result)
-        self.send_signals(task_id, sigmf_builder.metadata, data)
+        self.send_signals(task_id, self.sigmf_builder.metadata, data)
 
-    def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
-        sigmf_builder = SigMFBuilder()
-        self.received_samples = len(measurement_result["data"].flatten())
-        if any(measurement_result[c] is not None for c in ["sensor_cal", "sigan_cal"]):
-            calibration_annotation = CalibrationAnnotation(
-                sample_start=0,
-                sample_count=self.received_samples,
-                sigan_cal=measurement_result["sigan_cal"],
-                sensor_cal=measurement_result["sensor_cal"],
-            )
-            sigmf_builder.add_metadata_generator(
-                type(calibration_annotation).__name__, calibration_annotation
-            )
-        else:
-            logger.info("Skipping CalibrationAnnotation generation")
-        f_low, f_high = None, None
-        if "frequency_low" in measurement_result:
-            f_low = measurement_result["frequency_low"]
-        elif "frequency" in measurement_result:
-            f_low = measurement_result["frequency"]
-            f_high = measurement_result["frequency"]
-        if "frequency_high" in measurement_result:
-            f_high = measurement_result["frequency_high"]
-
-        measurement_metadata = MeasurementMetadata(
-            domain=measurement_result["domain"],
-            measurement_type=measurement_result["measurement_type"],
-            time_start=measurement_result["start_time"],
-            time_stop=measurement_result["end_time"],
-            frequency_tuned_low=f_low,
-            frequency_tuned_high=f_high,
-            classification=measurement_result["classification"],
+    def create_capture_segment(
+        self,
+        sample_start: int,
+        start_time: str,
+        center_frequency_Hz: float,
+        duration_ms: int,
+        overload: bool,
+        sigan_settings: Union[ntia_sensor.SiganSettings, None],
+    ) -> CaptureSegment:
+        capture_segment = CaptureSegment(
+            sample_start=sample_start,
+            frequency=center_frequency_Hz,
+            datetime=start_time,
+            duration=duration_ms,
+            overload=overload,
+            sigan_settings=sigan_settings,
         )
-        sigmf_builder.add_metadata_generator(
-            type(measurement_metadata).__name__, measurement_metadata
-        )
-
-        sensor_annotation = SensorAnnotation(
-            sample_start=0,
-            sample_count=self.received_samples,
-            overload=measurement_result["overload"]
-            if "overload" in measurement_result
-            else None,
-            attenuation_setting_sigan=measurement_result["attenuation"]
-            if "attenuation" in measurement_result
-            else None,
-            gain_setting_sigan=measurement_result["gain"]
-            if "gain" in measurement_result
-            else None,
-        )
-        sigmf_builder.add_metadata_generator(
-            type(sensor_annotation).__name__, sensor_annotation
-        )
-        return sigmf_builder
+        sigan_cal = self.sigan.sigan_calibration_data
+        sensor_cal = self.sigan.sensor_calibration_data
+        # Rename compression point keys if they exist
+        # then set calibration metadata if it exists
+        if sensor_cal is not None:
+            if "1db_compression_point" in sensor_cal:
+                sensor_cal["compression_point"] = sensor_cal.pop(
+                    "1db_compression_point"
+                )
+            capture_segment.sensor_calibration = ntia_sensor.Calibration(**sensor_cal)
+        if sigan_cal is not None:
+            if "1db_compression_point" in sigan_cal:
+                sigan_cal["compression_point"] = sigan_cal.pop("1db_compression_point")
+            capture_segment.sigan_calibration = ntia_sensor.Calibration(**sigan_cal)
+        return capture_segment
 
     def create_metadata(
-        self, sigmf_builder, schedule_entry, measurement_result, recording=None
-    ):
-        sigmf_builder.set_base_sigmf_global(
-            schedule_entry,
-            self.sensor_definition,
-            measurement_result,
-            recording,
-            self.is_complex(),
-        )
-        sigmf_builder.add_sigmf_capture(sigmf_builder, measurement_result)
-        sigmf_builder.build()
+        self,
+        measurement_result: dict,
+        recording: int = None,
+    ) -> None:
+        """Add SigMF metadata to the `sigmf_builder` from the `measurement_result`."""
+        # Set the received_samples instance variable
+        if "data" in measurement_result:
+            if isinstance(measurement_result["data"], np.ndarray):
+                self.received_samples = len(measurement_result["data"].flatten())
+            else:
+                try:
+                    self.received_samples = len(measurement_result["data"])
+                except TypeError:
+                    logger.warning(
+                        "Failed to get received sample count from measurement result."
+                    )
+        else:
+            logger.warning(
+                "Failed to get received sample count from measurement result."
+            )
+
+        # Fill metadata fields using the measurement result
+        warning_str = "Measurement result is missing a '{}' value"
+        try:
+            self.sigmf_builder.set_sample_rate(measurement_result["sample_rate"])
+        except KeyError:
+            logger.warning(warning_str.format("sample_rate"))
+        try:
+            self.sigmf_builder.set_task(measurement_result["task_id"])
+        except KeyError:
+            logger.warning(warning_str.format("task_id"))
+        try:
+            self.sigmf_builder.set_classification(measurement_result["classification"])
+        except KeyError:
+            logger.warning(warning_str.format("classification"))
+        try:
+            self.sigmf_builder.set_last_calibration_time(
+                measurement_result["calibration_datetime"]
+            )
+        except KeyError:
+            logger.warning(warning_str.format("calibration_datetime"))
+        try:
+            self.sigmf_builder.add_capture(measurement_result["capture_segment"])
+        except KeyError:
+            logger.warning(warning_str.format("capture_segment"))
+
+        # Set data type metadata using is_complex method
+        # This assumes data is 32-bit little endian floating point
+        self.sigmf_builder.set_data_type(is_complex=self.is_complex())
+
+        # Set the recording, if provided
+        if recording is not None:
+            self.sigmf_builder.set_recording(recording)
+
+    def get_sigan_settings(
+        self, measurement_result: dict
+    ) -> Union[ntia_sensor.SiganSettings, None]:
+        """
+        Retrieve any sigan settings from the measurement result dict, and return
+        a `ntia-sensor` `SiganSettings` object. Values are pulled from the
+        `measurement_result` dict if their keys match the names of fields in
+        the `SiganSettings` object. If no matches are made, `None` is returned.
+        """
+        sigan_settings = {
+            k: v
+            for k, v in measurement_result.items()
+            if k in ntia_sensor.SiganSettings.__struct_fields__
+        }
+        if sigan_settings == {}:
+            sigan_settings = None
+        else:
+            sigan_settings = ntia_sensor.SiganSettings(**sigan_settings)
+        return sigan_settings
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""

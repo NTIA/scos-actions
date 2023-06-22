@@ -57,16 +57,16 @@ def calculate_pseudo_power(val):
     return ps_pwr
 
 
-def create_power_detector(name: str, detectors: list) -> EnumMeta:
+def create_statistical_detector(name: str, detectors: list) -> EnumMeta:
     """
-    Construct a power detector based on a list of selected detectors.
+    Construct a statistical detector based on a list of selected detectors.
 
     This allows for constructing new detectors while preserving the
     order of the 5 possible detector types in all instances. The five
     possible detector types to include are min, max, mean, median, and
     sample.
 
-    The returned enumeration can be passed to ``apply_power_detector()``.
+    The returned enumeration can be passed to ``apply_statistical_detector()``.
 
     :param name: The name of the returned detector enumeration.
     :param detectors: A list of strings specifying the detectors. Valid
@@ -83,19 +83,19 @@ def create_power_detector(name: str, detectors: list) -> EnumMeta:
         raise ValueError(f"Detectors must be one of {allowed_detectors}")
     # Use separate conditions to maintain ordering
     if "min" in detectors:
-        _args.append(("min", "min_power"))
+        _args.append(("min", "minimum"))
     if "max" in detectors:
-        _args.append(("max", "max_power"))
+        _args.append(("max", "maximum"))
     if "mean" in detectors:
-        _args.append(("mean", "mean_power"))
+        _args.append(("mean", "mean"))
     if "median" in detectors:
-        _args.append(("median", "median_power"))
+        _args.append(("median", "median"))
     if "sample" in detectors:
-        _args.append(("sample", "sample_power"))
+        _args.append(("sample", "sample"))
     return Enum(name, tuple(_args))
 
 
-def apply_power_detector(
+def apply_statistical_detector(
     data: np.ndarray,
     detector: EnumMeta,
     dtype: type = None,
@@ -122,7 +122,7 @@ def apply_power_detector(
     median, sample - regardless of which detectors are used. This
     ordering matches that of the detector enumerations.
 
-    Create a detector using ``create_power_detector()``
+    Create a detector using ``create_statistical_detector()``
 
     :param data: A 1- or 2-D array of real-valued samples in linear units.
     :param detector: A detector enumeration containing any combination

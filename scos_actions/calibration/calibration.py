@@ -102,8 +102,8 @@ class Calibration:
         cal_data.update(
             {
                 "datetime": calibration_datetime_str,
-                "gain_sensor": gain_dB,
-                "noise_figure_sensor": noise_figure_dB,
+                "gain": gain_dB,
+                "noise_figure": noise_figure_dB,
                 "temperature": temp_degC,
             }
         )

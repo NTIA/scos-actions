@@ -80,6 +80,7 @@ from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.calibration import sensor_calibration
 from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
 from scos_actions.signal_processing.calibration import (
     get_linear_enr,
@@ -92,7 +93,7 @@ from scos_actions.signal_processing.filtering import (
 )
 from scos_actions.signal_processing.power_analysis import (
     calculate_power_watts,
-    create_power_detector,
+    create_statistical_detector,
 )
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
 from scos_actions.signals import trigger_api_restart
@@ -146,7 +147,6 @@ class YFactorCalibration(Action):
         super().__init__(parameters, sigan, gps)
         self.sigan = sigan
         self.iteration_params = utils.get_iterable_parameters(parameters)
-        self.power_detector = create_power_detector("MeanDetector", ["mean"])
 
         # IIR Filter Setup
         try:
@@ -201,7 +201,7 @@ class YFactorCalibration(Action):
                     "Only one set of IIR filter parameters may be specified (including sample rate)."
                 )
 
-    def __call__(self, schedule_entry_json, task_id):
+    def __call__(self, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
         self.test_required_components()
         detail = ""
@@ -216,29 +216,7 @@ class YFactorCalibration(Action):
 
     def calibrate(self, params):
         # Configure signal analyzer
-        sigan_params = params.copy()
-        # Suppress warnings during sigan configuration
-        for k in [
-            DURATION_MS,
-            NUM_SKIP,
-            IIR_APPLY,
-            IIR_GPASS,
-            IIR_GSTOP,
-            IIR_PB_EDGE,
-            IIR_SB_EDGE,
-            CAL_SOURCE_IDX,
-            TEMP_SENSOR_IDX,
-            IIR_RESP_FREQS,
-            ND_OFF_STATE,
-            ND_ON_STATE,
-        ]:
-            try:
-                sigan_params.pop(k)
-            except KeyError:
-                continue
-        # sigan_params also used as calibration args for getting sensor ENBW
-        # if no IIR filtering is applied.
-        super().configure_sigan(sigan_params)
+        self.configure_sigan(params)
 
         # Get parameters from action config
         cal_source_idx = get_parameter(CAL_SOURCE_IDX, params)
@@ -252,7 +230,7 @@ class YFactorCalibration(Action):
 
         # Set noise diode on
         logger.debug("Setting noise diode on")
-        super().configure_preselector({RF_PATH: nd_on_state})
+        self.configure_preselector({RF_PATH: nd_on_state})
         time.sleep(0.25)
 
         # Get noise diode on IQ
@@ -286,11 +264,15 @@ class YFactorCalibration(Action):
         else:
             logger.debug("Skipping IIR filtering")
             # Get ENBW from sensor calibration
+            sigan_params = {k: v for k, v in params.items() if k in SIGAN_SETTINGS_KEYS}
+            assert set(sensor_calibration.calibration_parameters) <= set(
+                sigan_params.keys()
+            ), f"Action parameters do not include all required calibration parameters"
             cal_args = [
                 sigan_params[k] for k in sensor_calibration.calibration_parameters
             ]
             self.sigan.recompute_sensor_calibration_data(cal_args)
-            enbw_hz = self.sigan.sensor_calibration_data["enbw_sensor"]
+            enbw_hz = self.sigan.sensor_calibration_data["enbw"]
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]
 

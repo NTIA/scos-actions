@@ -1,7 +1,17 @@
-from enum import Enum
+import json
+from typing import List, Union
 
+import msgspec
 from sigmf import SigMFFile
 
+from scos_actions.metadata.structs.capture import CaptureSegment
+from scos_actions.metadata.structs.ntia_algorithm import DFT, DigitalFilter, Graph
+from scos_actions.metadata.structs.ntia_diagnostics import Diagnostics
+from scos_actions.metadata.structs.ntia_scos import Action, ScheduleEntry
+from scos_actions.metadata.structs.ntia_sensor import Sensor
+from scos_actions.metadata.utils import msgspec_dec_dict, msgspec_enc
+
+# Global info which is ALWAYS true for SCOS-generated recordings
 GLOBAL_INFO = {
     "core:version": "v1.0.0",
     "core:extensions": [
@@ -12,13 +22,18 @@ GLOBAL_INFO = {
         },
         {
             "name": "ntia-core",
-            "version": "v1.0.0",
+            "version": "v2.0.0",
             "optional": False,
+        },
+        {
+            "name": "ntia-diagnostics",
+            "version": "v1.0.0",
+            "optional": True,
         },
         {
             "name": "ntia-environment",
             "version": "v1.0.0",
-            "optional": False,
+            "optional": True,
         },
         {
             "name": "ntia-scos",
@@ -32,21 +47,12 @@ GLOBAL_INFO = {
         },
         {
             "name": "ntia-nasctn-sea",
-            "version": "v0.4",
-            "optional": False,
+            "version": "v0.4.0",
+            "optional": True,
         },
     ],
+    "core:recorder": "SCOS",
 }
-
-
-class MeasurementType(Enum):
-    SINGLE_FREQUENCY = "single-frequency"
-    SCAN = "scan"
-
-
-class Domain(Enum):
-    FREQUENCY = "frequency"
-    TIME = "time"
 
 
 class SigMFBuilder:
@@ -61,6 +67,7 @@ class SigMFBuilder:
 
     @property
     def metadata(self):
+        self.build()
         return self.sigmf_md._metadata
 
     def set_data_type(
@@ -69,7 +76,7 @@ class SigMFBuilder:
         sample_type: str = "floating-point",
         bit_width: int = 32,
         endianness: str = "little",
-    ):
+    ) -> None:
         """
         Set the global ``core:datatype`` field of a SigMF metadata file.
 
@@ -115,78 +122,284 @@ class SigMFBuilder:
 
         self.sigmf_md.set_global_field("core:datatype", dset_fmt)
 
-    def set_sample_rate(self, sample_rate):
+    def set_sample_rate(self, sample_rate: float) -> None:
+        """
+        Set the value of the Global "core:sample_rate" field.
+
+        :param sample_rate: The sample rate of the signal in samples
+            per second.
+        """
         self.sigmf_md.set_global_field("core:sample_rate", sample_rate)
 
+    # core:version omitted, set by GLOBAL_INFO on metadata init
+
     def set_num_channels(self, num_channels: int) -> None:
+        """
+        Set the value of the Global "core:num_channels" field.
+
+        :param num_channels: Total number of interleaved channels in
+            the Dataset file.
+        """
         self.sigmf_md.set_global_field("core:num_channels", num_channels)
 
-    def set_recording(self, recording_id):
-        self.sigmf_md.set_global_field("ntia-scos:recording", recording_id)
+    def set_sha512(self, sha512: str) -> None:
+        """
+        Set the value of the Global "core:sha512" field.
 
-    def set_measurement(
-        self, start_time, end_time, domain, measurement_type, frequency
-    ):
-        self.sigmf_md.set_global_field(
-            "ntia-core:measurement",
-            {
-                "time_start": start_time,
-                "time_stop": end_time,
-                "domain": domain.value,
-                "measurement_type": measurement_type.value,
-                "frequency_tuned_low": frequency,
-                "frequency_tuned_high": frequency,
-            },
-        )
+        :param sha512: The SHA512 hash of the Dataset file associated
+            with the SigMF file.
+        """
+        self.sigmf_md.set_global_field("core:sha512", sha512)
 
-    def set_sensor(self, sensor):
-        self.sigmf_md.set_global_field("ntia-sensor:sensor", sensor)
+    def set_offset(self, offset: int) -> None:
+        """
+        Set the value of the Global "core:offset" field.
 
-    def set_task(self, task_id):
-        self.sigmf_md.set_global_field("ntia-scos:task", task_id)
+        :param offset: The index number of the first sample in the Dataset.
+            Typically used when a Recording is split over multiple files.
+            All sample indices in SigMF are absolute, and so all other indices
+            referenced in metadata for this recording SHOULD be greater than or
+            equal to this value.
+        """
+        self.sigmf_md.set_global_field("core:offset", offset)
 
-    def set_action(self, name, description, summary):
-        self.sigmf_md.set_global_field(
-            "ntia-scos:action",
-            {
-                "name": name,
-                "description": description,
-                "summary": summary,
-            },
-        )
+    def set_description(self, description: str) -> None:
+        """
+        Set the value of the Global "core:description" field.
 
-    def set_schedule(self, schedule_entry_json):
-        self.sigmf_md.set_global_field("ntia-scos:schedule", schedule_entry_json)
+        :param description: A text description of the SigMF recording.
+        """
+        self.sigmf_md.set_global_field("core:description", description)
 
-    def set_geolocation(
-        self, longitude: float, latitude: float, altitude: float = None
+    def set_author(self, author: str) -> None:
+        """
+        Set the value of the Global "core:author" field.
+
+        :param author: A text identifier for the author potentially including
+            name, handle, email, and/or other ID like Amateur Call Sign. For
+            example "Bruce Wayne bruce@waynetech.com" or "Bruce (K3X)".
+        """
+        self.sigmf_md.set_global_field("core:author", author)
+
+    def set_meta_doi(self, meta_doi: str) -> None:
+        """
+        Set the value of the Global "core:meta_doi" field.
+
+        :param author: The registered DOI (ISO 26324) for a Recording's
+            Metadata file.
+        """
+        self.sigmf_md.set_global_field("core:meta_doi", meta_doi)
+
+    def set_data_doi(self, data_doi: str) -> None:
+        """
+        Set the value of the Global "core:data_doi" field.
+
+        :param data_doi: The registered DOI (ISO 26324) for a Recording's
+            Dataset file.
+        """
+        self.sigmf_md.set_global_field("core:data_doi", data_doi)
+
+    # core:recorder omitted, set by GLOBAL_INFO on metadata init
+
+    def set_license(self, license: str) -> None:
+        """
+        Set the value of the Global "core:license" field.
+
+        :param license: A URL for the license document under which the
+            Recording is offered.
+        """
+        self.sigmf_md.set_global_field("core:license", license)
+
+    def set_hw(self, hw: str) -> None:
+        """
+        Set the value of the Global "core:hw" field.
+
+        :param hw: A text description of the hardware used to make the
+            Recording.
+        """
+        self.sigmf_md.set_global_field("core:hw", hw)
+
+    def set_dataset(self, dataset: str) -> None:
+        """
+        Set the value of the Global "core:dataset" field.
+
+        :param dataset: The full filename of the Dataset file this Metadata
+            file describes.
+        """
+        self.sigmf_md.set_global_field("core:dataset", dataset)
+
+    def set_trailing_bytes(self, trailing_bytes: int) -> None:
+        """
+        Set the value of the Global "core:trailing_bytes" field.
+
+        :param trailing_bytes: The number of bytes to ignore are the end of
+            a Non-Conforming Dataset file.
+        """
+        self.sigmf_md.set_global_field("core:trailing_bytes", trailing_bytes)
+
+    def set_metadata_only(self, metadata_only: bool) -> None:
+        """
+        Set the value of the Global "core:metadata_only" field.
+
+        :param metadata_only: Indicates the Metadata file is intentionally
+            distributed without the Dataset.
+        """
+        self.sigmf_md.set_global_field("core:metadata_only", metadata_only)
+
+    def set_geolocation(self, geolocation: dict) -> None:
+        """
+        Set the value of the Global "core:geolocation" field.
+
+        :param geolocation: A dictionary containing the GeoJSON Point representation
+            of the sensor's location.
+        """
+        self.sigmf_md.set_global_field("core:geolocation", geolocation)
+
+    # core:extensions omitted, set dynamically when metadata is built
+
+    def set_collection(self, collection: str) -> None:
+        """
+        Set the value of the Global "core:collection" field.
+
+        :param collection: The base filename of a `collection` with which
+            this Recording is associated.
+        """
+        self.sigmf_md.set_global_field("core:collection", collection)
+
+    ### ntia-algorithm v2.0.0 ###
+
+    def set_data_products(self, data_products: List[Graph]) -> None:
+        """
+        Set the value of the Global "ntia-algorithm:data_products" field.
+
+        :param data_products: List of data products produced for each capture.
+        """
+        self.sigmf_md.set_global_field("ntia-algorithm:data_products", data_products)
+
+    def set_processing(self, processing: List[str]) -> None:
+        """
+        Set the value of the Global "ntia-algorithm:processing" field.
+
+        :param processing: IDs associated with the additional metadata describing
+            processing applied to ALL data.
+        """
+        self.sigmf_md.set_global_field("ntia-algorithm:processing", processing)
+
+    def set_processing_info(
+        self, processing_info: List[Union[DigitalFilter, DFT]]
     ) -> None:
         """
-        Set the ``core:geolocation`` field, recording the sensor location.
+        Set the value of the Global "ntia-algorithm:processing_info" field.
 
-        :param longitude: (REQUIRED) Sensor longitude, in decimal degrees WGS84.
-        :param latitude: (REQUIRED) Sensor latitude, in decimal degrees WGS84.
-        :param altitude: (OPTIONAL) Sensor altitude, in meters above the WGS84 ellipsoid.
+        :param processing_info: List of objects that describe processing used to
+            generate some of the data products listed in `ntia-algorithm:data_products`.
+            Supported objects include `DigitalFilter` and `DFT`. The IDs of any processing
+            performed on ALL data products should be listed in `ntia-algorithm:processing`.
         """
-        coords = [longitude, latitude]
-        if altitude is not None:
-            coords.append(altitude)
         self.sigmf_md.set_global_field(
-            "core:geolocation", {"type": "Point", "coordinates": coords}
+            "ntia-algorithm:processing_info", processing_info
         )
 
-    def set_capture(
-        self, frequency, capture_time, sample_start=0, extra_entries: dict = None
-    ):
-        capture_md = {
-            "core:frequency": frequency,
-            "core:datetime": capture_time,
-        }
-        # Add extra information to capture
-        if extra_entries:
-            capture_md.update(extra_entries)
+    ### ntia-core v2.0.0 ###
 
-        self.sigmf_md.add_capture(sample_start, metadata=capture_md)
+    def set_classification(self, classification: str) -> None:
+        """
+        Set the value of the Global "ntia-core:classification" field.
+
+        :param classification: The classification markings for the acquisition,
+            e.g., `"UNCLASSIFIED"`, `"CONTROLLED//FEDCON"`, `"SECRET"`
+        """
+        self.sigmf_md.set_global_field("ntia-core:classification", classification)
+
+    ### ntia-diagnostics v1.0.0 ###
+
+    def set_diagnostics(self, diagnostics: Diagnostics) -> None:
+        """
+        Set the value of the Global "ntia-diagnostics:diagnostics" field.
+
+        :param diagnostics: Metadata for capturing component diagnostics.
+        """
+        self.sigmf_md.set_global_field("ntia-diagnostics:diagnostics", diagnostics)
+
+    ### ntia-nasctn-sea v0.4.0 ###
+
+    def set_max_of_max_channel_powers(
+        self, max_of_max_channel_powers: List[float]
+    ) -> None:
+        """
+        Set the value of the Global "ntia-nasctn-sea:max_of_max_channel_powers" field.
+
+        :param max_of_max_channel_powers: The maximum of the maximum power per channel, in dBm.
+        """
+        self.sigmf_md.set_global_field(
+            "ntia-nasctn-sea:max_of_max_channel_powers", max_of_max_channel_powers
+        )
+
+    def set_median_of_mean_channel_powers(
+        self, median_of_mean_channel_powers: List[float]
+    ) -> None:
+        """
+        Set the value of the Global "ntia-nasctn-sea:median_of_mean_channel_powers" field.
+
+        :param median_of_mean_channel_powers: The median of the mean power per channel, in dBm.
+        """
+        self.sigmf_md.set_global_field(
+            "ntia-nasctn-sea:median_of_mean_channel_powers",
+            median_of_mean_channel_powers,
+        )
+
+    ### ntia-scos v1.0.0 ###
+
+    def set_schedule(self, schedule: ScheduleEntry) -> None:
+        """
+        Set the value of the Global "ntia-scos:schedule" field.
+
+        :param schedule: Metadata that describes the schedule that caused an
+            action to be performed.
+        """
+        self.sigmf_md.set_global_field("ntia-scos:schedule", schedule)
+
+    def set_action(self, action: Action) -> None:
+        """
+        Set the value of the Global "ntia-scos:action" field.
+
+        :param action: Metadata that describes the action that was performed.
+        """
+        self.sigmf_md.set_global_field("ntia-scos:action", action)
+
+    def set_task(self, task: int) -> None:
+        """
+        Set the value of the Global "ntia-scos:task" field.
+
+        :param task: Unique identifier that increments with each task performed
+            as a result of a schedule entry.
+        """
+        self.sigmf_md.set_global_field("ntia-scos:task", task)
+
+    def set_recording(self, recording: int) -> None:
+        """
+        Set the value of the Global "ntia-scos:recording" field.
+
+        :param recording: Unique identifier that increments with each recording
+            performed in a task. The recording SHOULD be indicated for tasks that
+            perform multiple recordings.
+        """
+        self.sigmf_md.set_global_field("ntia-scos:recording", recording)
+
+    ### ntia-sensor v2.0.0 ###
+
+    def set_sensor(self, sensor: Sensor) -> None:
+        """
+        Set the value of the Global "ntia-sensor:sensor" field.
+
+        :param sensor: Describes the sensor model components.
+        """
+        self.sigmf_md.set_global_field("ntia-sensor:sensor", sensor)
+
+    def add_capture(self, capture: CaptureSegment) -> None:
+        capture_dict = json.loads(msgspec_enc.encode(capture))
+        sample_start = capture_dict.pop("core:sample_start")
+        self.sigmf_md.add_capture(sample_start, metadata=capture_dict)
 
     def add_annotation(self, start_index, length, annotation_md):
         self.sigmf_md.add_annotation(
@@ -201,40 +414,6 @@ class SigMFBuilder:
     def add_to_global(self, key, value):
         self.sigmf_md.set_global_field(key, value)
 
-    def set_base_sigmf_global(
-        self,
-        schedule_entry_json,
-        sensor_def,
-        measurement_result,
-        recording_id=None,
-        is_complex=True,
-    ):
-        if "calibration_datetime" in measurement_result:
-            self.set_last_calibration_time(measurement_result["calibration_datetime"])
-
-        description = measurement_result["description"]
-        self.set_action(
-            measurement_result["name"], description, description.splitlines()[0]
-        )
-        if "location" in sensor_def:
-            self.set_geolocation(
-                sensor_def["location"]["x"],
-                sensor_def["location"]["y"],
-                sensor_def["location"]["z"],
-            )
-        self.set_data_type(is_complex=is_complex)
-        self.set_sample_rate(measurement_result["sample_rate"])
-        self.set_schedule(schedule_entry_json)
-        self.set_sensor(sensor_def)
-        self.set_task(measurement_result["task_id"])
-        if recording_id:
-            self.set_recording(recording_id)
-
-    def add_sigmf_capture(self, sigmf_builder, measurement_result):
-        sigmf_builder.set_capture(
-            measurement_result["frequency"], measurement_result["capture_time"]
-        )
-
     def add_metadata_generator(self, key, generator):
         self.metadata_generators[key] = generator
 
@@ -242,5 +421,28 @@ class SigMFBuilder:
         self.metadata_generators.pop(key, "")
 
     def build(self):
+        # Convert msgspec Structs to dictionaries to support
+        # serialization by standard json.dumps (e.g., in SCOS Sensor)
+        # NOTE: This should be removed in the future, and msgspec should
+        # be used natively throughout SCOS. This would require changing
+        # the serialization implementations in SCOS Sensor, which makes sense
+        # to do when a python library is created to support sigmf-ns-ntia
+        for k, v in self.sigmf_md._metadata["global"].items():
+            if issubclass(type(v), msgspec.Struct):
+                # Recursion is not needed: encode/decode will convert nested objects
+                self.sigmf_md._metadata["global"][k] = msgspec_dec_dict.decode(
+                    msgspec_enc.encode(v)
+                )
+            if isinstance(v, list):
+                for i, item in enumerate(v):
+                    if issubclass(type(item), msgspec.Struct):
+                        v[i] = msgspec_dec_dict.decode(msgspec_enc.encode(item))
+                self.sigmf_md._metadata["global"][k] = v
+        for i, capture in enumerate(self.sigmf_md._metadata["captures"]):
+            for k, v in capture.items():
+                if issubclass(type(v), msgspec.Struct):
+                    self.sigmf_md._metadata["captures"][i][k] = msgspec_dec_dict.decode(
+                        msgspec_enc.encode(v)
+                    )
         for metadata_creator in self.metadata_generators.values():
             metadata_creator.create_metadata(self)

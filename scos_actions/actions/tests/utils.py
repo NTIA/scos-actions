@@ -1,7 +1,5 @@
 from sigmf.validate import validate as sigmf_validate
 
-from scos_actions.capabilities import capabilities
-
 SENSOR_DEFINITION = {
     "id": "",
     "sensor_spec": {"id": "", "model": "greyhound"},
@@ -11,11 +9,15 @@ SENSOR_DEFINITION = {
 }
 
 
-def check_metadata_fields(metadata, entry_name, action_name, task_id, recording=None):
+def check_metadata_fields(
+    metadata, action, entry_name, action_name, task_id, recording=None
+):
     assert sigmf_validate(metadata)
     # schema_validate(sigmf_metadata, schema)
     assert "ntia-scos:action" in metadata["global"]
     assert metadata["global"]["ntia-scos:action"]["name"] == action_name
+    assert metadata["global"]["ntia-scos:action"]["description"] == action.description
+    assert metadata["global"]["ntia-scos:action"]["summary"] == action.summary
     assert "ntia-scos:schedule" in metadata["global"]
     assert metadata["global"]["ntia-scos:schedule"]["name"] == entry_name
     assert "ntia-scos:task" in metadata["global"]
@@ -26,10 +28,6 @@ def check_metadata_fields(metadata, entry_name, action_name, task_id, recording=
     else:
         assert "ntia-scos:recording" not in metadata["global"]
 
-    assert "ntia-core:measurement" in metadata["global"]
-    assert metadata["global"]["ntia-core:measurement"]["time_start"]
-    assert metadata["global"]["ntia-core:measurement"]["time_stop"]
-    assert metadata["global"]["ntia-core:measurement"]["frequency_tuned_low"]
-    assert metadata["global"]["ntia-core:measurement"]["frequency_tuned_high"]
-    assert metadata["global"]["ntia-core:measurement"]["domain"]
-    assert metadata["global"]["ntia-core:measurement"]["measurement_type"]
+    assert "ntia-core:classification" in metadata["global"]
+    assert metadata["global"]["ntia-core:classification"] == "UNCLASSIFIED"
+    assert len(metadata["captures"]) >= 1

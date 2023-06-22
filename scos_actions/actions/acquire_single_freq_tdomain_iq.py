@@ -38,8 +38,6 @@ from numpy import complex64
 from scos_actions import utils
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.metadata.annotations import TimeDomainDetection
-from scos_actions.metadata.sigmf_builder import Domain, MeasurementType, SigMFBuilder
 from scos_actions.utils import get_parameter
 
 logger = logging.getLogger(__name__)
@@ -84,42 +82,29 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         self.classification = get_parameter(CLASSIFICATION, self.parameters)
         self.cal_adjust = get_parameter(CAL_ADJUST, self.parameters)
 
-    def execute(self, schedule_entry, task_id) -> dict:
-        start_time = utils.get_datetime_str_now()
+    def execute(self, schedule_entry: dict, task_id: int) -> dict:
         # Use the sigan's actual reported instead of requested sample rate
         sample_rate = self.sigan.sample_rate
         num_samples = int(sample_rate * self.duration_ms * 1e-3)
         measurement_result = self.acquire_data(num_samples, self.nskip, self.cal_adjust)
-        measurement_result["start_time"] = start_time
         end_time = utils.get_datetime_str_now()
         measurement_result.update(self.parameters)
         measurement_result["end_time"] = end_time
-        measurement_result["domain"] = Domain.TIME.value
-        measurement_result["measurement_type"] = MeasurementType.SINGLE_FREQUENCY.value
         measurement_result["task_id"] = task_id
         measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
             "datetime"
         ]
-        measurement_result["description"] = self.description
-        measurement_result["sigan_cal"] = self.sigan.sigan_calibration_data
-        measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
         measurement_result["classification"] = self.classification
-        return measurement_result
-
-    def get_sigmf_builder(self, measurement_result: dict) -> SigMFBuilder:
-        sigmf_builder = super().get_sigmf_builder(measurement_result)
-        time_domain_annotation = TimeDomainDetection(
+        sigan_settings = self.get_sigan_settings(measurement_result)
+        measurement_result["capture_segment"] = self.create_capture_segment(
             sample_start=0,
-            sample_count=self.received_samples,
-            detector="sample_iq",
-            number_of_samples=self.received_samples,
-            units="volts",
-            reference="preselector input",
+            start_time=measurement_result["capture_time"],
+            center_frequency_Hz=self.frequency_Hz,
+            duration_ms=self.duration_ms,
+            overload=measurement_result["overload"],
+            sigan_settings=sigan_settings,
         )
-        sigmf_builder.add_metadata_generator(
-            type(time_domain_annotation).__name__, time_domain_annotation
-        )
-        return sigmf_builder
+        return measurement_result
 
     @property
     def description(self):

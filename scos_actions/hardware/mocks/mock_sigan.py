@@ -147,20 +147,14 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
                 return {
                     "data": data,
                     "overload": self._overload,
-                    "frequency_low": self._frequency,
-                    "frequency_high": self._frequency,
+                    "frequency": self._frequency,
                     "gain": self._gain,
+                    "attenuation": self._attenuation,
+                    "preamp_enable": self._preamp_enable,
+                    "reference_level": self._reference_level,
                     "sample_rate": self._sample_rate,
                     "capture_time": self._capture_time,
-                    "calibration_annotation": self.create_calibration_annotation(),
                 }
-
-    def create_calibration_annotation(self):
-        annotation_md = {
-            "ntia-core:annotation_type": "CalibrationAnnotation",
-            "ntia-sensor:gain_sigan": self.gain,
-        }
-        return annotation_md
 
     def set_times_to_fail_recv(self, n):
         self.times_to_fail_recv = n
