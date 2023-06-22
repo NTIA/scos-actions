@@ -106,7 +106,7 @@ class RFPath(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     :param amplifier_id: ID of the amplifier.
     """
 
-    id: Optional[str]
+    id: str
     cal_source_id: Optional[str] = None
     filter_id: Optional[str] = None
     amplifier_id: Optional[str] = None
