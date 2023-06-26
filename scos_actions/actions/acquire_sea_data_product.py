@@ -109,6 +109,7 @@ FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
 IMPEDANCE_OHMS = 50.0
 DATA_REFERENCE_POINT = "noise source output"
+NUM_ACTORS = 3  # Number of ray actors to initialize
 
 # Create power detectors
 TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["mean", "max"])
@@ -515,12 +516,13 @@ class NasctnSeaDataProduct(Action):
 
         # Initialize remote supervisor actors for IQ processing
         tic = perf_counter()
-        iq_processors = {
-            p[FREQUENCY]: IQProcessor.remote(p, self.iir_sos)
-            for p in self.iteration_params
-        }
+        # This uses iteration_params[0] because
+        iq_processors = (
+            IQProcessor.remote(self.iteration_params[0], self.iir_sos)
+            for _ in range(NUM_ACTORS)
+        )
         toc = perf_counter()
-        logger.debug(f"Spawned supervisor actors in {toc-tic}")
+        logger.debug(f"Spawned {NUM_ACTORS} supervisor actors in {toc-tic:.2f} s")
 
         # Collect all IQ data and spawn data product computation processes
         dp_procs, cpu_speed = [], []
@@ -529,10 +531,9 @@ class NasctnSeaDataProduct(Action):
             measurement_result = self.capture_iq(parameters)
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
+
             dp_procs.append(
-                iq_processors[parameters[FREQUENCY]].run.remote(
-                    measurement_result["data"]
-                )
+                iq_processors[i % NUM_ACTORS].run.remote(measurement_result["data"])
             )
             del measurement_result["data"]
             toc = perf_counter()
