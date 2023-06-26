@@ -565,7 +565,6 @@ class NasctnSeaDataProduct(Action):
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
         result_toc = perf_counter()
         del dp_procs, iq_processor, channel_data, channel_data_refs
-        gc.collect()
         logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
 
         # Build metadata and convert data to compressed bytes
