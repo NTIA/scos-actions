@@ -517,10 +517,10 @@ class NasctnSeaDataProduct(Action):
         # Initialize remote supervisor actors for IQ processing
         tic = perf_counter()
         # This uses iteration_params[0] because
-        iq_processors = (
+        iq_processors = [
             IQProcessor.remote(self.iteration_params[0], self.iir_sos)
             for _ in range(NUM_ACTORS)
-        )
+        ]
         toc = perf_counter()
         logger.debug(f"Spawned {NUM_ACTORS} supervisor actors in {toc-tic:.2f} s")
 
