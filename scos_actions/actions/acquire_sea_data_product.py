@@ -429,7 +429,6 @@ class IQProcessor:
         # Do not wait until they finish. Yield references to their results.
         yield [worker.run.remote(iqdata) for worker in self.workers]
         del iqdata
-        gc.collect()
 
 
 class NasctnSeaDataProduct(Action):
