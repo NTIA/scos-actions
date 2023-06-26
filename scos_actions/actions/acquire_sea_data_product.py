@@ -513,6 +513,15 @@ class NasctnSeaDataProduct(Action):
         )
         self.create_global_data_product_metadata()
 
+        # Initialize remote supervisor actors for IQ processing
+        tic = perf_counter()
+        iq_processors = {
+            p[FREQUENCY]: IQProcessor.remote(p, self.iir_sos)
+            for p in self.iteration_params
+        }
+        toc = perf_counter()
+        logger.debug(f"Spawned supervisor actors in {toc-tic}")
+
         # Collect all IQ data and spawn data product computation processes
         dp_procs, cpu_speed = [], []
         capture_tic = perf_counter()
@@ -521,7 +530,7 @@ class NasctnSeaDataProduct(Action):
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
             dp_procs.append(
-                IQProcessor.remote(parameters, self.iir_sos).run.remote(
+                iq_processors[parameters[FREQUENCY]].run.remote(
                     measurement_result["data"]
                 )
             )
@@ -566,7 +575,7 @@ class NasctnSeaDataProduct(Action):
             logger.debug(f"Waited {toc-tic} s for channel data")
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
         result_toc = perf_counter()
-        del dp_procs, channel_data, channel_data_refs
+        del dp_procs, iq_processors, channel_data, channel_data_refs
         logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
 
         # Build metadata and convert data to compressed bytes
