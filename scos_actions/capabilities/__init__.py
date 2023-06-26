@@ -37,8 +37,9 @@ if "location" in capabilities["sensor"]:
 
 # Generate sensor definition file hash (SHA 512)
 try:
-    sensor_def = json.dumps(capabilities["sensor"], separators = (",", ":"))
+    sensor_def = json.dumps(capabilities["sensor"], sort_keys = True)
     SENSOR_DEFINITION_HASH = hashlib.sha512(sensor_def.encode('UTF-8')).hexdigest()
+    capabilities['sensor_sha512'] = SENSOR_DEFINITION_HASH
 except:
     logger.error(f"Unable to generate sensor definition hash")
     # SENSOR_DEFINITION_HASH is None, do not raise Exception
