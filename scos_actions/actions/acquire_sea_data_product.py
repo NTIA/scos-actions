@@ -551,7 +551,7 @@ class NasctnSeaDataProduct(Action):
         # Collect processed data product results
         all_data, max_max_ch_pwrs, med_mean_ch_pwrs = [], [], []
         result_tic = perf_counter()
-        for channel_data_process in dp_procs:
+        for i, channel_data_process in enumerate(dp_procs):
             # Retrieve object references for channel data
             channel_data_refs = ray.get(channel_data_process)
             channel_data = []
@@ -574,6 +574,7 @@ class NasctnSeaDataProduct(Action):
             toc = perf_counter()
             logger.debug(f"Waited {toc-tic} s for channel data")
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
+            ray.kill(iq_processors[self.iteration_params[i][FREQUENCY]])
         result_toc = perf_counter()
         del dp_procs, iq_processors, channel_data, channel_data_refs
         logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
