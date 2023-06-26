@@ -575,7 +575,8 @@ class NasctnSeaDataProduct(Action):
             toc = perf_counter()
             logger.debug(f"Waited {toc-tic} s for channel data")
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
-            ray.kill(iq_processors[self.iteration_params[i][FREQUENCY]])
+        for ray_actor in iq_processors:
+            ray.kill(ray_actor)
         result_toc = perf_counter()
         del dp_procs, iq_processors, channel_data, channel_data_refs
         logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
