@@ -22,7 +22,6 @@ except Exception as e:
     capabilities["sensor"] = {"sensor_spec": {"id": "unknown"}}
 
 
-
 # Extract location from sensor definition file, if present
 if "location" in capabilities["sensor"]:
     try:
@@ -37,9 +36,9 @@ if "location" in capabilities["sensor"]:
 
 # Generate sensor definition file hash (SHA 512)
 try:
-    sensor_def = json.dumps(capabilities["sensor"], sort_keys = True)
-    SENSOR_DEFINITION_HASH = hashlib.sha512(sensor_def.encode('UTF-8')).hexdigest()
-    capabilities['sensor_sha512'] = SENSOR_DEFINITION_HASH
+    sensor_def = json.dumps(capabilities["sensor"], sort_keys=True)
+    SENSOR_DEFINITION_HASH = hashlib.sha512(sensor_def.encode("UTF-8")).hexdigest()
+    capabilities["sensor_sha512"] = SENSOR_DEFINITION_HASH
 except:
     logger.error(f"Unable to generate sensor definition hash")
     # SENSOR_DEFINITION_HASH is None, do not raise Exception
