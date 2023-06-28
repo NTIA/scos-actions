@@ -20,7 +20,7 @@ except Exception as e:
         + "\nAn empty sensor definition will be used"
     )
     capabilities["sensor"] = {"sensor_spec": {"id": "unknown"}}
-
+    capabilities["sensor"]["sensor_sha512"] = "UNKNOWN SENSOR DEFINITION"
 
 # Extract location from sensor definition file, if present
 if "location" in capabilities["sensor"]:
@@ -36,10 +36,12 @@ if "location" in capabilities["sensor"]:
 
 # Generate sensor definition file hash (SHA 512)
 try:
-    sensor_def = json.dumps(capabilities["sensor"], sort_keys=True)
-    SENSOR_DEFINITION_HASH = hashlib.sha512(sensor_def.encode("UTF-8")).hexdigest()
-    capabilities["sensor_sha512"] = SENSOR_DEFINITION_HASH
+    if "sensor_sha512" not in capabilities["sensor"]:
+        sensor_def = json.dumps(capabilities["sensor"], sort_keys=True)
+        SENSOR_DEFINITION_HASH = hashlib.sha512(sensor_def.encode("UTF-8")).hexdigest()
+        capabilities["sensor"]["sensor_sha512"] = SENSOR_DEFINITION_HASH
 except:
     logger.error(f"Unable to generate sensor definition hash")
+    capabilities["sensor"]["sensor_sha512"] = "ERROR GENERATING HASH"
     # SENSOR_DEFINITION_HASH is None, do not raise Exception
     logger.debug(e)
