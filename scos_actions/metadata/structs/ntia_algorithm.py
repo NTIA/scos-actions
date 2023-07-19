@@ -36,7 +36,7 @@ class DigitalFilter(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     feedback_coefficients: Optional[List[float]] = None
     attenuation_cutoff: Optional[float] = None
     frequency_cutoff: Optional[float] = None
-    description: Optional[float] = None
+    description: Optional[str] = None
 
 
 class Graph(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
