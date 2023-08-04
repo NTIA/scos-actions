@@ -11,7 +11,7 @@ class FilterType(str, Enum):
     FIR = "FIR"
 
 
-class DigitalFilter(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
+class DigitalFilter(msgspec.Struct, tag=True, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-algorithm` `DigitalFilter` objects.
 
@@ -66,7 +66,7 @@ class Graph(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     description: Optional[str] = None
 
 
-class DFT(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
+class DFT(msgspec.Struct, tag=True, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-algorithm` `DFT` objects.
 
