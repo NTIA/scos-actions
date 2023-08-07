@@ -17,7 +17,7 @@ GLOBAL_INFO = {
     "core:extensions": [
         {
             "name": "ntia-algorithm",
-            "version": "v2.0.0",
+            "version": "v2.0.1",
             "optional": False,
         },
         {
@@ -47,7 +47,7 @@ GLOBAL_INFO = {
         },
         {
             "name": "ntia-nasctn-sea",
-            "version": "v0.4.0",
+            "version": "v0.5.0",
             "optional": True,
         },
     ],
