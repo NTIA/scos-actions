@@ -521,6 +521,7 @@ class NasctnSeaDataProduct(Action):
             schedule_entry,
             self.iteration_params,
         )
+        self.create_global_sensor_metadata()
         self.create_global_data_product_metadata()
 
         # Initialize remote supervisor actors for IQ processing
@@ -798,6 +799,34 @@ class NasctnSeaDataProduct(Action):
         # Add diagnostics to SigMF global object
         self.sigmf_builder.set_diagnostics(ntia_diagnostics.Diagnostics(**diagnostics))
 
+    def create_global_sensor_metadata(self):
+        # Add (minimal) ntia-sensor metadata to the sigmf_builder:
+        #   sensor ID, serial numbers for preselector, sigan, and computer
+        #   overall sensor_spec version, e.g. "Prototype Rev. 3"
+        #   sensor definition hash, to link to full sensor definition
+        self.sigmf_builder.set_sensor(
+            ntia_sensor.Sensor(
+                sensor_spec=ntia_core.HardwareSpec(
+                    id=self.sensor_definition["sensor_spec"]["id"],
+                    version=self.sensor_definition["sensor_spec"]["version"],
+                ),
+                preselector=ntia_sensor.Preselector(
+                    preselector_spec=ntia_core.HardwareSpec(
+                        id=self.sensor_definition["preselector"]["preselector_spec"]["id"]
+                    )
+                ),
+                signal_analyzer=ntia_sensor.SignalAnalyzer(
+                    sigan_spec=ntia_core.HardwareSpec(
+                        id=self.sensor_definition["signal_analyzer"]["sigan_spec"]["id"]
+                    )
+                ),
+                computer_spec=ntia_sensor.HardwareSpec(
+                    id=self.sensor_definition["computer_spec"]["id"]
+                ),
+                sensor_sha512=SENSOR_DEFINITION_HASH,
+            )
+        )
+    
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
         if not self.sigan.is_available:
@@ -1013,16 +1042,6 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
-
-        # Add (minimal) ntia-sensor metadata: ID + hash
-        sigmf_builder.set_sensor(
-            ntia_sensor.Sensor(
-                sensor_spec=ntia_core.HardwareSpec(
-                    id=self.sensor_definition["sensor_spec"]["id"],
-                ),
-                sensor_sha512=SENSOR_DEFINITION_HASH,
-            )
-        )
 
         # Mark data as UNCLASSIFIED
         sigmf_builder.set_classification("UNCLASSIFIED")
