@@ -116,7 +116,6 @@ NUM_ACTORS = 3  # Number of ray actors to initialize
 
 # Create power detectors
 TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["mean", "max"])
-MEDIAN_DETECTOR = create_statistical_detector("MedianDetector", ["median"])
 FFT_DETECTOR = create_statistical_detector("FftMeanMaxDetector", ["mean", "max"])
 PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
 
@@ -261,11 +260,9 @@ class PowerVsTime:
         bin_size_ms: float,
         impedance_ohms: float = IMPEDANCE_OHMS,
         detector: EnumMeta = TD_DETECTOR,
-        median_detector: EnumMeta = MEDIAN_DETECTOR,
     ):
         self.block_size = int(bin_size_ms * sample_rate_Hz * 1e-3)
         self.detector = detector
-        self.median_detector = median_detector
         self.impedance_ohms = impedance_ohms
 
     def run(self, iq: ray.ObjectRef) -> Tuple[np.ndarray, np.ndarray]:
@@ -286,7 +283,7 @@ class PowerVsTime:
             iq.reshape((n_blocks, self.block_size)), self.impedance_ohms
         )
         # Get true median power
-        pvt_median = apply_statistical_detector(iq_pwr.flatten(), self.median_detector)
+        pvt_median = np.median(iq_pwr.flatten())
         # Apply max/mean detectors
         pvt_result = apply_statistical_detector(iq_pwr, self.detector, axis=1)
         # Get single value statistics: (max-of-max, median-of-mean, mean, median)
