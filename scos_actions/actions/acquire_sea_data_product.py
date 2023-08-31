@@ -20,9 +20,10 @@ r"""Acquire a NASCTN SEA data product.
 
 Currently in development.
 """
-import gc
 import logging
 import lzma
+import platform
+import sys
 from enum import EnumMeta
 from time import perf_counter
 from typing import Tuple
@@ -32,7 +33,9 @@ import psutil
 import ray
 from scipy.signal import sos2tf, sosfilt
 
+from its_preselector import __version__ as PRESELECTOR_API_VERSION
 from scos_actions import utils
+from scos_actions import __version__ as SCOS_ACTIONS_VERSION
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.capabilities import SENSOR_DEFINITION_HASH, SENSOR_LOCATION
 from scos_actions.hardware import preselector, switches
@@ -655,6 +658,9 @@ class NasctnSeaDataProduct(Action):
             CPU temperature, CPU overheating status, CPU uptime, SCOS
             start time, and SCOS uptime.
 
+        Software versions: the OS platform, Python version, scos_actions
+            version, and preselector API version.
+
         The total action runtime is also recorded.
 
         Preselector X410 Setup requires:
@@ -680,6 +686,8 @@ class NasctnSeaDataProduct(Action):
 
         :param action_start_tic: Action start timestamp, as would
              be returned by ``time.perf_counter()``
+        :param cpu_speeds: List of CPU speed values, recorded at
+            consecutive points as the action has been running.
         """
         tic = perf_counter()
         # Read SPU sensors
@@ -768,6 +776,14 @@ class NasctnSeaDataProduct(Action):
         except:
             logger.warning("Failed to get SSD SMART data")
 
+        # Get software versions
+        software_diag = {
+            "platform": platform.platform(),
+            "python_version": sys.version,
+            "scos_actions_version": SCOS_ACTIONS_VERSION,
+            "preselector_api_version": PRESELECTOR_API_VERSION,
+        }
+
         toc = perf_counter()
         logger.debug(f"Got all diagnostics in {toc-tic} s")
         diagnostics = {
@@ -775,6 +791,7 @@ class NasctnSeaDataProduct(Action):
             "preselector": ntia_diagnostics.Preselector(**ps_diag),
             "spu": ntia_diagnostics.SPU(**spu_diag),
             "computer": ntia_diagnostics.Computer(**cpu_diag),
+            "software": ntia_diagnostics.Software(**software_diag),
             "action_runtime": round(perf_counter() - action_start_tic, 2),
         }
 

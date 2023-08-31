@@ -119,6 +119,22 @@ class Computer(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     ssd_smart_data: Optional[SsdSmartData] = None
 
 
+class Software(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
+    """
+    Interface for generating `ntia-diagnostics` `Software` objects.
+
+    :param system_platform: The underlying platform, as returned by `platform.platform()`
+    :param python_version: The Python version, as returned by `sys.version()`.
+    :param scos_actions_version: Version of `scos_actions` plugin.
+    :param preselector_api_version: Version of the NTIA `preselector` package.
+    """
+
+    system_platform: Optional[str] = None
+    python_version: Optional[str] = None
+    scos_actions_version: Optional[str] = None
+    preselector_api_version: Optional[str] = None
+
+
 class Diagnostics(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-diagnostics` `Diagnostics` objects.
@@ -135,4 +151,5 @@ class Diagnostics(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     preselector: Optional[Preselector] = None
     spu: Optional[SPU] = None
     computer: Optional[Computer] = None
+    software: Optional[Software] = None
     action_runtime: Optional[float] = None
