@@ -790,7 +790,7 @@ class NasctnSeaDataProduct(Action):
         # Get software versions
         software_diag = {
             "system_platform": platform.platform(),
-            "python_version": sys.version,
+            "python_version": sys.version.split()[0],
             "scos_actions_version": SCOS_ACTIONS_VERSION,
             "preselector_api_version": PRESELECTOR_API_VERSION,
         }
