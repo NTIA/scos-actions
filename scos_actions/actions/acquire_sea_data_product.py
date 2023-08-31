@@ -113,6 +113,7 @@ NUM_ACTORS = 3  # Number of ray actors to initialize
 
 # Create power detectors
 TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["mean", "max"])
+MEDIAN_DETECTOR = create_statistical_detector("MedianDetector", ["median"])
 FFT_DETECTOR = create_statistical_detector("FftMeanMaxDetector", ["mean", "max"])
 PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
 
@@ -257,9 +258,11 @@ class PowerVsTime:
         bin_size_ms: float,
         impedance_ohms: float = IMPEDANCE_OHMS,
         detector: EnumMeta = TD_DETECTOR,
+        median_detector: EnumMeta = MEDIAN_DETECTOR,
     ):
         self.block_size = int(bin_size_ms * sample_rate_Hz * 1e-3)
         self.detector = detector
+        self.median_detector = median_detector
         self.impedance_ohms = impedance_ohms
 
     def run(self, iq: ray.ObjectRef) -> Tuple[np.ndarray, np.ndarray]:
@@ -271,24 +274,27 @@ class PowerVsTime:
         :return: Two NumPy arrays: the first has shape (2, 400) and
             the second is 1D with length 2. The first array contains
             the (max, mean) detector results and the second array contains
-            the (max-of-max, median-of-mean) summary statistics.
+            the (max-of-max, median-of-mean, mean, median) single-valued
+            summary statistics.
         """
         # Reshape IQ data into blocks and calculate power
         n_blocks = len(iq) // self.block_size
         iq_pwr = calculate_power_watts(
             iq.reshape((n_blocks, self.block_size)), self.impedance_ohms
         )
+        # Get true median power
+        pvt_median = apply_statistical_detector(iq_pwr.flatten(), self.median_detector)
         # Apply max/mean detectors
         pvt_result = apply_statistical_detector(iq_pwr, self.detector, axis=1)
-        # Get single value median/max statistics
-        pvt_summary = np.array([pvt_result[0].max(), np.median(pvt_result[1])])
+        # Get single value statistics: (max-of-max, median-of-mean, mean, median)
+        pvt_summary = np.array([pvt_result[0].max(), np.median(pvt_result[1], pvt_result[1].mean(), pvt_median)])
         # Convert to dBm and account for RF/baseband power difference
         # Note: convert_watts_to_dBm is not used to avoid NumExpr usage
         # for the relatively small arrays
         pvt_result, pvt_summary = (
             10.0 * np.log10(x) + 27.0 for x in [pvt_result, pvt_summary]
         )
-        # Return order ((max array, mean array), (max-of-max, median-of-mean))
+        # Return order ((max array, mean array), (max-of-max, median-of-mean, mean, median))
         return pvt_result, pvt_summary
 
 
@@ -550,7 +556,7 @@ class NasctnSeaDataProduct(Action):
         )
 
         # Collect processed data product results
-        all_data, max_max_ch_pwrs, med_mean_ch_pwrs = [], [], []
+        all_data, max_max_ch_pwrs, med_mean_ch_pwrs, mean_ch_pwrs, median_ch_pwrs = [], [], [], [], []
         result_tic = perf_counter()
         for i, channel_data_process in enumerate(dp_procs):
             # Retrieve object references for channel data
@@ -564,6 +570,8 @@ class NasctnSeaDataProduct(Action):
                     data, summaries = data  # Split the tuple
                     max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
                     med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
+                    mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
+                    median_ch_pwrs.append(DATA_TYPE(summaries[3]))
                     del summaries
                 if i == 3:  # Separate condition is intentional
                     # APD result: append instead of extend,
@@ -585,6 +593,8 @@ class NasctnSeaDataProduct(Action):
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
         self.sigmf_builder.set_max_of_max_channel_powers(max_max_ch_pwrs)
         self.sigmf_builder.set_median_of_mean_channel_powers(med_mean_ch_pwrs)
+        self.sigmf_builder.set_mean_channel_powers(mean_ch_pwrs)
+        self.sigmf_builder.set_median_channel_powers(median_ch_pwrs)
         # Get diagnostics last to record action runtime
         self.capture_diagnostics(
             action_start_tic, cpu_speed
