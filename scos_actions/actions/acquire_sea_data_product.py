@@ -293,7 +293,9 @@ class PowerVsTime:
         pvt_summary = np.array(
             [
                 pvt_result[0].max(),
-                np.median(pvt_result[1], pvt_result[1].mean(), pvt_median),
+                np.median(pvt_result[1]),
+                pvt_result[1].mean(),
+                pvt_median,
             ]
         )
         # Convert to dBm and account for RF/baseband power difference
