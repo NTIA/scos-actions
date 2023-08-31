@@ -338,18 +338,22 @@ class SigMFBuilder:
     def set_mean_channel_powers(self, mean_channel_powers: List[float]) -> None:
         """
         Set the value of the Global "ntia-nasctn-sea:mean_channel_powers" field.
-        
+
         :param mean_channel_powers: The mean power per channel, in dBm.
         """
-        self.sigmf_md.set_global_field("ntia-nasctn-sea:mean_channel_powers", mean_channel_powers)
+        self.sigmf_md.set_global_field(
+            "ntia-nasctn-sea:mean_channel_powers", mean_channel_powers
+        )
 
     def set_median_channel_powers(self, median_channel_powers: List[float]) -> None:
         """
         Set the value of the Global "ntia-nasctn-sea:median_channel_powers" field.
-        
+
         :param median_channel_powers: The median power per channel, in dBm.
         """
-        self.sigmf_md.set_global_field("ntia-nasctn-sea:median_channel_powers", median_channel_powers)
+        self.sigmf_md.set_global_field(
+            "ntia-nasctn-sea:median_channel_powers", median_channel_powers
+        )
 
     def set_median_of_mean_channel_powers(
         self, median_of_mean_channel_powers: List[float]

@@ -31,11 +31,11 @@ from typing import Tuple
 import numpy as np
 import psutil
 import ray
+from its_preselector import __version__ as PRESELECTOR_API_VERSION
 from scipy.signal import sos2tf, sosfilt
 
-from its_preselector import __version__ as PRESELECTOR_API_VERSION
-from scos_actions import utils
 from scos_actions import __version__ as SCOS_ACTIONS_VERSION
+from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.capabilities import SENSOR_DEFINITION_HASH, SENSOR_LOCATION
 from scos_actions.hardware import preselector, switches
@@ -290,7 +290,12 @@ class PowerVsTime:
         # Apply max/mean detectors
         pvt_result = apply_statistical_detector(iq_pwr, self.detector, axis=1)
         # Get single value statistics: (max-of-max, median-of-mean, mean, median)
-        pvt_summary = np.array([pvt_result[0].max(), np.median(pvt_result[1], pvt_result[1].mean(), pvt_median)])
+        pvt_summary = np.array(
+            [
+                pvt_result[0].max(),
+                np.median(pvt_result[1], pvt_result[1].mean(), pvt_median),
+            ]
+        )
         # Convert to dBm and account for RF/baseband power difference
         # Note: convert_watts_to_dBm is not used to avoid NumExpr usage
         # for the relatively small arrays
@@ -560,7 +565,13 @@ class NasctnSeaDataProduct(Action):
         )
 
         # Collect processed data product results
-        all_data, max_max_ch_pwrs, med_mean_ch_pwrs, mean_ch_pwrs, median_ch_pwrs = [], [], [], [], []
+        all_data, max_max_ch_pwrs, med_mean_ch_pwrs, mean_ch_pwrs, median_ch_pwrs = (
+            [],
+            [],
+            [],
+            [],
+            [],
+        )
         result_tic = perf_counter()
         for i, channel_data_process in enumerate(dp_procs):
             # Retrieve object references for channel data
@@ -812,7 +823,9 @@ class NasctnSeaDataProduct(Action):
                 ),
                 preselector=ntia_sensor.Preselector(
                     preselector_spec=ntia_core.HardwareSpec(
-                        id=self.sensor_definition["preselector"]["preselector_spec"]["id"]
+                        id=self.sensor_definition["preselector"]["preselector_spec"][
+                            "id"
+                        ]
                     )
                 ),
                 signal_analyzer=ntia_sensor.SignalAnalyzer(
@@ -826,7 +839,7 @@ class NasctnSeaDataProduct(Action):
                 sensor_sha512=SENSOR_DEFINITION_HASH,
             )
         )
-    
+
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
         if not self.sigan.is_available:
