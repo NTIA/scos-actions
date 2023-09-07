@@ -104,7 +104,7 @@ PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
 
 # Constants
 DATA_TYPE = np.half
-PFP_FRAME_RESOLUTION_S = 1e-3 * (1 / 56.)
+PFP_FRAME_RESOLUTION_S = 1e-3 * (1 / 56.0)
 FFT_SIZE = 875
 FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
@@ -164,7 +164,7 @@ class PowerSpectralDensity:
     ):
         self.detector = detector
         self.num_ffts = num_ffts
-        
+
         if sample_rate_Hz == STANDARD_SAMPLING_RATE:
             self.fft_window = FFT_WINDOW
             self.fft_size = FFT_SIZE
@@ -181,7 +181,7 @@ class PowerSpectralDensity:
             # Do the best we can with the same number of output samples, for now:
             self.bin_start = 2375  # Corresponds to (baseband + 10 MHz)
             self.bin_end = 3000  # Corresponds to (baseband + 20 MHz)
-        
+
         # Compute the amplitude shift for PSD scaling. The FFT result
         # is in pseudo-power log units and must be scaled to a PSD.
         self.fft_scale_factor = (
@@ -517,9 +517,15 @@ class HybridSeaDataProduct(Action):
         # Construct frequency-shifted filter
         # Complex exponential assumes 56e6 sampling rate, and shifts
         # the filter response by +15 MHz.
-        iir_upshifter = np.exp(2j*np.pi*15e6*np.arange(0., 3./56e6, 1./56e6))
-        self.iir_sos_upshift = np.hstack((self.iir_sos[:,:3]*iir_upshifter, self.iir_sos[:,3:]*iir_upshifter))
-        self.iir_upshift_numerators, self.iir_upshift_denominators = sos2tf(self.iir_sos_upshift)
+        iir_upshifter = np.exp(
+            2j * np.pi * 15e6 * np.arange(0.0, 3.0 / 56e6, 1.0 / 56e6)
+        )
+        self.iir_sos_upshift = np.hstack(
+            (self.iir_sos[:, :3] * iir_upshifter, self.iir_sos[:, 3:] * iir_upshifter)
+        )
+        self.iir_upshift_numerators, self.iir_upshift_denominators = sos2tf(
+            self.iir_sos_upshift
+        )
 
         # Remove IIR parameters which aren't needed after filter generation
         for key in [
@@ -907,7 +913,7 @@ class HybridSeaDataProduct(Action):
             feedback_coefficients=self.iir_upshift_denominators.tolist(),
             attenuation_cutoff=self.iir_gstop_dB,
             frequency_cutoff=self.iir_sb_edge_Hz,  # TODO: ntia-algorithm does not support bandpass
-            description="Same filter as iir_1, but frequency shifted +15 MHz"
+            description="Same filter as iir_1, but frequency shifted +15 MHz",
         )
         self.sigmf_builder.set_processing([iir_obj.id, iir_upshifted_obj.id])
 
@@ -924,14 +930,18 @@ class HybridSeaDataProduct(Action):
         )
         dft_40MHz_obj = ntia_algorithm.DFT(
             id="psd_fft_40MHzIQ",
-            equivalent_noise_bandwidth=round(get_fft_enbw(WIDEBAND_FFT_WINDOW, REJECTOR_SAMPLING_RATE)),
+            equivalent_noise_bandwidth=round(
+                get_fft_enbw(WIDEBAND_FFT_WINDOW, REJECTOR_SAMPLING_RATE)
+            ),
             samples=WIDEBAND_FFT_SIZE,
             dfts=NUM_FFTS,
             window=FFT_WINDOW_TYPE,
             baseband=True,
-            description=f"" # TODO
+            description=f"",  # TODO
         )
-        self.sigmf_builder.set_processing_info([iir_obj, iir_upshifted_obj, dft_obj, dft_40MHz_obj])
+        self.sigmf_builder.set_processing_info(
+            [iir_obj, iir_upshifted_obj, dft_obj, dft_40MHz_obj]
+        )
 
         psd_length = int(FFT_SIZE * (5 / 7))
         psd_bin_center_offset = STANDARD_SAMPLING_RATE / FFT_SIZE / 2
