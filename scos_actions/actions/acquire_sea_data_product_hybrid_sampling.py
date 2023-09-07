@@ -16,7 +16,7 @@
 # - Markdown reference: https://commonmark.org/help/
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
-r"""Acquire a NASCTN SEA data product.
+r"""Acquire a NASCTN SEA data product, using a multi-sample rate approach.
 
 Currently in development.
 """
@@ -89,7 +89,6 @@ IIR_GPASS = "iir_gpass_dB"
 IIR_GSTOP = "iir_gstop_dB"
 IIR_PB_EDGE = "iir_pb_edge_Hz"
 IIR_SB_EDGE = "iir_sb_edge_Hz"
-NUM_FFTS = "nffts"
 APD_BIN_SIZE_DB = "apd_bin_size_dB"
 APD_MIN_BIN_DBM = "apd_min_bin_dBm"
 APD_MAX_BIN_DBM = "apd_max_bin_dBm"
@@ -110,9 +109,19 @@ FFT_SIZE = 875
 FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
+NUM_FFTS = 64000
 IMPEDANCE_OHMS = 50.0
 DATA_REFERENCE_POINT = "noise source output"
 NUM_ACTORS = 3  # Number of ray actors to initialize
+STANDARD_SAMPLING_RATE = 14e6
+
+# Constants for 40MHz capture processing ("wideband")
+REJECTOR_SAMPLING_RATE = 4 * STANDARD_SAMPLING_RATE
+WIDEBAND_FFT_SIZE = 4 * FFT_SIZE
+WIDEBAND_FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, WIDEBAND_FFT_SIZE)
+# FFT window ECF is the same as defined above
+# NUM_FFTS is the same as defined above
+
 
 # Create power detectors
 TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["mean", "max"])
@@ -148,26 +157,37 @@ class PowerSpectralDensity:
     def __init__(
         self,
         sample_rate_Hz: float,
-        num_ffts: int,
-        fft_size: int = FFT_SIZE,
-        fft_window: np.ndarray = FFT_WINDOW,
+        num_ffts: int = NUM_FFTS,
         window_ecf: float = FFT_WINDOW_ECF,
         detector: EnumMeta = FFT_DETECTOR,
         impedance_ohms: float = IMPEDANCE_OHMS,
     ):
         self.detector = detector
-        self.fft_size = fft_size
-        self.fft_window = fft_window
         self.num_ffts = num_ffts
-        # Get truncation points: truncate FFT result to middle 625 samples (middle 10 MHz from 14 MHz)
-        self.bin_start = int(fft_size / 7)  # bin_start = 125 with FFT_SIZE 875
-        self.bin_end = fft_size - self.bin_start  # bin_end = 750 with FFT_SIZE 875
+        
+        if sample_rate_Hz == STANDARD_SAMPLING_RATE:
+            self.fft_window = FFT_WINDOW
+            self.fft_size = FFT_SIZE
+            # Get truncation points: truncate FFT result to middle 625 samples (middle 10 MHz from 14 MHz)
+            self.bin_start = int(FFT_SIZE / 7)  # bin_start = 125 with FFT_SIZE 875
+            self.bin_end = FFT_SIZE - self.bin_start  # bin_end = 750 with FFT_SIZE 875
+            # Bin start corresponds to (baseband - 5 MHz)
+            # Bin end corresponds to (baseband + 5 MHz)
+        elif sample_rate_Hz == REJECTOR_SAMPLING_RATE:
+            self.fft_window = WIDEBAND_FFT_WINDOW
+            self.fft_size = WIDEBAND_FFT_SIZE
+            # TODO: Get truncation points
+            # Truncation points do not perfectly line up due to even "WIDEBAND_FFT_SIZE"
+            # Do the best we can with the same number of output samples, for now:
+            self.bin_start = 2375  # Corresponds to (baseband + 10 MHz)
+            self.bin_end = 3000  # Corresponds to (baseband + 20 MHz)
+        
         # Compute the amplitude shift for PSD scaling. The FFT result
         # is in pseudo-power log units and must be scaled to a PSD.
         self.fft_scale_factor = (
             -10.0 * np.log10(impedance_ohms)  # Pseudo-power to power
             + 27.0  # Watts to dBm (+30) and baseband to RF (-3)
-            - 10.0 * np.log10(sample_rate_Hz * fft_size)  # PSD scaling
+            - 10.0 * np.log10(sample_rate_Hz * self.fft_size)  # PSD scaling
             + 20.0 * np.log10(window_ecf)  # Window energy correction
         )
 
@@ -389,7 +409,7 @@ class IQProcessor:
     Note: the current implementation in ``__call__`` makes the
     assumption that all ``params`` used are identical for each
     consecutive capture (i.e., each channel). The ``params`` which
-    fall under this assumption are: ``SAMPLE_RATE``, ``NUM_FFTS``,
+    fall under this assumption are: ` ``NUM_FFTS``,
     ``TD_BIN_SIZE_MS``, ``PFP_FRAME_PERIOD_MS``, ``APD_BIN_SIZE_DB``,
     ``APD_MIN_BIN_DBM``, and ``APD_MAX_BIN_DBM``. A single set of IIR
     second-order-sections (``iir_sos``) is also used for filtering.
@@ -409,9 +429,7 @@ class IQProcessor:
     def __init__(self, params: dict, iir_sos: np.ndarray):
         # initialize worker processes
         self.iir_sos = iir_sos
-        self.fft_worker = PowerSpectralDensity.remote(
-            params[SAMPLE_RATE], params[NUM_FFTS]
-        )
+        self.fft_worker = PowerSpectralDensity.remote(params[SAMPLE_RATE])
         self.pvt_worker = PowerVsTime.remote(
             params[SAMPLE_RATE], params[TD_BIN_SIZE_MS]
         )
@@ -445,7 +463,7 @@ class IQProcessor:
         del iqdata
 
 
-class NasctnSeaDataProduct(Action):
+class HybridSeaDataProduct(Action):
     """Acquire a stepped-frequency NASCTN SEA data product.
 
     :param parameters: The dictionary of parameters needed for
@@ -469,7 +487,6 @@ class NasctnSeaDataProduct(Action):
                 IIR_GSTOP,
                 IIR_PB_EDGE,
                 IIR_SB_EDGE,
-                NUM_FFTS,
                 SAMPLE_RATE,
                 DURATION_MS,
                 TD_BIN_SIZE_MS,
@@ -497,6 +514,13 @@ class NasctnSeaDataProduct(Action):
         )
         self.iir_numerators, self.iir_denominators = sos2tf(self.iir_sos)
 
+        # Construct frequency-shifted filter
+        # Complex exponential assumes 56e6 sampling rate, and shifts
+        # the filter response by +15 MHz.
+        iir_upshifter = np.exp(2j*np.pi*15e6*np.arange(0., 3./56e6, 1./56e6))
+        self.iir_sos_upshift = np.hstack((self.iir_sos[:,:3]*iir_upshifter, self.iir_sos[:,3:]*iir_upshifter))
+        self.iir_upshift_numerators, self.iir_upshift_denominators = sos2tf(self.iir_sos_upshift)
+
         # Remove IIR parameters which aren't needed after filter generation
         for key in [
             IIR_GPASS,
@@ -520,6 +544,8 @@ class NasctnSeaDataProduct(Action):
         # Initialize metadata object
         self.get_sigmf_builder(
             # Assumes the sigan correctly uses the configured sample rate.
+            # TODO: SigMF only supports 1 sampling rate per metadata file.
+            # This is inherently wrong for the multi-sample rate approach.
             self.iteration_params[0][SAMPLE_RATE],
             task_id,
             schedule_entry,
@@ -535,6 +561,12 @@ class NasctnSeaDataProduct(Action):
             IQProcessor.remote(self.iteration_params[0], self.iir_sos)
             for _ in range(NUM_ACTORS)
         ]
+        iq_40MHz_processors = [
+            # This assumes that the highest frequency capture should use
+            # the 40 MHz acquisition approach.
+            IQProcessor.remote(self.iteration_params[-1], self.iir_sos_upshift)
+            for _ in range(2)  # For two consecutive 40MHz captures
+        ]
         toc = perf_counter()
         logger.debug(f"Spawned {NUM_ACTORS} supervisor actors in {toc-tic:.2f} s")
 
@@ -546,9 +578,14 @@ class NasctnSeaDataProduct(Action):
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
 
-            dp_procs.append(
-                iq_processors[i % NUM_ACTORS].run.remote(measurement_result["data"])
-            )
+            if parameters[SAMPLE_RATE] == STANDARD_SAMPLING_RATE:
+                dp_procs.append(
+                    iq_processors[i % NUM_ACTORS].run.remote(measurement_result["data"])
+                )
+            elif parameters[SAMPLE_RATE] == REJECTOR_SAMPLING_RATE:
+                dp_procs.append(
+                    iq_40MHz_processors[i % 2].run.remote(measurement_result["data"])
+                )
             del measurement_result["data"]
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc-tic:.2f} s")
@@ -596,7 +633,7 @@ class NasctnSeaDataProduct(Action):
                     channel_data.extend(data)
             toc = perf_counter()
             logger.debug(f"Waited {toc-tic} s for channel data")
-            all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
+            all_data.extend(HybridSeaDataProduct.transform_data(channel_data))
         for ray_actor in iq_processors:
             ray.kill(ray_actor)
         result_toc = perf_counter()
@@ -854,7 +891,6 @@ class NasctnSeaDataProduct(Action):
 
     def create_global_data_product_metadata(self) -> None:
         p = self.parameters
-        num_iq_samples = int(p[SAMPLE_RATE] * p[DURATION_MS] * 1e-3)
         iir_obj = ntia_algorithm.DigitalFilter(
             id="iir_1",
             filter_type=ntia_algorithm.FilterType.IIR,
@@ -864,23 +900,41 @@ class NasctnSeaDataProduct(Action):
             frequency_cutoff=self.iir_sb_edge_Hz,
             description="5 MHz lowpass filter used as complex 10 MHz bandpass for channelization",
         )
-        self.sigmf_builder.set_processing([iir_obj.id])
+        iir_upshifted_obj = ntia_algorithm.DigitalFilter(
+            id="iir_2",
+            filter_type=ntia_algorithm.FilterType.IIR,
+            feedforward_coefficients=self.iir_upshift_numerators.tolist(),
+            feedback_coefficients=self.iir_upshift_denominators.tolist(),
+            attenuation_cutoff=self.iir_gstop_dB,
+            frequency_cutoff=self.iir_sb_edge_Hz,  # TODO: ntia-algorithm does not support bandpass
+            description="Same filter as iir_1, but frequency shifted +15 MHz"
+        )
+        self.sigmf_builder.set_processing([iir_obj.id, iir_upshifted_obj.id])
 
         dft_obj = ntia_algorithm.DFT(
             id="psd_fft",
             equivalent_noise_bandwidth=round(
-                get_fft_enbw(FFT_WINDOW, p[SAMPLE_RATE]), 2
+                get_fft_enbw(FFT_WINDOW, STANDARD_SAMPLING_RATE), 2
             ),
             samples=FFT_SIZE,
-            dfts=int(p[NUM_FFTS]),
+            dfts=NUM_FFTS,
             window=FFT_WINDOW_TYPE,
             baseband=True,
             description=f"First and last {int(FFT_SIZE / 7)} samples from {FFT_SIZE}-point FFT discarded",
         )
-        self.sigmf_builder.set_processing_info([iir_obj, dft_obj])
+        dft_40MHz_obj = ntia_algorithm.DFT(
+            id="psd_fft_40MHzIQ",
+            equivalent_noise_bandwidth=round(get_fft_enbw(WIDEBAND_FFT_WINDOW, REJECTOR_SAMPLING_RATE)),
+            samples=WIDEBAND_FFT_SIZE,
+            dfts=NUM_FFTS,
+            window=FFT_WINDOW_TYPE,
+            baseband=True,
+            description=f"" # TODO
+        )
+        self.sigmf_builder.set_processing_info([iir_obj, iir_upshifted_obj, dft_obj, dft_40MHz_obj])
 
         psd_length = int(FFT_SIZE * (5 / 7))
-        psd_bin_center_offset = p[SAMPLE_RATE] / FFT_SIZE / 2
+        psd_bin_center_offset = STANDARD_SAMPLING_RATE / FFT_SIZE / 2
         psd_x_axis__Hz = np.arange(psd_length) * (
             (p[SAMPLE_RATE] / FFT_SIZE)
             - (p[SAMPLE_RATE] * (5 / 7) / 2)
@@ -889,6 +943,8 @@ class NasctnSeaDataProduct(Action):
         psd_bin_start = int(FFT_SIZE / 7)  # bin_start = 125 with FFT_SIZE 875
         psd_bin_end = FFT_SIZE - psd_bin_start  # bin_end = 750 with FFT_SIZE 875
         psd_x_axis__Hz = get_fft_frequencies(FFT_SIZE, 14e6, 0.0)  # Baseband
+        # TODO: Graph object does not support different graph types for different captures
+        # TODO: for now, leave the graph objects as-is.
         psd_graph = ntia_algorithm.Graph(
             name="Power Spectral Density",
             series=[d.value for d in FFT_DETECTOR],  # ["max", "mean"]
@@ -896,7 +952,7 @@ class NasctnSeaDataProduct(Action):
             x_units="Hz",
             x_start=[psd_x_axis__Hz[psd_bin_start]],
             x_stop=[psd_x_axis__Hz[psd_bin_end - 1]],  # -1 for zero-indexed array
-            x_step=[p[SAMPLE_RATE] / FFT_SIZE],
+            x_step=[STANDARD_SAMPLING_RATE / FFT_SIZE],
             y_units="dBm/Hz",
             processing=[dft_obj.id],
             reference=DATA_REFERENCE_POINT,
@@ -924,7 +980,6 @@ class NasctnSeaDataProduct(Action):
                 + f"an integration time of {p[TD_BIN_SIZE_MS]} ms. "
                 + "Each data point represents the result of a statistical "
                 + f"detector applied over the previous {p[TD_BIN_SIZE_MS]}."
-                + f" In total, {num_iq_samples} IQ samples were used as the input."
             ),
         )
 
