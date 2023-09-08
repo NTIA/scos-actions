@@ -25,13 +25,13 @@ import lzma
 import platform
 import sys
 from enum import EnumMeta
-from environs import Env
 from time import perf_counter
 from typing import Tuple
 
 import numpy as np
 import psutil
 import ray
+from environs import Env
 from its_preselector import __version__ as PRESELECTOR_API_VERSION
 from scipy.signal import sos2tf, sosfilt
 
