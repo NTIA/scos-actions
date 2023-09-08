@@ -125,12 +125,14 @@ class Software(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
 
     :param system_platform: The underlying platform, as returned by `platform.platform()`
     :param python_version: The Python version, as returned by `sys.version()`.
+    :param scos_sensor_version: The SCOS Sensor version, as returned by `git describe --tags`.
     :param scos_actions_version: Version of `scos_actions` plugin.
     :param preselector_api_version: Version of the NTIA `preselector` package.
     """
 
     system_platform: Optional[str] = None
     python_version: Optional[str] = None
+    scos_sensor_version: Optional[str] = None
     scos_actions_version: Optional[str] = None
     preselector_api_version: Optional[str] = None
 

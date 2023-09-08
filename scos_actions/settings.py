@@ -38,13 +38,13 @@ if not settings.configured:
     SIGAN_POWER_CYCLE_STATES = env("SIGAN_POWER_CYCLE_STATES", default=None)
     SIGAN_POWER_SWITCH = env("SIGAN_POWER_SWITCH", default=None)
     MOCK_SIGAN = env("MOCK_SIGAN", default=None)
-
-
+    SCOS_SENSOR_GIT_TAG = env("SCOS_SENSOR_GIT_TAG", default="unknown")
 else:
     MOCK_SIGAN = settings.MOCK_SIGAN
     RUNNING_TESTS = settings.RUNNING_TESTS
     SENSOR_DEFINITION_FILE = Path(settings.SENSOR_DEFINITION_FILE)
     FQDN = settings.FQDN
+    SCOS_SENSOR_GIT_TAG = settings.SCOS_SENSOR_GIT_TAG
     if settings.PRESELECTOR_CONFIG:
         PRESELECTOR_CONFIG_FILE = settings.PRESELECTOR_CONFIG
     else:
