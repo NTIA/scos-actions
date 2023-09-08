@@ -20,9 +20,10 @@ r"""Acquire a NASCTN SEA data product.
 
 Currently in development.
 """
-import gc
 import logging
 import lzma
+import platform
+import sys
 from enum import EnumMeta
 from time import perf_counter
 from typing import Tuple
@@ -30,8 +31,11 @@ from typing import Tuple
 import numpy as np
 import psutil
 import ray
+from environs import Env
+from its_preselector import __version__ as PRESELECTOR_API_VERSION
 from scipy.signal import sos2tf, sosfilt
 
+from scos_actions import __version__ as SCOS_ACTIONS_VERSION
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.capabilities import SENSOR_DEFINITION_HASH, SENSOR_LOCATION
@@ -53,6 +57,7 @@ from scos_actions.metadata.structs import (
     ntia_sensor,
 )
 from scos_actions.metadata.structs.capture import CaptureSegment
+from scos_actions.settings import SCOS_SENSOR_GIT_TAG
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
     get_fft,
@@ -74,6 +79,7 @@ from scos_actions.signals import measurement_action_completed, trigger_api_resta
 from scos_actions.status import start_time
 from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
 
+env = Env()
 logger = logging.getLogger(__name__)
 
 if not ray.is_initialized():
@@ -271,24 +277,34 @@ class PowerVsTime:
         :return: Two NumPy arrays: the first has shape (2, 400) and
             the second is 1D with length 2. The first array contains
             the (max, mean) detector results and the second array contains
-            the (max-of-max, median-of-mean) summary statistics.
+            the (max-of-max, median-of-mean, mean, median) single-valued
+            summary statistics.
         """
         # Reshape IQ data into blocks and calculate power
         n_blocks = len(iq) // self.block_size
         iq_pwr = calculate_power_watts(
             iq.reshape((n_blocks, self.block_size)), self.impedance_ohms
         )
+        # Get true median power
+        pvt_median = np.median(iq_pwr.flatten())
         # Apply max/mean detectors
         pvt_result = apply_statistical_detector(iq_pwr, self.detector, axis=1)
-        # Get single value median/max statistics
-        pvt_summary = np.array([pvt_result[0].max(), np.median(pvt_result[1])])
+        # Get single value statistics: (max-of-max, median-of-mean, mean, median)
+        pvt_summary = np.array(
+            [
+                pvt_result[0].max(),
+                np.median(pvt_result[1]),
+                pvt_result[1].mean(),
+                pvt_median,
+            ]
+        )
         # Convert to dBm and account for RF/baseband power difference
         # Note: convert_watts_to_dBm is not used to avoid NumExpr usage
         # for the relatively small arrays
         pvt_result, pvt_summary = (
             10.0 * np.log10(x) + 27.0 for x in [pvt_result, pvt_summary]
         )
-        # Return order ((max array, mean array), (max-of-max, median-of-mean))
+        # Return order ((max array, mean array), (max-of-max, median-of-mean, mean, median))
         return pvt_result, pvt_summary
 
 
@@ -512,6 +528,7 @@ class NasctnSeaDataProduct(Action):
             schedule_entry,
             self.iteration_params,
         )
+        self.create_global_sensor_metadata()
         self.create_global_data_product_metadata()
 
         # Initialize remote supervisor actors for IQ processing
@@ -550,7 +567,13 @@ class NasctnSeaDataProduct(Action):
         )
 
         # Collect processed data product results
-        all_data, max_max_ch_pwrs, med_mean_ch_pwrs = [], [], []
+        all_data, max_max_ch_pwrs, med_mean_ch_pwrs, mean_ch_pwrs, median_ch_pwrs = (
+            [],
+            [],
+            [],
+            [],
+            [],
+        )
         result_tic = perf_counter()
         for i, channel_data_process in enumerate(dp_procs):
             # Retrieve object references for channel data
@@ -564,6 +587,8 @@ class NasctnSeaDataProduct(Action):
                     data, summaries = data  # Split the tuple
                     max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
                     med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
+                    mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
+                    median_ch_pwrs.append(DATA_TYPE(summaries[3]))
                     del summaries
                 if i == 3:  # Separate condition is intentional
                     # APD result: append instead of extend,
@@ -585,6 +610,8 @@ class NasctnSeaDataProduct(Action):
         all_data = self.compress_bytes_data(np.array(all_data).tobytes())
         self.sigmf_builder.set_max_of_max_channel_powers(max_max_ch_pwrs)
         self.sigmf_builder.set_median_of_mean_channel_powers(med_mean_ch_pwrs)
+        self.sigmf_builder.set_mean_channel_powers(mean_ch_pwrs)
+        self.sigmf_builder.set_median_channel_powers(median_ch_pwrs)
         # Get diagnostics last to record action runtime
         self.capture_diagnostics(
             action_start_tic, cpu_speed
@@ -645,6 +672,9 @@ class NasctnSeaDataProduct(Action):
             CPU temperature, CPU overheating status, CPU uptime, SCOS
             start time, and SCOS uptime.
 
+        Software versions: the OS platform, Python version, scos_actions
+            version, and preselector API version.
+
         The total action runtime is also recorded.
 
         Preselector X410 Setup requires:
@@ -670,6 +700,8 @@ class NasctnSeaDataProduct(Action):
 
         :param action_start_tic: Action start timestamp, as would
              be returned by ``time.perf_counter()``
+        :param cpu_speeds: List of CPU speed values, recorded at
+            consecutive points as the action has been running.
         """
         tic = perf_counter()
         # Read SPU sensors
@@ -758,6 +790,15 @@ class NasctnSeaDataProduct(Action):
         except:
             logger.warning("Failed to get SSD SMART data")
 
+        # Get software versions
+        software_diag = {
+            "system_platform": platform.platform(),
+            "python_version": sys.version.split()[0],
+            "scos_sensor_version": SCOS_SENSOR_GIT_TAG,
+            "scos_actions_version": SCOS_ACTIONS_VERSION,
+            "preselector_api_version": PRESELECTOR_API_VERSION,
+        }
+
         toc = perf_counter()
         logger.debug(f"Got all diagnostics in {toc-tic} s")
         diagnostics = {
@@ -765,11 +806,42 @@ class NasctnSeaDataProduct(Action):
             "preselector": ntia_diagnostics.Preselector(**ps_diag),
             "spu": ntia_diagnostics.SPU(**spu_diag),
             "computer": ntia_diagnostics.Computer(**cpu_diag),
+            "software": ntia_diagnostics.Software(**software_diag),
             "action_runtime": round(perf_counter() - action_start_tic, 2),
         }
 
         # Add diagnostics to SigMF global object
         self.sigmf_builder.set_diagnostics(ntia_diagnostics.Diagnostics(**diagnostics))
+
+    def create_global_sensor_metadata(self):
+        # Add (minimal) ntia-sensor metadata to the sigmf_builder:
+        #   sensor ID, serial numbers for preselector, sigan, and computer
+        #   overall sensor_spec version, e.g. "Prototype Rev. 3"
+        #   sensor definition hash, to link to full sensor definition
+        self.sigmf_builder.set_sensor(
+            ntia_sensor.Sensor(
+                sensor_spec=ntia_core.HardwareSpec(
+                    id=self.sensor_definition["sensor_spec"]["id"],
+                    version=self.sensor_definition["sensor_spec"]["version"],
+                ),
+                preselector=ntia_sensor.Preselector(
+                    preselector_spec=ntia_core.HardwareSpec(
+                        id=self.sensor_definition["preselector"]["preselector_spec"][
+                            "id"
+                        ]
+                    )
+                ),
+                signal_analyzer=ntia_sensor.SignalAnalyzer(
+                    sigan_spec=ntia_core.HardwareSpec(
+                        id=self.sensor_definition["signal_analyzer"]["sigan_spec"]["id"]
+                    )
+                ),
+                computer_spec=ntia_sensor.HardwareSpec(
+                    id=self.sensor_definition["computer_spec"]["id"]
+                ),
+                sensor_sha512=SENSOR_DEFINITION_HASH,
+            )
+        )
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
@@ -986,16 +1058,6 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
-
-        # Add (minimal) ntia-sensor metadata: ID + hash
-        sigmf_builder.set_sensor(
-            ntia_sensor.Sensor(
-                sensor_spec=ntia_core.HardwareSpec(
-                    id=self.sensor_definition["sensor_spec"]["id"],
-                ),
-                sensor_sha512=SENSOR_DEFINITION_HASH,
-            )
-        )
 
         # Mark data as UNCLASSIFIED
         sigmf_builder.set_classification("UNCLASSIFIED")
