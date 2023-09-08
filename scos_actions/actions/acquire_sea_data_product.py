@@ -25,6 +25,7 @@ import lzma
 import platform
 import sys
 from enum import EnumMeta
+from environs import Env
 from time import perf_counter
 from typing import Tuple
 
@@ -77,6 +78,7 @@ from scos_actions.signals import measurement_action_completed, trigger_api_resta
 from scos_actions.status import start_time
 from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
 
+env = Env()
 logger = logging.getLogger(__name__)
 
 if not ray.is_initialized():
@@ -791,6 +793,7 @@ class NasctnSeaDataProduct(Action):
         software_diag = {
             "system_platform": platform.platform(),
             "python_version": sys.version.split()[0],
+            "scos_sensor_version": env("SCOS_SENSOR_GIT_TAG", "unknown"),
             "scos_actions_version": SCOS_ACTIONS_VERSION,
             "preselector_api_version": PRESELECTOR_API_VERSION,
         }
