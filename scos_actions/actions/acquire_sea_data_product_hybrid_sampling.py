@@ -176,9 +176,8 @@ class PowerSpectralDensity:
         elif sample_rate_Hz == REJECTOR_SAMPLING_RATE:
             self.fft_window = WIDEBAND_FFT_WINDOW
             self.fft_size = WIDEBAND_FFT_SIZE
-            # TODO: Get truncation points
-            # Truncation points do not perfectly line up due to even "WIDEBAND_FFT_SIZE"
-            # Do the best we can with the same number of output samples, for now:
+            # ! Truncation points do not perfectly line up due to even "WIDEBAND_FFT_SIZE"
+            # ! Do the best we can with the same number of output samples, for now:
             self.bin_start = 2375  # Corresponds to (baseband + 10 MHz)
             self.bin_end = 3000  # Corresponds to (baseband + 20 MHz)
 
@@ -517,7 +516,7 @@ class HybridSeaDataProduct(Action):
         # Complex exponential assumes 56e6 sampling rate, and shifts
         # the filter response by +15 MHz.
         iir_upshifter = np.exp(
-            2j * np.pi * 15e6 * np.arange(0.0, 3.0 / 56e6, 1.0 / 56e6)
+            2j * np.pi * 15e6 * np.arange(0.0, 3.0 / REJECTOR_SAMPLING_RATE, 1.0 / REJECTOR_SAMPLING_RATE)
         )
         self.iir_sos_upshift = np.hstack(
             (self.iir_sos[:, :3] * iir_upshifter, self.iir_sos[:, 3:] * iir_upshifter)
