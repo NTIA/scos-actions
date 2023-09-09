@@ -500,7 +500,6 @@ class HybridSeaDataProduct(Action):
         self.iir_gstop_dB = utils.get_parameter(IIR_GSTOP, self.parameters)
         self.iir_pb_edge_Hz = utils.get_parameter(IIR_PB_EDGE, self.parameters)
         self.iir_sb_edge_Hz = utils.get_parameter(IIR_SB_EDGE, self.parameters)
-        self.sample_rate_Hz = utils.get_parameter(SAMPLE_RATE, self.parameters)
 
         # Construct IIR filter
         self.iir_sos = generate_elliptic_iir_low_pass_filter(
@@ -508,18 +507,25 @@ class HybridSeaDataProduct(Action):
             self.iir_gstop_dB,
             self.iir_pb_edge_Hz,
             self.iir_sb_edge_Hz,
-            self.sample_rate_Hz,
+            STANDARD_SAMPLING_RATE,
         )
         self.iir_numerators, self.iir_denominators = sos2tf(self.iir_sos)
 
         # Construct frequency-shifted filter
         # Complex exponential assumes 56e6 sampling rate, and shifts
         # the filter response by +15 MHz.
+        self.iir_sos_upshift = generate_elliptic_iir_low_pass_filter(
+            self.iir_gpass_dB,
+            self.iir_gstop_dB,
+            self.iir_pb_edge_Hz,
+            self.iir_sb_edge_Hz,
+            REJECTOR_SAMPLING_RATE,
+        )
         iir_upshifter = np.exp(
             2j * np.pi * 15e6 * np.arange(0.0, 3.0 / REJECTOR_SAMPLING_RATE, 1.0 / REJECTOR_SAMPLING_RATE)
         )
         self.iir_sos_upshift = np.hstack(
-            (self.iir_sos[:, :3] * iir_upshifter, self.iir_sos[:, 3:] * iir_upshifter)
+            (self.iir_sos_upshift[:, :3] * iir_upshifter, self.iir_sos_upshift[:, 3:] * iir_upshifter)
         )
         self.iir_upshift_numerators, self.iir_upshift_denominators = sos2tf(
             self.iir_sos_upshift

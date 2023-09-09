@@ -176,7 +176,6 @@ class HybridSamplingYFactorCalibration(Action):
             self.iir_num_response_frequencies = get_parameter(
                 IIR_RESP_FREQS, parameters
             )
-            self.sample_rate = get_parameter(SAMPLE_RATE, parameters)
             if not any(
                 [
                     isinstance(v, list)
@@ -185,7 +184,6 @@ class HybridSamplingYFactorCalibration(Action):
                         self.iir_gstop_dB,
                         self.iir_pb_edge_Hz,
                         self.iir_sb_edge_Hz,
-                        self.sample_rate,
                     ]
                 ]
             ):
@@ -195,21 +193,29 @@ class HybridSamplingYFactorCalibration(Action):
                     self.iir_gstop_dB,
                     self.iir_pb_edge_Hz,
                     self.iir_sb_edge_Hz,
-                    self.sample_rate,
+                    STANDARD_SAMPLING_RATE,
                 )
                 # And get its ENBW
                 self.iir_enbw_hz = get_iir_enbw(
-                    self.iir_sos, self.iir_num_response_frequencies, self.sample_rate
+                    self.iir_sos, self.iir_num_response_frequencies, STANDARD_SAMPLING_RATE
                 )
                 # Construct frequency-shifted filter
                 # Complex exponential assumes 56e6 sampling rate, and shifts
                 # the filter response by +15 MHz.
+                self.iir_sos_upshift = generate_elliptic_iir_low_pass_filter(
+                    self.iir_gpass_dB,
+                    self.iir_gstop_dB,
+                    self.iir_pb_edge_Hz,
+                    self.iir_sb_edge_Hz,
+                    REJECTOR_SAMPLING_RATE,
+                )
                 iir_upshifter = np.exp(
                     2j * np.pi * 15e6 * np.arange(0.0, 3.0 / 56e6, 1.0 / 56e6)
                 )
                 self.iir_sos_upshift = np.hstack(
-                    (self.iir_sos[:, :3] * iir_upshifter, self.iir_sos[:, 3:] * iir_upshifter)
+                    (self.iir_sos_upshift[:, :3] * iir_upshifter, self.iir_sos_upshift[:, 3:] * iir_upshifter)
                 )
+                self.iir_upshift_enbw_hz = get_iir_enbw(self.iir_sos_upshift, self.iir_num_response_frequencies * 4, REJECTOR_SAMPLING_RATE)
             else:
                 raise ParameterException(
                     "Only one set of IIR filter parameters may be specified (including sample rate)."
@@ -270,10 +276,9 @@ class HybridSamplingYFactorCalibration(Action):
 
         # Apply IIR filtering to both captures if configured
         if self.iir_apply:
-            # Estimate of IIR filter ENBW does NOT account for passband ripple in sensor transfer function!
-            enbw_hz = self.iir_enbw_hz
             logger.debug("Applying IIR filter to IQ captures")
             if sample_rate == REJECTOR_SAMPLING_RATE:
+                enbw_hz = self.iir_upshift_enbw_hz
                 # ! Warning: calibration data is matched by sigan settings, and does not
                 # ! account for this hybrid sampling approach. Take care using this.
                 # ! For example, using the 40 MHz scheme to measure the 3690-3700 MHz channel
@@ -282,6 +287,8 @@ class HybridSamplingYFactorCalibration(Action):
                 noise_on_data = sosfilt(self.iir_sos_upshift, noise_on_measurement_result["data"])
                 noise_off_data = sosfilt(self.iir_sos_upshift, noise_on_measurement_result["data"])
             else:
+                # Estimate of IIR filter ENBW does NOT account for passband ripple in sensor transfer function!
+                enbw_hz = self.iir_enbw_hz
                 noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
                 noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
         else:
