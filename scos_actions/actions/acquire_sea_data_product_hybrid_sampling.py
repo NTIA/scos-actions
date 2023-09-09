@@ -487,7 +487,6 @@ class HybridSeaDataProduct(Action):
                 IIR_GSTOP,
                 IIR_PB_EDGE,
                 IIR_SB_EDGE,
-                SAMPLE_RATE,
                 DURATION_MS,
                 TD_BIN_SIZE_MS,
                 PFP_FRAME_PERIOD_MS,
