@@ -600,7 +600,9 @@ class HybridSeaDataProduct(Action):
                 )
             elif parameters[SAMPLE_RATE] == REJECTOR_SAMPLING_RATE:
                 dp_procs.append(
-                    iq_40MHz_processors[i % 2].run.remote(measurement_result["data"])
+                    iq_40MHz_processors[i % 2].run.remote(
+                        measurement_result["data"].copy()
+                    )
                 )
             del measurement_result["data"]
             toc = perf_counter()
