@@ -957,8 +957,8 @@ class HybridSeaDataProduct(Action):
         psd_bin_center_offset = STANDARD_SAMPLING_RATE / FFT_SIZE / 2
         psd_x_axis__Hz = np.arange(psd_length) * (
             # ! TODO: This is incorrect.
-            (p[SAMPLE_RATE][0] / FFT_SIZE)
-            - (p[SAMPLE_RATE] * (5 / 7) / 2)
+            (STANDARD_SAMPLING_RATE / FFT_SIZE)
+            - (STANDARD_SAMPLING_RATE * (5 / 7) / 2)
             + psd_bin_center_offset
         )
         psd_bin_start = int(FFT_SIZE / 7)  # bin_start = 125 with FFT_SIZE 875
