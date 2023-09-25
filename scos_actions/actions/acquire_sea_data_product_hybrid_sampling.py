@@ -522,10 +522,16 @@ class HybridSeaDataProduct(Action):
             REJECTOR_SAMPLING_RATE,
         )
         iir_upshifter = np.exp(
-            2j * np.pi * 15e6 * np.arange(0.0, 3.0 / REJECTOR_SAMPLING_RATE, 1.0 / REJECTOR_SAMPLING_RATE)
+            2j
+            * np.pi
+            * 15e6
+            * np.arange(0.0, 3.0 / REJECTOR_SAMPLING_RATE, 1.0 / REJECTOR_SAMPLING_RATE)
         )
         self.iir_sos_upshift = np.hstack(
-            (self.iir_sos_upshift[:, :3] * iir_upshifter, self.iir_sos_upshift[:, 3:] * iir_upshifter)
+            (
+                self.iir_sos_upshift[:, :3] * iir_upshifter,
+                self.iir_sos_upshift[:, 3:] * iir_upshifter,
+            )
         )
         self.iir_upshift_numerators, self.iir_upshift_denominators = sos2tf(
             self.iir_sos_upshift
@@ -950,7 +956,8 @@ class HybridSeaDataProduct(Action):
         psd_length = int(FFT_SIZE * (5 / 7))
         psd_bin_center_offset = STANDARD_SAMPLING_RATE / FFT_SIZE / 2
         psd_x_axis__Hz = np.arange(psd_length) * (
-            (p[SAMPLE_RATE] / FFT_SIZE)
+            # ! TODO: This is incorrect.
+            (p[SAMPLE_RATE][0] / FFT_SIZE)
             - (p[SAMPLE_RATE] * (5 / 7) / 2)
             + psd_bin_center_offset
         )
