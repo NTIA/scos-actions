@@ -197,7 +197,9 @@ class HybridSamplingYFactorCalibration(Action):
                 )
                 # And get its ENBW
                 self.iir_enbw_hz = get_iir_enbw(
-                    self.iir_sos, self.iir_num_response_frequencies, STANDARD_SAMPLING_RATE
+                    self.iir_sos,
+                    self.iir_num_response_frequencies,
+                    STANDARD_SAMPLING_RATE,
                 )
                 # Construct frequency-shifted filter
                 # Complex exponential assumes 56e6 sampling rate, and shifts
@@ -213,9 +215,16 @@ class HybridSamplingYFactorCalibration(Action):
                     2j * np.pi * 15e6 * np.arange(0.0, 3.0 / 56e6, 1.0 / 56e6)
                 )
                 self.iir_sos_upshift = np.hstack(
-                    (self.iir_sos_upshift[:, :3] * iir_upshifter, self.iir_sos_upshift[:, 3:] * iir_upshifter)
+                    (
+                        self.iir_sos_upshift[:, :3] * iir_upshifter,
+                        self.iir_sos_upshift[:, 3:] * iir_upshifter,
+                    )
                 )
-                self.iir_upshift_enbw_hz = get_iir_enbw(self.iir_sos_upshift, self.iir_num_response_frequencies * 4, REJECTOR_SAMPLING_RATE)
+                self.iir_upshift_enbw_hz = get_iir_enbw(
+                    self.iir_sos_upshift,
+                    self.iir_num_response_frequencies * 4,
+                    REJECTOR_SAMPLING_RATE,
+                )
             else:
                 raise ParameterException(
                     "Only one set of IIR filter parameters may be specified (including sample rate)."
@@ -284,13 +293,21 @@ class HybridSamplingYFactorCalibration(Action):
                 # ! For example, using the 40 MHz scheme to measure the 3690-3700 MHz channel
                 # ! will create calibration data for samp_rate=56e6, freq=3680MHz, with no
                 # ! explicit indication that the offset filtering has been performed.
-                noise_on_data = sosfilt(self.iir_sos_upshift, noise_on_measurement_result["data"])
-                noise_off_data = sosfilt(self.iir_sos_upshift, noise_on_measurement_result["data"])
+                noise_on_data = sosfilt(
+                    self.iir_sos_upshift, noise_on_measurement_result["data"]
+                )
+                noise_off_data = sosfilt(
+                    self.iir_sos_upshift, noise_off_measurement_result["data"]
+                )
             else:
                 # Estimate of IIR filter ENBW does NOT account for passband ripple in sensor transfer function!
                 enbw_hz = self.iir_enbw_hz
-                noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
-                noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
+                noise_on_data = sosfilt(
+                    self.iir_sos, noise_on_measurement_result["data"]
+                )
+                noise_off_data = sosfilt(
+                    self.iir_sos, noise_off_measurement_result["data"]
+                )
         else:
             logger.debug("Skipping IIR filtering")
             # Get ENBW from sensor calibration
