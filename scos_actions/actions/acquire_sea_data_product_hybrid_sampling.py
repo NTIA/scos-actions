@@ -112,7 +112,7 @@ FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
 NUM_FFTS = 64000
 IMPEDANCE_OHMS = 50.0
 DATA_REFERENCE_POINT = "noise source output"
-NUM_ACTORS = 3  # Number of ray actors to initialize
+NUM_ACTORS = 1  # Number of ray actors to initialize
 STANDARD_SAMPLING_RATE = 14e6
 
 # Constants for 40MHz capture processing ("wideband")
