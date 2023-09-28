@@ -575,7 +575,7 @@ class NasctnSeaDataProduct(Action):
             [],
         )
         result_tic = perf_counter()
-        for i, channel_data_process in enumerate(dp_procs):
+        for channel_data_process in dp_procs:
             # Retrieve object references for channel data
             channel_data_refs = ray.get(channel_data_process)
             channel_data = []
