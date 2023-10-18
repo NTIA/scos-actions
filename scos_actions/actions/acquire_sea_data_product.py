@@ -796,6 +796,7 @@ class NasctnSeaDataProduct(Action):
             "python_version": sys.version.split()[0],
             "scos_sensor_version": SCOS_SENSOR_GIT_TAG,
             "scos_actions_version": SCOS_ACTIONS_VERSION,
+            "scos_tekrsa_version": self.sigan.plugin_version,
             "preselector_api_version": PRESELECTOR_API_VERSION,
         }
 
