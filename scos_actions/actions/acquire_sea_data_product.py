@@ -823,22 +823,6 @@ class NasctnSeaDataProduct(Action):
             ntia_sensor.Sensor(
                 sensor_spec=ntia_core.HardwareSpec(
                     id=self.sensor_definition["sensor_spec"]["id"],
-                    version=self.sensor_definition["sensor_spec"]["version"],
-                ),
-                preselector=ntia_sensor.Preselector(
-                    preselector_spec=ntia_core.HardwareSpec(
-                        id=self.sensor_definition["preselector"]["preselector_spec"][
-                            "id"
-                        ]
-                    )
-                ),
-                signal_analyzer=ntia_sensor.SignalAnalyzer(
-                    sigan_spec=ntia_core.HardwareSpec(
-                        id=self.sensor_definition["signal_analyzer"]["sigan_spec"]["id"]
-                    )
-                ),
-                computer_spec=ntia_sensor.HardwareSpec(
-                    id=self.sensor_definition["computer_spec"]["id"]
                 ),
                 sensor_sha512=SENSOR_DEFINITION_HASH,
             )
