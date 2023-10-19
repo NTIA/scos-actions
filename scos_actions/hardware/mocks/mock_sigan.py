@@ -4,6 +4,7 @@ from collections import namedtuple
 
 import numpy as np
 
+from scos_actions import __version__ as SCOS_ACTIONS_VERSION
 from scos_actions.hardware.sigan_iface import SignalAnalyzerInterface
 from scos_actions.utils import get_datetime_str_now
 
@@ -36,6 +37,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         self._overload = False
         self._capture_time = None
         self._is_available = True
+        self._plugin_version = SCOS_ACTIONS_VERSION
 
         # Simulate returning less than the requested number of samples from
         # self.recv_num_samps
@@ -49,6 +51,10 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     @property
     def is_available(self):
         return self._is_available
+    
+    @property
+    def plugin_version(self):
+        return self._plugin_version
 
     @property
     def sample_rate(self):
