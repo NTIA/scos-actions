@@ -51,7 +51,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     @property
     def is_available(self):
         return self._is_available
-    
+
     @property
     def plugin_version(self):
         return self._plugin_version
