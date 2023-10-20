@@ -119,6 +119,17 @@ class Computer(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     ssd_smart_data: Optional[SsdSmartData] = None
 
 
+class ScosPlugin(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
+    """
+    Interface for generating `ntia-diagnostics` `ScosPlugin` objects.
+    
+    :param name: The Python package name as it is imported, e.g., `"scos_tekrsa"` 
+    :param version: Version of the SCOS plugin.
+    """
+    name: Optional[str] = None
+    version: Optional[str] = None
+
+
 class Software(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-diagnostics` `Software` objects.
@@ -127,7 +138,8 @@ class Software(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     :param python_version: The Python version, as returned by `sys.version()`.
     :param scos_sensor_version: The SCOS Sensor version, as returned by `git describe --tags`.
     :param scos_actions_version: Version of `scos_actions` plugin.
-    :param scos_tekrs_version: Version of `scos_tekrsa` plugin.
+    :param scos_sigan_plugin: `ScosPlugin` object describing the plugin which defines the
+        signal analyzer interface.
     :param preselector_api_version: Version of the NTIA `preselector` package.
     """
 
@@ -135,7 +147,7 @@ class Software(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     python_version: Optional[str] = None
     scos_sensor_version: Optional[str] = None
     scos_actions_version: Optional[str] = None
-    scos_tekrsa_version: Optional[str] = None
+    scos_sigan_plugin: Optional[ScosPlugin] = None
     preselector_api_version: Optional[str] = None
 
 
