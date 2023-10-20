@@ -575,7 +575,7 @@ class NasctnSeaDataProduct(Action):
             [],
         )
         result_tic = perf_counter()
-        for i, channel_data_process in enumerate(dp_procs):
+        for channel_data_process in dp_procs:
             # Retrieve object references for channel data
             channel_data_refs = ray.get(channel_data_process)
             channel_data = []
@@ -796,6 +796,7 @@ class NasctnSeaDataProduct(Action):
             "python_version": sys.version.split()[0],
             "scos_sensor_version": SCOS_SENSOR_GIT_TAG,
             "scos_actions_version": SCOS_ACTIONS_VERSION,
+            "scos_tekrsa_version": self.sigan.plugin_version,
             "preselector_api_version": PRESELECTOR_API_VERSION,
         }
 
@@ -822,22 +823,6 @@ class NasctnSeaDataProduct(Action):
             ntia_sensor.Sensor(
                 sensor_spec=ntia_core.HardwareSpec(
                     id=self.sensor_definition["sensor_spec"]["id"],
-                    version=self.sensor_definition["sensor_spec"]["version"],
-                ),
-                preselector=ntia_sensor.Preselector(
-                    preselector_spec=ntia_core.HardwareSpec(
-                        id=self.sensor_definition["preselector"]["preselector_spec"][
-                            "id"
-                        ]
-                    )
-                ),
-                signal_analyzer=ntia_sensor.SignalAnalyzer(
-                    sigan_spec=ntia_core.HardwareSpec(
-                        id=self.sensor_definition["signal_analyzer"]["sigan_spec"]["id"]
-                    )
-                ),
-                computer_spec=ntia_sensor.HardwareSpec(
-                    id=self.sensor_definition["computer_spec"]["id"]
                 ),
                 sensor_sha512=SENSOR_DEFINITION_HASH,
             )
@@ -1059,8 +1044,8 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
 
-        # Mark data as UNCLASSIFIED
-        sigmf_builder.set_classification("UNCLASSIFIED")
+        # Mark data as CUI (basic)
+        sigmf_builder.set_classification("CUI")
 
         self.sigmf_builder = sigmf_builder
 

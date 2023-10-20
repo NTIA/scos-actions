@@ -64,6 +64,12 @@ class SignalAnalyzerInterface(ABC):
         """Returns True if sigan is initialized and ready for measurements."""
         pass
 
+    @property
+    @abstractmethod
+    def plugin_version(self) -> str:
+        """Returns the version of the SCOS plugin defining this interface."""
+        pass
+
     @abstractmethod
     def acquire_time_domain_samples(
         self,
