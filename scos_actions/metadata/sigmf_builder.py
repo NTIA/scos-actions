@@ -27,7 +27,7 @@ GLOBAL_INFO = {
         },
         {
             "name": "ntia-diagnostics",
-            "version": "v1.1.1",
+            "version": "v1.1.2",
             "optional": True,
         },
         {
