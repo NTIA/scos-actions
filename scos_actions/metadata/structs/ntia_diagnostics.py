@@ -122,10 +122,11 @@ class Computer(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
 class ScosPlugin(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-diagnostics` `ScosPlugin` objects.
-    
-    :param name: The Python package name as it is imported, e.g., `"scos_tekrsa"` 
+
+    :param name: The Python package name as it is imported, e.g., `"scos_tekrsa"`
     :param version: Version of the SCOS plugin.
     """
+
     name: Optional[str] = None
     version: Optional[str] = None
 
