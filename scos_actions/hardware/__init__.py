@@ -24,14 +24,14 @@ def load_switches(switch_dir: Path) -> dict:
     if switch_dir is not None and switch_dir.is_dir():
         for f in switch_dir.iterdir():
             file_path = f.resolve()
-            logger.info(f"loading switch config {file_path}")
+            logger.debug(f"loading switch config {file_path}")
             conf = utils.load_from_json(file_path)
             try:
                 switch = ControlByWebWebRelay(conf)
-                logger.info(f"Adding {switch.id}")
+                logger.debug(f"Adding {switch.id}")
 
                 switch_dict[switch.id] = switch
-                logger.info(f"Registering switch status for {switch.name}")
+                logger.debug(f"Registering switch status for {switch.name}")
                 register_component_with_status.send(__name__, component=switch)
             except ConfigurationException:
                 logger.error(f"Unable to configure switch defined in: {file_path}")
@@ -49,7 +49,7 @@ def load_preselector_from_file(preselector_config_file: Path):
                 preselector_config, PRESELECTOR_MODULE, PRESELECTOR_CLASS
             )
         except ConfigurationException:
-            logger.error(
+            logger.exception(
                 f"Unable to create preselector defined in: {preselector_config_file}"
             )
     return None

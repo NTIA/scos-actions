@@ -17,22 +17,20 @@ def load_from_yaml(action_classes, sigan, gps, yaml_dir: Path = ACTION_DEFINITIO
         definition = yaml.load(yaml_file)
         for class_name, parameters in definition.items():
             try:
-                logger.debug("Attempting to configure: " + class_name)
+                logger.debug(f"Attempting to configure: {class_name}")
                 action = action_classes[class_name](
                     parameters=parameters, sigan=sigan, gps=gps
                 )
                 parsed_actions[action.name] = action
             except KeyError as exc:
                 err = "Nonexistent action class name {!r} referenced in {!r}"
-                logger.error(err.format(class_name, yaml_file.name))
-                logger.exception(exc)
+                logger.exception(err.format(class_name, yaml_file.name))
                 raise exc
             except TypeError as exc:
                 err = "Invalid parameter list {!r} referenced in {!r}"
-                logger.error(err.format(parameters, yaml_file.name))
-                logger.exception(exc)
+                logger.exception(err.format(parameters, yaml_file.name))
                 raise exc
             except Exception as exc:
-                logger.error("Unable to load yaml:", exc, class_name, parameters)
+                logger.exception("Unable to load yaml:", class_name, parameters)
                 raise exc
     return parsed_actions

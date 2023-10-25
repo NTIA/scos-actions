@@ -140,7 +140,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
             data_len = len(data)
             if not len(data) == num_samples:
                 if retries > 0:
-                    msg = "USRP error: requested {} samples, but got {}."
+                    msg = "Signal analyzer error: requested {} samples, but got {}."
                     logger.warning(msg.format(num_samples + num_samples_skip, data_len))
                     logger.warning(f"Retrying {retries} more times.")
                     retries = retries - 1
