@@ -39,9 +39,9 @@ def get_sensor_calibration(sensor_cal_file: Path) -> Calibration:
     return sensor_cal
 
 
-logger.info(f"Loading sensor cal file: {SENSOR_CALIBRATION_FILE}")
+logger.debug(f"Loading sensor cal file: {SENSOR_CALIBRATION_FILE}")
 sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
-logger.info(f"Loading sigan cal file: {SIGAN_CALIBRATION_FILE}")
+logger.debug(f"Loading sigan cal file: {SIGAN_CALIBRATION_FILE}")
 sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
 if sensor_calibration:
     logger.debug(f"Last sensor cal: {sensor_calibration.last_calibration_datetime}")
