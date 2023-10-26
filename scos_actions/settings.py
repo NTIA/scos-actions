@@ -7,7 +7,7 @@ from environs import Env
 logger = logging.getLogger(__name__)
 env = Env()
 
-logger.info("Initializing scos-actions settings")
+logger.debug("Initializing scos-actions settings")
 CONFIG_DIR = Path(__file__).parent.resolve() / "configs"
 ACTION_DEFINITIONS_DIR = CONFIG_DIR / "actions"
 

@@ -17,10 +17,9 @@ def get_sigan_calibration(sigan_cal_file: Path) -> Calibration:
     """
     try:
         sigan_cal = load_from_json(sigan_cal_file)
-    except Exception as err:
+    except Exception:
         sigan_cal = None
-        logger.error("Unable to load sigan calibration data, reverting to none")
-        logger.exception(err)
+        logger.exception("Unable to load sigan calibration data, reverting to none")
     return sigan_cal
 
 
@@ -34,16 +33,15 @@ def get_sensor_calibration(sensor_cal_file: Path) -> Calibration:
     """
     try:
         sensor_cal = load_from_json(sensor_cal_file)
-    except Exception as err:
+    except Exception:
         sensor_cal = None
-        logger.error("Unable to load sensor calibration data, reverting to none")
-        logger.exception(err)
+        logger.exception("Unable to load sensor calibration data, reverting to none")
     return sensor_cal
 
 
-logger.info(f"Loading sensor cal file: {SENSOR_CALIBRATION_FILE}")
+logger.debug(f"Loading sensor cal file: {SENSOR_CALIBRATION_FILE}")
 sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
-logger.info(f"Loading sigan cal file: {SIGAN_CALIBRATION_FILE}")
+logger.debug(f"Loading sigan cal file: {SIGAN_CALIBRATION_FILE}")
 sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
 if sensor_calibration:
-    logger.info(f"Last sensor cal: {sensor_calibration.last_calibration_datetime}")
+    logger.debug(f"Last sensor cal: {sensor_calibration.last_calibration_datetime}")
