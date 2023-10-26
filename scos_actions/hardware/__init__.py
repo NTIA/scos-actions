@@ -69,7 +69,7 @@ def load_preselector(preselector_config, module, preselector_class_name):
 
 
 register_component_with_status.connect(status_registration_handler)
-logger.debug"Connected status registration handler")
+logger.debug("Connected status registration handler")
 preselector = load_preselector_from_file(PRESELECTOR_CONFIG_FILE)
 switches = load_switches(SWITCH_CONFIGS_DIR)
 logger.debug(f"Loaded {(len(switches))} switches.")
