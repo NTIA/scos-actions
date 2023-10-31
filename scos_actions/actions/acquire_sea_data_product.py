@@ -190,7 +190,7 @@ class PowerSpectralDensity:
             iq, self.fft_size, "backward", self.fft_window, self.num_ffts, False, 1
         )
         # Power in Watts
-        fft_amplitudes = calculate_pseudo_power(fft_result)
+        fft_amplitudes = calculate_pseudo_power(fft_amplitudes)
         fft_result = apply_statistical_detector(fft_amplitudes, self.detector)  # (mean)
         percentile_result = np.percentile(fft_amplitudes, self.percentiles, axis=0)
         fft_result = np.vstack((fft_result, percentile_result))
