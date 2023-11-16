@@ -47,7 +47,7 @@ GLOBAL_INFO = {
         },
         {
             "name": "ntia-nasctn-sea",
-            "version": "v0.6.0-TESTING",  # Temporary
+            "version": "v0.6.0",
             "optional": True,
         },
     ],
