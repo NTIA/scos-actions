@@ -459,7 +459,7 @@ class IQProcessor:
         # Compute PSD, PVT, PFP, and APD concurrently.
         # Do not wait until they finish. Yield references to their results.
         yield [worker.run.remote(iqdata_ref) for worker in self.workers]
-        del iqdata
+        del iqdata, iqdata_ref
 
 
 class HybridSeaDataProduct(Action):
@@ -522,10 +522,7 @@ class HybridSeaDataProduct(Action):
             REJECTOR_SAMPLING_RATE,
         )
         iir_upshifter = np.exp(
-            2j
-            * np.pi
-            * 15e6
-            * np.arange(0.0, 3.0 / REJECTOR_SAMPLING_RATE, 1.0 / REJECTOR_SAMPLING_RATE)
+            2j * np.pi * 15e6 * np.arange(0.0, 3.0 / REJECTOR_SAMPLING_RATE, 1.0 / REJECTOR_SAMPLING_RATE)
         )
         self.iir_sos_upshift = np.hstack(
             (
@@ -578,6 +575,7 @@ class HybridSeaDataProduct(Action):
             for _ in range(NUM_ACTORS)
         ]
         iq_40MHz_processors = [
+            # TODO generalize this
             # This assumes that the highest frequency capture should use
             # the 40 MHz acquisition approach.
             IQProcessor.remote(self.iteration_params[-1], self.iir_sos_upshift)
