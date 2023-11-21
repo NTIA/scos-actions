@@ -108,7 +108,7 @@ PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
 
 # Constants
 DATA_TYPE = np.half
-PFP_FRAME_RESOLUTION_S = 1.0 / 56000
+PFP_FRAME_RESOLUTION_S = (1.0 / 56.0) * 1e-3
 FFT_SIZE = 875
 FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
