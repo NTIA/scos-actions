@@ -64,6 +64,12 @@ class SignalAnalyzerInterface(ABC):
         """Returns True if sigan is initialized and ready for measurements."""
         pass
 
+    @property
+    @abstractmethod
+    def plugin_version(self) -> str:
+        """Returns the version of the SCOS plugin defining this interface."""
+        pass
+
     @abstractmethod
     def acquire_time_domain_samples(
         self,
@@ -120,7 +126,7 @@ class SignalAnalyzerInterface(ABC):
         try:
             power_cycle_sigan()
         except HardwareConfigurationException as hce:
-            logger.warn(f"Unable to power cycle sigan: {hce}")
+            logger.warning(f"Unable to power cycle sigan: {hce}")
             return
         try:
             # Wait for power cycle to complete
@@ -128,9 +134,9 @@ class SignalAnalyzerInterface(ABC):
             time.sleep(sleep_time)
             logger.info("Power cycled signal analyzer. Reconnecting...")
             self.connect()
-        except Exception as e:
-            logger.error(
-                f"Unable to reconnect to signal analyzer after power cycling: {e}"
+        except Exception:
+            logger.exception(
+                "Unable to reconnect to signal analyzer after power cycling"
             )
         return
 

@@ -31,20 +31,6 @@ class SignalAnalyzer(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     max_power: Optional[float] = None
     a2d_bits: Optional[int] = None
 
-    def __post_init__(self):
-        super().__post_init__()
-        # Define SigMF key names
-        self.obj_keys.update(
-            {
-                "sigan_spec": "sigan_spec",
-                "frequency_low": "frequency_low",
-                "frequency_high": "frequency_high",
-                "noise_figure": "noise_figure",
-                "max_power": "max_power",
-                "a2d_bits": "a2d_bits",
-            }
-        )
-
 
 class CalSource(
     msgspec.Struct, rename={"cal_source_type": "type"}, **SIGMF_OBJECT_KWARGS

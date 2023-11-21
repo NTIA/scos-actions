@@ -11,7 +11,7 @@ capabilities = {}
 SENSOR_DEFINITION_HASH = None
 SENSOR_LOCATION = None
 
-logger.info(f"Loading {SENSOR_DEFINITION_FILE}")
+logger.debug(f"Loading {SENSOR_DEFINITION_FILE}")
 try:
     capabilities["sensor"] = utils.load_from_json(SENSOR_DEFINITION_FILE)
 except Exception as e:
@@ -32,7 +32,7 @@ if "location" in capabilities["sensor"]:
             sensor_loc["z"] if "z" in sensor_loc else None,
         )
     except:
-        logger.warning("Failed to get sensor location from sensor definition.")
+        logger.exception("Failed to get sensor location from sensor definition.")
 
 # Generate sensor definition file hash (SHA 512)
 try:
@@ -41,7 +41,6 @@ try:
         SENSOR_DEFINITION_HASH = hashlib.sha512(sensor_def.encode("UTF-8")).hexdigest()
         capabilities["sensor"]["sensor_sha512"] = SENSOR_DEFINITION_HASH
 except:
-    logger.error(f"Unable to generate sensor definition hash")
     capabilities["sensor"]["sensor_sha512"] = "ERROR GENERATING HASH"
     # SENSOR_DEFINITION_HASH is None, do not raise Exception
-    logger.debug(e)
+    logger.exception(f"Unable to generate sensor definition hash")
