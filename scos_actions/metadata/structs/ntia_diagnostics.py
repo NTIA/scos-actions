@@ -11,21 +11,28 @@ class Preselector(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
 
     :param temp: Temperature inside the preselector enclosure, in degrees Celsius.
     :param noise_diode_temp: Temperature of the noise diode, in degrees Celsius.
+    :param noise_diode_powered: Boolean indicating if the noise diode is powered.
+    :param lna_powered: Boolean indicating if the lna is powered.
     :param lna_temp: Temparature of the low noise amplifier, in degrees Celsius.
+    :param antenna_path_enabled: Boolean indicating if the antenna path is enabled.
+    :param noise_diode_path_enabled: Boolean indicating if the noise diode path is enabled.
     :param humidity: Relative humidity inside the preselector enclosure, as a percentage.
     :param door_closed: Indicates whether the door of the enclosure is closed.
     """
 
     temp: Optional[float] = None
     noise_diode_temp: Optional[float] = None
+    noise_diode_powered: Optional[bool] = None
+    lna_powered: Optional[bool] = None
     lna_temp: Optional[float] = None
+    antenna_path_enabled: Optional[bool] = None
+    noise_diode_path_enabled: Optional = None
     humidity: Optional[float] = None
     door_closed: Optional[bool] = False
 
 
 class SPU(
-    msgspec.Struct, rename={"aux_28v_powered": "28v_aux_powered"}, **SIGMF_OBJECT_KWARGS
-):
+    msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-diagnostics` `SPU` objects.
 
@@ -33,12 +40,31 @@ class SPU(
     :param preselector_powered: Indicates if the preselector is powered.
     :param aux_28v_powered: Indicates if the 28V aux power is on.
     :param pwr_box_temp: Ambient temperature in power distribution box,
-        in degrees Celsius.
+        in degrees Celsius..
     :param pwr_box_humidity: Humidity in power distribution box, as a
         percentage.
     :param rf_box_temp: Ambient temperature in the RF box (around the signal
         analyzer), in degrees Celsius.
+    :param internal_temp: Ambient temperature in the SPU,
+        in degrees Celsius
+    :param internal_humidity: Humidity in the SPU.
+    :param tec_intake_temp: Temperature at the TEC intake.
+    :param tec_exhaust_temp: Temperature at the TEC exhaust.
     :param sigan_internal_temp: Internal temperature reported by the signal analyzer.
+    :param cooling_enabled: Boolean indicating if the cooling is enabled.
+    :param heat_enabled: Boolean indicating if the heat is enabled.
+    :param rsa_powered: Boolean indicating if the RSA is powered.
+    :param nuc_powered: Boolean indicating if NUC is powered.
+    :param tec_ac_powered: Boolean indicating TEC AC power.
+    :param ups_power: Boolean indicating UPS power.
+    :param ups_battery_level: UPS batery level warning.
+    :param ups_trouble: Indicates trouble with UPS.
+    :param ups_battery_replace: Boolean indicating if the ups battery needs replacing.
+    :param door_sensor: Indicates if the door is open.
+    :param power_5vdc: 5V DC power supplied.
+    :param power_15vdc: 15V DC power supplied.
+    :param power_24vdc: 24V DC power supplied.
+    :param power_28vdc: 28V DC power supplied.
     """
 
     rf_tray_powered: Optional[bool] = None
@@ -47,7 +73,26 @@ class SPU(
     pwr_box_temp: Optional[float] = None
     pwr_box_humidity: Optional[float] = None
     rf_box_temp: Optional[float] = None
+    internal_temp: Optional[float] = None
+    internal_humidity: Optional[float] = None
+    tec_intake_temp: Optional[float] = None
+    tek_exhaust_temp: Optional[float] = None
     sigan_internal_temp: Optional[float] = None
+    cooling_enabled: Optional[bool] = None
+    heat_enabled: Optional[bool] = None
+    rsa_powered: Optional[bool] = None
+    nuc_powered: Optional[bool] = None
+    tec_ac_powered: Optional[bool] = None
+    ups_power: Optional[bool] = None
+    ups_battery_level: Optional[bool] = None
+    ups_trouble: Optional[bool] = None
+    ups_battery_replace: Optional[bool] = None
+    door_sensor: Optional[float] = None
+    power_5vdc: Optional[float] = None
+    power_15vdc: Optional[float] = None
+    power_24vdc: Optional[float] = None
+    power_28vdc: Optional[float] = None
+
 
 
 class SsdSmartData(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
