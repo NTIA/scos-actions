@@ -20,6 +20,7 @@ r"""Acquire a NASCTN SEA data product.
 
 Currently in development.
 """
+import json
 import logging
 import lzma
 import platform
@@ -57,7 +58,9 @@ from scos_actions.metadata.structs import (
     ntia_sensor,
 )
 from scos_actions.metadata.structs.capture import CaptureSegment
+from scos_actions.settings import PRESELECTOR_DIAGNOSTICS
 from scos_actions.settings import SCOS_SENSOR_GIT_TAG
+from scos_actions.settings import SWITCH_DIAGNOSTICS
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
     get_fft,
@@ -121,6 +124,7 @@ NUM_ACTORS = 3  # Number of ray actors to initialize
 TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["mean", "max"])
 FFT_DETECTOR = create_statistical_detector("FftMeanMaxDetector", ["mean", "max"])
 PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
+
 
 # Expected webswitch configuration:
 PRESELECTOR_SENSORS = {
@@ -704,41 +708,22 @@ class NasctnSeaDataProduct(Action):
             consecutive points as the action has been running.
         """
         tic = perf_counter()
-        # Read SPU sensors
+        switch_diag = {}
+        # Add status for any switch
         for switch in switches.values():
-            if switch.name == "SPU X410":
-                spu_diag = switch.get_status()
-                del spu_diag["name"]
-                del spu_diag["healthy"]
-                for sensor in SPU_SENSORS:
-                    try:
-                        value = switch.get_sensor_value(SPU_SENSORS[sensor])
-                        spu_diag[sensor] = value
-                    except:
-                        logger.warning(f"Unable to read {sensor} from SPU x410")
-                try:
-                    spu_diag["sigan_internal_temp"] = self.sigan.temperature
-                except:
-                    logger.warning("Unable to read internal sigan temperature")
-        # Rename key for use with **
-        spu_diag["aux_28v_powered"] = spu_diag.pop("28v_aux_powered")
+            switch_status = switch.get_status()
+            del switch_status["name"]
+            del switch_status["healthy"]
+            switch_diag.update(switch_status)
+        try:
+            switch_diag["sigan_internal_temp"] = self.sigan.temperature
+        except:
+            logger.warning("Unable to read internal sigan temperature")
 
         # Read preselector sensors
-        ps_diag = {}
-        for sensor in PRESELECTOR_SENSORS:
-            try:
-                value = preselector.get_sensor_value(PRESELECTOR_SENSORS[sensor])
-                ps_diag[sensor] = value
-            except:
-                logger.warning(f"Unable to read {sensor} from preselector")
-        for inpt in PRESELECTOR_DIGITAL_INPUTS:
-            try:
-                value = preselector.get_digital_input_value(
-                    PRESELECTOR_DIGITAL_INPUTS[inpt]
-                )
-                ps_diag[inpt] = value
-            except:
-                logger.warning(f"Unable to read {inpt} from preselector")
+        ps_diag = preselector.get_status()
+        del ps_diag["name"]
+        del ps_diag["healthy"]
 
         # Read computer performance metrics
         cpu_diag = {  # Start with CPU min/max/mean speeds
@@ -807,7 +792,7 @@ class NasctnSeaDataProduct(Action):
         diagnostics = {
             "datetime": utils.get_datetime_str_now(),
             "preselector": ntia_diagnostics.Preselector(**ps_diag),
-            "spu": ntia_diagnostics.SPU(**spu_diag),
+            "spu": ntia_diagnostics.SPU(**switch_diag),
             "computer": ntia_diagnostics.Computer(**cpu_diag),
             "software": ntia_diagnostics.Software(**software_diag),
             "action_runtime": round(perf_counter() - action_start_tic, 2),
