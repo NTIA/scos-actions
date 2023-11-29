@@ -58,9 +58,7 @@ from scos_actions.metadata.structs import (
     ntia_sensor,
 )
 from scos_actions.metadata.structs.capture import CaptureSegment
-from scos_actions.settings import PRESELECTOR_DIAGNOSTICS
 from scos_actions.settings import SCOS_SENSOR_GIT_TAG
-from scos_actions.settings import SWITCH_DIAGNOSTICS
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
     get_fft,
