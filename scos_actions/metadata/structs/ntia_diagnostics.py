@@ -77,9 +77,9 @@ class SPU(
     ups_healthy: Optional[bool] = None
     replace_battery: Optional[bool] = None
 
-    temperature_sensors: Optional[List[DiagnosticSensor]]
-    humidity_sensors: Optional[List[DiagnosticSensor]]
-    power_sensors: Optional[List[DiagnosticSensor]]
+    temperature_sensors: Optional[List[DiagnosticSensor]] = None
+    humidity_sensors: Optional[List[DiagnosticSensor]] = None
+    power_sensors: Optional[List[DiagnosticSensor]] = None
     door_closed: Optional[bool] = None
 
 
