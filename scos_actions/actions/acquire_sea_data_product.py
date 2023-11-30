@@ -852,7 +852,7 @@ class NasctnSeaDataProduct(Action):
         if "heating" in all_switch_status:
             switch_diag["heating"] = all_switch_status["heating"]
         if "cooling" in all_switch_status:
-            switch_diag["cooling"] all_switch_status["cooling"]
+            switch_diag["cooling"] = all_switch_status["cooling"]
 
     def add_power_states(self, all_switch_status: dict, switch_diag: dict):
         if "sigan_powered" in all_switch_status:
