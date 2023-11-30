@@ -707,18 +707,22 @@ class NasctnSeaDataProduct(Action):
         """
         tic = perf_counter()
         switch_diag = {}
+        all_switch_status = {}
         # Add status for any switch
         for switch in switches.values():
             switch_status = switch.get_status()
             del switch_status["name"]
             del switch_status["healthy"]
-            switch_diag.update(switch_status)
-        try:
-            switch_diag["sigan_internal_temp"] = self.sigan.temperature
-        except:
-            logger.warning("Unable to read internal sigan temperature")
+            all_switch_status.update(switch_status)
 
-        # Read preselector sensors
+        self.set_ups_states(all_switch_status, switch_diag)
+        self.add_temperature_and_humidity_sensors(all_switch_status, switch_diag)
+        self.add_power_sensors(all_switch_status, switch_diag)
+        self.add_power_states(all_switch_status, switch_diag)
+        if "door_closed" in all_switch_status:
+            switch_diag["door_closed"] = bool(all_switch_status["door_closed"])
+
+        #Read preselector sensors
         ps_diag = preselector.get_status()
         del ps_diag["name"]
         del ps_diag["healthy"]
@@ -798,6 +802,65 @@ class NasctnSeaDataProduct(Action):
 
         # Add diagnostics to SigMF global object
         self.sigmf_builder.set_diagnostics(ntia_diagnostics.Diagnostics(**diagnostics))
+
+    def set_ups_states(self, all_switch_status: dict, switch_diag: dict):
+        if "ups_power_state" in all_switch_status:
+            switch_diag["battery_backup"] = not all_switch_status["ups_power_state"]
+        if "ups_battery_level" in all_switch_status:
+            switch_diag["low_battery"] = not all_switch_status["ups_battery_level"]
+        if "ups_state" in all_switch_status:
+            switch_diag["ups_healthy"] = not all_switch_status["ups_state"]
+        if "ups_battery_state" in all_switch_status:
+            switch_diag["replace_battery"] = not all_switch_status["ups_battery_state"]
+
+    def add_temperature_and_humidity_sensors(self, all_switch_status: dict, switch_diag: dict):
+        switch_diag["temperature_sensors"] = []
+        if "internal_temp" in all_switch_status:
+            switch_diag["temperature_sensors"].append(
+                {"name": "internal_temp", "value": all_switch_status["internal_temp"]})
+        try:
+            switch_diag["temperature_sensors"].append({"name": "sigan_internal_temp", "value": self.sigan.temperature})
+        except:
+            logger.warning("Unable to read internal sigan temperature")
+        if "tec_intake_temp" in all_switch_status:
+            switch_diag["temperature_sensors"].append({"name": "tec_intake_temp", "value": all_switch_status["tec_intake_temp"]})
+
+        if "tec_exhaust_temp" in all_switch_status:
+            switch_diag["temperature_sensors"].append(
+                {"name": "tec_exhaust_temp", "value": all_switch_status["tec_exhaust_temp"]})
+
+        if "internal_humidity" in all_switch_status:
+            switch_diag["humidity_sensors"] = [
+                {"name": "internal_humidity", "value": all_switch_status["internal_humidity"]}]
+
+    def add_power_sensors(self, all_switch_status: dict, switch_diag: dict ):
+        switch_diag["power_sensors"] = []
+        if "5vdc_monitor" in all_switch_status:
+            switch_diag["power_sensors"].append(
+                {"name": "5v Monitor", "value:": all_switch_status["5vdc_monitor"], "expected_value": 5.0})
+        if "15vdc_monitor" in all_switch_status:
+            switch_diag["power_sensors"].append(
+                {"name": "15v Monitor", "value:": all_switch_status["15vdc_monitor"], "expected_value": 15.0})
+        if "24vdc_monitor" in all_switch_status:
+            switch_diag["power_sensors"].append(
+                {"name": "24v Monitor", "value:": all_switch_status["24vdc_monitor"], "expected_value": 24.0})
+        if "28vdc_monitor" in all_switch_status:
+            switch_diag["power_sensors"].append(
+                {"name": "28v Monitor", "value:": all_switch_status["28vdc_monitor"], "expected_value": 28.0})
+
+    def add_heating_cooling(self, all_switch_status: dict, switch_diag: dict):
+        if "heating" in all_switch_status:
+            switch_diag["heating"] = all_switch_status["heating"]
+        if "cooling" in all_switch_status:
+            switch_diag["cooling"] all_switch_status["cooling"]
+
+    def add_power_states(self, all_switch_status: dict, switch_diag: dict):
+        if "sigan_powered" in all_switch_status:
+            switch_diag["sigan_powered"] = all_switch_status["sigan_powered"]
+        if "temperature_control_powered" in all_switch_status:
+            switch_diag["temperature_control_powered"] = all_switch_status["temperature_control_powered"]
+        if "preselector_powered" in all_switch_status:
+            switch_diag["preselector_powered"] = all_switch_status["preselector_powered"]
 
     def create_global_sensor_metadata(self):
         # Add (minimal) ntia-sensor metadata to the sigmf_builder:

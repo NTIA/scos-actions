@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 import msgspec
 
@@ -30,69 +30,57 @@ class Preselector(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     humidity: Optional[float] = None
     door_closed: Optional[bool] = False
 
+class DiagnosticSensor(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
+    """
+    Interface for generating `ntia-diagnostics` `DiagnosticSensor` objects.
+
+    :param name: The name of the sensor
+    :param value: The value provided by the sensor
+    :param maximum_allowed: The maximum value allowed from the sensor before action should be taken
+    :param mimimum_allowed: The minimum value allowed from the sensor before action should be taken
+    :param description: A description of the sensor
+    """
+    name: str
+    value: float
+    maximum_allowed: Optional[float] = None
+    minimum_allowed: Optional[float] = None
+    expected_value: Optional[float] = None
+    description: Optional[str] = None
 
 class SPU(
     msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-diagnostics` `SPU` objects.
 
-    :param rf_tray_powered: Indicates if the RF tray is powered.
+    :param cooling: Boolean indicating if the cooling is enabled.
+    :param heating: Boolean indicating if the heat is enabled.
     :param preselector_powered: Indicates if the preselector is powered.
-    :param aux_28v_powered: Indicates if the 28V aux power is on.
-    :param pwr_box_temp: Ambient temperature in power distribution box,
-        in degrees Celsius..
-    :param pwr_box_humidity: Humidity in power distribution box, as a
-        percentage.
-    :param rf_box_temp: Ambient temperature in the RF box (around the signal
-        analyzer), in degrees Celsius.
-    :param internal_temp: Ambient temperature in the SPU,
-        in degrees Celsius
-    :param internal_humidity: Humidity in the SPU.
-    :param tec_intake_temp: Temperature at the TEC intake.
-    :param tec_exhaust_temp: Temperature at the TEC exhaust.
-    :param sigan_internal_temp: Internal temperature reported by the signal analyzer.
-    :param cooling_enabled: Boolean indicating if the cooling is enabled.
-    :param heat_enabled: Boolean indicating if the heat is enabled.
-    :param rsa_powered: Boolean indicating if the RSA is powered.
-    :param nuc_powered: Boolean indicating if NUC is powered.
-    :param tec_ac_powered: Boolean indicating TEC AC power.
-    :param ups_power: Boolean indicating UPS power.
-    :param ups_battery_level: UPS batery level warning.
-    :param ups_trouble: Indicates trouble with UPS.
-    :param ups_battery_replace: Boolean indicating if the ups battery needs replacing.
-    :param door_sensor: Indicates if the door is open.
-    :param power_5vdc: 5V DC power supplied.
-    :param power_15vdc: 15V DC power supplied.
-    :param power_24vdc: 24V DC power supplied.
-    :param power_28vdc: 28V DC power supplied.
+    :param sigan_powered: Boolean indicating if the signal analyzer is powered.
+    :param temperature_control_powered: Boolean indicating TEC AC power.
+    :param battery_backup: Boolean indicating if it is running on battery backup.
+    :param low_battery: Boolean indicating if the battery is low.
+    :param ups_healthy: Indicates trouble with UPS.
+    :param replace_battery: Boolean indicating if the ups battery needs replacing.
+    :param temperature_sensors: List of temperature sensor values
+    :param humidity_sensors: List of humidity sensor values
+    :param power_sensors: List of power sensor values
+    :param door_closed: Boolean indicating if the door is closed
     """
-
-    rf_tray_powered: Optional[bool] = None
+    cooling: Optional[bool] = None
+    heating: Optional[bool] = None
+    sigan_powered: Optional[bool] = None
+    temperature_control_powered: Optional[bool] = None
     preselector_powered: Optional[bool] = None
-    aux_28v_powered: Optional[bool] = None
-    pwr_box_temp: Optional[float] = None
-    pwr_box_humidity: Optional[float] = None
-    rf_box_temp: Optional[float] = None
-    internal_temp: Optional[float] = None
-    internal_humidity: Optional[float] = None
-    tec_intake_temp: Optional[float] = None
-    tek_exhaust_temp: Optional[float] = None
-    sigan_internal_temp: Optional[float] = None
-    cooling_enabled: Optional[bool] = None
-    heat_enabled: Optional[bool] = None
-    rsa_powered: Optional[bool] = None
-    nuc_powered: Optional[bool] = None
-    tec_ac_powered: Optional[bool] = None
-    ups_power: Optional[bool] = None
-    ups_battery_level: Optional[bool] = None
-    ups_trouble: Optional[bool] = None
-    ups_battery_replace: Optional[bool] = None
-    door_sensor: Optional[float] = None
-    power_5vdc: Optional[float] = None
-    power_15vdc: Optional[float] = None
-    power_24vdc: Optional[float] = None
-    power_28vdc: Optional[float] = None
 
+    battery_backup: Optional[bool] = None
+    low_battery: Optional[bool] = None
+    ups_healthy: Optional[bool] = None
+    replace_battery: Optional[bool] = None
+
+    temperature_sensors: Optional[List[DiagnosticSensor]]
+    humidity_sensors: Optional[List[DiagnosticSensor]]
+    power_sensors: Optional[List[DiagnosticSensor]]
+    door_closed: Optional[bool] = None
 
 
 class SsdSmartData(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
