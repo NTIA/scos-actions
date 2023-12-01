@@ -143,6 +143,7 @@ class Computer(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     cpu_mean_clock: Optional[float] = None
     cpu_uptime: Optional[float] = None
     action_cpu_usage: Optional[float] = None
+    action_runtime: Optional[float] = None
     system_load_5m: Optional[float] = None
     memory_usage: Optional[float] = None
     cpu_overheating: Optional[bool] = None
@@ -202,4 +203,4 @@ class Diagnostics(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     spu: Optional[SPU] = None
     computer: Optional[Computer] = None
     software: Optional[Software] = None
-    action_runtime: Optional[float] = None
+
