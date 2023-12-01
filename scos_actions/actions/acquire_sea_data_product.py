@@ -20,6 +20,7 @@ r"""Acquire a NASCTN SEA data product.
 
 Currently in development.
 """
+import json
 import logging
 import lzma
 import platform
@@ -121,20 +122,6 @@ NUM_ACTORS = 3  # Number of ray actors to initialize
 TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["mean", "max"])
 FFT_DETECTOR = create_statistical_detector("FftMeanMaxDetector", ["mean", "max"])
 PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
-
-# Expected webswitch configuration:
-PRESELECTOR_SENSORS = {
-    "temp": 1,  # Internal temperature, deg C
-    "noise_diode_temp": 2,  # Noise diode temperature, deg C
-    "lna_temp": 3,  # LNA temperature, deg C
-    "humidity": 4,  # Internal humidity, percentage
-}
-PRESELECTOR_DIGITAL_INPUTS = {"door_closed": 1}
-SPU_SENSORS = {
-    "pwr_box_temp": 1,  # Power tray temperature, deg C
-    "rf_box_temp": 2,  # RF tray temperature, deg C
-    "pwr_box_humidity": 3,  # Power tray humidity, percentage
-}
 
 
 @ray.remote
@@ -704,47 +691,33 @@ class NasctnSeaDataProduct(Action):
             consecutive points as the action has been running.
         """
         tic = perf_counter()
-        # Read SPU sensors
+        switch_diag = {}
+        all_switch_status = {}
+        # Add status for any switch
         for switch in switches.values():
-            if switch.name == "SPU X410":
-                spu_diag = switch.get_status()
-                del spu_diag["name"]
-                del spu_diag["healthy"]
-                for sensor in SPU_SENSORS:
-                    try:
-                        value = switch.get_sensor_value(SPU_SENSORS[sensor])
-                        spu_diag[sensor] = value
-                    except:
-                        logger.warning(f"Unable to read {sensor} from SPU x410")
-                try:
-                    spu_diag["sigan_internal_temp"] = self.sigan.temperature
-                except:
-                    logger.warning("Unable to read internal sigan temperature")
-        # Rename key for use with **
-        spu_diag["aux_28v_powered"] = spu_diag.pop("28v_aux_powered")
+            switch_status = switch.get_status()
+            del switch_status["name"]
+            del switch_status["healthy"]
+            all_switch_status.update(switch_status)
+
+        self.set_ups_states(all_switch_status, switch_diag)
+        self.add_temperature_and_humidity_sensors(all_switch_status, switch_diag)
+        self.add_power_sensors(all_switch_status, switch_diag)
+        self.add_power_states(all_switch_status, switch_diag)
+        if "door_state" in all_switch_status:
+            switch_diag["door_closed"] = not bool(all_switch_status["door_state"])
 
         # Read preselector sensors
-        ps_diag = {}
-        for sensor in PRESELECTOR_SENSORS:
-            try:
-                value = preselector.get_sensor_value(PRESELECTOR_SENSORS[sensor])
-                ps_diag[sensor] = value
-            except:
-                logger.warning(f"Unable to read {sensor} from preselector")
-        for inpt in PRESELECTOR_DIGITAL_INPUTS:
-            try:
-                value = preselector.get_digital_input_value(
-                    PRESELECTOR_DIGITAL_INPUTS[inpt]
-                )
-                ps_diag[inpt] = value
-            except:
-                logger.warning(f"Unable to read {inpt} from preselector")
+        ps_diag = preselector.get_status()
+        del ps_diag["name"]
+        del ps_diag["healthy"]
 
         # Read computer performance metrics
         cpu_diag = {  # Start with CPU min/max/mean speeds
             "cpu_max_clock": round(max(cpu_speeds), 1),
             "cpu_min_clock": round(min(cpu_speeds), 1),
             "cpu_mean_clock": round(np.mean(cpu_speeds), 1),
+            "action_runtime": round(perf_counter() - action_start_tic, 2),
         }
         try:  # Computer uptime (days)
             cpu_diag["cpu_uptime"] = round(get_cpu_uptime_seconds() / (60 * 60 * 24), 2)
@@ -775,13 +748,13 @@ class NasctnSeaDataProduct(Action):
         except:
             logger.warning("Failed to get CPU overheating status")
         try:  # SCOS start time
-            cpu_diag["scos_start"] = convert_datetime_to_millisecond_iso_format(
+            cpu_diag["software_start"] = convert_datetime_to_millisecond_iso_format(
                 start_time
             )
         except:
             logger.warning("Failed to get SCOS start time")
         try:  # SCOS uptime
-            cpu_diag["scos_uptime"] = get_days_up()
+            cpu_diag["software_uptime"] = get_days_up()
         except:
             logger.warning("Failed to get SCOS uptime")
         try:  # SSD SMART data
@@ -807,14 +780,158 @@ class NasctnSeaDataProduct(Action):
         diagnostics = {
             "datetime": utils.get_datetime_str_now(),
             "preselector": ntia_diagnostics.Preselector(**ps_diag),
-            "spu": ntia_diagnostics.SPU(**spu_diag),
+            "spu": ntia_diagnostics.SPU(**switch_diag),
             "computer": ntia_diagnostics.Computer(**cpu_diag),
             "software": ntia_diagnostics.Software(**software_diag),
-            "action_runtime": round(perf_counter() - action_start_tic, 2),
         }
 
         # Add diagnostics to SigMF global object
         self.sigmf_builder.set_diagnostics(ntia_diagnostics.Diagnostics(**diagnostics))
+
+    def set_ups_states(self, all_switch_status: dict, switch_diag: dict):
+        if "ups_power_state" in all_switch_status:
+            switch_diag["battery_backup"] = not all_switch_status["ups_power_state"]
+        else:
+            logger.warning("No ups_power_state found in switch status.")
+
+        if "ups_battery_level" in all_switch_status:
+            switch_diag["low_battery"] = not all_switch_status["ups_battery_level"]
+        else:
+            logger.warning("No ups_battery_level found in switch status.")
+
+        if "ups_state" in all_switch_status:
+            switch_diag["ups_healthy"] = not all_switch_status["ups_state"]
+        else:
+            logger.warning("No ups_state found in switch status.")
+
+        if "ups_battery_state" in all_switch_status:
+            switch_diag["replace_battery"] = not all_switch_status["ups_battery_state"]
+        else:
+            logger.warning("No ups_battery_state found in switch status")
+
+    def add_temperature_and_humidity_sensors(
+        self, all_switch_status: dict, switch_diag: dict
+    ):
+        switch_diag["temperature_sensors"] = []
+        if "internal_temp" in all_switch_status:
+            switch_diag["temperature_sensors"].append(
+                {"name": "internal_temp", "value": all_switch_status["internal_temp"]}
+            )
+        else:
+            logger.warning("No internal_temp found in switch status.")
+        try:
+            switch_diag["temperature_sensors"].append(
+                {"name": "sigan_internal_temp", "value": self.sigan.temperature}
+            )
+        except:
+            logger.warning("Unable to read internal sigan temperature")
+
+        if "tec_intake_temp" in all_switch_status:
+            switch_diag["temperature_sensors"].append(
+                {
+                    "name": "tec_intake_temp",
+                    "value": all_switch_status["tec_intake_temp"],
+                }
+            )
+        else:
+            logger.warning("No tec_intake_temp found in switch status.")
+
+        if "tec_exhaust_temp" in all_switch_status:
+            switch_diag["temperature_sensors"].append(
+                {
+                    "name": "tec_exhaust_temp",
+                    "value": all_switch_status["tec_exhaust_temp"],
+                }
+            )
+        else:
+            logger.warning("No tec_exhaust_temp found in switch status.")
+
+        if "internal_humidity" in all_switch_status:
+            switch_diag["humidity_sensors"] = [
+                {
+                    "name": "internal_humidity",
+                    "value": all_switch_status["internal_humidity"],
+                }
+            ]
+        else:
+            logger.warning("No internal_humidity found in switch status.")
+
+    def add_power_sensors(self, all_switch_status: dict, switch_diag: dict):
+        switch_diag["power_sensors"] = []
+        if "power_monitor5V" in all_switch_status:
+            switch_diag["power_sensors"].append(
+                {
+                    "name": "5V Monitor",
+                    "value": all_switch_status["power_monitor5V"],
+                    "expected_value": 5.0,
+                }
+            )
+        else:
+            logger.warning("No power_monitor5V found in switch status")
+
+        if "power_monitor15V" in all_switch_status:
+            switch_diag["power_sensors"].append(
+                {
+                    "name": "15V Monitor",
+                    "value": all_switch_status["power_monitor15V"],
+                    "expected_value": 15.0,
+                }
+            )
+        else:
+            logger.warning("No power_monitor15V found in switch status.")
+
+        if "power_monitor24V" in all_switch_status:
+            switch_diag["power_sensors"].append(
+                {
+                    "name": "24V Monitor",
+                    "value": all_switch_status["power_monitor24V"],
+                    "expected_value": 24.0,
+                }
+            )
+        else:
+            logger.warning("No power_monitor24V found in switch status")
+
+        if "power_monitor28V" in all_switch_status:
+            switch_diag["power_sensors"].append(
+                {
+                    "name": "28V Monitor",
+                    "value": all_switch_status["power_monitor28V"],
+                    "expected_value": 28.0,
+                }
+            )
+        else:
+            logger.warning("No power_monitor28V found in switch status")
+
+    def add_heating_cooling(self, all_switch_status: dict, switch_diag: dict):
+        if "heating" in all_switch_status:
+            switch_diag["heating"] = all_switch_status["heating"]
+        else:
+            logger.warning("No heating found in switch status.")
+
+        if "cooling" in all_switch_status:
+            switch_diag["cooling"] = all_switch_status["cooling"]
+        else:
+            logger.warning("No cooling found in switch status")
+
+    def add_power_states(self, all_switch_status: dict, switch_diag: dict):
+        if "sigan_powered" in all_switch_status:
+            switch_diag["sigan_powered"] = all_switch_status["sigan_powered"]
+        else:
+            logger.warning("No sigan_powered found in switch status.")
+
+        if "temperature_control_powered" in all_switch_status:
+            switch_diag["temperature_control_powered"] = all_switch_status[
+                "temperature_control_powered"
+            ]
+        else:
+            logger.warning("No temperature_control_powered found in switch status.")
+
+        if "preselector_powered" in all_switch_status:
+            switch_diag["preselector_powered"] = all_switch_status[
+                "preselector_powered"
+            ]
+        else:
+            logger.warning("No preselector_powered found in switch status.")
 
     def create_global_sensor_metadata(self):
         # Add (minimal) ntia-sensor metadata to the sigmf_builder:
@@ -835,9 +952,6 @@ class NasctnSeaDataProduct(Action):
         if not self.sigan.is_available:
             msg = "Acquisition failed: signal analyzer is not available"
             trigger_api_restart.send(sender=self.__class__)
-            raise RuntimeError(msg)
-        if "SPU X410" not in [s.name for s in switches.values()]:
-            msg = "Configuration error: no switch configured with name 'SPU X410'"
             raise RuntimeError(msg)
         if not self.sigan.healthy():
             trigger_api_restart.send(sender=self.__class__)
