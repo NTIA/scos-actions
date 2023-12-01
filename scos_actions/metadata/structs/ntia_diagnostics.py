@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import List, Optional
 
 import msgspec
 
@@ -30,6 +30,7 @@ class Preselector(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     humidity: Optional[float] = None
     door_closed: Optional[bool] = False
 
+
 class DiagnosticSensor(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-diagnostics` `DiagnosticSensor` objects.
@@ -40,6 +41,7 @@ class DiagnosticSensor(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     :param mimimum_allowed: The minimum value allowed from the sensor before action should be taken
     :param description: A description of the sensor
     """
+
     name: str
     value: float
     maximum_allowed: Optional[float] = None
@@ -47,8 +49,8 @@ class DiagnosticSensor(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     expected_value: Optional[float] = None
     description: Optional[str] = None
 
-class SPU(
-    msgspec.Struct, **SIGMF_OBJECT_KWARGS):
+
+class SPU(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-diagnostics` `SPU` objects.
 
@@ -66,6 +68,7 @@ class SPU(
     :param power_sensors: List of power sensor values
     :param door_closed: Boolean indicating if the door is closed
     """
+
     cooling: Optional[bool] = None
     heating: Optional[bool] = None
     sigan_powered: Optional[bool] = None
@@ -203,4 +206,3 @@ class Diagnostics(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     spu: Optional[SPU] = None
     computer: Optional[Computer] = None
     software: Optional[Software] = None
-
