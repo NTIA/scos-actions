@@ -26,7 +26,7 @@ class Preselector(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     lna_powered: Optional[bool] = None
     lna_temp: Optional[float] = None
     antenna_path_enabled: Optional[bool] = None
-    noise_diode_path_enabled: Optional = None
+    noise_diode_path_enabled: Optional[bool] = None
     humidity: Optional[float] = None
     door_closed: Optional[bool] = False
 

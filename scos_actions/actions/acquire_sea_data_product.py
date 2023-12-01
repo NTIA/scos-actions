@@ -858,49 +858,49 @@ class NasctnSeaDataProduct(Action):
 
     def add_power_sensors(self, all_switch_status: dict, switch_diag: dict):
         switch_diag["power_sensors"] = []
-        if "power_monitor5v" in all_switch_status:
+        if "power_monitor5V" in all_switch_status:
             switch_diag["power_sensors"].append(
                 {
-                    "name": "5v Monitor",
-                    "value": all_switch_status["power_monitor5v"],
+                    "name": "5V Monitor",
+                    "value": all_switch_status["power_monitor5V"],
                     "expected_value": 5.0,
                 }
             )
         else:
-            logger.warning("No power_monitor5v found in switch status")
+            logger.warning("No power_monitor5V found in switch status")
 
-        if "power_monitor15v" in all_switch_status:
+        if "power_monitor15V" in all_switch_status:
             switch_diag["power_sensors"].append(
                 {
-                    "name": "15v Monitor",
-                    "value": all_switch_status["power_monitor15v"],
+                    "name": "15V Monitor",
+                    "value": all_switch_status["power_monitor15V"],
                     "expected_value": 15.0,
                 }
             )
         else:
-            logger.warning("No power_monitor15v found in switch status.")
+            logger.warning("No power_monitor15V found in switch status.")
 
-        if "power_monitor24v" in all_switch_status:
+        if "power_monitor24V" in all_switch_status:
             switch_diag["power_sensors"].append(
                 {
-                    "name": "24v Monitor",
-                    "value": all_switch_status["power_monitor24v"],
+                    "name": "24V Monitor",
+                    "value": all_switch_status["power_monitor24V"],
                     "expected_value": 24.0,
                 }
             )
         else:
-            logger.warning("No power_monitor24v found in switch status")
+            logger.warning("No power_monitor24V found in switch status")
 
-        if "power_monitor28v" in all_switch_status:
+        if "power_monitor28V" in all_switch_status:
             switch_diag["power_sensors"].append(
                 {
-                    "name": "28v Monitor",
-                    "value": all_switch_status["power_monitor28v"],
+                    "name": "28V Monitor",
+                    "value": all_switch_status["power_monitor28V"],
                     "expected_value": 28.0,
                 }
             )
         else:
-            logger.warning("No power_monitor28v found in switch status")
+            logger.warning("No power_monitor28V found in switch status")
 
     def add_heating_cooling(self, all_switch_status: dict, switch_diag: dict):
         if "heating" in all_switch_status:
