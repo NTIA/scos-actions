@@ -837,16 +837,16 @@ class NasctnSeaDataProduct(Action):
         switch_diag["power_sensors"] = []
         if "5vdc_monitor" in all_switch_status:
             switch_diag["power_sensors"].append(
-                {"name": "5v Monitor", "value:": all_switch_status["5vdc_monitor"], "expected_value": 5.0})
+                {"name": "5v Monitor", "value": all_switch_status["5vdc_monitor"], "expected_value": 5.0})
         if "15vdc_monitor" in all_switch_status:
             switch_diag["power_sensors"].append(
-                {"name": "15v Monitor", "value:": all_switch_status["15vdc_monitor"], "expected_value": 15.0})
+                {"name": "15v Monitor", "value": all_switch_status["15vdc_monitor"], "expected_value": 15.0})
         if "24vdc_monitor" in all_switch_status:
             switch_diag["power_sensors"].append(
-                {"name": "24v Monitor", "value:": all_switch_status["24vdc_monitor"], "expected_value": 24.0})
+                {"name": "24v Monitor", "value": all_switch_status["24vdc_monitor"], "expected_value": 24.0})
         if "28vdc_monitor" in all_switch_status:
             switch_diag["power_sensors"].append(
-                {"name": "28v Monitor", "value:": all_switch_status["28vdc_monitor"], "expected_value": 28.0})
+                {"name": "28v Monitor", "value": all_switch_status["28vdc_monitor"], "expected_value": 28.0})
 
     def add_heating_cooling(self, all_switch_status: dict, switch_diag: dict):
         if "heating" in all_switch_status:
