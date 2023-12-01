@@ -732,6 +732,7 @@ class NasctnSeaDataProduct(Action):
             "cpu_max_clock": round(max(cpu_speeds), 1),
             "cpu_min_clock": round(min(cpu_speeds), 1),
             "cpu_mean_clock": round(np.mean(cpu_speeds), 1),
+            "action_runtime": round(perf_counter() - action_start_tic, 2),
         }
         try:  # Computer uptime (days)
             cpu_diag["cpu_uptime"] = round(get_cpu_uptime_seconds() / (60 * 60 * 24), 2)
@@ -797,7 +798,6 @@ class NasctnSeaDataProduct(Action):
             "spu": ntia_diagnostics.SPU(**switch_diag),
             "computer": ntia_diagnostics.Computer(**cpu_diag),
             "software": ntia_diagnostics.Software(**software_diag),
-            "action_runtime": round(perf_counter() - action_start_tic, 2),
         }
 
         # Add diagnostics to SigMF global object
