@@ -13,41 +13,41 @@ from scos_actions.metadata.utils import msgspec_dec_dict, msgspec_enc
 
 # Global info which is ALWAYS true for SCOS-generated recordings
 GLOBAL_INFO = {
-    "core:version": "v1.0.0",
+    "core:version": "1.0.0",
     "core:extensions": [
         {
             "name": "ntia-algorithm",
-            "version": "v2.0.1",
+            "version": "2.0.1",
             "optional": False,
         },
         {
             "name": "ntia-core",
-            "version": "v2.0.0",
+            "version": "2.0.0",
             "optional": False,
         },
         {
             "name": "ntia-diagnostics",
-            "version": "v2.0.0",
+            "version": "2.0.0",
             "optional": True,
         },
         {
             "name": "ntia-environment",
-            "version": "v1.0.0",
+            "version": "1.0.0",
             "optional": True,
         },
         {
             "name": "ntia-scos",
-            "version": "v1.0.0",
+            "version": "1.0.0",
             "optional": True,
         },
         {
             "name": "ntia-sensor",
-            "version": "v2.0.0",
+            "version": "2.0.0",
             "optional": False,
         },
         {
             "name": "ntia-nasctn-sea",
-            "version": "v0.6.0",
+            "version": "0.6.0",
             "optional": True,
         },
     ],
