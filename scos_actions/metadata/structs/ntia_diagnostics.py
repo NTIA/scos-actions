@@ -147,8 +147,8 @@ class Computer(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     memory_usage: Optional[float] = None
     cpu_overheating: Optional[bool] = None
     cpu_temp: Optional[float] = None
-    scos_start: Optional[str] = None
-    scos_uptime: Optional[float] = None
+    software_start: Optional[str] = None
+    software_uptime: Optional[float] = None
     ssd_smart_data: Optional[SsdSmartData] = None
 
 

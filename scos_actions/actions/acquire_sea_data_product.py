@@ -762,13 +762,13 @@ class NasctnSeaDataProduct(Action):
         except:
             logger.warning("Failed to get CPU overheating status")
         try:  # SCOS start time
-            cpu_diag["scos_start"] = convert_datetime_to_millisecond_iso_format(
+            cpu_diag["software_start"] = convert_datetime_to_millisecond_iso_format(
                 start_time
             )
         except:
             logger.warning("Failed to get SCOS start time")
         try:  # SCOS uptime
-            cpu_diag["scos_uptime"] = get_days_up()
+            cpu_diag["software_uptime"] = get_days_up()
         except:
             logger.warning("Failed to get SCOS uptime")
         try:  # SSD SMART data
