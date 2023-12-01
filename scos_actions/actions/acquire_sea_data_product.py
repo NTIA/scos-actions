@@ -720,7 +720,7 @@ class NasctnSeaDataProduct(Action):
         self.add_power_sensors(all_switch_status, switch_diag)
         self.add_power_states(all_switch_status, switch_diag)
         if "door_closed" in all_switch_status:
-            switch_diag["door_closed"] = bool(all_switch_status["door_closed"])
+            switch_diag["door_closed"] = not bool(all_switch_status["door_closed"])
 
         #Read preselector sensors
         ps_diag = preselector.get_status()
