@@ -791,12 +791,23 @@ class NasctnSeaDataProduct(Action):
     def set_ups_states(self, all_switch_status: dict, switch_diag: dict):
         if "ups_power_state" in all_switch_status:
             switch_diag["battery_backup"] = not all_switch_status["ups_power_state"]
+        else:
+            logger.warning("No ups_power_state found in switch status.")
+
         if "ups_battery_level" in all_switch_status:
             switch_diag["low_battery"] = not all_switch_status["ups_battery_level"]
+        else:
+            logger.warning("No ups_battery_level found in switch status.")
+
         if "ups_state" in all_switch_status:
             switch_diag["ups_healthy"] = not all_switch_status["ups_state"]
+        else:
+            logger.warning("No ups_state found in switch status.")
+
         if "ups_battery_state" in all_switch_status:
             switch_diag["replace_battery"] = not all_switch_status["ups_battery_state"]
+        else:
+            logger.warning("No ups_battery_state found in switch status")
 
     def add_temperature_and_humidity_sensors(
         self, all_switch_status: dict, switch_diag: dict
@@ -806,12 +817,15 @@ class NasctnSeaDataProduct(Action):
             switch_diag["temperature_sensors"].append(
                 {"name": "internal_temp", "value": all_switch_status["internal_temp"]}
             )
+        else:
+            logger.warning("No internal_temp found in switch status.")
         try:
             switch_diag["temperature_sensors"].append(
                 {"name": "sigan_internal_temp", "value": self.sigan.temperature}
             )
         except:
             logger.warning("Unable to read internal sigan temperature")
+
         if "tec_intake_temp" in all_switch_status:
             switch_diag["temperature_sensors"].append(
                 {
@@ -819,6 +833,8 @@ class NasctnSeaDataProduct(Action):
                     "value": all_switch_status["tec_intake_temp"],
                 }
             )
+        else:
+            logger.warning("No tec_intake_temp found in switch status.")
 
         if "tec_exhaust_temp" in all_switch_status:
             switch_diag["temperature_sensors"].append(
@@ -827,6 +843,8 @@ class NasctnSeaDataProduct(Action):
                     "value": all_switch_status["tec_exhaust_temp"],
                 }
             )
+        else:
+            logger.warning("No tec_exhaust_temp found in switch status.")
 
         if "internal_humidity" in all_switch_status:
             switch_diag["humidity_sensors"] = [
@@ -835,6 +853,8 @@ class NasctnSeaDataProduct(Action):
                     "value": all_switch_status["internal_humidity"],
                 }
             ]
+        else:
+            logger.warning("No internal_humidity found in switch status.")
 
     def add_power_sensors(self, all_switch_status: dict, switch_diag: dict):
         switch_diag["power_sensors"] = []
@@ -846,6 +866,9 @@ class NasctnSeaDataProduct(Action):
                     "expected_value": 5.0,
                 }
             )
+        else:
+            logger.warning("No power_monitor5v found in switch status")
+
         if "power_monitor15v" in all_switch_status:
             switch_diag["power_sensors"].append(
                 {
@@ -854,6 +877,9 @@ class NasctnSeaDataProduct(Action):
                     "expected_value": 15.0,
                 }
             )
+        else:
+            logger.warning("No power_monitor15v found in switch status.")
+
         if "power_monitor24v" in all_switch_status:
             switch_diag["power_sensors"].append(
                 {
@@ -862,6 +888,9 @@ class NasctnSeaDataProduct(Action):
                     "expected_value": 24.0,
                 }
             )
+        else:
+            logger.warning("No power_monitor24v found in switch status")
+
         if "power_monitor28v" in all_switch_status:
             switch_diag["power_sensors"].append(
                 {
@@ -870,24 +899,39 @@ class NasctnSeaDataProduct(Action):
                     "expected_value": 28.0,
                 }
             )
+        else:
+            logger.warning("No power_monitor28v found in switch status")
 
     def add_heating_cooling(self, all_switch_status: dict, switch_diag: dict):
         if "heating" in all_switch_status:
             switch_diag["heating"] = all_switch_status["heating"]
+        else:
+            logger.warning("No heating found in switch status.")
+
         if "cooling" in all_switch_status:
             switch_diag["cooling"] = all_switch_status["cooling"]
+        else:
+            logger.warning("No cooling found in switch status")
 
     def add_power_states(self, all_switch_status: dict, switch_diag: dict):
         if "sigan_powered" in all_switch_status:
             switch_diag["sigan_powered"] = all_switch_status["sigan_powered"]
+        else:
+            logger.warning("No sigan_powered found in switch status.")
+
         if "temperature_control_powered" in all_switch_status:
             switch_diag["temperature_control_powered"] = all_switch_status[
                 "temperature_control_powered"
             ]
+        else:
+            logger.warning("No temperature_control_powered found in switch status.")
+
         if "preselector_powered" in all_switch_status:
             switch_diag["preselector_powered"] = all_switch_status[
                 "preselector_powered"
             ]
+        else:
+            logger.warning("No preselector_powered found in switch status.")
 
     def create_global_sensor_metadata(self):
         # Add (minimal) ntia-sensor metadata to the sigmf_builder:
