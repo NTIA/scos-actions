@@ -96,6 +96,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         ]
         measurement_result["classification"] = self.classification
         sigan_settings = self.get_sigan_settings(measurement_result)
+        logger.debug(f"sigan settings:{sigan_settings}")
         measurement_result["capture_segment"] = self.create_capture_segment(
             sample_start=0,
             start_time=measurement_result["capture_time"],
