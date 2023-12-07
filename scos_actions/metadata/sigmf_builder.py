@@ -417,7 +417,7 @@ class SigMFBuilder:
         self.sigmf_md.set_global_field("ntia-sensor:sensor", sensor)
 
     def add_capture(self, capture: CaptureSegment) -> None:
-        capture_dict = json.loads(msgspec_enc.encode(capture))
+        capture_dict = json.loads(capture)
         sample_start = capture_dict.pop("core:sample_start")
         self.sigmf_md.add_capture(sample_start, metadata=capture_dict)
 
