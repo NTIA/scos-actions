@@ -33,7 +33,7 @@ class SignalAnalyzerInterface(ABC):
         # Define the default calibration dicts
         self.DEFAULT_SIGAN_CALIBRATION = {
             "datetime": get_datetime_str_now(),
-            "gain": None,  # Defaults to gain setting
+            "gain": 0,  # Defaults to gain setting
             "enbw": None,  # Defaults to sample rate
             "noise_figure": 0,
             "1db_compression_point": 100,
