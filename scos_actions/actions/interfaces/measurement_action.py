@@ -112,6 +112,8 @@ class MeasurementAction(Action):
         except KeyError:
             logger.warning(warning_str.format("calibration_datetime"))
         try:
+            cap = measurement_result["capture_segment"]
+            logger.debug(f"Adding capture:{cap}")
             self.sigmf_builder.add_capture(measurement_result["capture_segment"])
         except KeyError:
             logger.warning(warning_str.format("capture_segment"))
