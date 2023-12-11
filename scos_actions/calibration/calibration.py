@@ -40,12 +40,11 @@ class Calibration:
         """
 
         cal_data = self.calibration_data
-        if len(cal_params) > 0:
-            for i, setting_value in enumerate(cal_params):
-                setting = self.calibration_parameters[i]
-                logger.debug(f"Looking up calibration for {setting} at {setting_value}")
-                cal_data = filter_by_parameter(cal_data, setting_value)
-            logger.debug(f"Got calibration data: {cal_data}")
+        for i, setting_value in enumerate(cal_params):
+            setting = self.calibration_parameters[i]
+            logger.debug(f"Looking up calibration for {setting} at {setting_value}")
+            cal_data = filter_by_parameter(cal_data, setting_value)
+        logger.debug(f"Got calibration data: {cal_data}")
 
         return cal_data
 
