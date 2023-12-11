@@ -35,14 +35,14 @@ class SignalAnalyzerInterface(ABC):
             "datetime": get_datetime_str_now(),
             "gain": 0,  # Defaults to gain setting
             "enbw": None,  # Defaults to sample rate
-            "noise_figure": 0,
+            "noise_figure": None,
             "1db_compression_point": 100,
             "temperature": 26.85,
         }
 
         self.DEFAULT_SENSOR_CALIBRATION = {
             "datetime": get_datetime_str_now(),
-            "gain": None,  # Defaults to sigan gain
+            "gain": 0,  # Defaults to sigan gain
             "enbw": None,  # Defaults to sigan enbw
             "noise_figure": None,  # Defaults to sigan noise figure
             "1db_compression_point": None,  # Defaults to sigan compression + preselector gain
