@@ -33,8 +33,13 @@ def construct_geojson_point(
 
 
 def _enc_hook(obj: Any) -> Any:
-    if isinstance(obj, np.float64):
+    #While isinstance is recommended, it was causing a
+    #Recurrsion error and I don't think we have to worry
+    #about subytpes here. 
+    if type(obj) ==  np.float64:
         return float(obj)
+    elif type(obj) == np.bool_:
+        return bool(obj)
     else:
         return obj
 
