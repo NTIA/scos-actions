@@ -111,7 +111,8 @@ PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
 DATA_TYPE = np.half
 PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
 FFT_SIZE = 175  # 80 kHz resolution @ 14 MHz sampling rate
-FFT_PERCENTILES = np.arange(0, 101, 5)  # 0, 5, ..., 100
+# FFT_PERCENTILES = np.arange(0, 101, 5)  # 0, 5, ..., 100
+FFT_PERCENTILES = np.array([0.0, 50, 75, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100])
 FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
@@ -187,8 +188,8 @@ class PowerSpectralDensity:
         ]  # Truncation to middle bins
         fft_result = 10.0 * np.log10(fft_result) + self.fft_scale_factor
 
-        # Returned order is (mean, 0_percentile, 5_percentile, ... 100_percentile)
-        # Total of 22 arrays, each of length 125 (output shape (22, 125))
+        # Returned order is (mean, 0_percentile, 25_percentile, ... 100_percentile)
+        # Total of 15 arrays, each of length 125 (output shape (15, 125))
         # 0 percentile is equivalent to the minimum
         # 50 percentile is equivalent to the median
         # 100 percentile is equivalent to the maximum
