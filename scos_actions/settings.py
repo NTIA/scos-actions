@@ -22,7 +22,7 @@ if not settings.configured or not hasattr(settings, "SIGAN_CALIBRATION_FILE"):
     SIGAN_CALIBRATION_FILE = ""
     sigan_calibration = None
 else:
-    SIGAN_CALIBRATION_FILE = Path(settings.SIGAN_CALIBRATION_FILE)
+    SIGAN_CALIBRATION_FILE = settings.SIGAN_CALIBRATION_FILE
     logger.debug(f"SCOS_ACTIONS: SIGAN_CALIBRATION_FILE: {SIGAN_CALIBRATION_FILE}")
 
 if not settings.configured or not hasattr(settings, "SENSOR_CALIBRATION_FILE"):
@@ -30,7 +30,7 @@ if not settings.configured or not hasattr(settings, "SENSOR_CALIBRATION_FILE"):
     SENSOR_CALIBRATION_FILE = ""
     sensor_calibration = None
 else:
-    SENSOR_CALIBRATION_FILE = Path(settings.SENSOR_CALIBRATION_FILE)
+    SENSOR_CALIBRATION_FILE = settings.SENSOR_CALIBRATION_FILE
     logger.debug(f"SCOS_ACTIONS: SENSOR_CALIBRATION_FILE: {SENSOR_CALIBRATION_FILE}")
 
 SWITCH_CONFIGS_DIR = env("SWITCH_CONFIGS_DIR", default=None)
