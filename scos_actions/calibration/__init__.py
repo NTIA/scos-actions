@@ -2,10 +2,13 @@ import logging
 from os import path
 
 from scos_actions.calibration.calibration import Calibration, load_from_json
-from scos_actions.settings import SENSOR_CALIBRATION_FILE, SIGAN_CALIBRATION_FILE
+from scos_actions.settings import (
+    DEFAULT_CALIBRATION_FILE,
+    SENSOR_CALIBRATION_FILE,
+    SIGAN_CALIBRATION_FILE,
+)
 
 logger = logging.getLogger(__name__)
-DEFAULT_CALIBRATION_FILE = "no_calibration.json"
 
 
 def get_sigan_calibration(sigan_cal_file: str) -> Calibration:

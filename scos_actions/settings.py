@@ -11,9 +11,14 @@ logger.debug("Initializing scos-actions settings")
 CONFIG_DIR = Path(__file__).parent.resolve() / "configs"
 ACTION_DEFINITIONS_DIR = CONFIG_DIR / "actions"
 
+if not settings.configured or not hasattr(settings, "DEFAULT_CALIBRATION_FILE"):
+    DEFAULT_CALIBRATION_FILE = ""
+else:
+    DEFAULT_CALIBRATION_FILE = settings.DEFAULT_CALIBRATION_FILE
+
 # set sigan_calibration file and sensor_calibration_file
 if not settings.configured or not hasattr(settings, "SIGAN_CALIBRATION_FILE"):
-    logger.warning("Using default sigan calibration.")
+    logger.warning("Sigan calibration file is not defined.")
     SIGAN_CALIBRATION_FILE = ""
     sigan_calibration = None
 else:
@@ -21,7 +26,7 @@ else:
     logger.debug(f"SCOS_ACTIONS: SIGAN_CALIBRATION_FILE: {SIGAN_CALIBRATION_FILE}")
 
 if not settings.configured or not hasattr(settings, "SENSOR_CALIBRATION_FILE"):
-    logger.warning("Using default calibration.")
+    logger.warning("Sensor calibration file is not defined.")
     SENSOR_CALIBRATION_FILE = ""
     sensor_calibration = None
 else:
