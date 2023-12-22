@@ -660,7 +660,8 @@ class NasctnSeaDataProduct(Action):
             start time, and SCOS uptime.
 
         Software versions: the OS platform, Python version, scos_actions
-            version, and preselector API version.
+            version, the preselector API version, the signal analyzer API
+            version, and the signal analyzer firmware version.
 
         The total action runtime is also recorded.
 
@@ -773,6 +774,8 @@ class NasctnSeaDataProduct(Action):
                 name="scos_tekrsa", version=self.sigan.plugin_version
             ),
             "preselector_api_version": PRESELECTOR_API_VERSION,
+            "sigan_firmware_version": self.sigan.firmware_version,
+            "sigan_api_version": self.sigan.api_version,
         }
 
         toc = perf_counter()
