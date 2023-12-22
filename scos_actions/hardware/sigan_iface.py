@@ -70,6 +70,18 @@ class SignalAnalyzerInterface(ABC):
         """Returns the version of the SCOS plugin defining this interface."""
         pass
 
+    @property
+    @abstractmethod
+    def firmware_version(self) -> str:
+        """Returns the version of the signal analyzer firmware."""
+        pass
+
+    @property
+    @abstractmethod
+    def api_version(self) -> str:
+        """Returns the version of the underlying signal analyzer API."""
+        pass
+
     @abstractmethod
     def acquire_time_domain_samples(
         self,
