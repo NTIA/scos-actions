@@ -179,6 +179,8 @@ class Software(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     :param scos_sigan_plugin: `ScosPlugin` object describing the plugin which defines the
         signal analyzer interface.
     :param preselector_api_version: Version of the NTIA `preselector` package.
+    :param sigan_firmware_version: Version of the signal analyzer firmware.
+    :param sigan_api_version: Version of the signal analyzer API.
     """
 
     system_platform: Optional[str] = None
@@ -187,6 +189,8 @@ class Software(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     scos_actions_version: Optional[str] = None
     scos_sigan_plugin: Optional[ScosPlugin] = None
     preselector_api_version: Optional[str] = None
+    sigan_firmware_version: Optional[str] = None
+    sigan_api_version: Optional[str] = None
 
 
 class Diagnostics(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
