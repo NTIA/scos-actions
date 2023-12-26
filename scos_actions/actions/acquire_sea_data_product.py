@@ -120,8 +120,8 @@ DATA_REFERENCE_POINT = "noise source output"
 NUM_ACTORS = 3  # Number of ray actors to initialize
 
 # Create power detectors
-TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["mean", "max"])
-FFT_M3_DETECTOR = create_statistical_detector("FftM3Detector", ["mean", "median", "max"])
+TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["max", "mean"])
+FFT_M3_DETECTOR = create_statistical_detector("FftM3Detector", ["max", "mean", "median"])
 PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
 
 
@@ -996,10 +996,10 @@ class NasctnSeaDataProduct(Action):
         psd_x_axis__Hz = get_fft_frequencies(FFT_SIZE, p[SAMPLE_RATE], 0.0)  # Baseband
         psd_graph = ntia_algorithm.Graph(
             name="Power Spectral Density",
-            series=[d.value for d in FFT_DETECTOR]
+            series=[d.value for d in FFT_M3_DETECTOR]
             + [
-                f"q_{p}" for p in FFT_PERCENTILES
-            ],  # ["mean", "q_0", "q_5", ... "q_100"]
+                f"{int(p)}th_percentile" if p.is_integer() else f"{p}th_percentile" for p in FFT_PERCENTILES
+            ],  # ["max", "mean", "median", "25th_percentile", "75th_percentile", ... "99.99th_percentile"]
             length=int(FFT_SIZE * (5 / 7)),
             x_units="Hz",
             x_start=[psd_x_axis__Hz[psd_bin_start]],
@@ -1009,9 +1009,10 @@ class NasctnSeaDataProduct(Action):
             processing=[dft_obj.id],
             reference=DATA_REFERENCE_POINT,
             description=(
-                "Mean-detected and percentiles (5pct steps, 0-100) power spectral density, with the "
-                + f"first and last {int(FFT_SIZE / 7)} samples discarded. "
-                + "FFTs computed on IIR-filtered data."
+                "Results of statistical detectors (max, mean, median, 25th_percentile, 75th_percentile, "
+                + "90th_percentile, 95th_percentile, 99th_percentile, 99.9th_percentile, 99.99th_percentile) "
+                + f"applied to power spectral density samples, with the first and last {int(FFT_SIZE / 7)} "
+                + "samples discarded. FFTs computed on IIR-filtered data."
             ),
         )
 
@@ -1089,7 +1090,7 @@ class NasctnSeaDataProduct(Action):
             [psd_graph, pvt_graph, pfp_graph, apd_graph]
         )
         self.total_channel_data_length = (
-            psd_length * (len(FFT_DETECTOR) + len(FFT_PERCENTILES))
+            psd_length * (len(FFT_M3_DETECTOR) + len(FFT_PERCENTILES))
             + pvt_length * len(TD_DETECTOR)
             + pfp_length * len(PFP_M3_DETECTOR) * 2
             + apd_graph.length
