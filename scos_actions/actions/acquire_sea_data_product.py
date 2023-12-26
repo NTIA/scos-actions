@@ -111,8 +111,7 @@ PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
 DATA_TYPE = np.half
 PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
 FFT_SIZE = 175  # 80 kHz resolution @ 14 MHz sampling rate
-# FFT_PERCENTILES = np.arange(0, 101, 5)  # 0, 5, ..., 100
-FFT_PERCENTILES = np.array([0.0, 50, 75, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100])
+FFT_PERCENTILES = np.array([25, 75, 90, 95, 99, 99.9, 99.99])
 FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
@@ -122,7 +121,7 @@ NUM_ACTORS = 3  # Number of ray actors to initialize
 
 # Create power detectors
 TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["mean", "max"])
-FFT_DETECTOR = create_statistical_detector("FftMeanDetector", ["mean"])
+FFT_M3_DETECTOR = create_statistical_detector("FftM3Detector", ["mean", "median", "max"])
 PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
 
 
@@ -144,7 +143,7 @@ class PowerSpectralDensity:
         fft_size: int = FFT_SIZE,
         fft_window: np.ndarray = FFT_WINDOW,
         window_ecf: float = FFT_WINDOW_ECF,
-        detector: EnumMeta = FFT_DETECTOR,
+        detector: EnumMeta = FFT_M3_DETECTOR,
         percentiles: np.ndarray = FFT_PERCENTILES,
         impedance_ohms: float = IMPEDANCE_OHMS,
     ):
@@ -179,7 +178,7 @@ class PowerSpectralDensity:
         )
         # Power in Watts
         fft_amplitudes = calculate_pseudo_power(fft_amplitudes)
-        fft_result = apply_statistical_detector(fft_amplitudes, self.detector)  # (mean)
+        fft_result = apply_statistical_detector(fft_amplitudes, self.detector)  # (mean, median, max)
         percentile_result = np.percentile(fft_amplitudes, self.percentiles, axis=0)
         fft_result = np.vstack((fft_result, percentile_result))
         fft_result = np.fft.fftshift(fft_result, axes=(1,))  # Shift frequencies
@@ -188,11 +187,8 @@ class PowerSpectralDensity:
         ]  # Truncation to middle bins
         fft_result = 10.0 * np.log10(fft_result) + self.fft_scale_factor
 
-        # Returned order is (mean, 0_percentile, 25_percentile, ... 100_percentile)
-        # Total of 15 arrays, each of length 125 (output shape (15, 125))
-        # 0 percentile is equivalent to the minimum
-        # 50 percentile is equivalent to the median
-        # 100 percentile is equivalent to the maximum
+        # Returned order is (mean, median, max, 25%, 75%, 90%, 95%, 99%, 99.9%, 99.99%)
+        # Total of 10 arrays, each of length 125 (output shape (10, 125))
         # Percentile computation linearly interpolates. See numpy documentation.
         return fft_result
 
