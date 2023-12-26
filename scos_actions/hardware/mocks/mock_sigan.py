@@ -38,6 +38,8 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         self._capture_time = None
         self._is_available = True
         self._plugin_version = SCOS_ACTIONS_VERSION
+        self._firmware_version = "1.2.3"
+        self._api_version = "v1.2.3"
 
         # Simulate returning less than the requested number of samples from
         # self.recv_num_samps
@@ -55,6 +57,14 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     @property
     def plugin_version(self):
         return self._plugin_version
+    
+    @property
+    def firmware_version(self):
+        return self._firmware_version
+    
+    @property
+    def api_version(self):
+        return self._api_version
 
     @property
     def sample_rate(self):
