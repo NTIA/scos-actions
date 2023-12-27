@@ -158,7 +158,7 @@ class PowerSpectralDensity:
         # Compute the amplitude shift for PSD scaling. The FFT result
         # is in pseudo-power log units and must be scaled to a PSD.
         self.fft_scale_factor = (
-            -10.0 * np.log10(impedance_ohms)  # Pseudo-power to power
+            - 10.0 * np.log10(impedance_ohms)  # Pseudo-power to power
             + 27.0  # Watts to dBm (+30) and baseband to RF (-3)
             - 10.0 * np.log10(sample_rate_Hz * fft_size)  # PSD scaling
             + 20.0 * np.log10(window_ecf)  # Window energy correction
@@ -178,7 +178,7 @@ class PowerSpectralDensity:
         )
         # Power in Watts
         fft_amplitudes = calculate_pseudo_power(fft_amplitudes)
-        fft_result = apply_statistical_detector(fft_amplitudes, self.detector)  # (mean, median, max)
+        fft_result = apply_statistical_detector(fft_amplitudes, self.detector)  # (max, mean, median)
         percentile_result = np.percentile(fft_amplitudes, self.percentiles, axis=0)
         fft_result = np.vstack((fft_result, percentile_result))
         fft_result = np.fft.fftshift(fft_result, axes=(1,))  # Shift frequencies
@@ -187,7 +187,7 @@ class PowerSpectralDensity:
         ]  # Truncation to middle bins
         fft_result = 10.0 * np.log10(fft_result) + self.fft_scale_factor
 
-        # Returned order is (mean, median, max, 25%, 75%, 90%, 95%, 99%, 99.9%, 99.99%)
+        # Returned order is (max, mean, median, 25%, 75%, 90%, 95%, 99%, 99.9%, 99.99%)
         # Total of 10 arrays, each of length 125 (output shape (10, 125))
         # Percentile computation linearly interpolates. See numpy documentation.
         return fft_result
