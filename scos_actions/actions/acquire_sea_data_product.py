@@ -575,6 +575,7 @@ class NasctnSeaDataProduct(Action):
             for i, data_ref in enumerate(channel_data_refs):
                 # Now block until the data is ready
                 data = ray.get(data_ref)
+                logger.debug(f"Retrieved data: {i}\n\t{data}")
                 if i == 1:
                     # Power-vs-Time results, a tuple of arrays
                     data, summaries = data  # Split the tuple
