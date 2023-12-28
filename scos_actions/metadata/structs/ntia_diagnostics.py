@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 import msgspec
 
@@ -11,43 +11,79 @@ class Preselector(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
 
     :param temp: Temperature inside the preselector enclosure, in degrees Celsius.
     :param noise_diode_temp: Temperature of the noise diode, in degrees Celsius.
+    :param noise_diode_powered: Boolean indicating if the noise diode is powered.
+    :param lna_powered: Boolean indicating if the lna is powered.
     :param lna_temp: Temparature of the low noise amplifier, in degrees Celsius.
+    :param antenna_path_enabled: Boolean indicating if the antenna path is enabled.
+    :param noise_diode_path_enabled: Boolean indicating if the noise diode path is enabled.
     :param humidity: Relative humidity inside the preselector enclosure, as a percentage.
     :param door_closed: Indicates whether the door of the enclosure is closed.
     """
 
     temp: Optional[float] = None
     noise_diode_temp: Optional[float] = None
+    noise_diode_powered: Optional[bool] = None
+    lna_powered: Optional[bool] = None
     lna_temp: Optional[float] = None
+    antenna_path_enabled: Optional[bool] = None
+    noise_diode_path_enabled: Optional[bool] = None
     humidity: Optional[float] = None
     door_closed: Optional[bool] = False
 
 
-class SPU(
-    msgspec.Struct, rename={"aux_28v_powered": "28v_aux_powered"}, **SIGMF_OBJECT_KWARGS
-):
+class DiagnosticSensor(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
+    """
+    Interface for generating `ntia-diagnostics` `DiagnosticSensor` objects.
+
+    :param name: The name of the sensor
+    :param value: The value provided by the sensor
+    :param maximum_allowed: The maximum value allowed from the sensor before action should be taken
+    :param mimimum_allowed: The minimum value allowed from the sensor before action should be taken
+    :param description: A description of the sensor
+    """
+
+    name: str
+    value: float
+    maximum_allowed: Optional[float] = None
+    minimum_allowed: Optional[float] = None
+    expected_value: Optional[float] = None
+    description: Optional[str] = None
+
+
+class SPU(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
     Interface for generating `ntia-diagnostics` `SPU` objects.
 
-    :param rf_tray_powered: Indicates if the RF tray is powered.
+    :param cooling: Boolean indicating if the cooling is enabled.
+    :param heating: Boolean indicating if the heat is enabled.
     :param preselector_powered: Indicates if the preselector is powered.
-    :param aux_28v_powered: Indicates if the 28V aux power is on.
-    :param pwr_box_temp: Ambient temperature in power distribution box,
-        in degrees Celsius.
-    :param pwr_box_humidity: Humidity in power distribution box, as a
-        percentage.
-    :param rf_box_temp: Ambient temperature in the RF box (around the signal
-        analyzer), in degrees Celsius.
-    :param sigan_internal_temp: Internal temperature reported by the signal analyzer.
+    :param sigan_powered: Boolean indicating if the signal analyzer is powered.
+    :param temperature_control_powered: Boolean indicating TEC AC power.
+    :param battery_backup: Boolean indicating if it is running on battery backup.
+    :param low_battery: Boolean indicating if the battery is low.
+    :param ups_healthy: Indicates trouble with UPS.
+    :param replace_battery: Boolean indicating if the ups battery needs replacing.
+    :param temperature_sensors: List of temperature sensor values
+    :param humidity_sensors: List of humidity sensor values
+    :param power_sensors: List of power sensor values
+    :param door_closed: Boolean indicating if the door is closed
     """
 
-    rf_tray_powered: Optional[bool] = None
+    cooling: Optional[bool] = None
+    heating: Optional[bool] = None
+    sigan_powered: Optional[bool] = None
+    temperature_control_powered: Optional[bool] = None
     preselector_powered: Optional[bool] = None
-    aux_28v_powered: Optional[bool] = None
-    pwr_box_temp: Optional[float] = None
-    pwr_box_humidity: Optional[float] = None
-    rf_box_temp: Optional[float] = None
-    sigan_internal_temp: Optional[float] = None
+
+    battery_backup: Optional[bool] = None
+    low_battery: Optional[bool] = None
+    ups_healthy: Optional[bool] = None
+    replace_battery: Optional[bool] = None
+
+    temperature_sensors: Optional[List[DiagnosticSensor]] = None
+    humidity_sensors: Optional[List[DiagnosticSensor]] = None
+    power_sensors: Optional[List[DiagnosticSensor]] = None
+    door_closed: Optional[bool] = None
 
 
 class SsdSmartData(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
@@ -110,12 +146,13 @@ class Computer(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     cpu_mean_clock: Optional[float] = None
     cpu_uptime: Optional[float] = None
     action_cpu_usage: Optional[float] = None
+    action_runtime: Optional[float] = None
     system_load_5m: Optional[float] = None
     memory_usage: Optional[float] = None
     cpu_overheating: Optional[bool] = None
     cpu_temp: Optional[float] = None
-    scos_start: Optional[str] = None
-    scos_uptime: Optional[float] = None
+    software_start: Optional[str] = None
+    software_uptime: Optional[float] = None
     ssd_smart_data: Optional[SsdSmartData] = None
 
 
@@ -169,4 +206,3 @@ class Diagnostics(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     spu: Optional[SPU] = None
     computer: Optional[Computer] = None
     software: Optional[Software] = None
-    action_runtime: Optional[float] = None
