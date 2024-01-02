@@ -935,9 +935,7 @@ class NasctnSeaDataProduct(Action):
 
     def create_global_sensor_metadata(self):
         # Add (minimal) ntia-sensor metadata to the sigmf_builder:
-        #   sensor ID, serial numbers for preselector, sigan, and computer
-        #   overall sensor_spec version, e.g. "Prototype Rev. 3"
-        #   sensor definition hash, to link to full sensor definition
+        # sensor ID and sensor definition hash, to link to full sensor definition
         self.sigmf_builder.set_sensor(
             ntia_sensor.Sensor(
                 sensor_spec=ntia_core.HardwareSpec(
