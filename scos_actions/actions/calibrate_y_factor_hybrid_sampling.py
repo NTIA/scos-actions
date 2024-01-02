@@ -157,7 +157,7 @@ class HybridSamplingYFactorCalibration(Action):
         try:
             self.iir_apply = get_parameter(IIR_APPLY, parameters)
         except ParameterException:
-            logger.info(
+            logger.debug(
                 "Config parameter 'iir_apply' not provided. "
                 + "No IIR filtering will be used during calibration."
             )

@@ -56,6 +56,7 @@ from scos_actions.metadata.structs import (
     ntia_sensor,
 )
 from scos_actions.metadata.structs.capture import CaptureSegment
+from scos_actions.settings import SCOS_SENSOR_GIT_TAG
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
     get_fft,
@@ -127,20 +128,6 @@ WIDEBAND_FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, WIDEBAND_FFT_SIZE)
 TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["mean", "max"])
 FFT_DETECTOR = create_statistical_detector("FftMeanMaxDetector", ["mean", "max"])
 PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
-
-# Expected webswitch configuration:
-PRESELECTOR_SENSORS = {
-    "temp": 1,  # Internal temperature, deg C
-    "noise_diode_temp": 2,  # Noise diode temperature, deg C
-    "lna_temp": 3,  # LNA temperature, deg C
-    "humidity": 4,  # Internal humidity, percentage
-}
-PRESELECTOR_DIGITAL_INPUTS = {"door_closed": 1}
-SPU_SENSORS = {
-    "pwr_box_temp": 1,  # Power tray temperature, deg C
-    "rf_box_temp": 2,  # RF tray temperature, deg C
-    "pwr_box_humidity": 3,  # Power tray humidity, percentage
-}
 
 
 @ray.remote
@@ -623,7 +610,7 @@ class HybridSeaDataProduct(Action):
             [],
         )
         result_tic = perf_counter()
-        for i, channel_data_process in enumerate(dp_procs):
+        for channel_data_process in dp_procs:
             # Retrieve object references for channel data
             channel_data_refs = ray.get(channel_data_process)
             channel_data = []
@@ -752,47 +739,33 @@ class HybridSeaDataProduct(Action):
             consecutive points as the action has been running.
         """
         tic = perf_counter()
-        # Read SPU sensors
+        switch_diag = {}
+        all_switch_status = {}
+        # Add status for any switch
         for switch in switches.values():
-            if switch.name == "SPU X410":
-                spu_diag = switch.get_status()
-                del spu_diag["name"]
-                del spu_diag["healthy"]
-                for sensor in SPU_SENSORS:
-                    try:
-                        value = switch.get_sensor_value(SPU_SENSORS[sensor])
-                        spu_diag[sensor] = value
-                    except:
-                        logger.warning(f"Unable to read {sensor} from SPU x410")
-                try:
-                    spu_diag["sigan_internal_temp"] = self.sigan.temperature
-                except:
-                    logger.warning("Unable to read internal sigan temperature")
-        # Rename key for use with **
-        spu_diag["aux_28v_powered"] = spu_diag.pop("28v_aux_powered")
+            switch_status = switch.get_status()
+            del switch_status["name"]
+            del switch_status["healthy"]
+            all_switch_status.update(switch_status)
+
+        self.set_ups_states(all_switch_status, switch_diag)
+        self.add_temperature_and_humidity_sensors(all_switch_status, switch_diag)
+        self.add_power_sensors(all_switch_status, switch_diag)
+        self.add_power_states(all_switch_status, switch_diag)
+        if "door_state" in all_switch_status:
+            switch_diag["door_closed"] = not bool(all_switch_status["door_state"])
 
         # Read preselector sensors
-        ps_diag = {}
-        for sensor in PRESELECTOR_SENSORS:
-            try:
-                value = preselector.get_sensor_value(PRESELECTOR_SENSORS[sensor])
-                ps_diag[sensor] = value
-            except:
-                logger.warning(f"Unable to read {sensor} from preselector")
-        for inpt in PRESELECTOR_DIGITAL_INPUTS:
-            try:
-                value = preselector.get_digital_input_value(
-                    PRESELECTOR_DIGITAL_INPUTS[inpt]
-                )
-                ps_diag[inpt] = value
-            except:
-                logger.warning(f"Unable to read {inpt} from preselector")
+        ps_diag = preselector.get_status()
+        del ps_diag["name"]
+        del ps_diag["healthy"]
 
         # Read computer performance metrics
         cpu_diag = {  # Start with CPU min/max/mean speeds
             "cpu_max_clock": round(max(cpu_speeds), 1),
             "cpu_min_clock": round(min(cpu_speeds), 1),
             "cpu_mean_clock": round(np.mean(cpu_speeds), 1),
+            "action_runtime": round(perf_counter() - action_start_tic, 2),
         }
         try:  # Computer uptime (days)
             cpu_diag["cpu_uptime"] = round(get_cpu_uptime_seconds() / (60 * 60 * 24), 2)
@@ -823,13 +796,13 @@ class HybridSeaDataProduct(Action):
         except:
             logger.warning("Failed to get CPU overheating status")
         try:  # SCOS start time
-            cpu_diag["scos_start"] = convert_datetime_to_millisecond_iso_format(
+            cpu_diag["software_start"] = convert_datetime_to_millisecond_iso_format(
                 start_time
             )
         except:
             logger.warning("Failed to get SCOS start time")
         try:  # SCOS uptime
-            cpu_diag["scos_uptime"] = get_days_up()
+            cpu_diag["software_uptime"] = get_days_up()
         except:
             logger.warning("Failed to get SCOS uptime")
         try:  # SSD SMART data
@@ -842,7 +815,11 @@ class HybridSeaDataProduct(Action):
         software_diag = {
             "system_platform": platform.platform(),
             "python_version": sys.version.split()[0],
+            "scos_sensor_version": SCOS_SENSOR_GIT_TAG,
             "scos_actions_version": SCOS_ACTIONS_VERSION,
+            "scos_sigan_plugin": ntia_diagnostics.ScosPlugin(
+                name="scos_tekrsa", version=self.sigan.plugin_version
+            ),
             "preselector_api_version": PRESELECTOR_API_VERSION,
         }
 
@@ -851,10 +828,9 @@ class HybridSeaDataProduct(Action):
         diagnostics = {
             "datetime": utils.get_datetime_str_now(),
             "preselector": ntia_diagnostics.Preselector(**ps_diag),
-            "spu": ntia_diagnostics.SPU(**spu_diag),
+            "spu": ntia_diagnostics.SPU(**switch_diag),
             "computer": ntia_diagnostics.Computer(**cpu_diag),
             "software": ntia_diagnostics.Software(**software_diag),
-            "action_runtime": round(perf_counter() - action_start_tic, 2),
         }
 
         # Add diagnostics to SigMF global object
@@ -862,29 +838,11 @@ class HybridSeaDataProduct(Action):
 
     def create_global_sensor_metadata(self):
         # Add (minimal) ntia-sensor metadata to the sigmf_builder:
-        #   sensor ID, serial numbers for preselector, sigan, and computer
-        #   overall sensor_spec version, e.g. "Prototype Rev. 3"
-        #   sensor definition hash, to link to full sensor definition
+        # sensor ID and sensor definition hash, to link to full sensor definition
         self.sigmf_builder.set_sensor(
             ntia_sensor.Sensor(
                 sensor_spec=ntia_core.HardwareSpec(
                     id=self.sensor_definition["sensor_spec"]["id"],
-                    version=self.sensor_definition["sensor_spec"]["version"],
-                ),
-                preselector=ntia_sensor.Preselector(
-                    preselector_spec=ntia_core.HardwareSpec(
-                        id=self.sensor_definition["preselector"]["preselector_spec"][
-                            "id"
-                        ]
-                    )
-                ),
-                signal_analyzer=ntia_sensor.SignalAnalyzer(
-                    sigan_spec=ntia_core.HardwareSpec(
-                        id=self.sensor_definition["signal_analyzer"]["sigan_spec"]["id"]
-                    )
-                ),
-                computer_spec=ntia_sensor.HardwareSpec(
-                    id=self.sensor_definition["computer_spec"]["id"]
                 ),
                 sensor_sha512=SENSOR_DEFINITION_HASH,
             )
@@ -1129,8 +1087,8 @@ class HybridSeaDataProduct(Action):
         sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
 
-        # Mark data as UNCLASSIFIED
-        sigmf_builder.set_classification("UNCLASSIFIED")
+        # Mark data as CUI (basic)
+        sigmf_builder.set_classification("CUI")
 
         self.sigmf_builder = sigmf_builder
 
