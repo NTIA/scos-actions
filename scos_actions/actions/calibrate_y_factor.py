@@ -253,7 +253,7 @@ class YFactorCalibration(Action):
         assert (
             sample_rate == noise_off_measurement_result["sample_rate"]
         ), "Sample rate mismatch"
-
+        sigan_params = {k: v for k, v in params.items() if k in SIGAN_SETTINGS_KEYS}
         # Apply IIR filtering to both captures if configured
         if self.iir_apply:
             # Estimate of IIR filter ENBW does NOT account for passband ripple in sensor transfer function!
@@ -264,7 +264,6 @@ class YFactorCalibration(Action):
         else:
             logger.debug("Skipping IIR filtering")
             # Get ENBW from sensor calibration
-            sigan_params = {k: v for k, v in params.items() if k in SIGAN_SETTINGS_KEYS}
             assert set(sensor_calibration.calibration_parameters) <= set(
                 sigan_params.keys()
             ), f"Action parameters do not include all required calibration parameters"
@@ -289,7 +288,7 @@ class YFactorCalibration(Action):
 
         # Update sensor calibration with results
         sensor_calibration.update(
-            params,
+            sigan_params,
             utils.get_datetime_str_now(),
             gain,
             noise_figure,
