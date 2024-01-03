@@ -20,7 +20,7 @@ def get_sigan_calibration(sigan_cal_file: str) -> Calibration:
     :return: The signal analyzer ``Calibration`` object.
     """
     try:
-        check_for_default_calibration(str, "Sigan")
+        check_for_default_calibration(sigan_cal_file, "Sigan")
         sigan_cal = load_from_json(sigan_cal_file)
     except Exception:
         sigan_cal = None
