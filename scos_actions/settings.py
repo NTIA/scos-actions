@@ -1,4 +1,5 @@
 import logging
+from os import path
 from pathlib import Path
 
 from django.conf import settings
@@ -12,7 +13,7 @@ CONFIG_DIR = Path(__file__).parent.resolve() / "configs"
 ACTION_DEFINITIONS_DIR = CONFIG_DIR / "actions"
 
 if not settings.configured or not hasattr(settings, "DEFAULT_CALIBRATION_FILE"):
-    DEFAULT_CALIBRATION_FILE = ""
+    DEFAULT_CALIBRATION_FILE = path.join(CONFIG_DIR, "default_calibration.json")
 else:
     DEFAULT_CALIBRATION_FILE = settings.DEFAULT_CALIBRATION_FILE
 

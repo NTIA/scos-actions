@@ -78,7 +78,7 @@ from scipy.signal import sosfilt
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.calibration import sensor_calibration
+from scos_actions.calibration import sensor_calibration, default_sensor_calibration
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
@@ -262,6 +262,11 @@ class YFactorCalibration(Action):
             noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
             noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
         else:
+            if default_sensor_calibration:
+                raise Exception(
+                    "Calibrations without IIR filter cannot be performed with default calibration."
+                )
+
             logger.debug("Skipping IIR filtering")
             # Get ENBW from sensor calibration
             assert set(sensor_calibration.calibration_parameters) <= set(

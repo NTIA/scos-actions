@@ -20,7 +20,6 @@ def get_sigan_calibration(sigan_cal_file: str) -> Calibration:
     :return: The signal analyzer ``Calibration`` object.
     """
     try:
-        check_for_default_calibration(sigan_cal_file, "Sigan")
         sigan_cal = load_from_json(sigan_cal_file)
     except Exception:
         sigan_cal = None
@@ -37,7 +36,6 @@ def get_sensor_calibration(sensor_cal_file: str) -> Calibration:
     :return: The sensor ``Calibration`` object.
     """
     try:
-        check_for_default_calibration(sensor_cal_file, "Sensor")
         sensor_cal = load_from_json(sensor_cal_file)
     except Exception:
         sensor_cal = None
@@ -45,11 +43,14 @@ def get_sensor_calibration(sensor_cal_file: str) -> Calibration:
     return sensor_cal
 
 
-def check_for_default_calibration(cal_file_path: str, cal_type: str):
+def check_for_default_calibration(cal_file_path: str, cal_type: str) -> bool:
+    default_cal = False
     if cal_file_path == DEFAULT_CALIBRATION_FILE:
+        default_cal = True
         logger.warning(
             f"***************LOADING DEFAULT {cal_type} CALIBRATION***************"
         )
+    return default_cal
 
 
 sensor_calibration = None
@@ -62,6 +63,9 @@ elif not path.exists(SENSOR_CALIBRATION_FILE):
     )
 else:
     logger.debug(f"Loading sensor cal file: {SENSOR_CALIBRATION_FILE}")
+    default_sensor_calibration = check_for_default_calibration(
+        SENSOR_CALIBRATION_FILE, "Sensor"
+    )
     sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
 
 sigan_calibration = None
@@ -73,6 +77,9 @@ elif not path.exists(SIGAN_CALIBRATION_FILE):
     )
 else:
     logger.debug(f"Loading sigan cal file: {SIGAN_CALIBRATION_FILE}")
+    default_sigan_calibration = check_for_default_calibration(
+        SIGAN_CALIBRATION_FILE, "Sigan"
+    )
     sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
 
 if sensor_calibration:
