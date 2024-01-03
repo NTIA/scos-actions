@@ -77,9 +77,10 @@ class Calibration:
         """
         cal_data = self.calibration_data
         self.last_calibration_datetime = calibration_datetime_str
-
+        if len(self.calibration_parameters) == 0:
+            self.calibration_parameters = list(params.keys())
         # Ensure all required calibration parameters were used
-        if not set(params.keys()) >= set(self.calibration_parameters):
+        elif not set(params.keys()) >= set(self.calibration_parameters):
             raise Exception(
                 "Not enough parameters specified to update calibration.\n"
                 + f"Required parameters are {self.calibration_parameters}"
