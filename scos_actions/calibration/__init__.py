@@ -69,6 +69,8 @@ else:
     sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
 
 sigan_calibration = None
+default_sensor_calibration = False
+default_sigan_calibration = False
 if SIGAN_CALIBRATION_FILE is None:
     logger.warning("Sigan calibration  file is None. Not loading calibration file.")
 elif not path.exists(SIGAN_CALIBRATION_FILE):
