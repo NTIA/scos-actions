@@ -46,8 +46,7 @@ def get_sensor_calibration(sensor_cal_file: str) -> Calibration:
 
 
 def check_for_default_calibration(cal_file_path: str, cal_type: str):
-    cal_file_name = path.basename(cal_file_path)
-    if cal_file_name == DEFAULT_CALIBRATION_FILE:
+    if cal_file_path == DEFAULT_CALIBRATION_FILE:
         logger.warning(
             f"***************LOADING DEFAULT {cal_type} CALIBRATION***************"
         )
