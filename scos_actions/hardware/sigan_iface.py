@@ -5,14 +5,8 @@ from abc import ABC, abstractmethod
 
 from scos_actions.calibration import sensor_calibration, sigan_calibration
 from scos_actions.capabilities import capabilities
-from scos_actions.hardware.hardware_configuration_exception import (
-    HardwareConfigurationException,
-)
 from scos_actions.hardware.utils import power_cycle_sigan
-from scos_actions.utils import (
-    convert_string_to_millisecond_iso_format,
-    get_datetime_str_now,
-)
+from scos_actions.utils import convert_string_to_millisecond_iso_format
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +119,7 @@ class SignalAnalyzerInterface(ABC):
         return
 
     def recompute_sensor_calibration_data(self, cal_args: list) -> None:
+        self.sensor_calibration_data = {}
         if sensor_calibration is not None:
             self.sensor_calibration_data.update(
                 sensor_calibration.get_calibration_dict(cal_args)
@@ -133,6 +128,7 @@ class SignalAnalyzerInterface(ABC):
             logger.warning("Sensor calibration does not exist.")
 
     def recompute_sigan_calibration_data(self, cal_args: list) -> None:
+        self.sigan_calibration_data = {}
         """Set the sigan calibration data based on the current tuning"""
         if sigan_calibration is not None:
             self.sigan_calibration_data.update(
