@@ -71,16 +71,14 @@ class SignalAnalyzerInterface(ABC):
         pass
 
     @property
-    @abstractmethod
     def firmware_version(self) -> str:
         """Returns the version of the signal analyzer firmware."""
-        pass
+        return "Unknown"
 
     @property
-    @abstractmethod
     def api_version(self) -> str:
         """Returns the version of the underlying signal analyzer API."""
-        pass
+        return "Unknown"
 
     @abstractmethod
     def acquire_time_domain_samples(
