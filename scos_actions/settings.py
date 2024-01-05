@@ -1,4 +1,5 @@
 import logging
+from os import path
 from pathlib import Path
 
 from django.conf import settings
@@ -11,21 +12,26 @@ logger.debug("Initializing scos-actions settings")
 CONFIG_DIR = Path(__file__).parent.resolve() / "configs"
 ACTION_DEFINITIONS_DIR = CONFIG_DIR / "actions"
 
+if not settings.configured or not hasattr(settings, "DEFAULT_CALIBRATION_FILE"):
+    DEFAULT_CALIBRATION_FILE = path.join(CONFIG_DIR, "default_calibration.json")
+else:
+    DEFAULT_CALIBRATION_FILE = settings.DEFAULT_CALIBRATION_FILE
+
 # set sigan_calibration file and sensor_calibration_file
 if not settings.configured or not hasattr(settings, "SIGAN_CALIBRATION_FILE"):
-    logger.warning("Using default sigan cal file.")
-    SIGAN_CALIBRATION_FILE = CONFIG_DIR / "sigan_calibration_example.json"
+    logger.warning("Sigan calibration file is not defined.")
+    SIGAN_CALIBRATION_FILE = ""
     sigan_calibration = None
 else:
-    SIGAN_CALIBRATION_FILE = Path(settings.SIGAN_CALIBRATION_FILE)
+    SIGAN_CALIBRATION_FILE = settings.SIGAN_CALIBRATION_FILE
     logger.debug(f"SCOS_ACTIONS: SIGAN_CALIBRATION_FILE: {SIGAN_CALIBRATION_FILE}")
 
 if not settings.configured or not hasattr(settings, "SENSOR_CALIBRATION_FILE"):
-    logger.warning("Using default sensor cal file.")
-    SENSOR_CALIBRATION_FILE = CONFIG_DIR / "sensor_calibration_example.json"
+    logger.warning("Sensor calibration file is not defined.")
+    SENSOR_CALIBRATION_FILE = ""
     sensor_calibration = None
 else:
-    SENSOR_CALIBRATION_FILE = Path(settings.SENSOR_CALIBRATION_FILE)
+    SENSOR_CALIBRATION_FILE = settings.SENSOR_CALIBRATION_FILE
     logger.debug(f"SCOS_ACTIONS: SENSOR_CALIBRATION_FILE: {SENSOR_CALIBRATION_FILE}")
 
 SWITCH_CONFIGS_DIR = env("SWITCH_CONFIGS_DIR", default=None)

@@ -38,14 +38,14 @@ class Calibration:
             then the input to this method could be ``["15360000.0", "40"]``.
         :return: The calibration data corresponding to the input parameter values.
         """
-        # Check if the sample rate was calibrated
+
         cal_data = self.calibration_data
-        # raise Exception(self)
         for i, setting_value in enumerate(cal_params):
             setting = self.calibration_parameters[i]
             logger.debug(f"Looking up calibration for {setting} at {setting_value}")
             cal_data = filter_by_parameter(cal_data, setting_value)
         logger.debug(f"Got calibration data: {cal_data}")
+
         return cal_data
 
     def update(
@@ -77,9 +77,10 @@ class Calibration:
         """
         cal_data = self.calibration_data
         self.last_calibration_datetime = calibration_datetime_str
-
+        if len(self.calibration_parameters) == 0:
+            self.calibration_parameters = list(params.keys())
         # Ensure all required calibration parameters were used
-        if not set(params.keys()) >= set(self.calibration_parameters):
+        elif not set(params.keys()) >= set(self.calibration_parameters):
             raise Exception(
                 "Not enough parameters specified to update calibration.\n"
                 + f"Required parameters are {self.calibration_parameters}"

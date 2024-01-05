@@ -1,13 +1,17 @@
 import logging
-from pathlib import Path
+from os import path
 
 from scos_actions.calibration.calibration import Calibration, load_from_json
-from scos_actions.settings import SENSOR_CALIBRATION_FILE, SIGAN_CALIBRATION_FILE
+from scos_actions.settings import (
+    DEFAULT_CALIBRATION_FILE,
+    SENSOR_CALIBRATION_FILE,
+    SIGAN_CALIBRATION_FILE,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def get_sigan_calibration(sigan_cal_file: Path) -> Calibration:
+def get_sigan_calibration(sigan_cal_file: str) -> Calibration:
     """
     Load signal analyzer calibration data from file.
 
@@ -23,7 +27,7 @@ def get_sigan_calibration(sigan_cal_file: Path) -> Calibration:
     return sigan_cal
 
 
-def get_sensor_calibration(sensor_cal_file: Path) -> Calibration:
+def get_sensor_calibration(sensor_cal_file: str) -> Calibration:
     """
     Load sensor calibration data from file.
 
@@ -39,9 +43,48 @@ def get_sensor_calibration(sensor_cal_file: Path) -> Calibration:
     return sensor_cal
 
 
-logger.debug(f"Loading sensor cal file: {SENSOR_CALIBRATION_FILE}")
-sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
-logger.debug(f"Loading sigan cal file: {SIGAN_CALIBRATION_FILE}")
-sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
+def check_for_default_calibration(cal_file_path: str, cal_type: str) -> bool:
+    default_cal = False
+    if cal_file_path == DEFAULT_CALIBRATION_FILE:
+        default_cal = True
+        logger.warning(
+            f"***************LOADING DEFAULT {cal_type} CALIBRATION***************"
+        )
+    return default_cal
+
+
+sensor_calibration = None
+if SENSOR_CALIBRATION_FILE is None or SENSOR_CALIBRATION_FILE == "":
+    logger.warning(
+        "No sensor calibration file specified. Not loading calibration file."
+    )
+elif not path.exists(SENSOR_CALIBRATION_FILE):
+    logger.warning(
+        SENSOR_CALIBRATION_FILE
+        + " does not exist. Not loading sensor calibration file."
+    )
+else:
+    logger.debug(f"Loading sensor cal file: {SENSOR_CALIBRATION_FILE}")
+    default_sensor_calibration = check_for_default_calibration(
+        SENSOR_CALIBRATION_FILE, "Sensor"
+    )
+    sensor_calibration = get_sensor_calibration(SENSOR_CALIBRATION_FILE)
+
+sigan_calibration = None
+default_sensor_calibration = False
+default_sigan_calibration = False
+if SIGAN_CALIBRATION_FILE is None or SIGAN_CALIBRATION_FILE == "":
+    logger.warning("No sigan calibration file specified. Not loading calibration file.")
+elif not path.exists(SIGAN_CALIBRATION_FILE):
+    logger.warning(
+        SIGAN_CALIBRATION_FILE + " does not exist. Not loading sigan calibration file."
+    )
+else:
+    logger.debug(f"Loading sigan cal file: {SIGAN_CALIBRATION_FILE}")
+    default_sigan_calibration = check_for_default_calibration(
+        SIGAN_CALIBRATION_FILE, "Sigan"
+    )
+    sigan_calibration = get_sigan_calibration(SIGAN_CALIBRATION_FILE)
+
 if sensor_calibration:
     logger.debug(f"Last sensor cal: {sensor_calibration.last_calibration_datetime}")
