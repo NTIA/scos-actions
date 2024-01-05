@@ -33,9 +33,6 @@ import psutil
 import ray
 from its_preselector import __version__ as PRESELECTOR_API_VERSION
 from scipy.signal import sos2tf, sosfilt
-
-from scos_actions import __version__ as SCOS_ACTIONS_VERSION
-from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.capabilities import SENSOR_DEFINITION_HASH, SENSOR_LOCATION
 from scos_actions.hardware import preselector, switches
@@ -78,6 +75,9 @@ from scos_actions.signals import measurement_action_completed, trigger_api_resta
 from scos_actions.status import start_time
 from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
 
+from scos_actions import __version__ as SCOS_ACTIONS_VERSION
+from scos_actions import utils
+
 logger = logging.getLogger(__name__)
 
 if not ray.is_initialized():
@@ -105,8 +105,9 @@ PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
 
 # Constants
 DATA_TYPE = np.half
-PFP_FRAME_RESOLUTION_S =  1.0 / 56000
-FFT_SIZE = 875
+PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
+FFT_SIZE = 175  # 80 kHz resolution @ 14 MHz sampling rate
+FFT_PERCENTILES = np.array([25, 75, 90, 95, 99, 99.9, 99.99])
 FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
@@ -125,8 +126,10 @@ WIDEBAND_FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, WIDEBAND_FFT_SIZE)
 
 
 # Create power detectors
-TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["mean", "max"])
-FFT_DETECTOR = create_statistical_detector("FftMeanMaxDetector", ["mean", "max"])
+TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["max", "mean"])
+FFT_M3_DETECTOR = create_statistical_detector(
+    "FftM3Detector", ["max", "mean", "median"]
+)
 PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
 
 
@@ -146,18 +149,20 @@ class PowerSpectralDensity:
         sample_rate_Hz: float,
         num_ffts: int = NUM_FFTS,
         window_ecf: float = FFT_WINDOW_ECF,
-        detector: EnumMeta = FFT_DETECTOR,
+        detector: EnumMeta = FFT_M3_DETECTOR,
+        percentiles: np.ndarray = FFT_PERCENTILES,
         impedance_ohms: float = IMPEDANCE_OHMS,
     ):
         self.detector = detector
+        self.percentiles = percentiles
         self.num_ffts = num_ffts
 
         if sample_rate_Hz == STANDARD_SAMPLING_RATE:
             self.fft_window = FFT_WINDOW
             self.fft_size = FFT_SIZE
-            # Get truncation points: truncate FFT result to middle 625 samples (middle 10 MHz from 14 MHz)
-            self.bin_start = int(FFT_SIZE / 7)  # bin_start = 125 with FFT_SIZE 875
-            self.bin_end = FFT_SIZE - self.bin_start  # bin_end = 750 with FFT_SIZE 875
+            # Get truncation points: truncate FFT result to middle 125 samples (middle 10 MHz from 14 MHz)
+            self.bin_start = int(FFT_SIZE / 7)  # bin_start = 25 with FFT_SIZE 175
+            self.bin_end = FFT_SIZE - self.bin_start  # bin_end = 150 with FFT_SIZE 175
             # Bin start corresponds to (baseband - 5 MHz)
             # Bin end corresponds to (baseband + 5 MHz)
         elif sample_rate_Hz == REJECTOR_SAMPLING_RATE:
@@ -186,20 +191,25 @@ class PowerSpectralDensity:
         :return: A 2D NumPy array of statistical detector results computed
             from PSD amplitudes, ordered (max, mean).
         """
-        fft_result = get_fft(
+        fft_amplitudes = get_fft(
             iq, self.fft_size, "backward", self.fft_window, self.num_ffts, False, 1
         )
-        fft_result = calculate_pseudo_power(fft_result)
+        # Power in Watts
+        fft_amplitudes = calculate_pseudo_power(fft_amplitudes)
         fft_result = apply_statistical_detector(
-            fft_result, self.detector
-        )  # (max, mean)
+            fft_amplitudes, self.detector
+        )  # (max, mean, median)
+        percentile_result = np.percentile(fft_amplitudes, self.percentiles, axis=0)
+        fft_result = np.vstack((fft_result, percentile_result))
         fft_result = np.fft.fftshift(fft_result, axes=(1,))  # Shift frequencies
         fft_result = fft_result[
             :, self.bin_start : self.bin_end
         ]  # Truncation to middle bins
         fft_result = 10.0 * np.log10(fft_result) + self.fft_scale_factor
 
-        # Returned order is (max, mean)
+        # Returned order is (max, mean, median, 25%, 75%, 90%, 95%, 99%, 99.9%, 99.99%)
+        # Total of 10 arrays, each of length 125 (output shape (10, 125))
+        # Percentile computation linearly interpolates. See numpy documentation.
         return fft_result
 
 
@@ -509,7 +519,10 @@ class HybridSeaDataProduct(Action):
             REJECTOR_SAMPLING_RATE,
         )
         iir_upshifter = np.exp(
-            2j * np.pi * 15e6 * np.arange(0.0, 3.0 / REJECTOR_SAMPLING_RATE, 1.0 / REJECTOR_SAMPLING_RATE)
+            2j
+            * np.pi
+            * 15e6
+            * np.arange(0.0, 3.0 / REJECTOR_SAMPLING_RATE, 1.0 / REJECTOR_SAMPLING_RATE)
         )
         self.iir_sos_upshift = np.hstack(
             (
@@ -910,21 +923,20 @@ class HybridSeaDataProduct(Action):
         )
 
         psd_length = int(FFT_SIZE * (5 / 7))
-        psd_bin_center_offset = STANDARD_SAMPLING_RATE / FFT_SIZE / 2
-        psd_x_axis__Hz = np.arange(psd_length) * (
-            # ! TODO: This is incorrect.
-            (STANDARD_SAMPLING_RATE / FFT_SIZE)
-            - (STANDARD_SAMPLING_RATE * (5 / 7) / 2)
-            + psd_bin_center_offset
-        )
         psd_bin_start = int(FFT_SIZE / 7)  # bin_start = 125 with FFT_SIZE 875
         psd_bin_end = FFT_SIZE - psd_bin_start  # bin_end = 750 with FFT_SIZE 875
-        psd_x_axis__Hz = get_fft_frequencies(FFT_SIZE, 14e6, 0.0)  # Baseband
+        psd_x_axis__Hz = get_fft_frequencies(
+            FFT_SIZE, STANDARD_SAMPLING_RATE, 0.0
+        )  # Baseband
         # TODO: Graph object does not support different graph types for different captures
         # TODO: for now, leave the graph objects as-is.
         psd_graph = ntia_algorithm.Graph(
             name="Power Spectral Density",
-            series=[d.value for d in FFT_DETECTOR],  # ["max", "mean"]
+            series=[d.value for d in FFT_M3_DETECTOR]
+            + [
+                f"{int(p)}th_percentile" if p.is_integer() else f"{p}th_percentile"
+                for p in FFT_PERCENTILES
+            ],  # ["max", "mean", "median", "25th_percentile", "75th_percentile", ... "99.99th_percentile"]
             length=int(FFT_SIZE * (5 / 7)),
             x_units="Hz",
             x_start=[psd_x_axis__Hz[psd_bin_start]],
@@ -934,9 +946,10 @@ class HybridSeaDataProduct(Action):
             processing=[dft_obj.id],
             reference=DATA_REFERENCE_POINT,
             description=(
-                "Max- and mean-detected power spectral density, with the "
-                + f"first and last {int(FFT_SIZE / 7)} samples discarded. "
-                + "FFTs computed on IIR-filtered data."
+                "Results of statistical detectors (max, mean, median, 25th_percentile, 75th_percentile, "
+                + "90th_percentile, 95th_percentile, 99th_percentile, 99.9th_percentile, 99.99th_percentile) "
+                + f"applied to power spectral density samples, with the first and last {int(FFT_SIZE / 7)} "
+                + "samples discarded. FFTs computed on IIR-filtered data."
             ),
         )
 
@@ -1013,7 +1026,7 @@ class HybridSeaDataProduct(Action):
             [psd_graph, pvt_graph, pfp_graph, apd_graph]
         )
         self.total_channel_data_length = (
-            psd_length * len(FFT_DETECTOR)
+            psd_length * (len(FFT_M3_DETECTOR) + len(FFT_PERCENTILES))
             + pvt_length * len(TD_DETECTOR)
             + pfp_length * len(PFP_M3_DETECTOR) * 2
             + apd_graph.length
