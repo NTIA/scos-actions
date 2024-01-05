@@ -54,8 +54,10 @@ def check_for_default_calibration(cal_file_path: str, cal_type: str) -> bool:
 
 
 sensor_calibration = None
-if SENSOR_CALIBRATION_FILE is None:
-    logger.warning("Sensor calibration file is None. Not loading calibration file.")
+if SENSOR_CALIBRATION_FILE is None or SENSOR_CALIBRATION_FILE == "":
+    logger.warning(
+        "No sensor calibration file specified. Not loading calibration file."
+    )
 elif not path.exists(SENSOR_CALIBRATION_FILE):
     logger.warning(
         SENSOR_CALIBRATION_FILE
@@ -71,8 +73,8 @@ else:
 sigan_calibration = None
 default_sensor_calibration = False
 default_sigan_calibration = False
-if SIGAN_CALIBRATION_FILE is None:
-    logger.warning("Sigan calibration  file is None. Not loading calibration file.")
+if SIGAN_CALIBRATION_FILE is None or SIGAN_CALIBRATION_FILE == "":
+    logger.warning("No sigan calibration file specified. Not loading calibration file.")
 elif not path.exists(SIGAN_CALIBRATION_FILE):
     logger.warning(
         SIGAN_CALIBRATION_FILE + " does not exist. Not loading sigan calibration file."
