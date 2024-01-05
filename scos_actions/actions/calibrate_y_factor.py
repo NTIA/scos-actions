@@ -78,7 +78,7 @@ from scipy.signal import sosfilt
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.calibration import sensor_calibration
+from scos_actions.calibration import sensor_calibration, default_sensor_calibration
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
@@ -253,7 +253,7 @@ class YFactorCalibration(Action):
         assert (
             sample_rate == noise_off_measurement_result["sample_rate"]
         ), "Sample rate mismatch"
-
+        sigan_params = {k: v for k, v in params.items() if k in SIGAN_SETTINGS_KEYS}
         # Apply IIR filtering to both captures if configured
         if self.iir_apply:
             # Estimate of IIR filter ENBW does NOT account for passband ripple in sensor transfer function!
@@ -262,9 +262,13 @@ class YFactorCalibration(Action):
             noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
             noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
         else:
+            if default_sensor_calibration:
+                raise Exception(
+                    "Calibrations without IIR filter cannot be performed with default calibration."
+                )
+
             logger.debug("Skipping IIR filtering")
             # Get ENBW from sensor calibration
-            sigan_params = {k: v for k, v in params.items() if k in SIGAN_SETTINGS_KEYS}
             assert set(sensor_calibration.calibration_parameters) <= set(
                 sigan_params.keys()
             ), f"Action parameters do not include all required calibration parameters"
@@ -289,7 +293,7 @@ class YFactorCalibration(Action):
 
         # Update sensor calibration with results
         sensor_calibration.update(
-            params,
+            sigan_params,
             utils.get_datetime_str_now(),
             gain,
             noise_figure,

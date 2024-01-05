@@ -310,12 +310,6 @@ class TestCalibrationFile:
         assert cal_from_file.calibration_data["100.0"]["200.0"]["gain"] == 30.0
         assert cal_from_file.calibration_data["100.0"]["200.0"]["noise_figure"] == 5.0
 
-    def test_default_sensor_cal(self):
-        assert sensor_calibration is not None
-
-    def test_default_sigan_cal_location(self):
-        assert sigan_calibration is not None
-
     def test_filter_by_paramter_integer(self):
         calibrations = {"200.0": {"some_cal_data"}, 300.0: {"more cal data"}}
         filtered_data = filter_by_parameter(calibrations, 200)

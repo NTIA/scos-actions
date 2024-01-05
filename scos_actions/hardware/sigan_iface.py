@@ -5,14 +5,8 @@ from abc import ABC, abstractmethod
 
 from scos_actions.calibration import sensor_calibration, sigan_calibration
 from scos_actions.capabilities import capabilities
-from scos_actions.hardware.hardware_configuration_exception import (
-    HardwareConfigurationException,
-)
 from scos_actions.hardware.utils import power_cycle_sigan
-from scos_actions.utils import (
-    convert_string_to_millisecond_iso_format,
-    get_datetime_str_now,
-)
+from scos_actions.utils import convert_string_to_millisecond_iso_format
 
 logger = logging.getLogger(__name__)
 
@@ -30,26 +24,10 @@ SIGAN_SETTINGS_KEYS = [
 
 class SignalAnalyzerInterface(ABC):
     def __init__(self):
-        # Define the default calibration dicts
-        self.DEFAULT_SIGAN_CALIBRATION = {
-            "datetime": get_datetime_str_now(),
-            "gain": None,  # Defaults to gain setting
-            "enbw": None,  # Defaults to sample rate
-            "noise_figure": 0,
-            "1db_compression_point": 100,
-            "temperature": 26.85,
-        }
-
-        self.DEFAULT_SENSOR_CALIBRATION = {
-            "datetime": get_datetime_str_now(),
-            "gain": None,  # Defaults to sigan gain
-            "enbw": None,  # Defaults to sigan enbw
-            "noise_figure": None,  # Defaults to sigan noise figure
-            "1db_compression_point": None,  # Defaults to sigan compression + preselector gain
-            "temperature": 26.85,
-        }
-        self.sensor_calibration_data = copy.deepcopy(self.DEFAULT_SENSOR_CALIBRATION)
-        self.sigan_calibration_data = copy.deepcopy(self.DEFAULT_SIGAN_CALIBRATION)
+        self.sensor_calibration_data = {}
+        self.sigan_calibration_data = {}
+        self.sensor_calibration = sensor_calibration
+        self.sigan_calibration = sigan_calibration
 
     @property
     def last_calibration_time(self) -> str:
@@ -69,6 +47,16 @@ class SignalAnalyzerInterface(ABC):
     def plugin_version(self) -> str:
         """Returns the version of the SCOS plugin defining this interface."""
         pass
+
+    @property
+    def firmware_version(self) -> str:
+        """Returns the version of the signal analyzer firmware."""
+        return "Unknown"
+
+    @property
+    def api_version(self) -> str:
+        """Returns the version of the underlying signal analyzer API."""
+        return "Unknown"
 
     @abstractmethod
     def acquire_time_domain_samples(
@@ -125,7 +113,7 @@ class SignalAnalyzerInterface(ABC):
         logger.info("Attempting to power cycle the signal analyzer and reconnect.")
         try:
             power_cycle_sigan()
-        except HardwareConfigurationException as hce:
+        except Exception as hce:
             logger.warning(f"Unable to power cycle sigan: {hce}")
             return
         try:
@@ -141,19 +129,23 @@ class SignalAnalyzerInterface(ABC):
         return
 
     def recompute_sensor_calibration_data(self, cal_args: list) -> None:
-        self.sensor_calibration_data = self.DEFAULT_SENSOR_CALIBRATION.copy()
+        self.sensor_calibration_data = {}
         if sensor_calibration is not None:
             self.sensor_calibration_data.update(
                 sensor_calibration.get_calibration_dict(cal_args)
             )
+        else:
+            logger.warning("Sensor calibration does not exist.")
 
     def recompute_sigan_calibration_data(self, cal_args: list) -> None:
+        self.sigan_calibration_data = {}
         """Set the sigan calibration data based on the current tuning"""
-        self.sigan_calibration_data = self.DEFAULT_SIGAN_CALIBRATION.copy()
         if sigan_calibration is not None:
             self.sigan_calibration_data.update(
                 sigan_calibration.get_calibration_dict(cal_args)
             )
+        else:
+            logger.warning("Sigan calibration does not exist.")
 
     def get_status(self):
         try:
