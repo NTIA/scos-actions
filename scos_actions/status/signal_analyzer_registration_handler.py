@@ -1,6 +1,6 @@
 import logging
 
-from . import signa_analyzer_monitor
+from scos_actions.hardware import signa_analyzer_monitor
 
 logger = logging.getLogger(__name__)
 
