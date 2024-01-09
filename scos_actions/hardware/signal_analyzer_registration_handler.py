@@ -1,6 +1,6 @@
 import logging
 
-from . import signal_analyzer_monitor
+from scos_actions.core import signal_analyzer_monitor
 
 logger = logging.getLogger(__name__)
 

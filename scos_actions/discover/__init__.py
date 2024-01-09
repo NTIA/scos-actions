@@ -1,3 +1,4 @@
+import scos_actions.core
 from scos_actions.actions import action_classes
 from scos_actions.actions.logger import Logger
 from scos_actions.actions.monitor_sigan import MonitorSignalAnalyzer

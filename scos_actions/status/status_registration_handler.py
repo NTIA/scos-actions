@@ -1,6 +1,6 @@
 import logging
 
-from . import status_registrar
+from scos_actions.core import status_registrar
 
 logger = logging.getLogger(__name__)
 
