@@ -7,10 +7,10 @@ from its_preselector.controlbyweb_web_relay import ControlByWebWebRelay
 
 from scos_actions import utils
 from scos_actions.capabilities import capabilities
+from scos_actions.core import signal_analyzer_monitor
 from scos_actions.hardware.signal_analyzer_registration_handler import (
     signal_analyzer_registration_handler,
 )
-from scos_actions.initialization import signal_analyzer_monitor
 from scos_actions.settings import (
     PRESELECTOR_CLASS,
     PRESELECTOR_CONFIG_FILE,
