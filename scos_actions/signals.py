@@ -14,9 +14,6 @@ register_component_with_status = Signal()
 # Provides argument 'action'
 register_action = Signal()
 
-# Provides argument 'action'
-register_action = Signal()
-
 # Provides argument 'signal_analyzer'
 register_signal_analyzer = Signal()
 
