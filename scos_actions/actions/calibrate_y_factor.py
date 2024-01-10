@@ -78,7 +78,7 @@ from scipy.signal import sosfilt
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.calibration import sensor_calibration, default_sensor_calibration
+from scos_actions.calibration import default_sensor_calibration, sensor_calibration
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
@@ -91,10 +91,7 @@ from scos_actions.signal_processing.filtering import (
     generate_elliptic_iir_low_pass_filter,
     get_iir_enbw,
 )
-from scos_actions.signal_processing.power_analysis import (
-    calculate_power_watts,
-    create_statistical_detector,
-)
+from scos_actions.signal_processing.power_analysis import calculate_power_watts
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
 from scos_actions.signals import trigger_api_restart
 from scos_actions.utils import ParameterException, get_parameter

@@ -7,7 +7,7 @@ from its_preselector.controlbyweb_web_relay import ControlByWebWebRelay
 
 from scos_actions import utils
 from scos_actions.capabilities import capabilities
-from scos_actions.core import signal_analyzer_monitor
+from scos_actions.hardware.gps_registration_handler import gps_registration_handler
 from scos_actions.hardware.signal_analyzer_registration_handler import (
     signal_analyzer_registration_handler,
 )
@@ -19,6 +19,7 @@ from scos_actions.settings import (
 )
 from scos_actions.signals import (
     register_component_with_status,
+    register_gps,
     register_signal_analyzer,
 )
 from scos_actions.status.status_registration_handler import status_registration_handler
@@ -75,7 +76,7 @@ def load_preselector(preselector_config, module, preselector_class_name):
     return ps
 
 
-signal_analyzer_monitor = signal_analyzer_monitor
+register_gps.connect(gps_registration_handler)
 register_signal_analyzer.connect(signal_analyzer_registration_handler)
 register_component_with_status.connect(status_registration_handler)
 logger.debug("Connected status registration handler")

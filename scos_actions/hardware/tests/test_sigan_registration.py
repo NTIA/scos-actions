@@ -1,7 +1,6 @@
-import pytest
 from scos_actions.core import signal_analyzer_monitor
-from scos_actions.signals import register_signal_analyzer
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
+from scos_actions.signals import register_signal_analyzer
 
 
 def test_sigan_registration():

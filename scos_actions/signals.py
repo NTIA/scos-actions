@@ -16,3 +16,6 @@ register_action = Signal()
 
 # Provides argument 'signal_analyzer'
 register_signal_analyzer = Signal()
+
+# Provides argument 'gps'
+register_gps = Signal()
