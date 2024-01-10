@@ -121,7 +121,9 @@ NUM_ACTORS = 3  # Number of ray actors to initialize
 
 # Create power detectors
 TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["max", "mean"])
-FFT_M3_DETECTOR = create_statistical_detector("FftM3Detector", ["max", "mean", "median"])
+FFT_M3_DETECTOR = create_statistical_detector(
+    "FftM3Detector", ["max", "mean", "median"]
+)
 PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
 
 
@@ -158,7 +160,7 @@ class PowerSpectralDensity:
         # Compute the amplitude shift for PSD scaling. The FFT result
         # is in pseudo-power log units and must be scaled to a PSD.
         self.fft_scale_factor = (
-            - 10.0 * np.log10(impedance_ohms)  # Pseudo-power to power
+            -10.0 * np.log10(impedance_ohms)  # Pseudo-power to power
             + 27.0  # Watts to dBm (+30) and baseband to RF (-3)
             - 10.0 * np.log10(sample_rate_Hz * fft_size)  # PSD scaling
             + 20.0 * np.log10(window_ecf)  # Window energy correction
@@ -178,7 +180,9 @@ class PowerSpectralDensity:
         )
         # Power in Watts
         fft_amplitudes = calculate_pseudo_power(fft_amplitudes)
-        fft_result = apply_statistical_detector(fft_amplitudes, self.detector)  # (max, mean, median)
+        fft_result = apply_statistical_detector(
+            fft_amplitudes, self.detector
+        )  # (max, mean, median)
         percentile_result = np.percentile(fft_amplitudes, self.percentiles, axis=0)
         fft_result = np.vstack((fft_result, percentile_result))
         fft_result = np.fft.fftshift(fft_result, axes=(1,))  # Shift frequencies
@@ -1001,7 +1005,8 @@ class NasctnSeaDataProduct(Action):
             name="Power Spectral Density",
             series=[d.value for d in FFT_M3_DETECTOR]
             + [
-                f"{int(p)}th_percentile" if p.is_integer() else f"{p}th_percentile" for p in FFT_PERCENTILES
+                f"{int(p)}th_percentile" if p.is_integer() else f"{p}th_percentile"
+                for p in FFT_PERCENTILES
             ],  # ["max", "mean", "median", "25th_percentile", "75th_percentile", ... "99.99th_percentile"]
             length=int(FFT_SIZE * (5 / 7)),
             x_units="Hz",
