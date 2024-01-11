@@ -1,4 +1,3 @@
-import scos_actions.core
 from scos_actions.actions import action_classes
 from scos_actions.actions.logger import Logger
 from scos_actions.actions.monitor_sigan import MonitorSignalAnalyzer
@@ -50,3 +49,4 @@ def init(
 yaml_actions, yaml_test_actions = init()
 actions.update(yaml_actions)
 test_actions.update(yaml_test_actions)
+action_types = action_classes

@@ -1,5 +1,7 @@
 import datetime
 
-from scos_actions.core.status_monitor import StatusMonitor
+from scos_actions.status.status_monitor import StatusMonitor
 
 start_time = datetime.datetime.utcnow()
+
+status_monitor = StatusMonitor()

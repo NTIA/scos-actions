@@ -4,6 +4,7 @@ from copy import deepcopy
 
 from scos_actions.capabilities import SENSOR_LOCATION, capabilities
 from scos_actions.hardware import preselector
+from scos_actions.hardware.gps_iface import GPSInterface
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
@@ -34,12 +35,12 @@ class Action(ABC):
 
     PRESELECTOR_PATH_KEY = "rf_path"
 
-    def __init__(self, parameters, sigan, gps=None):
+    def __init__(self, parameters, sigan=None, gps=None):
         if gps is None:
             gps = MockGPS()
         self.parameters = deepcopy(parameters)
         self.sigan = sigan
-        self.gps = gps
+        self._gps = gps
         self.sensor_definition = capabilities["sensor"]
         self.sigmf_builder = None
         if (
@@ -53,6 +54,22 @@ class Action(ABC):
     def configure(self, params: dict):
         self.configure_sigan(params)
         self.configure_preselector(params)
+
+    @property
+    def gps(self):
+        return self._gps
+
+    @gps.setter
+    def gps(self, value: GPSInterface):
+        self._gps = value
+
+    @property
+    def signal_analyzer(self):
+        return self.sigan
+
+    @signal_analyzer.setter
+    def signal_analyzer(self, value):
+        self.sigan = value
 
     def configure_sigan(self, params: dict):
         sigan_params = {k: v for k, v in params.items() if k in SIGAN_SETTINGS_KEYS}
@@ -128,3 +145,4 @@ class Action(ABC):
     @abstractmethod
     def __call__(self, schedule_entry, task_id):
         pass
+
