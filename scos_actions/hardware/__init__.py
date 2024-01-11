@@ -13,11 +13,7 @@ from scos_actions.settings import (
     PRESELECTOR_MODULE,
     SWITCH_CONFIGS_DIR,
 )
-from scos_actions.signals import (
-    register_component_with_status,
-    register_gps,
-    register_signal_analyzer,
-)
+from scos_actions.signals import register_component_with_status
 from scos_actions.status.status_registration_handler import status_registration_handler
 
 logger = logging.getLogger(__name__)
@@ -71,9 +67,6 @@ def load_preselector(preselector_config, module, preselector_class_name):
         ps = None
     return ps
 
-
-register_gps.connect(gps_registration_handler)
-register_signal_analyzer.connect(signal_analyzer_registration_handler)
 register_component_with_status.connect(status_registration_handler)
 logger.debug("Connected status registration handler")
 preselector = load_preselector_from_file(PRESELECTOR_CONFIG_FILE)
