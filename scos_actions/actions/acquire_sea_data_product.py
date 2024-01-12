@@ -453,9 +453,7 @@ class NasctnSeaDataProduct(Action):
     """
 
     def __init__(self, parameters):
-        if gps is None:
-            gps = MockGPS()
-        super().__init__(parameters, sigan, gps)
+        super().__init__(parameters)
         # Assume preselector is present
         rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
         self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
