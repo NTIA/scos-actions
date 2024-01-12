@@ -1,5 +1,6 @@
 from scos_actions.discover import test_actions as actions
 from scos_actions.signals import measurement_action_completed
+from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
 
 SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION = {
     "name": "test_multirec_acq",
@@ -32,7 +33,8 @@ def test_metadata_timedomain_iq_multiple_acquisition():
     measurement_action_completed.connect(callback)
     action = actions["test_multi_frequency_iq_action"]
     assert action.description
-    action(SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1)
+    mock_sigan = MockSignalAnalyzer()
+    action(mock_sigan, None, SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1)
     for i in range(_count):
         assert _datas[i].any()
         assert _metadatas[i]
@@ -44,7 +46,8 @@ def test_metadata_timedomain_iq_multiple_acquisition():
 def test_num_samples_skip():
     action = actions["test_multi_frequency_iq_action"]
     assert action.description
-    action(SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1)
+    mock_sigan = MockSignalAnalyzer()
+    action(mock_sigan, None, SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1)
     if isinstance(action.parameters["nskip"], list):
         assert action.sigan._num_samples_skip == action.parameters["nskip"][-1]
     else:

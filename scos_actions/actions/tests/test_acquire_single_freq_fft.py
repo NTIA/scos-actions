@@ -2,6 +2,7 @@ from scos_actions.actions.tests.utils import SENSOR_DEFINITION, check_metadata_f
 from scos_actions.capabilities import capabilities
 from scos_actions.discover import test_actions as actions
 from scos_actions.signals import measurement_action_completed
+from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
 
 SINGLE_FREQUENCY_FFT_ACQUISITION = {
     "name": "test_acq",
@@ -29,7 +30,7 @@ def test_detector():
     measurement_action_completed.connect(callback)
     action = actions["test_single_frequency_m4s_action"]
     assert action.description
-    action(SINGLE_FREQUENCY_FFT_ACQUISITION, 1)
+    action(sigan = MockSignalAnalyzer(),gps=None, schedule_entry=SINGLE_FREQUENCY_FFT_ACQUISITION, task_id=1)
     assert _task_id
     assert _data.any()
     assert _metadata
@@ -84,5 +85,5 @@ def test_detector():
 def test_num_samples_skip():
     action = actions["test_single_frequency_m4s_action"]
     assert action.description
-    action(SINGLE_FREQUENCY_FFT_ACQUISITION, 1)
+    action(MockSignalAnalyzer(), None, SINGLE_FREQUENCY_FFT_ACQUISITION, 1)
     assert action.sigan._num_samples_skip == action.parameters["nskip"]
