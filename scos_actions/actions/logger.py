@@ -22,8 +22,6 @@ class Logger(Action):
 
     def __init__(self, loglvl=LOGLVL_INFO):
         super().__init__(parameters={"name": "logger"})
-        self.sigan = sigan
-        self.gps = gps
         self.loglvl = loglvl
 
     def __call__(self,sigan, gps, schedule_entry, task_id):
