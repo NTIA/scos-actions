@@ -138,11 +138,8 @@ class YFactorCalibration(Action):
     """
 
     def __init__(self, parameters):
-        if gps is None:
-            gps = MockGPS()
         logger.debug("Initializing calibration action")
         super().__init__(parameters)
-        self.sigan = None
         self.iteration_params = utils.get_iterable_parameters(parameters)
 
         # IIR Filter Setup

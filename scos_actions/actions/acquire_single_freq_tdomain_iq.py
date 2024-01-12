@@ -72,8 +72,6 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     """
 
     def __init__(self, parameters):
-        if gps is None:
-            gps = MockGPS()
         super().__init__(parameters=parameters)
         # Pull parameters from action config
         self.nskip = get_parameter(NUM_SKIP, self.parameters)

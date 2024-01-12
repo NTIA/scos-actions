@@ -144,8 +144,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     """
 
     def __init__(self, parameters):
-        if gps is None:
-            gps = MockGPS()
         super().__init__(parameters)
         # Pull parameters from action config
         self.fft_size = get_parameter(FFT_SIZE, self.parameters)
