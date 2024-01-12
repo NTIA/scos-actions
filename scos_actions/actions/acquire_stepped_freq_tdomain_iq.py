@@ -78,13 +78,13 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     """
 
     def __init__(self, parameters):
-        super().__init__(parameters=parameters, sigan=sigan, gps=gps)
+        super().__init__(parameters=parameters)
         num_center_frequencies = len(parameters[FREQUENCY])
 
         # Create iterable parameter set
         self.iterable_params = utils.get_iterable_parameters(parameters)
 
-        self.sigan = sigan  # make instance variable to allow mocking
+        self.sigan = None
         self.num_center_frequencies = num_center_frequencies
 
     def __call__(self, sigan, gps, schedule_entry: dict, task_id: int):

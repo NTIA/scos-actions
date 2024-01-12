@@ -13,7 +13,7 @@ class MonitorSignalAnalyzer(Action):
     """Monitor signal analyzer connection and restart container if unreachable."""
 
     def __init__(self, parameters={"name": "monitor_sigan"}, gps=None):
-        super().__init__(parameters=parameters, sigan=sigan, gps=gps)
+        super().__init__(parameters=parameters)
 
     def __call__(self, sigan, gps, schedule_entry: dict, task_id: int):
         logger.debug("Performing signal analyzer health check")

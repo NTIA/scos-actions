@@ -137,12 +137,12 @@ class YFactorCalibration(Action):
     :param sigan: instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters, sigan, gps=None):
+    def __init__(self, parameters):
         if gps is None:
             gps = MockGPS()
         logger.debug("Initializing calibration action")
-        super().__init__(parameters, sigan, gps)
-        self.sigan = sigan
+        super().__init__(parameters)
+        self.sigan = None
         self.iteration_params = utils.get_iterable_parameters(parameters)
 
         # IIR Filter Setup

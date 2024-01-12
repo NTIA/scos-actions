@@ -452,7 +452,7 @@ class NasctnSeaDataProduct(Action):
     :param sigan: Instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters, sigan, gps=None):
+    def __init__(self, parameters):
         if gps is None:
             gps = MockGPS()
         super().__init__(parameters, sigan, gps)

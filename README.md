@@ -176,7 +176,7 @@ actions = {
   "sync_gps": SyncGps(gps),
 }
 
-yaml_actions, yaml_test_actions = init(sigan=sigan, yaml_dir=ACTION_DEFINITIONS_DIR)
+yaml_actions, yaml_test_actions = init(yaml_dir=ACTION_DEFINITIONS_DIR)
 
 actions.update(yaml_actions)
 ```

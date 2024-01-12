@@ -21,7 +21,7 @@ class Logger(Action):
     """
 
     def __init__(self, loglvl=LOGLVL_INFO):
-        super().__init__(parameters={"name": "logger"}, sigan=None, gps=None)
+        super().__init__(parameters={"name": "logger"})
         self.sigan = sigan
         self.gps = gps
         self.loglvl = loglvl

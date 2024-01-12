@@ -143,10 +143,10 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     :param sigan: Instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters, sigan, gps=None):
+    def __init__(self, parameters):
         if gps is None:
             gps = MockGPS()
-        super().__init__(parameters, sigan, gps)
+        super().__init__(parameters)
         # Pull parameters from action config
         self.fft_size = get_parameter(FFT_SIZE, self.parameters)
         self.nffts = get_parameter(NUM_FFTS, self.parameters)
