@@ -15,10 +15,10 @@ if MOCK_SIGAN:
 actions = {"logger": Logger()}
 test_actions = {
     "test_sync_gps": SyncGps(
-        parameters={"name": "test_sync_gps"}, sigan=mock_sigan, gps=mock_gps
+        parameters={"name": "test_sync_gps"}
     ),
     "test_monitor_sigan": MonitorSignalAnalyzer(
-        parameters={"name": "test_monitor_sigan"}, sigan=mock_sigan
+        parameters={"name": "test_monitor_sigan"}
     ),
     "logger": Logger(),
 }
@@ -26,14 +26,13 @@ test_actions = {
 
 def init(
     action_classes=action_classes,
-    sigan=mock_sigan,
     gps=mock_gps,
     yaml_dir=ACTION_DEFINITIONS_DIR,
 ):
     yaml_actions = {}
     yaml_test_actions = {}
     for key, value in load_from_yaml(
-        action_classes, sigan=sigan, gps=gps, yaml_dir=yaml_dir
+        action_classes, yaml_dir=yaml_dir
     ).items():
         if key.startswith("test_"):
             yaml_test_actions[key] = value
