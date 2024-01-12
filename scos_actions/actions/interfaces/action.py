@@ -35,12 +35,10 @@ class Action(ABC):
 
     PRESELECTOR_PATH_KEY = "rf_path"
 
-    def __init__(self, parameters, sigan=None, gps=None):
-        if gps is None:
-            gps = MockGPS()
+    def __init__(self, parameters):
+        self.gps = None
+        self.sigan = None
         self.parameters = deepcopy(parameters)
-        self.sigan = sigan
-        self._gps = gps
         self.sensor_definition = capabilities["sensor"]
         self.sigmf_builder = None
         if (
@@ -143,6 +141,6 @@ class Action(ABC):
         return get_parameter("name", self.parameters)
 
     @abstractmethod
-    def __call__(self, schedule_entry, task_id):
+    def __call__(self,sigan,gps, schedule_entry, task_id):
         pass
 

@@ -12,14 +12,13 @@ logger = logging.getLogger(__name__)
 class MonitorSignalAnalyzer(Action):
     """Monitor signal analyzer connection and restart container if unreachable."""
 
-    def __init__(self, sigan, parameters={"name": "monitor_sigan"}, gps=None):
-        if gps is None:
-            gps = MockGPS()
+    def __init__(self, parameters={"name": "monitor_sigan"}, gps=None):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
 
-    def __call__(self, schedule_entry: dict, task_id: int):
+    def __call__(self, sigan, gps, schedule_entry: dict, task_id: int):
         logger.debug("Performing signal analyzer health check")
-
+        self.sigan = sigan
+        self.gps = gps
         healthy = self.sigan.healthy()
 
         if healthy:

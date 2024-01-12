@@ -508,8 +508,10 @@ class NasctnSeaDataProduct(Action):
         # Get iterable parameter list
         self.iteration_params = utils.get_iterable_parameters(self.parameters)
 
-    def __call__(self, schedule_entry, task_id):
+    def __call__(self, sigan, gps, schedule_entry, task_id):
         """This is the entrypoint function called by the scheduler."""
+        self.sigan = sigan
+        self.gps = gps
         action_start_tic = perf_counter()
 
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor

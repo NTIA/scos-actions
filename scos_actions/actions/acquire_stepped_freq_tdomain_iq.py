@@ -77,9 +77,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, sigan, gps=None):
-        if gps is None:
-            gps = MockGPS()
+    def __init__(self, parameters):
         super().__init__(parameters=parameters, sigan=sigan, gps=gps)
         num_center_frequencies = len(parameters[FREQUENCY])
 
@@ -89,8 +87,10 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         self.sigan = sigan  # make instance variable to allow mocking
         self.num_center_frequencies = num_center_frequencies
 
-    def __call__(self, schedule_entry: dict, task_id: int):
+    def __call__(self, sigan, gps, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
+        self.sigan = sigan
+        self.gps = gps
         self.test_required_components()
         saved_samples = 0
 

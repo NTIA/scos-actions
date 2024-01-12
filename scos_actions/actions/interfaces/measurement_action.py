@@ -5,7 +5,6 @@ from typing import Union
 import numpy as np
 
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.structs import ntia_sensor
 from scos_actions.metadata.structs.capture import CaptureSegment
 from scos_actions.signals import measurement_action_completed
@@ -21,13 +20,13 @@ class MeasurementAction(Action):
 
     """
 
-    def __init__(self, parameters, sigan, gps=None):
-        if gps is None:
-            gps = MockGPS()
-        super().__init__(parameters, sigan, gps)
+    def __init__(self, parameters):
+        super().__init__(parameters)
         self.received_samples = 0
 
-    def __call__(self, schedule_entry: dict, task_id: int):
+    def __call__(self,sigan, gps, schedule_entry: dict, task_id: int):
+        self.sigan = sigan
+        self.gps = gps
         self.test_required_components()
         self.configure(self.parameters)
         measurement_result = self.execute(schedule_entry, task_id)

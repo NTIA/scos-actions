@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 class SyncGps(Action):
     """Query the GPS and synchronize time and location."""
 
-    def __init__(self, gps, parameters, sigan):
-        super().__init__(parameters=parameters, sigan=sigan, gps=gps)
+    def __init__(self, parameters):
+        super().__init__(parameters=parameters)
 
-    def __call__(self, schedule_entry: dict, task_id: int):
+    def __call__(self, sigan, gps, schedule_entry: dict, task_id: int):
         logger.debug("Syncing to GPS")
 
         dt = self._gps.get_gps_time()
