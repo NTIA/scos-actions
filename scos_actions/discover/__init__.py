@@ -14,9 +14,7 @@ if MOCK_SIGAN:
     register_component_with_status.send(mock_sigan.__class__, component=mock_sigan)
 actions = {"logger": Logger()}
 test_actions = {
-    "test_sync_gps": SyncGps(
-        parameters={"name": "test_sync_gps"}
-    ),
+    "test_sync_gps": SyncGps(parameters={"name": "test_sync_gps"}),
     "test_monitor_sigan": MonitorSignalAnalyzer(
         parameters={"name": "test_monitor_sigan"}
     ),
@@ -31,9 +29,7 @@ def init(
 ):
     yaml_actions = {}
     yaml_test_actions = {}
-    for key, value in load_from_yaml(
-        action_classes, yaml_dir=yaml_dir
-    ).items():
+    for key, value in load_from_yaml(action_classes, yaml_dir=yaml_dir).items():
         if key.startswith("test_"):
             yaml_test_actions[key] = value
         else:

@@ -18,9 +18,7 @@ def load_from_yaml(action_classes, yaml_dir: Path = ACTION_DEFINITIONS_DIR):
         for class_name, parameters in definition.items():
             try:
                 logger.debug(f"Attempting to configure: {class_name}")
-                action = action_classes[class_name](
-                    parameters=parameters
-                )
+                action = action_classes[class_name](parameters=parameters)
                 parsed_actions[action.name] = action
             except KeyError as exc:
                 err = "Nonexistent action class name {!r} referenced in {!r}"

@@ -67,6 +67,7 @@ def load_preselector(preselector_config, module, preselector_class_name):
         ps = None
     return ps
 
+
 register_component_with_status.connect(status_registration_handler)
 logger.debug("Connected status registration handler")
 preselector = load_preselector_from_file(PRESELECTOR_CONFIG_FILE)

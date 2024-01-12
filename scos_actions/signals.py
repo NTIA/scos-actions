@@ -10,4 +10,3 @@ trigger_api_restart = Signal()
 
 # Provides argument: 'component'
 register_component_with_status = Signal()
-

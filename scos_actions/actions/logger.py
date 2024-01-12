@@ -24,7 +24,7 @@ class Logger(Action):
         super().__init__(parameters={"name": "logger"})
         self.loglvl = loglvl
 
-    def __call__(self,sigan, gps, schedule_entry, task_id):
+    def __call__(self, sigan, gps, schedule_entry, task_id):
         msg = "running test {name}/{tid}"
         schedule_entry_name = schedule_entry["name"]
         logger.log(

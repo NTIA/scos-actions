@@ -1,6 +1,6 @@
 from scos_actions.discover import test_actions as actions
-from scos_actions.signals import trigger_api_restart
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
+from scos_actions.signals import trigger_api_restart
 
 MONITOR_SIGAN_SCHEDULE = {
     "name": "test_monitor",
@@ -22,7 +22,7 @@ def test_monitor_sigan_not_available():
     action = actions["test_monitor_sigan"]
     mock_sigan = MockSignalAnalyzer()
     mock_sigan._is_available = False
-    action(mock_sigan,None, MONITOR_SIGAN_SCHEDULE, 1)
+    action(mock_sigan, None, MONITOR_SIGAN_SCHEDULE, 1)
     assert _api_restart_triggered == True  # signal sent
     mock_sigan._is_available = True
 

@@ -4,8 +4,8 @@ import sys
 import pytest
 
 from scos_actions.discover import test_actions
-from scos_actions.signals import location_action_completed
 from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.signals import location_action_completed
 
 SYNC_GPS = {
     "name": "sync_gps",
@@ -37,4 +37,3 @@ def test_location_action_completed():
             action(None, MockGPS(), SYNC_GPS, 1)
     else:
         raise NotImplementedError("Test not implemented for current OS.")
-

@@ -24,7 +24,7 @@ class MeasurementAction(Action):
         super().__init__(parameters)
         self.received_samples = 0
 
-    def __call__(self,sigan, gps, schedule_entry: dict, task_id: int):
+    def __call__(self, sigan, gps, schedule_entry: dict, task_id: int):
         self.sigan = sigan
         self.gps = gps
         self.test_required_components()

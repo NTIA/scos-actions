@@ -141,6 +141,5 @@ class Action(ABC):
         return get_parameter("name", self.parameters)
 
     @abstractmethod
-    def __call__(self,sigan=None,gps=None, schedule_entry=None, task_id=None):
+    def __call__(self, sigan=None, gps=None, schedule_entry=None, task_id=None):
         pass
-
