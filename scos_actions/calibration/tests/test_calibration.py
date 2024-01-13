@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 
-from scos_actions.calibration import sensor_calibration, sigan_calibration
 from scos_actions.calibration.calibration import (
     Calibration,
     filter_by_parameter,
