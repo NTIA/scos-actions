@@ -2,7 +2,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 
-from scos_actions.calibration import sensor_calibration, sigan_calibration
+from scos_actions.calibration.calibration import Calibration
 from scos_actions.hardware.utils import power_cycle_sigan
 from scos_actions.utils import convert_string_to_millisecond_iso_format
 
@@ -21,7 +21,7 @@ SIGAN_SETTINGS_KEYS = [
 
 
 class SignalAnalyzerInterface(ABC):
-    def __init__(self, sensor_cal=None, sigan_cal=None):
+    def __init__(self, sensor_cal: Calibration = None, sigan_cal: Calibration = None):
         self.sensor_calibration_data = {}
         self.sigan_calibration_data = {}
         self._sensor_calibration = sensor_cal
@@ -32,7 +32,7 @@ class SignalAnalyzerInterface(ABC):
     def last_calibration_time(self) -> str:
         """Returns the last calibration time from calibration data."""
         return convert_string_to_millisecond_iso_format(
-            sensor_calibration.last_calibration_datetime
+            self.sensor_calibration.last_calibration_datetime
         )
 
     @property
@@ -129,9 +129,9 @@ class SignalAnalyzerInterface(ABC):
 
     def recompute_sensor_calibration_data(self, cal_args: list) -> None:
         self.sensor_calibration_data = {}
-        if sensor_calibration is not None:
+        if self.sensor_calibration is not None:
             self.sensor_calibration_data.update(
-                sensor_calibration.get_calibration_dict(cal_args)
+                self.sensor_calibration.get_calibration_dict(cal_args)
             )
         else:
             logger.warning("Sensor calibration does not exist.")
@@ -139,9 +139,9 @@ class SignalAnalyzerInterface(ABC):
     def recompute_sigan_calibration_data(self, cal_args: list) -> None:
         self.sigan_calibration_data = {}
         """Set the sigan calibration data based on the current tuning"""
-        if sigan_calibration is not None:
+        if self.sigan_calibration is not None:
             self.sigan_calibration_data.update(
-                sigan_calibration.get_calibration_dict(cal_args)
+                self.sigan_calibration.get_calibration_dict(cal_args)
             )
         else:
             logger.warning("Sigan calibration does not exist.")
