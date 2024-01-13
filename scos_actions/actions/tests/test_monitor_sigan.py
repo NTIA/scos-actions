@@ -1,5 +1,6 @@
 from scos_actions.discover import test_actions as actions
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.signals import trigger_api_restart
 
 MONITOR_SIGAN_SCHEDULE = {
@@ -22,7 +23,8 @@ def test_monitor_sigan_not_available():
     action = actions["test_monitor_sigan"]
     mock_sigan = MockSignalAnalyzer()
     mock_sigan._is_available = False
-    action(mock_sigan, None, MONITOR_SIGAN_SCHEDULE, 1)
+    sensor = Sensor(signal_analyzer=mock_sigan)
+    action(sensor, MONITOR_SIGAN_SCHEDULE, 1)
     assert _api_restart_triggered == True  # signal sent
     mock_sigan._is_available = True
 
@@ -38,7 +40,8 @@ def test_monitor_sigan_not_healthy():
     action = actions["test_monitor_sigan"]
     mock_sigan = MockSignalAnalyzer()
     mock_sigan.times_to_fail_recv = 6
-    action(mock_sigan, None, MONITOR_SIGAN_SCHEDULE, 1)
+    sensor = Sensor(signal_analyzer=mock_sigan)
+    action(sensor, MONITOR_SIGAN_SCHEDULE, 1)
     assert _api_restart_triggered == True  # signal sent
 
 
@@ -54,5 +57,6 @@ def test_monitor_sigan_healthy():
     mock_sigan = MockSignalAnalyzer()
     mock_sigan._is_available = True
     mock_sigan.set_times_to_fail_recv(0)
-    action(mock_sigan, None, MONITOR_SIGAN_SCHEDULE, 1)
+    sensor = Sensor(signal_analyzer=mock_sigan)
+    action(sensor, MONITOR_SIGAN_SCHEDULE, 1)
     assert _api_restart_triggered == False  # signal not sent

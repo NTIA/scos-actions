@@ -1,5 +1,6 @@
 from scos_actions.discover import test_actions as actions
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.signals import measurement_action_completed
 
 SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION = {
@@ -34,7 +35,8 @@ def test_metadata_timedomain_iq_multiple_acquisition():
     action = actions["test_multi_frequency_iq_action"]
     assert action.description
     mock_sigan = MockSignalAnalyzer()
-    action(mock_sigan, None, SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1)
+    sensor = Sensor(signal_analyzer=mock_sigan)
+    action(sensor, SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1)
     for i in range(_count):
         assert _datas[i].any()
         assert _metadatas[i]
@@ -47,8 +49,15 @@ def test_num_samples_skip():
     action = actions["test_multi_frequency_iq_action"]
     assert action.description
     mock_sigan = MockSignalAnalyzer()
-    action(mock_sigan, None, SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1)
+    sensor = Sensor(signal_analyzer=mock_sigan)
+    action(sensor, SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1)
     if isinstance(action.parameters["nskip"], list):
-        assert action.sigan._num_samples_skip == action.parameters["nskip"][-1]
+        assert (
+            action.sensor.signal_analyzer._num_samples_skip
+            == action.parameters["nskip"][-1]
+        )
     else:
-        assert action.sigan._num_samples_skip == action.parameters["nskip"]
+        assert (
+            action.sensor.signal_analyzer._num_samples_skip
+            == action.parameters["nskip"]
+        )

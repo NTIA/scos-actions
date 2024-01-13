@@ -84,25 +84,24 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         # Create iterable parameter set
         self.iterable_params = utils.get_iterable_parameters(parameters)
 
-        self.sigan = None
+        self.sensor = None
         self.num_center_frequencies = num_center_frequencies
 
-    def __call__(self, sigan, gps, schedule_entry: dict, task_id: int):
+    def __call__(self, sensor, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
-        self.sigan = sigan
-        self.gps = gps
+        self._sensor = sensor
         self.test_required_components()
         saved_samples = 0
 
         for recording_id, measurement_params in enumerate(
             self.iterable_params, start=1
         ):
-            self.get_sigmf_builder(schedule_entry)
+            self.get_sigmf_builder(sensor, schedule_entry)
             self.configure(measurement_params)
             duration_ms = get_parameter(DURATION_MS, measurement_params)
             nskip = get_parameter(NUM_SKIP, measurement_params)
             cal_adjust = get_parameter(CAL_ADJUST, measurement_params)
-            sample_rate = self.sigan.sample_rate
+            sample_rate = self.sensor.signal_analyzer.sample_rate
             num_samples = int(sample_rate * duration_ms * 1e-3)
             measurement_result = super().acquire_data(num_samples, nskip, cal_adjust)
             measurement_result.update(measurement_params)
@@ -121,8 +120,8 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                 overload=measurement_result["overload"],
                 sigan_settings=sigan_settings,
             )
-            sigan_cal = self.sigan.sigan_calibration_data
-            sensor_cal = self.sigan.sensor_calibration_data
+            sigan_cal = self.sensor.signal_analyzer.sigan_calibration_data
+            sensor_cal = self.sensor.signal_analyzer.sensor_calibration_data
             if sigan_cal is not None:
                 if "1db_compression_point" in sigan_cal:
                     sigan_cal["compression_point"] = sigan_cal.pop(

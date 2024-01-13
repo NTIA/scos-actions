@@ -178,9 +178,9 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         # Save measurement results
         measurement_result["data"] = m4s_result
         measurement_result.update(self.parameters)
-        measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
-            "datetime"
-        ]
+        measurement_result[
+            "calibration_datetime"
+        ] = self.sensor.signal_analyzer.sensor_calibration_data["datetime"]
         measurement_result["task_id"] = task_id
         measurement_result["classification"] = self.classification
 

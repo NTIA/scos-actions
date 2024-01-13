@@ -24,13 +24,12 @@ class MeasurementAction(Action):
         super().__init__(parameters)
         self.received_samples = 0
 
-    def __call__(self, sigan, gps, schedule_entry: dict, task_id: int):
-        self.sigan = sigan
-        self.gps = gps
+    def __call__(self, sensor, schedule_entry: dict, task_id: int):
+        self._sensor = sensor
+        self.get_sigmf_builder(sensor, schedule_entry)
         self.test_required_components()
         self.configure(self.parameters)
         measurement_result = self.execute(schedule_entry, task_id)
-        self.get_sigmf_builder(schedule_entry)  # Initializes SigMFBuilder
         self.create_metadata(measurement_result)  # Fill metadata
         data = self.transform_data(measurement_result)
         self.send_signals(task_id, self.sigmf_builder.metadata, data)
@@ -52,8 +51,8 @@ class MeasurementAction(Action):
             overload=overload,
             sigan_settings=sigan_settings,
         )
-        sigan_cal = self.sigan.sigan_calibration_data
-        sensor_cal = self.sigan.sensor_calibration_data
+        sigan_cal = self.sensor.signal_analyzer.sigan_calibration_data
+        sensor_cal = self.sensor.signal_analyzer.sensor_calibration_data
         # Rename compression point keys if they exist
         # then set calibration metadata if it exists
         if sensor_cal is not None:
@@ -147,7 +146,7 @@ class MeasurementAction(Action):
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
-        if not self.sigan.is_available:
+        if not self.sensor.signal_analyzer.is_available:
             msg = "acquisition failed: signal analyzer required but not available"
             raise RuntimeError(msg)
 
@@ -167,7 +166,7 @@ class MeasurementAction(Action):
             + f" and {'' if cal_adjust else 'not '}applying gain adjustment based"
             + " on calibration data"
         )
-        measurement_result = self.sigan.acquire_time_domain_samples(
+        measurement_result = self.sensor.signal_analyzer.acquire_time_domain_samples(
             num_samples,
             num_samples_skip=nskip,
             cal_adjust=cal_adjust,

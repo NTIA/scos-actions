@@ -38,9 +38,7 @@ from scipy.signal import sos2tf, sosfilt
 from scos_actions import __version__ as SCOS_ACTIONS_VERSION
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.capabilities import SENSOR_DEFINITION_HASH, SENSOR_LOCATION
-from scos_actions.hardware import preselector, switches
-from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.utils import (
     get_cpu_uptime_seconds,
     get_current_cpu_clock_speed,
@@ -506,10 +504,9 @@ class NasctnSeaDataProduct(Action):
         # Get iterable parameter list
         self.iteration_params = utils.get_iterable_parameters(self.parameters)
 
-    def __call__(self, sigan, gps, schedule_entry, task_id):
+    def __call__(self, sensor, schedule_entry, task_id):
         """This is the entrypoint function called by the scheduler."""
-        self.sigan = sigan
-        self.gps = gps
+        self._sensor = sensor
         action_start_tic = perf_counter()
 
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
@@ -640,7 +637,9 @@ class NasctnSeaDataProduct(Action):
         )
         return measurement_result
 
-    def capture_diagnostics(self, action_start_tic: float, cpu_speeds: list) -> None:
+    def capture_diagnostics(
+        self, sensor: Sensor, action_start_tic: float, cpu_speeds: list
+    ) -> None:
         """
         Capture diagnostic sensor data.
 
@@ -718,7 +717,7 @@ class NasctnSeaDataProduct(Action):
             switch_diag["door_closed"] = not bool(all_switch_status["door_state"])
 
         # Read preselector sensors
-        ps_diag = preselector.get_status()
+        ps_diag = sensor.preselector.get_status()
         del ps_diag["name"]
         del ps_diag["healthy"]
 
@@ -945,7 +944,7 @@ class NasctnSeaDataProduct(Action):
         else:
             logger.warning("No preselector_powered found in switch status.")
 
-    def create_global_sensor_metadata(self):
+    def create_global_sensor_metadata(self, sensor: Sensor):
         # Add (minimal) ntia-sensor metadata to the sigmf_builder:
         #   sensor ID, serial numbers for preselector, sigan, and computer
         #   overall sensor_spec version, e.g. "Prototype Rev. 3"
@@ -955,7 +954,7 @@ class NasctnSeaDataProduct(Action):
                 sensor_spec=ntia_core.HardwareSpec(
                     id=self.sensor_definition["sensor_spec"]["id"],
                 ),
-                sensor_sha512=SENSOR_DEFINITION_HASH,
+                sensor_sha512=sensor.capabilities["sensor"]["sensor_sha512"],
             )
         )
 

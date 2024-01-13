@@ -3,7 +3,6 @@ import time
 from abc import ABC, abstractmethod
 
 from scos_actions.calibration import sensor_calibration, sigan_calibration
-from scos_actions.capabilities import capabilities
 from scos_actions.hardware.utils import power_cycle_sigan
 from scos_actions.utils import convert_string_to_millisecond_iso_format
 
@@ -27,6 +26,7 @@ class SignalAnalyzerInterface(ABC):
         self.sigan_calibration_data = {}
         self.sensor_calibration = sensor_calibration
         self.sigan_calibration = sigan_calibration
+        self._model = "Unknown"
 
     @property
     def last_calibration_time(self) -> str:
@@ -147,12 +147,12 @@ class SignalAnalyzerInterface(ABC):
             logger.warning("Sigan calibration does not exist.")
 
     def get_status(self):
-        try:
-            sigan_model = capabilities["sensor"]["signal_analyzer"]["sigan_spec"][
-                "model"
-            ]
-            if sigan_model.lower() in ["default", ""]:
-                raise KeyError
-        except KeyError:
-            sigan_model = str(self.__class__)
-        return {"model": sigan_model, "healthy": self.healthy()}
+        return {"model": self._model, "healthy": self.healthy()}
+
+    @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, value):
+        self._model = value

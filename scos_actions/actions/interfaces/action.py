@@ -2,10 +2,8 @@ import logging
 from abc import ABC, abstractmethod
 from copy import deepcopy
 
-from scos_actions.capabilities import SENSOR_LOCATION, capabilities
-from scos_actions.hardware import preselector
 from scos_actions.hardware.gps_iface import GPSInterface
-from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.metadata.structs import ntia_scos, ntia_sensor
@@ -36,54 +34,38 @@ class Action(ABC):
     PRESELECTOR_PATH_KEY = "rf_path"
 
     def __init__(self, parameters):
-        self.gps = None
-        self.sigan = None
+        self._sensor = None
         self.parameters = deepcopy(parameters)
-        self.sensor_definition = capabilities["sensor"]
         self.sigmf_builder = None
-        if (
-            "preselector" in self.sensor_definition
-            and "rf_paths" in self.sensor_definition["preselector"]
-        ):
-            self.has_configurable_preselector = True
-        else:
-            self.has_configurable_preselector = False
 
     def configure(self, params: dict):
         self.configure_sigan(params)
-        self.configure_preselector(params)
+        self.configure_preselector(self.sensor, params)
 
     @property
-    def gps(self):
-        return self._gps
+    def sensor(self):
+        return self._sensor
 
-    @gps.setter
-    def gps(self, value: GPSInterface):
-        self._gps = value
-
-    @property
-    def signal_analyzer(self):
-        return self.sigan
-
-    @signal_analyzer.setter
-    def signal_analyzer(self, value):
-        self.sigan = value
+    @sensor.setter
+    def sensor(self, value):
+        self._sensor = value
 
     def configure_sigan(self, params: dict):
         sigan_params = {k: v for k, v in params.items() if k in SIGAN_SETTINGS_KEYS}
         for key, value in sigan_params.items():
-            if hasattr(self.sigan, key):
+            if hasattr(self.sensor.signal_analyzer, key):
                 logger.debug(f"Applying setting to sigan: {key}: {value}")
-                setattr(self.sigan, key, value)
+                setattr(self.sensor.signal_analyzer, key, value)
             else:
                 logger.warning(f"Sigan does not have attribute {key}")
 
-    def configure_preselector(self, params: dict):
+    def configure_preselector(self, sensor: Sensor, params: dict):
+        preselector = sensor.preselector
         if self.PRESELECTOR_PATH_KEY in params:
             path = params[self.PRESELECTOR_PATH_KEY]
             logger.debug(f"Setting preselector RF path: {path}")
             preselector.set_state(path)
-        elif self.has_configurable_preselector:
+        elif sensor.has_configurable_preselector:
             # Require the RF path to be specified if the sensor has a preselector.
             raise ParameterException(
                 f"No {self.PRESELECTOR_PATH_KEY} value specified in the YAML config."
@@ -92,7 +74,7 @@ class Action(ABC):
             # No preselector in use, so do not require an RF path
             pass
 
-    def get_sigmf_builder(self, schedule_entry: dict) -> None:
+    def get_sigmf_builder(self, sensor: Sensor, schedule_entry: dict) -> None:
         """
         Set the `sigmf_builder` instance variable to an initialized SigMFBuilder.
 
@@ -119,9 +101,14 @@ class Action(ABC):
         )
         sigmf_builder.set_action(action_obj)
 
-        if SENSOR_LOCATION is not None:
-            sigmf_builder.set_geolocation(SENSOR_LOCATION)
-        sigmf_builder.set_sensor(ntia_sensor.Sensor(**self.sensor_definition))
+        if sensor.location is not None:
+            sigmf_builder.set_geolocation(sensor.location)
+        if self.sensor.capabilities is not None and hasattr(
+            self.sensor.capabilities, "sensor"
+        ):
+            sigmf_builder.set_sensor(
+                ntia_sensor.Sensor(**self.sensor.capabilities["sensor"])
+            )
 
         self.sigmf_builder = sigmf_builder
 
@@ -141,5 +128,5 @@ class Action(ABC):
         return get_parameter("name", self.parameters)
 
     @abstractmethod
-    def __call__(self, sigan=None, gps=None, schedule_entry=None, task_id=None):
+    def __call__(self, sensor=None, schedule_entry=None, task_id=None):
         pass
