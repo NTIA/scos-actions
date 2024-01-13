@@ -21,11 +21,11 @@ SIGAN_SETTINGS_KEYS = [
 
 
 class SignalAnalyzerInterface(ABC):
-    def __init__(self):
+    def __init__(self, sensor_cal=None, sigan_cal=None):
         self.sensor_calibration_data = {}
         self.sigan_calibration_data = {}
-        self.sensor_calibration = sensor_calibration
-        self.sigan_calibration = sigan_calibration
+        self._sensor_calibration = sensor_cal
+        self._sigan_calibration = sigan_cal
         self._model = "Unknown"
 
     @property
@@ -156,3 +156,19 @@ class SignalAnalyzerInterface(ABC):
     @model.setter
     def model(self, value):
         self._model = value
+
+    @property
+    def sensor_calibration(self):
+        return self._sensor_calibration
+
+    @sensor_calibration.setter
+    def sensor_calibration(self, cal):
+        self._sensor_calibration = cal
+
+    @property
+    def sigan_calibration(self):
+        return self._sigan_calibration
+
+    @sigan_calibration.setter
+    def sigan_calibration(self, cal):
+        self._sigan_calibration = cal
