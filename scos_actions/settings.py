@@ -51,19 +51,17 @@ else:
     SENSOR_DEFINITION_FILE = Path(settings.SENSOR_DEFINITION_FILE)
     FQDN = settings.FQDN
     SCOS_SENSOR_GIT_TAG = settings.SCOS_SENSOR_GIT_TAG
-    if settings.PRESELECTOR_CONFIG:
-        PRESELECTOR_CONFIG_FILE = settings.PRESELECTOR_CONFIG
-    else:
-        PRESELECTOR_CONFIG_FILE = None
-
-    if settings.PRESELECTOR_MODULE and settings.PRESELECTOR_CLASS:
-        PRESELECTOR_MODULE = settings.PRESELECTOR_MODULE
-        PRESELECTOR_CLASS = settings.PRESELECTOR_CLASS
-    else:
-        PRESELECTOR_MODULE = "its_preselector.web_relay_preselector"
-        PRESELECTOR_CLASS = "WebRelayPreselector"
-    if hasattr(settings, "SWITCH_CONFIGS_DIR"):
-        SWITCH_CONFIGS_DIR = Path(settings.SWITCH_CONFIGS_DIR)
+    # if settings.PRESELECTOR_CONFIG:
+    #     PRESELECTOR_CONFIG_FILE = settings.PRESELECTOR_CONFIG
+    # else:
+    #     PRESELECTOR_CONFIG_FILE = None
+    #
+    # if settings.PRESELECTOR_MODULE and settings.PRESELECTOR_CLASS:
+    #     PRESELECTOR_MODULE = settings.PRESELECTOR_MODULE
+    #     PRESELECTOR_CLASS = settings.PRESELECTOR_CLASS
+    # else:
+    #     PRESELECTOR_MODULE = "its_preselector.web_relay_preselector"
+    #     PRESELECTOR_CLASS = "WebRelayPreselector"
 
     SIGAN_POWER_SWITCH = None
     SIGAN_POWER_CYCLE_STATES = None
