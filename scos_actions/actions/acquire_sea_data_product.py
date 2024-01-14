@@ -627,10 +627,14 @@ class NasctnSeaDataProduct(Action):
         nskip = utils.get_parameter(NUM_SKIP, params)
         num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
         # Collect IQ data
-        measurement_result = self.sigan.acquire_time_domain_samples(num_samples, nskip)
+        measurement_result = self.sensor.signal_analyzer.acquire_time_domain_samples(
+            num_samples, nskip
+        )
         # Store some metadata with the IQ
         measurement_result.update(params)
-        measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
+        measurement_result[
+            "sensor_cal"
+        ] = self.sensor.signal_analyzer.sensor_calibration_data
         toc = perf_counter()
         logger.debug(
             f"IQ Capture ({duration_ms} ms @ {(params[FREQUENCY]/1e6):.1f} MHz) completed in {toc-tic:.2f} s."
@@ -779,11 +783,11 @@ class NasctnSeaDataProduct(Action):
             "scos_sensor_version": SCOS_SENSOR_GIT_TAG,
             "scos_actions_version": SCOS_ACTIONS_VERSION,
             "scos_sigan_plugin": ntia_diagnostics.ScosPlugin(
-                name="scos_tekrsa", version=self.sigan.plugin_version
+                name="scos_tekrsa", version=self.sensor.signal_analyzer.plugin_version
             ),
             "preselector_api_version": PRESELECTOR_API_VERSION,
-            "sigan_firmware_version": self.sigan.firmware_version,
-            "sigan_api_version": self.sigan.api_version,
+            "sigan_firmware_version": self.sensor.signal_analyzer.firmware_version,
+            "sigan_api_version": self.sensor.signal_analyzer.api_version,
         }
 
         toc = perf_counter()
@@ -832,7 +836,10 @@ class NasctnSeaDataProduct(Action):
             logger.warning("No internal_temp found in switch status.")
         try:
             switch_diag["temperature_sensors"].append(
-                {"name": "sigan_internal_temp", "value": self.sigan.temperature}
+                {
+                    "name": "sigan_internal_temp",
+                    "value": self.sensor.signal_analyzer.temperature,
+                }
             )
         except:
             logger.warning("Unable to read internal sigan temperature")
@@ -960,11 +967,11 @@ class NasctnSeaDataProduct(Action):
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
-        if not self.sigan.is_available:
+        if not self.sensor.signal_analyzer.is_available:
             msg = "Acquisition failed: signal analyzer is not available"
             trigger_api_restart.send(sender=self.__class__)
             raise RuntimeError(msg)
-        if not self.sigan.healthy():
+        if not self.sensor.signal_analyzer.healthy():
             trigger_api_restart.send(sender=self.__class__)
         return None
 
@@ -1111,7 +1118,7 @@ class NasctnSeaDataProduct(Action):
 
         capture_segment = CaptureSegment(
             sample_start=channel_idx * self.total_channel_data_length,
-            frequency=self.sigan.frequency,
+            frequency=self.sensor.signal_analyzer.frequency,
             datetime=measurement_result["capture_time"],
             duration=measurement_result[DURATION_MS],
             overload=measurement_result["overload"],
@@ -1123,9 +1130,9 @@ class NasctnSeaDataProduct(Action):
                 reference=DATA_REFERENCE_POINT,
             ),
             sigan_settings=ntia_sensor.SiganSettings(
-                reference_level=self.sigan.reference_level,
-                attenuation=self.sigan.attenuation,
-                preamp_enable=self.sigan.preamp_enable,
+                reference_level=self.sensor.signal_analyzer.reference_level,
+                attenuation=self.sensor.signal_analyzer.attenuation,
+                preamp_enable=self.sensor.signal_analyzer.preamp_enable,
             ),
         )
         self.sigmf_builder.add_capture(capture_segment)

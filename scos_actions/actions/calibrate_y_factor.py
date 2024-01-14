@@ -379,9 +379,9 @@ class YFactorCalibration(Action):
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
-        if not self.sigan.is_available:
+        if not self.sensor.signal_analyzer.is_available:
             msg = "acquisition failed: signal analyzer required but not available"
             trigger_api_restart.send(sender=self.__class__)
             raise RuntimeError(msg)
-        if not self.sigan.healthy():
+        if not self.sensor.signal_analyzer.healthy():
             trigger_api_restart.send(sender=self.__class__)
