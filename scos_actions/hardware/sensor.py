@@ -86,8 +86,8 @@ class Sensor:
         else:
             sensor_definition = self._capabilities["sensor"]
             if (
-                "preselector" in self.sensor_definition
-                and "rf_paths" in self.sensor_definition["preselector"]
+                "preselector" in sensor_definition
+                and "rf_paths" in sensor_definition["preselector"]
             ):
                 return True
             else:
