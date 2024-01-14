@@ -522,7 +522,7 @@ class NasctnSeaDataProduct(Action):
             schedule_entry,
             self.iteration_params,
         )
-        self.create_global_sensor_metadata()
+        self.create_global_sensor_metadata(self.sensor)
         self.create_global_data_product_metadata()
 
         # Initialize remote supervisor actors for IQ processing
