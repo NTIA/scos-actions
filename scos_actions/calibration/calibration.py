@@ -15,23 +15,13 @@ class Calibration:
     calibration_parameters: List[str]
     calibration_data: dict
     clock_rate_lookup_by_sample_rate: List[Dict[str, float]]
-
-    def __init__(self):
-        self._is_default = False
+    is_default: bool
 
     def __post_init__(self):
         # Convert key names in calibration_data to strings
         # This means that formatting will always match between
         # native types provided in Python and data loaded from JSON
         self.calibration_data = json.loads(json.dumps(self.calibration_data))
-
-    @property
-    def is_default(self) -> bool:
-        return self._is_default
-
-    @is_default.setter
-    def is_default(self, val: bool):
-        self._is_default = val
 
     def get_clock_rate(self, sample_rate: Union[float, int]) -> Union[float, int]:
         """Find the clock rate (Hz) using the given sample_rate (samples per second)"""
