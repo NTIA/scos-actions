@@ -121,7 +121,7 @@ class Calibration:
             outfile.write(json.dumps(cal_dict))
 
 
-def load_from_json(fname: Path) -> Calibration:
+def load_from_json(fname: Path, is_default: bool) -> Calibration:
     """
     Load a calibration from a JSON file.
 
@@ -158,6 +158,7 @@ def load_from_json(fname: Path) -> Calibration:
         calibration["calibration_parameters"],
         calibration["calibration_data"],
         calibration["clock_rate_lookup_by_sample_rate"],
+        is_default,
     )
 
 
