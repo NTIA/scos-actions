@@ -1,5 +1,9 @@
 import hashlib
 
+from its_preselector.preselector import Preselector
+from its_preselector.web_relay import WebRelay
+
+from .gps_iface import GPSInterface
 from .mocks.mock_gps import MockGPS
 from .mocks.mock_sigan import MockSignalAnalyzer
 from .sigan_iface import SignalAnalyzerInterface
@@ -8,12 +12,12 @@ from .sigan_iface import SignalAnalyzerInterface
 class Sensor:
     def __init__(
         self,
-        signal_analyzer=MockSignalAnalyzer,
-        gps=MockGPS(),
-        preselector=None,
-        switches={},
-        location=None,
-        capabilities=None,
+        signal_analyzer: SignalAnalyzerInterface = MockSignalAnalyzer,
+        gps: GPSInterface = MockGPS(),
+        preselector: Preselector = None,
+        switches: dict[str, WebRelay] = {},
+        location: dict = None,
+        capabilities: dict = None,
     ):
         self._signal_analyzer = signal_analyzer
         self._gps = gps
@@ -23,51 +27,51 @@ class Sensor:
         self.capabilities = capabilities
 
     @property
-    def signal_analyzer(self):
+    def signal_analyzer(self) -> SignalAnalyzerInterface:
         return self._signal_analyzer
 
     @signal_analyzer.setter
-    def signal_analyzer(self, sigan):
+    def signal_analyzer(self, sigan: SignalAnalyzerInterface):
         self._signal_analyzer = sigan
 
     @property
-    def gps(self):
+    def gps(self) -> GPSInterface:
         return self._gps
 
     @gps.setter
-    def gps(self, gps):
+    def gps(self, gps: GPSInterface):
         self._gps = gps
 
     @property
-    def preselector(self):
+    def preselector(self) -> Preselector:
         return self._preselector
 
     @preselector.setter
-    def preselector(self, preselector):
+    def preselector(self, preselector: Preselector):
         self._preselector = preselector
 
     @property
-    def switches(self):
+    def switches(self) -> dict[str, WebRelay]:
         return self._switches
 
     @switches.setter
-    def switches(self, switches):
+    def switches(self, switches: dict[str, WebRelay]):
         self._switches = switches
 
     @property
-    def location(self):
+    def location(self) -> dict:
         return self._location
 
     @location.setter
-    def location(self, loc):
+    def location(self, loc: dict):
         self._location = loc
 
     @property
-    def capabilities(self):
+    def capabilities(self) -> dict:
         return self._capabilities
 
     @capabilities.setter
-    def capabilities(self, capabilities):
+    def capabilities(self, capabilities: dict):
         if capabilities is not None:
             if "sensor_sha512" not in capabilities["sensor"]:
                 sensor_def = json.dumps(capabilities["sensor"], sort_keys=True)
@@ -80,7 +84,7 @@ class Sensor:
             self._capabilities = None
 
     @property
-    def has_configurable_preselector(self):
+    def has_configurable_preselector(self) -> bool:
         if self._capabilities is None:
             return False
         else:
