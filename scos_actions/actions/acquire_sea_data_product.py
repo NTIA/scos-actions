@@ -55,6 +55,7 @@ from scos_actions.metadata.structs import (
     ntia_sensor,
 )
 from scos_actions.metadata.structs.capture import CaptureSegment
+from scos_actions.metadata.utils import construct_geojson_point
 from scos_actions.settings import SCOS_SENSOR_GIT_TAG
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
@@ -1165,13 +1166,16 @@ class NasctnSeaDataProduct(Action):
             # Do not include lengthy description
         )
         sigmf_builder.set_action(action_obj)
-
-        if SENSOR_LOCATION is not None:
-            sigmf_builder.set_geolocation(SENSOR_LOCATION)
+        location = self.sensor.capabilities["sensor"]["location"]
+        if location is not None:
+            location = construct_geojson_point(
+                location["x"],
+                location["y"],
+                sensor_loc["z"] if "z" in location else None,
+            )
+            sigmf_builder.set_geolocation(location)
         else:
-            logger.error("Set the sensor location in the SCOS admin web UI")
-            raise RuntimeError
-
+            raise Exception("Sensor does not have a location defined.")
         sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_num_channels(len(iter_params))
