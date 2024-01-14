@@ -608,7 +608,7 @@ class NasctnSeaDataProduct(Action):
         self.sigmf_builder.set_median_channel_powers(median_ch_pwrs)
         # Get diagnostics last to record action runtime
         self.capture_diagnostics(
-            action_start_tic, cpu_speed
+            self.sensor, action_start_tic, cpu_speed
         )  # Add diagnostics to metadata
 
         measurement_action_completed.send(
