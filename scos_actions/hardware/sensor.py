@@ -1,4 +1,5 @@
 import hashlib
+from typing import Dict
 
 from its_preselector.preselector import Preselector
 from its_preselector.web_relay import WebRelay
@@ -15,7 +16,7 @@ class Sensor:
         signal_analyzer: SignalAnalyzerInterface = MockSignalAnalyzer,
         gps: GPSInterface = MockGPS(),
         preselector: Preselector = None,
-        switches: dict[str, WebRelay] = {},
+        switches: Dict[str, WebRelay] = {},
         location: dict = None,
         capabilities: dict = None,
     ):
@@ -51,11 +52,11 @@ class Sensor:
         self._preselector = preselector
 
     @property
-    def switches(self) -> dict[str, WebRelay]:
+    def switches(self) -> Dict[str, WebRelay]:
         return self._switches
 
     @switches.setter
-    def switches(self, switches: dict[str, WebRelay]):
+    def switches(self, switches: Dict[str, WebRelay]):
         self._switches = switches
 
     @property
