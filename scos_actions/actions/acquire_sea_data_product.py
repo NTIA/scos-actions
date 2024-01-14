@@ -708,7 +708,7 @@ class NasctnSeaDataProduct(Action):
         switch_diag = {}
         all_switch_status = {}
         # Add status for any switch
-        for switch in switches.values():
+        for switch in self.sensor.switches.values():
             switch_status = switch.get_status()
             del switch_status["name"]
             del switch_status["healthy"]
@@ -1169,9 +1169,7 @@ class NasctnSeaDataProduct(Action):
         location = self.sensor.capabilities["sensor"]["location"]
         if location is not None:
             location = construct_geojson_point(
-                location["x"],
-                location["y"],
-                sensor_loc["z"] if "z" in location else None,
+                location["x"], location["y"], location["z"] if "z" in location else None
             )
             sigmf_builder.set_geolocation(location)
         else:
