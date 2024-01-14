@@ -146,29 +146,29 @@ class SignalAnalyzerInterface(ABC):
         else:
             logger.warning("Sigan calibration does not exist.")
 
-    def get_status(self):
+    def get_status(self) -> dict:
         return {"model": self._model, "healthy": self.healthy()}
 
     @property
-    def model(self):
+    def model(self) -> str:
         return self._model
 
     @model.setter
-    def model(self, value):
+    def model(self, value: str):
         self._model = value
 
     @property
-    def sensor_calibration(self):
+    def sensor_calibration(self) -> Calibration:
         return self._sensor_calibration
 
     @sensor_calibration.setter
-    def sensor_calibration(self, cal):
+    def sensor_calibration(self, cal: Calibration):
         self._sensor_calibration = cal
 
     @property
-    def sigan_calibration(self):
+    def sigan_calibration(self) -> Calibration:
         return self._sigan_calibration
 
     @sigan_calibration.setter
-    def sigan_calibration(self, cal):
+    def sigan_calibration(self, cal: Calibration):
         self._sigan_calibration = cal
