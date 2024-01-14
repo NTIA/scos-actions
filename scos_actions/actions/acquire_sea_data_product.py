@@ -1166,12 +1166,8 @@ class NasctnSeaDataProduct(Action):
             # Do not include lengthy description
         )
         sigmf_builder.set_action(action_obj)
-        location = self.sensor.capabilities["sensor"]["location"]
-        if location is not None:
-            location = construct_geojson_point(
-                location["x"], location["y"], location["z"] if "z" in location else None
-            )
-            sigmf_builder.set_geolocation(location)
+        if self.sensor.location is not None:
+            sigmf_builder.set_geolocation(self.sensor.location)
         else:
             raise Exception("Sensor does not have a location defined.")
         sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
