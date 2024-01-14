@@ -511,7 +511,7 @@ class NasctnSeaDataProduct(Action):
 
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
         self.test_required_components()
-        self.configure_preselector(self.rf_path)
+        self.configure_preselector(self.sensor, self.rf_path)
 
         # Initialize metadata object
         self.get_sigmf_builder(
