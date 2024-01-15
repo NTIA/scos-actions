@@ -2,7 +2,6 @@ import logging
 from abc import ABC, abstractmethod
 from copy import deepcopy
 
-from scos_actions.hardware.gps_iface import GPSInterface
 from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
@@ -128,5 +127,5 @@ class Action(ABC):
         return get_parameter("name", self.parameters)
 
     @abstractmethod
-    def __call__(self, sensor=None, schedule_entry=None, task_id=None):
+    def __call__(self, sensor: Sensor = None, schedule_entry=None, task_id=None):
         pass

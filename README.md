@@ -49,7 +49,9 @@ architecture.
 - `scos_actions/configs/actions`: This folder contains the YAML files with the parameters
   used to initialize the actions described above.
 - `scos_actions/discover`: This includes the code to read YAML files and make actions
-  available to scos-sensor.
+  available to scos-sensor. The [scos-sensor actions module](https://github.com/NTIA/scos-sensor/blob/master/src/actions/__init__.py)
+  looks for any other modules that begin with scos_. For any scos module, scos-sensor
+  imports its discover module to load any actions or actions_types.
 - `scos_actions/hardware`: This includes the signal analyzer interface and GPS interface
   used by the actions and the mock signal analyzer. The signal analyzer interface is
   intended to represent universal functionality that is common across all signal
@@ -181,9 +183,6 @@ yaml_actions, yaml_test_actions = init(yaml_dir=ACTION_DEFINITIONS_DIR)
 actions.update(yaml_actions)
 ```
 
-Pass the implementation of the signal analyzer interface and the directory where the
-YAML files are located to the `init` method.
-
 If no existing action class meets your needs, see [Writing Custom Actions](
     #writing-custom-actions).
 
@@ -304,7 +303,9 @@ scos-sensor.
 
 Start by looking at the [`Action` base class](scos_actions/actions/interfaces/action.py).
 It includes some logic to parse a description and summary out of the action class's
-docstring, and a `__call__` method that must be overridden.
+docstring, and a `__call__` method that must be overridden. Actions are only instantiated
+with parameters. The signal analyzer implementation will be passed to the action at
+execution time through the __call__ method's Sensor object.
 
 A new custom action can inherit from the existing action classes to reuse and build
 upon existing functionality. A [`MeasurementAction` base class](scos_actions/actions/interfaces/measurement_action.py),
@@ -318,7 +319,7 @@ enables SCOS Sensor to do something with the results of the action. This could r
 from storing measurement data to recycling a Docker container or to fixing an unhealthy
 connection to the signal analyzer. You can see the available signals in
 [`scos_actions/signals.py`](scos_actions/signals.py).
-The following signals are currently offered:
+The following signals are currently offered for actions:
 
 - `measurement_action_completed` - signal expects task_id, data, and metadata
 - `location_action_completed` - signal expects latitude and longitude
@@ -332,11 +333,7 @@ scos-sensor to receive the signals and process the results.
 
 A custom action meant to be re-used by other plugins can live in SCOS Actions. It can
 be instantiated using a YAML file, or directly in the `actions` dictionary in the
-`discover/__init__.py` module. This can be done in SCOS Actions with a mock signal
-analyzer. Plugins supporting other hardware would need to import the action from
-SCOS Actions. Then it can be instantiated in that plugin’s actions dictionary in its
-discover module, or in a YAML file living in that plugin (as long as its discover
-module includes the required code to parse the YAML files).
+`discover/__init__.py` module.
 
 ##### Adding system or hardware specific custom action
 
@@ -372,16 +369,14 @@ another signal analyzer with a Python API.
   custom actions that are unique to the hardware. See [Adding Actions](#adding-actions)
   subsection above.
 - In the new repository, add a `discover/__init__.py` file. This should contain a
-  dictionary called `actions` with a key of action name and a value of action object.
+  dictionary called `actions` with keys of action names and values of action instances.
+  If the repository also includes new action implementations, it should also expose a
+  dictionary named `action_types` with keys of actions names and values of action classes.
   You can use the [init()](scos_actions/discover/__init__.py) and/or the
   [load_from_yaml()](scos_actions/discover/yaml.py) methods provided in this repository
-  to look for YAML files and initialize actions. These methods allow you to pass your
-  new signal analyzer object to the action's constructor. You can use the existing
+  to look for YAML files and initialize actions. You can use the existing
   action classes [defined in this repository](scos_actions/actions/__init__.py) or
-  [create custom actions](#writing-custom-actions). If the signal analyzer supports
-  calibration, you should also add a `get_last_calibration_time()` method to
-  `discover/__init__.py` to enable the status endpoint to report the last calibration
-  time.
+  [create custom actions](#writing-custom-actions).
 
 If your signal analyzer doesn't have a Python API, you'll need a Python wrapper that
 calls out to your signal analyzer's available API and reads the samples back into
@@ -389,7 +384,8 @@ Python. Libraries such as [SWIG](http://www.swig.org/) can automatically generat
 Python wrappers for programs written in C/C++.
 
 The next step in supporting a different signal analyzer is to create a class that
-inherits from the [GPSInterface](scos_actions/hardware/gps_iface.py) abstract class.
+inherits from the [GPSInterface](scos_actions/hardware/gps_iface.py) abstract class if
+the signal analyzer includes GPS capabilities.
 Then add the `sync_gps` and `monitor_sigan` actions to your `actions` dictionary,
 passing the gps object to the `SyncGps` constructor, and the signal analyzer object to
 the `MonitorSignalAnalyzer` constructor. See the example in the [Adding Actions
