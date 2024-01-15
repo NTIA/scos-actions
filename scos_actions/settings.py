@@ -17,25 +17,8 @@ if not settings.configured or not hasattr(settings, "DEFAULT_CALIBRATION_FILE"):
 else:
     DEFAULT_CALIBRATION_FILE = settings.DEFAULT_CALIBRATION_FILE
 
-# set sigan_calibration file and sensor_calibration_file
-if not settings.configured or not hasattr(settings, "SIGAN_CALIBRATION_FILE"):
-    logger.warning("Sigan calibration file is not defined.")
-    SIGAN_CALIBRATION_FILE = ""
-    sigan_calibration = None
-else:
-    SIGAN_CALIBRATION_FILE = settings.SIGAN_CALIBRATION_FILE
-    logger.debug(f"SCOS_ACTIONS: SIGAN_CALIBRATION_FILE: {SIGAN_CALIBRATION_FILE}")
-
-if not settings.configured or not hasattr(settings, "SENSOR_CALIBRATION_FILE"):
-    logger.warning(
-        f"Sensor calibration file is not defined. Settings configured: {settings.configured}"
-    )
-    SENSOR_CALIBRATION_FILE = ""
-    sensor_calibration = None
-else:
-    SENSOR_CALIBRATION_FILE = settings.SENSOR_CALIBRATION_FILE
-    logger.debug(f"SCOS_ACTIONS: SENSOR_CALIBRATION_FILE: {SENSOR_CALIBRATION_FILE}")
-
+SIGAN_CALIBRATION_FILE = env("SIGAN_CALIBRATION_FILE", None)
+SENSOR_CALIBRATION_FILE = env("SENSOR_CALIBRATION_FILE", None)
 SWITCH_CONFIGS_DIR = env("SWITCH_CONFIGS_DIR", default=None)
 SCOS_SENSOR_GIT_TAG = env("SCOS_SENSOR_GIT_TAG", default="unknown")
 if not settings.configured:
