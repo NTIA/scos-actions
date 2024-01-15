@@ -960,7 +960,7 @@ class NasctnSeaDataProduct(Action):
         self.sigmf_builder.set_sensor(
             ntia_sensor.Sensor(
                 sensor_spec=ntia_core.HardwareSpec(
-                    id=self.sensor.capabilities["sensor"]["sensor_spec"]["id"],
+                    id=sensor.capabilities["sensor"]["sensor_spec"]["id"],
                 ),
                 sensor_sha512=sensor.capabilities["sensor"]["sensor_sha512"],
             )
