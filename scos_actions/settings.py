@@ -2,7 +2,6 @@ import logging
 from os import path
 from pathlib import Path
 
-from django.conf import settings
 from environs import Env
 
 logger = logging.getLogger(__name__)
@@ -10,35 +9,32 @@ env = Env()
 
 logger.debug("Initializing scos-actions settings")
 CONFIG_DIR = Path(__file__).parent.resolve() / "configs"
+logger.debug(f"scos-actions: CONFIG_DIR:{CONFIG_DIR}")
 ACTION_DEFINITIONS_DIR = CONFIG_DIR / "actions"
-
-if not settings.configured or not hasattr(settings, "DEFAULT_CALIBRATION_FILE"):
-    DEFAULT_CALIBRATION_FILE = path.join(CONFIG_DIR, "default_calibration.json")
-else:
-    DEFAULT_CALIBRATION_FILE = settings.DEFAULT_CALIBRATION_FILE
-
+logger.debug(f"scos-actions: ACTION_DEFINITIONS_DIR:{ACTION_DEFINITIONS_DIR}")
+DEFAULT_CALIBRATION_FILE = path.join(CONFIG_DIR, "default_calibration.json")
+logger.debug(f"scos-actions: DEFAULT_CALIBRATION_FILE:{DEFAULT_CALIBRATION_FILE}")
 SIGAN_CALIBRATION_FILE = env("SIGAN_CALIBRATION_FILE", None)
+logger.debug(f"scos-actions: SIGAN_CALIBRATION_FILE:{SIGAN_CALIBRATION_FILE}")
 SENSOR_CALIBRATION_FILE = env("SENSOR_CALIBRATION_FILE", None)
+logger.debug(f"scos-actions: SENSOR_CALIBRATION_FILE:{SENSOR_CALIBRATION_FILE}")
 SWITCH_CONFIGS_DIR = env("SWITCH_CONFIGS_DIR", default=None)
+logger.debug(f"scos-actions: SWITCH_CONFIGS_DIR:{SWITCH_CONFIGS_DIR}")
 SCOS_SENSOR_GIT_TAG = env("SCOS_SENSOR_GIT_TAG", default="unknown")
-if not settings.configured:
-    PRESELECTOR_CONFIG_FILE = None
-    SENSOR_DEFINITION_FILE = None
-    FQDN = None
-    PRESELECTOR_MODULE = env("PRESELECTOR_MODULE", default=None)
-    PRESELECTOR_CLASS = env("PRESELECTOR_CLASS", default=None)
-    SIGAN_POWER_CYCLE_STATES = env("SIGAN_POWER_CYCLE_STATES", default=None)
-    SIGAN_POWER_SWITCH = env("SIGAN_POWER_SWITCH", default=None)
-    MOCK_SIGAN = env("MOCK_SIGAN", default=None)
-
-else:
-    MOCK_SIGAN = settings.MOCK_SIGAN
-    RUNNING_TESTS = settings.RUNNING_TESTS
-    SENSOR_DEFINITION_FILE = Path(settings.SENSOR_DEFINITION_FILE)
-    FQDN = settings.FQDN
-    SIGAN_POWER_SWITCH = None
-    SIGAN_POWER_CYCLE_STATES = None
-    if hasattr(settings, "SIGAN_POWER_SWITCH"):
-        SIGAN_POWER_SWITCH = settings.SIGAN_POWER_SWITCH
-    if hasattr(settings, "SIGAN_POWER_CYCLE_STATES"):
-        SIGAN_POWER_CYCLE_STATES = settings.SIGAN_POWER_CYCLE_STATES
+logger.debug(f"scos-actions: SCOS_SENSOR_GIT_TAG:{SCOS_SENSOR_GIT_TAG}")
+MOCK_SIGAN = env.bool("MOCK_SIGAN", True)
+logger.debug(f"scos-actions: MOCK_SIGAN:{MOCK_SIGAN}")
+RUNNING_TESTS = env.bool("RUNNING_TESTS", False)
+logger.debug(f"scos-actions: RUNNING_TESTS:{RUNNING_TESTS}")
+SENSOR_DEFINITION_FILE = env("SENSOR_DEFINITION_FILE", None)
+logger.debug(f"scos-actions: RUNNING_TESTS:{RUNNING_TESTS}")
+FQDN = env("FQDN", None)
+logger.debug(f"scos-actions: FQDN:{FQDN}")
+SIGAN_POWER_SWITCH = env("SIGAN_POWER_SWITCH", default=None)
+logger.debug(f"scos-actions: SIGAN_POWER_SWITCH:{SIGAN_POWER_SWITCH}")
+SIGAN_POWER_CYCLE_STATES = env("SIGAN_POWER_CYCLE_STATES", default=None)
+logger.debug(f"scos-actions: SIGAN_POWER_CYCLE_STATES:{SIGAN_POWER_CYCLE_STATES}")
+PRESELECTOR_MODULE = env("PRESELECTOR_MODULE", default=None)
+logger.debug(f"scos-actions: PRESELECTOR_MODULE:{PRESELECTOR_MODULE}")
+PRESELECTOR_CLASS = env("PRESELECTOR_CLASS", default=None)
+logger.debug(f"scos-actions: PRESELECTOR_CLASS:{PRESELECTOR_CLASS}")
