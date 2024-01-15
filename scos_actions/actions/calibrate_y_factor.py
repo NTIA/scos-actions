@@ -79,7 +79,6 @@ from scipy.signal import sosfilt
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
-from scos_actions.settings import SENSOR_CALIBRATION_FILE
 from scos_actions.signal_processing.calibration import (
     get_linear_enr,
     get_temperature,
