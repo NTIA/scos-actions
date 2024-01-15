@@ -295,12 +295,7 @@ class YFactorCalibration(Action):
 
         # Update sensor calibration with results
         self.sensor.signal_analyzer.sensor_calibration.update(
-            sigan_params,
-            utils.get_datetime_str_now(),
-            gain,
-            noise_figure,
-            temp_c,
-            SENSOR_CALIBRATION_FILE,
+            sigan_params, utils.get_datetime_str_now(), gain, noise_figure, temp_c
         )
 
         # Debugging
