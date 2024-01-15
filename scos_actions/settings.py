@@ -27,7 +27,9 @@ else:
     logger.debug(f"SCOS_ACTIONS: SIGAN_CALIBRATION_FILE: {SIGAN_CALIBRATION_FILE}")
 
 if not settings.configured or not hasattr(settings, "SENSOR_CALIBRATION_FILE"):
-    logger.warning("Sensor calibration file is not defined.")
+    logger.warning(
+        f"Sensor calibration file is not defined. Settings configured: {settings.configured}"
+    )
     SENSOR_CALIBRATION_FILE = ""
     sensor_calibration = None
 else:
