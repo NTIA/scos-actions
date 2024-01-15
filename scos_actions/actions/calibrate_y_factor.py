@@ -78,7 +78,6 @@ from scipy.signal import sosfilt
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
 from scos_actions.settings import SENSOR_CALIBRATION_FILE
 from scos_actions.signal_processing.calibration import (
@@ -224,25 +223,29 @@ class YFactorCalibration(Action):
 
         # Set noise diode on
         logger.debug("Setting noise diode on")
-        self.configure_preselector({RF_PATH: nd_on_state})
+        self.configure_preselector(sensor=self.sensor, params={RF_PATH: nd_on_state})
         time.sleep(0.25)
 
         # Get noise diode on IQ
         logger.debug("Acquiring IQ samples with noise diode ON")
-        noise_on_measurement_result = self.sigan.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip, cal_adjust=False
+        noise_on_measurement_result = (
+            self.sensor.signal_analyzer.acquire_time_domain_samples(
+                num_samples, num_samples_skip=nskip, cal_adjust=False
+            )
         )
         sample_rate = noise_on_measurement_result["sample_rate"]
 
         # Set noise diode off
         logger.debug("Setting noise diode off")
-        self.configure_preselector({RF_PATH: nd_off_state})
+        self.configure_preselector(sensor=self.sensor, params={RF_PATH: nd_off_state})
         time.sleep(0.25)
 
         # Get noise diode off IQ
         logger.debug("Acquiring IQ samples with noise diode OFF")
-        noise_off_measurement_result = self.sigan.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip, cal_adjust=False
+        noise_off_measurement_result = (
+            self.sensor.signal_analyzer.acquire_time_domain_samples(
+                num_samples, num_samples_skip=nskip, cal_adjust=False
+            )
         )
         assert (
             sample_rate == noise_off_measurement_result["sample_rate"]
@@ -272,8 +275,8 @@ class YFactorCalibration(Action):
                 sigan_params[k]
                 for k in self.sensor.signal_analyzer.sensor_calibration.calibration_parameters
             ]
-            self.sigan.recompute_sensor_calibration_data(cal_args)
-            enbw_hz = self.sigan.sensor_calibration_data["enbw"]
+            self.sensor.signal_analyzer.recompute_sensor_calibration_data(cal_args)
+            enbw_hz = self.sensor.signal_analyzer.sensor_calibration_data["enbw"]
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]
 
@@ -289,7 +292,7 @@ class YFactorCalibration(Action):
         )
 
         # Update sensor calibration with results
-        sensor_calibration.update(
+        self.sensor.signal_analyzer.sensor_calibration.update(
             sigan_params,
             utils.get_datetime_str_now(),
             gain,
