@@ -285,8 +285,10 @@ class YFactorCalibration(Action):
         pwr_off_watts = calculate_power_watts(noise_off_data) / 2.0
 
         # Y-Factor
-        enr_linear = get_linear_enr(cal_source_idx)
-        temp_k, temp_c, _ = get_temperature(temp_sensor_idx)
+        enr_linear = get_linear_enr(
+            preselector=self.sensor.preselector, cal_source_idx=cal_source_idx
+        )
+        temp_k, temp_c, _ = get_temperature(self.sensor.preselector, temp_sensor_idx)
         noise_figure, gain = y_factor(
             pwr_on_watts, pwr_off_watts, enr_linear, enbw_hz, temp_k
         )

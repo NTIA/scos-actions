@@ -2,6 +2,7 @@ import logging
 from typing import Tuple
 
 import numpy as np
+from its_preselector.preselector import Preselector
 from scipy.constants import Boltzmann
 
 from scos_actions.signal_processing.unit_conversion import (
@@ -64,7 +65,7 @@ def y_factor(
     return noise_figure_dB, gain_dB
 
 
-def get_linear_enr(preselector, cal_source_idx: int = None) -> float:
+def get_linear_enr(preselector: Preselector, cal_source_idx: int = None) -> float:
     """
     Get the excess noise ratio of a calibration source.
 
@@ -74,6 +75,7 @@ def get_linear_enr(preselector, cal_source_idx: int = None) -> float:
 
     The preselector is loaded from `scos_actions.hardware`.
 
+    :param preselector: The sensor preselector
     :param cal_source_idx: The index of the specified
         calibration source in `preselector.cal_sources`.
     :return: The excess noise ratio of the specified
@@ -105,15 +107,16 @@ def get_linear_enr(preselector, cal_source_idx: int = None) -> float:
     return enr_linear
 
 
-def get_temperature(preselector, sensor_idx: int = None) -> Tuple[float, float, float]:
+def get_temperature(
+    preselector: Preselector, sensor_idx: int = None
+) -> Tuple[float, float, float]:
     """
     Get the temperature from a preselector sensor.
 
     The preselector is expected to be configured to return the
     temperature in degrees Celsius.
 
-    The preselector is loaded from `scos_actions.hardware`.
-
+    :param preselector: The sensor preselector.
     :param sensor_idx: The index of the desired temperature
         sensor in the preselector.
     :raises CalibrationException: If no sensor index is provided, or
