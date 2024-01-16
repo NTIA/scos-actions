@@ -1,10 +1,9 @@
 import logging
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 from its_preselector.preselector import Preselector
 from scipy.constants import Boltzmann
-
 from scos_actions.signal_processing.unit_conversion import (
     convert_celsius_to_fahrenheit,
     convert_celsius_to_kelvins,
@@ -65,7 +64,9 @@ def y_factor(
     return noise_figure_dB, gain_dB
 
 
-def get_linear_enr(preselector: Preselector, cal_source_idx: int = None) -> float:
+def get_linear_enr(
+    preselector: Preselector, cal_source_idx: Optional[int] = None
+) -> float:
     """
     Get the excess noise ratio of a calibration source.
 
@@ -108,7 +109,7 @@ def get_linear_enr(preselector: Preselector, cal_source_idx: int = None) -> floa
 
 
 def get_temperature(
-    preselector: Preselector, sensor_idx: int = None
+    preselector: Preselector, sensor_idx: Optional[int] = None
 ) -> Tuple[float, float, float]:
     """
     Get the temperature from a preselector sensor.
