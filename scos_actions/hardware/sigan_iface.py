@@ -1,6 +1,7 @@
 import logging
 import time
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from scos_actions.calibration.calibration import Calibration
 from scos_actions.hardware.utils import power_cycle_sigan
@@ -21,7 +22,11 @@ SIGAN_SETTINGS_KEYS = [
 
 
 class SignalAnalyzerInterface(ABC):
-    def __init__(self, sensor_cal: Calibration = None, sigan_cal: Calibration = None):
+    def __init__(
+        self,
+        sensor_cal: Optional[Calibration] = None,
+        sigan_cal: Optional[Calibration] = None,
+    ):
         self.sensor_calibration_data = {}
         self.sigan_calibration_data = {}
         self._sensor_calibration = sensor_cal
@@ -83,7 +88,7 @@ class SignalAnalyzerInterface(ABC):
         """
         pass
 
-    def healthy(self, num_samples=56000):
+    def healthy(self, num_samples: int = 56000) -> bool:
         """Perform health check by collecting IQ samples."""
         logger.debug("Performing health check.")
         if not self.is_available:

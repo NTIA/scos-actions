@@ -1,13 +1,14 @@
 """Mock a signal analyzer for testing."""
 import logging
 from collections import namedtuple
+from typing import Optional
 
 import numpy as np
-
-from scos_actions import __version__ as SCOS_ACTIONS_VERSION
 from scos_actions.calibration.calibration import Calibration
 from scos_actions.hardware.sigan_iface import SignalAnalyzerInterface
 from scos_actions.utils import get_datetime_str_now
+
+from scos_actions import __version__ as SCOS_ACTIONS_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +28,9 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
 
     def __init__(
         self,
-        sensor_cal: Calibration = None,
-        sigan_cal: Calibration = None,
-        randomize_values=False,
+        sensor_cal: Optional[Calibration] = None,
+        sigan_cal: Optional[Calibration] = None,
+        randomize_values: bool = False,
     ):
         super().__init__(sensor_cal, sigan_cal)
         # Define the default calibration dicts
