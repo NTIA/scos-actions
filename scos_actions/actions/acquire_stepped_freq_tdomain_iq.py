@@ -38,6 +38,8 @@ signals.
 import logging
 
 import numpy as np
+
+from scos_actions import utils
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     CAL_ADJUST,
     DURATION_MS,
@@ -50,8 +52,6 @@ from scos_actions.metadata.structs import ntia_sensor
 from scos_actions.metadata.structs.capture import CaptureSegment
 from scos_actions.signals import measurement_action_completed
 from scos_actions.utils import get_parameter
-
-from scos_actions import utils
 
 logger = logging.getLogger(__name__)
 
@@ -80,11 +80,8 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     def __init__(self, parameters: dict):
         super().__init__(parameters=parameters)
         num_center_frequencies = len(parameters[FREQUENCY])
-
         # Create iterable parameter set
         self.iterable_params = utils.get_iterable_parameters(parameters)
-
-        self.sensor = None
         self.num_center_frequencies = num_center_frequencies
 
     def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class MonitorSignalAnalyzer(Action):
     """Monitor signal analyzer connection and restart container if unreachable."""
 
-    def __init__(self, parameters={"name": "monitor_sigan"}, gps=None):
+    def __init__(self, parameters={"name": "monitor_sigan"}):
         super().__init__(parameters=parameters)
 
     def __call__(
