@@ -34,11 +34,11 @@ signals.
 import logging
 
 from numpy import complex64
-
-from scos_actions import utils
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.utils import get_parameter
+
+from scos_actions import utils
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
     :param sigan: instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters):
+    def __init__(self, parameters: dict):
         super().__init__(parameters=parameters)
         # Pull parameters from action config
         self.nskip = get_parameter(NUM_SKIP, self.parameters)

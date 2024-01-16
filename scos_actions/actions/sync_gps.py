@@ -4,6 +4,7 @@ import logging
 import subprocess
 
 from scos_actions.actions.interfaces.action import Action
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.signals import location_action_completed
 
 logger = logging.getLogger(__name__)
@@ -12,10 +13,10 @@ logger = logging.getLogger(__name__)
 class SyncGps(Action):
     """Query the GPS and synchronize time and location."""
 
-    def __init__(self, parameters):
+    def __init__(self, parameters: dict):
         super().__init__(parameters=parameters)
 
-    def __call__(self, sensor, schedule_entry: dict, task_id: int):
+    def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
         logger.debug("Syncing to GPS")
         self.sensor = sensor
         dt = self.sensor.gps.get_gps_time()

@@ -38,8 +38,6 @@ signals.
 import logging
 
 import numpy as np
-
-from scos_actions import utils
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     CAL_ADJUST,
     DURATION_MS,
@@ -47,11 +45,13 @@ from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     NUM_SKIP,
     SingleFrequencyTimeDomainIqAcquisition,
 )
-from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.metadata.structs import ntia_sensor
 from scos_actions.metadata.structs.capture import CaptureSegment
 from scos_actions.signals import measurement_action_completed
 from scos_actions.utils import get_parameter
+
+from scos_actions import utils
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +77,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters):
+    def __init__(self, parameters: dict):
         super().__init__(parameters=parameters)
         num_center_frequencies = len(parameters[FREQUENCY])
 
@@ -87,7 +87,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         self.sensor = None
         self.num_center_frequencies = num_center_frequencies
 
-    def __call__(self, sensor, schedule_entry: dict, task_id: int):
+    def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
         self._sensor = sensor
         self.test_required_components()

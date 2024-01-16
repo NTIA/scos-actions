@@ -34,9 +34,6 @@ import ray
 from environs import Env
 from its_preselector import __version__ as PRESELECTOR_API_VERSION
 from scipy.signal import sos2tf, sosfilt
-
-from scos_actions import __version__ as SCOS_ACTIONS_VERSION
-from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.utils import (
@@ -76,6 +73,9 @@ from scos_actions.signal_processing.power_analysis import (
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
 from scos_actions.status import start_time
 from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
+
+from scos_actions import __version__ as SCOS_ACTIONS_VERSION
+from scos_actions import utils
 
 env = Env()
 logger = logging.getLogger(__name__)
@@ -450,7 +450,7 @@ class NasctnSeaDataProduct(Action):
     :param sigan: Instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters):
+    def __init__(self, parameters: dict):
         super().__init__(parameters)
         # Assume preselector is present
         rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
@@ -504,7 +504,7 @@ class NasctnSeaDataProduct(Action):
         # Get iterable parameter list
         self.iteration_params = utils.get_iterable_parameters(self.parameters)
 
-    def __call__(self, sensor, schedule_entry, task_id):
+    def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
         self._sensor = sensor
         action_start_tic = perf_counter()

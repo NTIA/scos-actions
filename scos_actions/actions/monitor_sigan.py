@@ -1,6 +1,7 @@
 """Monitor the signal analyzer."""
 
 import logging
+from typing import Optional
 
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware.sensor import Sensor
@@ -15,7 +16,12 @@ class MonitorSignalAnalyzer(Action):
     def __init__(self, parameters={"name": "monitor_sigan"}, gps=None):
         super().__init__(parameters=parameters)
 
-    def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
+    def __call__(
+        self,
+        sensor: Sensor,
+        schedule_entry: Optional[dict] = None,
+        task_id: Optional[int] = None,
+    ):
         logger.debug("Performing signal analyzer health check")
         self._sensor = sensor
         healthy = self.sensor.signal_analyzer.healthy()

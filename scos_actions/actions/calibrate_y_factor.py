@@ -75,9 +75,8 @@ import time
 import numpy as np
 from scipy.constants import Boltzmann
 from scipy.signal import sosfilt
-
-from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
 from scos_actions.signal_processing.calibration import (
     get_linear_enr,
@@ -92,6 +91,8 @@ from scos_actions.signal_processing.power_analysis import calculate_power_watts
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
 from scos_actions.signals import trigger_api_restart
 from scos_actions.utils import ParameterException, get_parameter
+
+from scos_actions import utils
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +135,7 @@ class YFactorCalibration(Action):
     :param sigan: instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters):
+    def __init__(self, parameters: dict):
         logger.debug("Initializing calibration action")
         super().__init__(parameters)
         self.iteration_params = utils.get_iterable_parameters(parameters)
@@ -192,7 +193,7 @@ class YFactorCalibration(Action):
                     "Only one set of IIR filter parameters may be specified (including sample rate)."
                 )
 
-    def __call__(self, sensor, schedule_entry: dict, task_id: int):
+    def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
         self.sensor = sensor
         self.test_required_components()
@@ -206,7 +207,7 @@ class YFactorCalibration(Action):
                 detail += os.linesep + self.calibrate(p)
         return detail
 
-    def calibrate(self, params):
+    def calibrate(self, params: dict):
         # Configure signal analyzer
         self.configure_sigan(params)
 
