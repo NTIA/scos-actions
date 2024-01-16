@@ -1,4 +1,5 @@
 import hashlib
+import json
 from typing import Dict
 
 from its_preselector.preselector import Preselector
