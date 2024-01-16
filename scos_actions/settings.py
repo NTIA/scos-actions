@@ -10,7 +10,7 @@ env = Env()
 logger.debug("Initializing scos-actions settings")
 CONFIG_DIR = Path(__file__).parent.resolve() / "configs"
 logger.debug(f"scos-actions: CONFIG_DIR:{CONFIG_DIR}")
-ACTION_DEFINITIONS_DIR = Path(CONFIG_DIR / "actions")
+ACTION_DEFINITIONS_DIR = CONFIG_DIR / "actions"
 logger.debug(f"scos-actions: ACTION_DEFINITIONS_DIR:{ACTION_DEFINITIONS_DIR}")
 DEFAULT_CALIBRATION_FILE = path.join(CONFIG_DIR, "default_calibration.json")
 logger.debug(f"scos-actions: DEFAULT_CALIBRATION_FILE:{DEFAULT_CALIBRATION_FILE}")
