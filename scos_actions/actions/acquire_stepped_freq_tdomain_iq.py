@@ -38,8 +38,6 @@ signals.
 import logging
 
 import numpy as np
-
-from scos_actions import utils
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     CAL_ADJUST,
     DURATION_MS,
@@ -52,6 +50,8 @@ from scos_actions.metadata.structs import ntia_sensor
 from scos_actions.metadata.structs.capture import CaptureSegment
 from scos_actions.signals import measurement_action_completed
 from scos_actions.utils import get_parameter
+
+from scos_actions import utils
 
 logger = logging.getLogger(__name__)
 
