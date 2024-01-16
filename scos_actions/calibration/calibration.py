@@ -132,6 +132,8 @@ def load_from_json(fname: Path, is_default: bool) -> Calibration:
         ``clock_rate_lookup_by_sample_rate``
 
     :param fname: The ``Path`` to the JSON calibration file.
+    :param is_default: If True, the loaded calibration file
+        is treated as the default calibration file.
     :raises Exception: If the provided file does not include
         the required keys.
     :return: The ``Calibration`` object generated from the file.
