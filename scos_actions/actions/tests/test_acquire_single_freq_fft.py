@@ -1,4 +1,4 @@
-from scos_actions.actions.tests.utils import SENSOR_DEFINITION, check_metadata_fields
+from scos_actions.actions.tests.utils import check_metadata_fields
 from scos_actions.discover import test_actions as actions
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
 from scos_actions.hardware.sensor import Sensor
