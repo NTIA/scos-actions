@@ -6,6 +6,7 @@ import json
 
 from scos_actions.actions.acquire_single_freq_fft import SingleFrequencyFftAcquisition
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.signals import measurement_action_completed
 
 parameters = {
@@ -17,6 +18,7 @@ parameters = {
     "nffts": 300,
     "nskip": 0,
     "classification": "UNCLASSIFIED",
+    "calibration_adjust": False,
 }
 schedule_entry_json = {
     "name": "test_m4s_multi_1",
@@ -50,10 +52,9 @@ def callback(sender, **kwargs):
 
 measurement_action_completed.connect(callback)
 
-action = SingleFrequencyFftAcquisition(
-    parameters=parameters, sigan=MockSignalAnalyzer(randomize_values=True)
-)
-action(schedule_entry_json, 1)
+action = SingleFrequencyFftAcquisition(parameters)
+sensor = Sensor(signal_analyzer=MockSignalAnalyzer(randomize_values=True))
+action(sensor, schedule_entry_json, 1)
 print("metadata:")
 print(json.dumps(_metadata, indent=4))
 print("finished")
