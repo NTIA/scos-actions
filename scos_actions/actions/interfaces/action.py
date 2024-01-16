@@ -1,6 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from typing import Optional
 
 from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
@@ -32,7 +33,7 @@ class Action(ABC):
 
     PRESELECTOR_PATH_KEY = "rf_path"
 
-    def __init__(self, parameters):
+    def __init__(self, parameters: dict):
         self._sensor = None
         self.parameters = deepcopy(parameters)
         self.sigmf_builder = None
@@ -46,7 +47,7 @@ class Action(ABC):
         return self._sensor
 
     @sensor.setter
-    def sensor(self, value):
+    def sensor(self, value: Sensor):
         self._sensor = value
 
     def configure_sigan(self, params: dict):
@@ -127,5 +128,10 @@ class Action(ABC):
         return get_parameter("name", self.parameters)
 
     @abstractmethod
-    def __call__(self, sensor: Sensor = None, schedule_entry=None, task_id=None):
+    def __call__(
+        self,
+        sensor: Sensor = None,
+        schedule_entry: Optional[dict] = None,
+        task_id: Optional[int] = None,
+    ):
         pass

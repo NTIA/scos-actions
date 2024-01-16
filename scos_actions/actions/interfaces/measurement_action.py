@@ -1,10 +1,10 @@
 import logging
 from abc import abstractmethod
-from typing import Union
+from typing import Optional
 
 import numpy as np
-
 from scos_actions.actions.interfaces.action import Action
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.metadata.structs import ntia_sensor
 from scos_actions.metadata.structs.capture import CaptureSegment
 from scos_actions.signals import measurement_action_completed
@@ -20,11 +20,11 @@ class MeasurementAction(Action):
 
     """
 
-    def __init__(self, parameters):
+    def __init__(self, parameters: dict):
         super().__init__(parameters)
         self.received_samples = 0
 
-    def __call__(self, sensor, schedule_entry: dict, task_id: int):
+    def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
         self._sensor = sensor
         self.get_sigmf_builder(sensor, schedule_entry)
         self.test_required_components()
@@ -41,7 +41,7 @@ class MeasurementAction(Action):
         center_frequency_Hz: float,
         duration_ms: int,
         overload: bool,
-        sigan_settings: Union[ntia_sensor.SiganSettings, None],
+        sigan_settings: Optional[ntia_sensor.SiganSettings],
     ) -> CaptureSegment:
         capture_segment = CaptureSegment(
             sample_start=sample_start,
@@ -70,7 +70,7 @@ class MeasurementAction(Action):
     def create_metadata(
         self,
         measurement_result: dict,
-        recording: int = None,
+        recording: Optional[int] = None,
     ) -> None:
         """Add SigMF metadata to the `sigmf_builder` from the `measurement_result`."""
         # Set the received_samples instance variable
@@ -126,7 +126,7 @@ class MeasurementAction(Action):
 
     def get_sigan_settings(
         self, measurement_result: dict
-    ) -> Union[ntia_sensor.SiganSettings, None]:
+    ) -> Optional[ntia_sensor.SiganSettings]:
         """
         Retrieve any sigan settings from the measurement result dict, and return
         a `ntia-sensor` `SiganSettings` object. Values are pulled from the
