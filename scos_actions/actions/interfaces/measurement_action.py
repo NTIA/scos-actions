@@ -26,7 +26,7 @@ class MeasurementAction(Action):
 
     def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
         self._sensor = sensor
-        self.get_sigmf_builder(sensor, schedule_entry)
+        self.get_sigmf_builder(schedule_entry)
         self.test_required_components()
         self.configure(self.parameters)
         measurement_result = self.execute(schedule_entry, task_id)

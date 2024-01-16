@@ -40,7 +40,7 @@ class Action(ABC):
 
     def configure(self, params: dict):
         self.configure_sigan(params)
-        self.configure_preselector(self.sensor, params)
+        self.configure_preselector(params)
 
     @property
     def sensor(self):
@@ -59,13 +59,13 @@ class Action(ABC):
             else:
                 logger.warning(f"Sigan does not have attribute {key}")
 
-    def configure_preselector(self, sensor: Sensor, params: dict):
-        preselector = sensor.preselector
+    def configure_preselector(self, params: dict):
+        preselector = self.sensor.preselector
         if self.PRESELECTOR_PATH_KEY in params:
             path = params[self.PRESELECTOR_PATH_KEY]
             logger.debug(f"Setting preselector RF path: {path}")
             preselector.set_state(path)
-        elif sensor.has_configurable_preselector:
+        elif self.sensor.has_configurable_preselector:
             # Require the RF path to be specified if the sensor has a preselector.
             raise ParameterException(
                 f"No {self.PRESELECTOR_PATH_KEY} value specified in the YAML config."
@@ -74,7 +74,7 @@ class Action(ABC):
             # No preselector in use, so do not require an RF path
             pass
 
-    def get_sigmf_builder(self, sensor: Sensor, schedule_entry: dict) -> None:
+    def get_sigmf_builder(self, schedule_entry: dict) -> None:
         """
         Set the `sigmf_builder` instance variable to an initialized SigMFBuilder.
 
@@ -101,8 +101,8 @@ class Action(ABC):
         )
         sigmf_builder.set_action(action_obj)
 
-        if sensor.location is not None:
-            sigmf_builder.set_geolocation(sensor.location)
+        if self.sensor.location is not None:
+            sigmf_builder.set_geolocation(self.sensor.location)
         if self.sensor.capabilities is not None and hasattr(
             self.sensor.capabilities, "sensor"
         ):

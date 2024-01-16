@@ -223,7 +223,7 @@ class YFactorCalibration(Action):
 
         # Set noise diode on
         logger.debug("Setting noise diode on")
-        self.configure_preselector(sensor=self.sensor, params={RF_PATH: nd_on_state})
+        self.configure_preselector(params={RF_PATH: nd_on_state})
         time.sleep(0.25)
 
         # Get noise diode on IQ
@@ -237,7 +237,7 @@ class YFactorCalibration(Action):
 
         # Set noise diode off
         logger.debug("Setting noise diode off")
-        self.configure_preselector(sensor=self.sensor, params={RF_PATH: nd_off_state})
+        self.configure_preselector(params={RF_PATH: nd_off_state})
         time.sleep(0.25)
 
         # Get noise diode off IQ
