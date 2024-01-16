@@ -24,7 +24,6 @@ test_actions = {
 
 def init(
     action_classes=action_classes,
-    gps=mock_gps,
     yaml_dir=ACTION_DEFINITIONS_DIR,
 ):
     yaml_actions = {}
