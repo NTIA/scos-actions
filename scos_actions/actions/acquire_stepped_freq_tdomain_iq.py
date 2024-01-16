@@ -93,7 +93,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         for recording_id, measurement_params in enumerate(
             self.iterable_params, start=1
         ):
-            self.get_sigmf_builder(sensor, schedule_entry)
+            self.get_sigmf_builder(schedule_entry)
             self.configure(measurement_params)
             duration_ms = get_parameter(DURATION_MS, measurement_params)
             nskip = get_parameter(NUM_SKIP, measurement_params)
