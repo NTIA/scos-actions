@@ -40,4 +40,3 @@ def init(
 yaml_actions, yaml_test_actions = init()
 actions.update(yaml_actions)
 test_actions.update(yaml_test_actions)
-action_types = action_classes
