@@ -209,7 +209,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         pass
 
     def recompute_sensor_calibration_data(self, cal_args: list) -> None:
-        if self._sensor_calibration is not None:
+        if self.sensor_calibration is not None:
             self.sensor_calibration_data.update(
                 self._sensor_calibration.get_calibration_dict(cal_args)
             )
