@@ -71,7 +71,6 @@ from scos_actions.signal_processing.power_analysis import (
     create_statistical_detector,
 )
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
-from scos_actions.status import start_time
 from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
 
 from scos_actions import __version__ as SCOS_ACTIONS_VERSION
@@ -762,7 +761,7 @@ class NasctnSeaDataProduct(Action):
             logger.warning("Failed to get CPU overheating status")
         try:  # SCOS start time
             cpu_diag["software_start"] = convert_datetime_to_millisecond_iso_format(
-                start_time
+                self.sensor.start_time
             )
         except:
             logger.warning("Failed to get SCOS start time")
