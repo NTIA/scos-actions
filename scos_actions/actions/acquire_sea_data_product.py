@@ -34,6 +34,9 @@ import ray
 from environs import Env
 from its_preselector import __version__ as PRESELECTOR_API_VERSION
 from scipy.signal import sos2tf, sosfilt
+
+from scos_actions import __version__ as SCOS_ACTIONS_VERSION
+from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.utils import (
@@ -72,9 +75,6 @@ from scos_actions.signal_processing.power_analysis import (
 )
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
 from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
-
-from scos_actions import __version__ as SCOS_ACTIONS_VERSION
-from scos_actions import utils
 
 env = Env()
 logger = logging.getLogger(__name__)
@@ -766,7 +766,7 @@ class NasctnSeaDataProduct(Action):
         except:
             logger.warning("Failed to get SCOS start time")
         try:  # SCOS uptime
-            cpu_diag["software_uptime"] = get_days_up()
+            cpu_diag["software_uptime"] = get_days_up(self.sensor.start_time)
         except:
             logger.warning("Failed to get SCOS uptime")
         try:  # SSD SMART data

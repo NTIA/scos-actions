@@ -1,6 +1,6 @@
 import hashlib
 import json
-from datetime import datetime
+import datetime
 from typing import Dict
 
 from its_preselector.preselector import Preselector
@@ -28,7 +28,7 @@ class Sensor:
         self._switches = switches
         self._location = location
         self.capabilities = capabilities
-        self.start_time = datetime.datetime.utcnow()
+        self_start_time = datetime.datetime.utcnow()
 
     @property
     def signal_analyzer(self) -> SignalAnalyzerInterface:
@@ -103,4 +103,4 @@ class Sensor:
 
     @property
     def start_time(self):
-        return self.start_time
+        return self._start_time
