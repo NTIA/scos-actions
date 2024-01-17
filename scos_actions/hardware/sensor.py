@@ -7,7 +7,6 @@ from its_preselector.preselector import Preselector
 from its_preselector.web_relay import WebRelay
 
 from .gps_iface import GPSInterface
-from .mocks.mock_gps import MockGPS
 from .mocks.mock_sigan import MockSignalAnalyzer
 from .sigan_iface import SignalAnalyzerInterface
 
@@ -16,19 +15,20 @@ class Sensor:
     def __init__(
         self,
         signal_analyzer: SignalAnalyzerInterface = MockSignalAnalyzer,
-        gps: GPSInterface = MockGPS(),
+        gps: GPSInterface = None,
         preselector: Preselector = None,
         switches: Dict[str, WebRelay] = {},
         location: dict = None,
         capabilities: dict = None,
     ):
-        self._signal_analyzer = signal_analyzer
-        self._gps = gps
-        self._preselector = preselector
-        self._switches = switches
-        self._location = location
+        self.signal_analyzer = signal_analyzer
+        self.gps = gps
+        self.preselector = preselector
+        self.switches = switches
+        self.location = location
         self.capabilities = capabilities
-        self_start_time = datetime.datetime.utcnow()
+        # There is no setter for start_time property
+        self._start_time = datetime.datetime.utcnow()
 
     @property
     def signal_analyzer(self) -> SignalAnalyzerInterface:
