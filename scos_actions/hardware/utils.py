@@ -1,9 +1,14 @@
 import logging
 import subprocess
+from pathlib import Path
 from typing import Dict
 
 import psutil
+from its_preselector.configuration_exception import ConfigurationException
+from its_preselector.controlbyweb_web_relay import ControlByWebWebRelay
 from its_preselector.web_relay import WebRelay
+
+from scos_actions import utils
 from scos_actions.hardware.hardware_configuration_exception import (
     HardwareConfigurationException,
 )
@@ -161,3 +166,24 @@ def power_cycle_sigan(switches: Dict[str, WebRelay]):
         raise HardwareConfigurationException(
             "Call to power cycle sigan, but no power switch or power cycle states specified "
         )
+
+
+def load_switches(switch_dir: Path) -> dict:
+    logger.debug(f"Loading switches in {switch_dir}")
+    switch_dict = {}
+    try:
+        if switch_dir is not None and switch_dir.is_dir():
+            for f in switch_dir.iterdir():
+                file_path = f.resolve()
+                logger.debug(f"loading switch config {file_path}")
+                conf = utils.load_from_json(file_path)
+                try:
+                    switch = ControlByWebWebRelay(conf)
+                    logger.debug(f"Adding {switch.id}")
+                    switch_dict[switch.id] = switch
+                    logger.debug(f"Registering switch status for {switch.name}")
+                except ConfigurationException:
+                    logger.error(f"Unable to configure switch defined in: {file_path}")
+    except Exception as ex:
+        logger.error(f"Unable to load switches {ex}")
+    return switch_dict
