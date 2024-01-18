@@ -119,7 +119,7 @@ class SignalAnalyzerInterface(ABC):
         """
         logger.info("Attempting to power cycle the signal analyzer and reconnect.")
         try:
-            power_cycle_sigan()
+            power_cycle_sigan(self.switches)
         except Exception as hce:
             logger.warning(f"Unable to power cycle sigan: {hce}")
             return
