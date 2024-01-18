@@ -26,12 +26,14 @@ class SignalAnalyzerInterface(ABC):
         self,
         sensor_cal: Optional[Calibration] = None,
         sigan_cal: Optional[Calibration] = None,
+        switches: Optional[dict] = None,
     ):
         self.sensor_calibration_data = {}
         self.sigan_calibration_data = {}
         self._sensor_calibration = sensor_cal
         self._sigan_calibration = sigan_cal
         self._model = "Unknown"
+        self.switches = switches
 
     @property
     def last_calibration_time(self) -> str:
