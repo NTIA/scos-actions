@@ -4,7 +4,7 @@ from collections import namedtuple
 from typing import Optional
 
 import numpy as np
-from scos_actions.calibration.calibration import Calibration
+from scos_actions.calibration.sensor_calibration import SensorCalibration
 from scos_actions.hardware.sigan_iface import SignalAnalyzerInterface
 from scos_actions.utils import get_datetime_str_now
 
@@ -28,8 +28,8 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
 
     def __init__(
         self,
-        sensor_cal: Optional[Calibration] = None,
-        sigan_cal: Optional[Calibration] = None,
+        sensor_cal: Optional[SensorCalibration] = None,
+        sigan_cal: Optional[SensorCalibration] = None,
         randomize_values: bool = False,
     ):
         super().__init__(sensor_cal, sigan_cal)

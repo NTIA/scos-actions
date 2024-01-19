@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Optional
 
 from its_preselector.web_relay import WebRelay
-from scos_actions.calibration.calibration import Calibration
+from scos_actions.calibration.sensor_calibration import SensorCalibration
 from scos_actions.hardware.utils import power_cycle_sigan
 from scos_actions.utils import convert_string_to_millisecond_iso_format
 
@@ -25,8 +25,8 @@ SIGAN_SETTINGS_KEYS = [
 class SignalAnalyzerInterface(ABC):
     def __init__(
         self,
-        sensor_cal: Optional[Calibration] = None,
-        sigan_cal: Optional[Calibration] = None,
+        sensor_cal: Optional[SensorCalibration] = None,
+        sigan_cal: Optional[SensorCalibration] = None,
         switches: Optional[Dict[str, WebRelay]] = None,
     ):
         self.sensor_calibration_data = {}
@@ -166,17 +166,17 @@ class SignalAnalyzerInterface(ABC):
         self._model = value
 
     @property
-    def sensor_calibration(self) -> Calibration:
+    def sensor_calibration(self) -> SensorCalibration:
         return self._sensor_calibration
 
     @sensor_calibration.setter
-    def sensor_calibration(self, cal: Calibration):
+    def sensor_calibration(self, cal: SensorCalibration):
         self._sensor_calibration = cal
 
     @property
-    def sigan_calibration(self) -> Calibration:
+    def sigan_calibration(self) -> SensorCalibration:
         return self._sigan_calibration
 
     @sigan_calibration.setter
-    def sigan_calibration(self, cal: Calibration):
+    def sigan_calibration(self, cal: SensorCalibration):
         self._sigan_calibration = cal

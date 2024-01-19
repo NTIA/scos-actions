@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class Calibration:
+class SensorCalibration:
     last_calibration_datetime: str
     calibration_parameters: List[str]
     calibration_data: dict
@@ -121,7 +121,7 @@ class Calibration:
             outfile.write(json.dumps(cal_dict))
 
 
-def load_from_json(fname: Path, is_default: bool) -> Calibration:
+def load_from_json(fname: Path, is_default: bool) -> SensorCalibration:
     """
     Load a calibration from a JSON file.
 
@@ -155,7 +155,7 @@ def load_from_json(fname: Path, is_default: bool) -> Calibration:
             + f"Required fields: {required_keys}\n"
         )
     # Create and return the Calibration object
-    return Calibration(
+    return SensorCalibration(
         calibration["last_calibration_datetime"],
         calibration["calibration_parameters"],
         calibration["calibration_data"],
