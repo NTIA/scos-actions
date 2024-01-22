@@ -1,14 +1,18 @@
-"""Test the SensorCalibration class."""
-
+"""Test the SensorCalibration dataclass."""
+import dataclasses
+import datetime
 import json
 import random
 from copy import deepcopy
 from math import isclose
 from pathlib import Path
+from typing import Dict, List
 
 import pytest
+from scos_actions.calibration.interfaces.calibration import Calibration
 from scos_actions.calibration.sensor_calibration import SensorCalibration
-from scos_actions.calibration.utils import CalibrationException, filter_by_parameter
+from scos_actions.calibration.tests.utils import recursive_check_keys
+from scos_actions.calibration.utils import CalibrationException
 from scos_actions.tests.resources.utils import easy_gain
 from scos_actions.utils import get_datetime_str_now, parse_datetime_iso_format_str
 
@@ -93,7 +97,7 @@ class TestSensorCalibrationFile:
         return True
 
     @pytest.fixture(autouse=True)
-    def setup_calibration_file(self, tmpdir):
+    def setup_calibration_file(self, tmp_path: Path):
         """Create the dummy calibration file in the pytest temp directory"""
 
         # Only setup once
@@ -101,8 +105,7 @@ class TestSensorCalibrationFile:
             return
 
         # Create and save the temp directory and file
-        self.tmpdir = tmpdir.strpath
-        self.calibration_file = "{}".format(tmpdir.join("dummy_cal_file.json"))
+        self.calibration_file = tmp_path / "dummy_cal_file.json"
 
         # Setup variables
         self.dummy_noise_figure = 10
@@ -191,29 +194,42 @@ class TestSensorCalibrationFile:
         # Don't repeat test setup
         self.setup_complete = True
 
-    def test_filter_by_parameter_out_of_range(self):
-        calibrations = {200.0: {"some_cal_data"}, 300.0: {"more cal data"}}
-        with pytest.raises(CalibrationException) as e_info:
-            cal = filter_by_parameter(calibrations, 400.0)
-            assert (
-                e_info.value.args[0]
-                == f"Could not locate calibration data at 400.0"
-                + f"\nAttempted lookup using key '400.0'"
-                + f"\nUsing calibration data: {calibrations}"
+    def test_calibration_data_key_name_conversion(self):
+        """On post-init, all calibration_data key names should be converted to strings."""
+        recursive_check_keys(self.sample_cal.calibration_data)
+
+    def test_sensor_calibration_dataclass_fields(self):
+        """Check that the dataclass fields are as expected."""
+        fields = {
+            f.name: f.type
+            for f in dataclasses.fields(SensorCalibration)
+            if f not in dataclasses.fields(Calibration)
+        }
+        # Note: does not check field order
+        assert fields == {
+            "last_calibration_datetime": str,
+            "clock_rate_lookup_by_sample_rate": List[Dict[str, float]],
+            "sensor_uid": str,
+        }
+
+    def test_field_validator(self):
+        """Check that the input field type validator works."""
+        # only check fields not inherited from Calibration base class
+        with pytest.raises(TypeError):
+            _ = SensorCalibration([], {}, False, Path(""), "dt_str", [], 10)
+        with pytest.raises(TypeError):
+            _ = SensorCalibration([], {}, False, Path(""), "dt_str", {}, "uid")
+        with pytest.raises(TypeError):
+            _ = SensorCalibration(
+                [], {}, False, Path(""), datetime.datetime.now(), [], "uid"
             )
 
-    def test_filter_by_parameter_in_range_requires_match(self):
-        calibrations = {
-            200.0: {"Gain": "Gain at 200.0"},
-            300.0: {"Gain": "Gain at 300.0"},
-        }
-        with pytest.raises(CalibrationException) as e_info:
-            cal = filter_by_parameter(calibrations, 150.0)
-            assert e_info.value.args[0] == (
-                f"Could not locate calibration data at 150.0"
-                + f"\nAttempted lookup using key '150.0'"
-                + f"\nUsing calibration data: {calibrations}"
-            )
+    def test_get_clock_rate(self):
+        """Test the get_clock_rate method"""
+        # Test getting a clock rate by sample rate
+        assert self.sample_cal.get_clock_rate(10e6) == 40e6
+        # If there isn't an entry, the sample rate should be returned
+        assert self.sample_cal.get_clock_rate(-999) == -999
 
     def test_get_calibration_dict_exact_match_lookup(self):
         calibration_datetime = get_datetime_str_now()
@@ -228,7 +244,7 @@ class TestSensorCalibrationFile:
             is_default=False,
             file_path=Path(""),
             last_calibration_datetime=calibration_datetime,
-            clock_rate_lookup_by_sample_rate={},
+            clock_rate_lookup_by_sample_rate=[],
             sensor_uid="TESTING",
         )
         cal_data = cal.get_calibration_dict([100.0, 200.0])
@@ -247,16 +263,16 @@ class TestSensorCalibrationFile:
             is_default=False,
             file_path=Path("test_calibration.json"),
             last_calibration_datetime=calibration_datetime,
-            clock_rate_lookup_by_sample_rate={},
+            clock_rate_lookup_by_sample_rate=[],
             sensor_uid="TESTING",
         )
         with pytest.raises(CalibrationException) as e_info:
-            cal_data = cal.get_calibration_dict([100.0, 250.0])
-            assert e_info.value.args[0] == (
-                f"Could not locate calibration data at 250.0"
-                + f"\nAttempted lookup using key '250.0'"
-                + f"\nUsing calibration data: {cal.calibration_data}"
-            )
+            _ = cal.get_calibration_dict([100.0, 250.0])
+        assert e_info.value.args[0] == (
+            f"Could not locate calibration data at 250.0"
+            + f"\nAttempted lookup using key '250.0'"
+            + f"\nUsing calibration data: {cal.calibration_data['100.0']}"
+        )
 
     def test_sf_bound_points(self):
         """Test SF determination at boundary points"""
@@ -289,7 +305,7 @@ class TestSensorCalibrationFile:
             is_default=False,
             file_path=test_cal_path,
             last_calibration_datetime=calibration_datetime,
-            clock_rate_lookup_by_sample_rate={},
+            clock_rate_lookup_by_sample_rate=[],
             sensor_uid="TESTING",
         )
         action_params = {"sample_rate": 100.0, "frequency": 200.0}
@@ -308,8 +324,3 @@ class TestSensorCalibrationFile:
         assert cal.calibration_data["100.0"]["200.0"]["noise_figure"] == 5.0
         assert cal_from_file.calibration_data["100.0"]["200.0"]["gain"] == 30.0
         assert cal_from_file.calibration_data["100.0"]["200.0"]["noise_figure"] == 5.0
-
-    def test_filter_by_paramter_integer(self):
-        calibrations = {"200.0": {"some_cal_data"}, 300.0: {"more cal data"}}
-        filtered_data = filter_by_parameter(calibrations, 200)
-        assert filtered_data is calibrations["200.0"]
