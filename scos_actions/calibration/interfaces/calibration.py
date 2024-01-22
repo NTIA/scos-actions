@@ -64,6 +64,8 @@ class Calibration:
             Example: ``{"sample_rate": 14000000.0, "attenuation": 10.0}``
         :return: A dict containing the existing calibration entry at
             the specified parameter set, which may be empty if none exists.
+        :raises ValueError: If not all calibration parameters exist as keys
+            in ``params``.
         """
         # Use params keys as calibration_parameters if none exist
         if len(self.calibration_parameters) == 0:
@@ -73,7 +75,7 @@ class Calibration:
             self.calibration_parameters = list(params.keys())
         elif not set(params.keys()) >= set(self.calibration_parameters):
             # Otherwise ensure all required parameters were used
-            raise Exception(
+            raise ValueError(
                 "Not enough parameters specified to update calibration.\n"
                 + f"Required parameters are {self.calibration_parameters}"
             )
@@ -95,7 +97,7 @@ class Calibration:
         return data_entry
 
     @abstractmethod
-    def update():
+    def update(self):
         """Update the calibration data"""
         raise NotImplementedError
 
@@ -141,3 +143,19 @@ class Calibration:
 
         # Create and return the Calibration object
         return cls(is_default=is_default, file_path=fname, **calibration)
+
+    def to_json(self) -> None:
+        """
+        Save the calibration to a JSON file.
+
+        The JSON file will be located at ``self.file_path`` and will
+        contain a copy of ``self.__dict__``, except for the ``file_path``
+        and ``is_default`` key/value pairs. This includes all dataclass
+        fields, with their parameter names as JSON key names.
+        """
+        dict_to_json = self.__dict__.copy()
+        # Remove keys which should not save to JSON
+        dict_to_json.pop("file_path", None)
+        dict_to_json.pop("is_default", None)
+        with open(self.file_path, "w") as outfile:
+            outfile.write(json.dumps(dict_to_json))
