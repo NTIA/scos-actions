@@ -8,18 +8,13 @@ from math import isclose
 from pathlib import Path
 
 import pytest
-
-from scos_actions.calibration.calibration import (
-    Calibration,
-    filter_by_parameter,
-    load_from_json,
-)
-from scos_actions.signal_processing.calibration import CalibrationException
+from scos_actions.calibration.sensor_calibration import SensorCalibration
+from scos_actions.calibration.utils import CalibrationException, filter_by_parameter
 from scos_actions.tests.resources.utils import easy_gain
 from scos_actions.utils import get_datetime_str_now, parse_datetime_iso_format_str
 
 
-class TestCalibrationFile:
+class TestSensorCalibrationFile:
     # Ensure we load the test file
     setup_complete = False
 
@@ -180,7 +175,7 @@ class TestCalibrationFile:
             json.dump(cal_data, file, indent=4)
 
         # Load the data back in
-        self.sample_cal = load_from_json(self.calibration_file, False)
+        self.sample_cal = SensorCalibration.from_json(self.calibration_file, False)
 
         # Create a list of previous points to ensure that we don't repeat
         self.pytest_points = []
@@ -229,7 +224,7 @@ class TestCalibrationFile:
             200.0: {100.0: {"NF": "NF at 200, 100", "Gain": "Gain at 200, 100"}},
         }
         clock_rate_lookup_by_sample_rate = {}
-        cal = Calibration(
+        cal = SensorCalibration(
             calibration_datetime,
             calibration_params,
             calibration_data,
@@ -249,7 +244,7 @@ class TestCalibrationFile:
         }
         clock_rate_lookup_by_sample_rate = {}
         test_cal_path = Path("test_calibration.json")
-        cal = Calibration(
+        cal = SensorCalibration(
             calibration_datetime,
             calibration_params,
             calibration_data,
@@ -291,7 +286,7 @@ class TestCalibrationFile:
         calibration_data = {100.0: {200.0: {"noise_figure": 0, "gain": 0}}}
         clock_rate_lookup_by_sample_rate = {}
         test_cal_path = Path("test_calibration.json")
-        cal = Calibration(
+        cal = SensorCalibration(
             calibration_datetime,
             calibration_params,
             calibration_data,
@@ -302,7 +297,7 @@ class TestCalibrationFile:
         action_params = {"sample_rate": 100.0, "frequency": 200.0}
         update_time = get_datetime_str_now()
         cal.update(action_params, update_time, 30.0, 5.0, 21)
-        cal_from_file = load_from_json(test_cal_path, False)
+        cal_from_file = SensorCalibration.from_json(test_cal_path, False)
         test_cal_path.unlink()
         file_utc_time = parse_datetime_iso_format_str(cal.last_calibration_datetime)
         cal_time_utc = parse_datetime_iso_format_str(update_time)
