@@ -51,7 +51,6 @@ class MeasurementAction(Action):
             overload=overload,
             sigan_settings=sigan_settings,
         )
-        sigan_cal = self.sensor.signal_analyzer.sigan_calibration_data
         sensor_cal = self.sensor.signal_analyzer.sensor_calibration_data
         # Rename compression point keys if they exist
         # then set calibration metadata if it exists
@@ -61,10 +60,6 @@ class MeasurementAction(Action):
                     "1db_compression_point"
                 )
             capture_segment.sensor_calibration = ntia_sensor.Calibration(**sensor_cal)
-        if sigan_cal is not None:
-            if "1db_compression_point" in sigan_cal:
-                sigan_cal["compression_point"] = sigan_cal.pop("1db_compression_point")
-            capture_segment.sigan_calibration = ntia_sensor.Calibration(**sigan_cal)
         return capture_segment
 
     def create_metadata(

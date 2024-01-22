@@ -29,20 +29,10 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     def __init__(
         self,
         sensor_cal: Optional[SensorCalibration] = None,
-        sigan_cal: Optional[SensorCalibration] = None,
         randomize_values: bool = False,
     ):
-        super().__init__(sensor_cal, sigan_cal)
-        # Define the default calibration dicts
-        self.DEFAULT_SIGAN_CALIBRATION = {
-            "datetime": get_datetime_str_now(),
-            "gain": 0,  # Defaults to gain setting
-            "enbw": None,  # Defaults to sample rate
-            "noise_figure": 0,
-            "1db_compression_point": 100,
-            "temperature": 26.85,
-        }
-
+        super().__init__(sensor_cal)
+        # Define the default calibration dict
         self.DEFAULT_SENSOR_CALIBRATION = {
             "datetime": get_datetime_str_now(),
             "gain": 0,  # Defaults to sigan gain
@@ -73,7 +63,6 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
 
         self.randomize_values = randomize_values
         self.sensor_calibration_data = self.DEFAULT_SENSOR_CALIBRATION
-        self.sigan_calibration_data = self.DEFAULT_SIGAN_CALIBRATION
 
     @property
     def is_available(self):
@@ -215,12 +204,3 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
             )
         else:
             logger.warning("Sensor calibration does not exist.")
-
-    def recompute_sigan_calibration_data(self, cal_args: list) -> None:
-        """Set the sigan calibration data based on the current tuning"""
-        if self.sigan_calibration is not None:
-            self.sigan_calibration_data.update(
-                self.sigan_calibration.get_calibration_dict(cal_args)
-            )
-        else:
-            logger.warning("Sigan calibration does not exist.")

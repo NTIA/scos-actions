@@ -117,14 +117,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                 overload=measurement_result["overload"],
                 sigan_settings=sigan_settings,
             )
-            sigan_cal = self.sensor.signal_analyzer.sigan_calibration_data
             sensor_cal = self.sensor.signal_analyzer.sensor_calibration_data
-            if sigan_cal is not None:
-                if "1db_compression_point" in sigan_cal:
-                    sigan_cal["compression_point"] = sigan_cal.pop(
-                        "1db_compression_point"
-                    )
-                capture_segment.sigan_calibration = ntia_sensor.Calibration(**sigan_cal)
             if sensor_cal is not None:
                 if "1db_compression_point" in sensor_cal:
                     sensor_cal["compression_point"] = sensor_cal.pop(

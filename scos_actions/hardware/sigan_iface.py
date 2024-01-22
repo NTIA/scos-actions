@@ -26,13 +26,10 @@ class SignalAnalyzerInterface(ABC):
     def __init__(
         self,
         sensor_cal: Optional[SensorCalibration] = None,
-        sigan_cal: Optional[SensorCalibration] = None,
         switches: Optional[Dict[str, WebRelay]] = None,
     ):
         self.sensor_calibration_data = {}
-        self.sigan_calibration_data = {}
         self._sensor_calibration = sensor_cal
-        self._sigan_calibration = sigan_cal
         self._model = "Unknown"
         self.switches = switches
 
@@ -136,6 +133,7 @@ class SignalAnalyzerInterface(ABC):
         return
 
     def recompute_sensor_calibration_data(self, cal_args: list) -> None:
+        """Set the sensor calibration data based on the current tuning."""
         self.sensor_calibration_data = {}
         if self.sensor_calibration is not None:
             self.sensor_calibration_data.update(
@@ -143,16 +141,6 @@ class SignalAnalyzerInterface(ABC):
             )
         else:
             logger.warning("Sensor calibration does not exist.")
-
-    def recompute_sigan_calibration_data(self, cal_args: list) -> None:
-        self.sigan_calibration_data = {}
-        """Set the sigan calibration data based on the current tuning"""
-        if self.sigan_calibration is not None:
-            self.sigan_calibration_data.update(
-                self.sigan_calibration.get_calibration_dict(cal_args)
-            )
-        else:
-            logger.warning("Sigan calibration does not exist.")
 
     def get_status(self) -> dict:
         return {"model": self._model, "healthy": self.healthy()}
@@ -172,11 +160,3 @@ class SignalAnalyzerInterface(ABC):
     @sensor_calibration.setter
     def sensor_calibration(self, cal: SensorCalibration):
         self._sensor_calibration = cal
-
-    @property
-    def sigan_calibration(self) -> SensorCalibration:
-        return self._sigan_calibration
-
-    @sigan_calibration.setter
-    def sigan_calibration(self, cal: SensorCalibration):
-        self._sigan_calibration = cal
