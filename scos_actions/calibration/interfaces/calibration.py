@@ -3,7 +3,7 @@ import json
 import logging
 from abc import abstractmethod
 from pathlib import Path
-from typing import Any, List
+from typing import Any, List, get_origin
 
 from scos_actions.calibration.utils import filter_by_parameter
 
@@ -18,10 +18,23 @@ class Calibration:
     file_path: Path
 
     def __post_init__(self):
+        self._validate_fields()
         # Convert key names in data to strings
         # This means that formatting will always match between
         # native types provided in Python and data loaded from JSON
         self.calibration_data = json.loads(json.dumps(self.calibration_data))
+
+    def _validate_fields(self) -> None:
+        """Loosely check that the input types are as expected."""
+        for f_name, f_def in self.__dataclass_fields__.items():
+            f_type = get_origin(f_def.type) or f_def.type
+            actual_value = getattr(self, f_name)
+            if not isinstance(actual_value, f_type):
+                c_name = self.__class__.__name__
+                actual_type = type(actual_value)
+                raise TypeError(
+                    f"{c_name} field {f_name} must be {f_type}, not {actual_type}"
+                )
 
     def get_calibration_dict(self, cal_params: List[Any]) -> dict:
         """
