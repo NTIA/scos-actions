@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 class SensorCalibration(Calibration):
     last_calibration_datetime: str
     clock_rate_lookup_by_sample_rate: List[Dict[str, float]]
+    sensor_uid: str
 
     def get_clock_rate(self, sample_rate: Union[float, int]) -> Union[float, int]:
         """Find the clock rate (Hz) using the given sample_rate (samples per second)"""
@@ -66,29 +67,10 @@ class SensorCalibration(Calibration):
         # Write updated calibration data to file
         cal_dict = {
             "last_calibration_datetime": self.last_calibration_datetime,
+            "sensor_uid": self.sensor_uid,
             "calibration_parameters": self.calibration_parameters,
             "clock_rate_lookup_by_sample_rate": self.clock_rate_lookup_by_sample_rate,
             "calibration_data": self.calibration_data,
         }
         with open(self.file_path, "w") as outfile:
             outfile.write(json.dumps(cal_dict))
-
-    # @classmethod
-    # def from_json(cls, fname: Path, is_default: bool):
-    #     """
-    #     Load a sensor calibration from a JSON file.
-
-    #     The JSON file must contain top-level fields:
-    #         ``calibration_parameters``
-    #         ``calibration_data``
-    #         ``last_calibration_datetime``
-    #         ``clock_rate_lookup_by_sample_rate``
-
-    #     :param fname: The ``Path`` to the JSON calibration file.
-    #     :param is_default: If True, the loaded calibration file
-    #         is treated as the default calibration file.
-    #     :raises Exception: If the provided file does not include
-    #         the required keys.
-    #     :return: The ``Calibration`` object generated from the file.
-    #     """
-    #     return super().from_json(fname, is_default)

@@ -84,16 +84,16 @@ class Calibration:
     @abstractmethod
     def update():
         """Update the calibration data"""
-        pass
+        raise NotImplementedError
 
     @classmethod
     def from_json(cls, fname: Path, is_default: bool):
         """
         Load a calibration from a JSON file.
 
-        The JSON file must contain top-level fields:
-            ``calibration_parameters``
-            ``calibration_data``
+        The JSON file must contain top-level fields
+        with names identical to the dataclass fields for
+        the class being constructed.
 
         :param fname: The ``Path`` to the JSON calibration file.
         :param is_default: If True, the loaded calibration file
@@ -104,15 +104,26 @@ class Calibration:
         """
         with open(fname) as file:
             calibration = json.load(file)
+        cal_file_keys = set(calibration.keys())
 
-        # Check that the required fields are in the dict
-        required_keys = set(dataclasses.fields(cls).keys())
-
-        if not set(calibration.keys()) >= required_keys:
+        # Check that only the required fields are in the dict
+        required_keys = {f.name for f in dataclasses.fields(cls)}
+        required_keys -= {"is_default", "file_path"}  # are not required in JSON
+        if cal_file_keys == required_keys:
+            pass
+        elif cal_file_keys >= required_keys:
+            extra_keys = cal_file_keys - required_keys
+            logger.warning(
+                f"Loaded calibration file contains fields which will be ignored: {extra_keys}"
+            )
+            for k in extra_keys:
+                calibration.pop(k, None)
+        else:
             raise Exception(
-                "Loaded calibration dictionary is missing required fields."
-                + f"Existing fields: {set(calibration.keys())}\n"
+                "Loaded calibration dictionary is missing required fields.\n"
+                + f"Existing fields: {cal_file_keys}\n"
                 + f"Required fields: {required_keys}\n"
+                + f"Missing fields: {required_keys - cal_file_keys}"
             )
 
         # Create and return the Calibration object
