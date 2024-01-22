@@ -33,7 +33,7 @@ class SensorCalibration(Calibration):
         """
         Update the calibration data by overwriting or adding an entry.
 
-        This method updates the instance variables of the ``Calibration``
+        This updates the instance variables of the ``SensorCalibration``
         object and additionally writes these changes to the specified
         output file.
 
@@ -46,7 +46,6 @@ class SensorCalibration(Calibration):
         :param noise_figure_dB: Noise figure value for calibration, in dB.
         :param temp_degC: Temperature at calibration time, in degrees Celsius.
         :param file_path: File path for saving the updated calibration data.
-        :raises Exception:
         """
         # Get existing calibration data entry which will be updated
         data_entry = self._retrieve_data_to_update(params)
