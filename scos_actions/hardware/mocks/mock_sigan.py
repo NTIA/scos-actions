@@ -29,6 +29,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     def __init__(
         self,
         sensor_cal: Optional[SensorCalibration] = None,
+        switches: Optional[dict] = None,
         randomize_values: bool = False,
     ):
         super().__init__(sensor_cal)

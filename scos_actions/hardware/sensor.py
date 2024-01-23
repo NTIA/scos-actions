@@ -1,6 +1,6 @@
+import datetime
 import hashlib
 import json
-import datetime
 from typing import Dict
 
 from its_preselector.preselector import Preselector
@@ -14,7 +14,7 @@ from .sigan_iface import SignalAnalyzerInterface
 class Sensor:
     def __init__(
         self,
-        signal_analyzer: SignalAnalyzerInterface = MockSignalAnalyzer,
+        signal_analyzer: SignalAnalyzerInterface = None,
         gps: GPSInterface = None,
         preselector: Preselector = None,
         switches: Dict[str, WebRelay] = {},
