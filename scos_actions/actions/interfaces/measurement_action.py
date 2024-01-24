@@ -51,7 +51,7 @@ class MeasurementAction(Action):
             overload=overload,
             sigan_settings=sigan_settings,
         )
-        sensor_cal = self.sensor.signal_analyzer.sensor_calibration_data
+        sensor_cal = self.sensor.sensor_calibration_data
         # Rename compression point keys if they exist
         # then set calibration metadata if it exists
         if sensor_cal is not None:
@@ -161,7 +161,7 @@ class MeasurementAction(Action):
             + f" and {'' if cal_adjust else 'not '}applying gain adjustment based"
             + " on calibration data"
         )
-        measurement_result = self.sensor.signal_analyzer.acquire_time_domain_samples(
+        measurement_result = self.sensor.acquire_time_domain_samples(
             num_samples,
             num_samples_skip=nskip,
             cal_adjust=cal_adjust,

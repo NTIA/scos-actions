@@ -152,10 +152,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         self.classification = get_parameter(CLASSIFICATION, self.parameters)
         self.cal_adjust = get_parameter(CAL_ADJUST, self.parameters)
         assert isinstance(self.cal_adjust, bool)
-        if self.cal_adjust:
-            self.data_reference = "calibration terminal"
-        else:
-            self.data_reference = "signal analyzer input"
         # FFT setup
         self.fft_detector = create_statistical_detector(
             "M4sDetector", ["min", "max", "mean", "median", "sample"]
@@ -179,7 +175,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         measurement_result.update(self.parameters)
         measurement_result[
             "calibration_datetime"
-        ] = self.sensor.signal_analyzer.sensor_calibration_data["datetime"]
+        ] = self.sensor.sensor_calibration_data["datetime"]
         measurement_result["task_id"] = task_id
         measurement_result["classification"] = self.classification
 
@@ -269,7 +265,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
             x_stop=[frequencies[-1]],
             x_step=[frequencies[1] - frequencies[0]],
             y_units="dBm",
-            reference=self.data_reference,
+            reference=measurement_result["reference"],
             description=(
                 "Results of min, max, mean, and median statistical detectors, "
                 + f"along with a random sampling, from a set of {self.nffts} "

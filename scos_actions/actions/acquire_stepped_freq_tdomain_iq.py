@@ -117,15 +117,18 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                 overload=measurement_result["overload"],
                 sigan_settings=sigan_settings,
             )
-            sensor_cal = self.sensor.signal_analyzer.sensor_calibration_data
+            sensor_cal = self.sensor.sensor_calibration_data
             if sensor_cal is not None:
                 if "1db_compression_point" in sensor_cal:
                     sensor_cal["compression_point"] = sensor_cal.pop(
                         "1db_compression_point"
                     )
-                    capture_segment.sensor_calibration = ntia_sensor.Calibration(
-                        **sensor_cal
-                    )
+                if "reference" not in sensor_cal:
+                    # If the calibration data already includes this, don't overwrite
+                    sensor_cal["reference"] = measurement_result["reference"]
+                capture_segment.sensor_calibration = ntia_sensor.Calibration(
+                    **sensor_cal
+                )
             measurement_result["capture_segment"] = capture_segment
 
             self.create_metadata(measurement_result, recording_id)

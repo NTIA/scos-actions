@@ -34,9 +34,6 @@ import ray
 from environs import Env
 from its_preselector import __version__ as PRESELECTOR_API_VERSION
 from scipy.signal import sos2tf, sosfilt
-
-from scos_actions import __version__ as SCOS_ACTIONS_VERSION
-from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.utils import (
@@ -76,6 +73,9 @@ from scos_actions.signal_processing.power_analysis import (
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
 from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
 
+from scos_actions import __version__ as SCOS_ACTIONS_VERSION
+from scos_actions import utils
+
 env = Env()
 logger = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
 IMPEDANCE_OHMS = 50.0
-DATA_REFERENCE_POINT = "noise source output"
+DATA_REFERENCE_POINT = "noise source output"  # TODO delete
 NUM_ACTORS = 3  # Number of ray actors to initialize
 
 # Create power detectors
@@ -626,14 +626,13 @@ class NasctnSeaDataProduct(Action):
         nskip = utils.get_parameter(NUM_SKIP, params)
         num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
         # Collect IQ data
-        measurement_result = self.sensor.signal_analyzer.acquire_time_domain_samples(
-            num_samples, nskip
-        )
+        measurement_result = self.sensor.acquire_time_domain_samples(num_samples, nskip)
         # Store some metadata with the IQ
         measurement_result.update(params)
+        measurement_result["sensor_cal"] = self.sensor.sensor_calibration_data
         measurement_result[
-            "sensor_cal"
-        ] = self.sensor.signal_analyzer.sensor_calibration_data
+            "differential_cal"
+        ] = self.sensor.differential_calibration_data
         toc = perf_counter()
         logger.debug(
             f"IQ Capture ({duration_ms} ms @ {(params[FREQUENCY]/1e6):.1f} MHz) completed in {toc-tic:.2f} s."
@@ -1019,7 +1018,7 @@ class NasctnSeaDataProduct(Action):
             x_step=[p[SAMPLE_RATE] / FFT_SIZE],
             y_units="dBm/Hz",
             processing=[dft_obj.id],
-            reference=DATA_REFERENCE_POINT,
+            reference=DATA_REFERENCE_POINT,  # TODO update
             description=(
                 "Results of statistical detectors (max, mean, median, 25th_percentile, 75th_percentile, "
                 + "90th_percentile, 95th_percentile, 99th_percentile, 99.9th_percentile, 99.99th_percentile) "
@@ -1039,7 +1038,7 @@ class NasctnSeaDataProduct(Action):
             x_stop=[pvt_x_axis__s[-1]],
             x_step=[pvt_x_axis__s[1] - pvt_x_axis__s[0]],
             y_units="dBm",
-            reference=DATA_REFERENCE_POINT,
+            reference=DATA_REFERENCE_POINT,  # TODO update
             description=(
                 "Max- and mean-detected channel power vs. time, with "
                 + f"an integration time of {p[TD_BIN_SIZE_MS]} ms. "
@@ -1066,7 +1065,7 @@ class NasctnSeaDataProduct(Action):
             x_stop=[pfp_x_axis__s[-1]],
             x_step=[pfp_x_axis__s[1] - pfp_x_axis__s[0]],
             y_units="dBm",
-            reference=DATA_REFERENCE_POINT,
+            reference=DATA_REFERENCE_POINT,  # TODO update
             description=(
                 "Channelized periodic frame power statistics reported over"
                 + f" a {p[PFP_FRAME_PERIOD_MS]} ms frame period, with frame resolution"
@@ -1122,11 +1121,13 @@ class NasctnSeaDataProduct(Action):
             duration=measurement_result[DURATION_MS],
             overload=measurement_result["overload"],
             sensor_calibration=ntia_sensor.Calibration(
-                datetime=measurement_result["sensor_cal"]["datetime"],
-                gain=round(measurement_result["sensor_cal"]["gain"], 3),
-                noise_figure=round(measurement_result["sensor_cal"]["noise_figure"], 3),
+                datetime=self.sensor.sensor_calibration_data["datetime"],
+                gain=round(measurement_result["applied_calibration"]["gain"], 3),
+                noise_figure=round(
+                    measurement_result["applied_calibration"]["noise_figure"], 3
+                ),
                 temperature=round(measurement_result["sensor_cal"]["temperature"], 1),
-                reference=DATA_REFERENCE_POINT,
+                reference=measurement_result["reference"],
             ),
             sigan_settings=ntia_sensor.SiganSettings(
                 reference_level=self.sensor.signal_analyzer.reference_level,

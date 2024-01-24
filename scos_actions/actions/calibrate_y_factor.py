@@ -228,10 +228,8 @@ class YFactorCalibration(Action):
 
         # Get noise diode on IQ
         logger.debug("Acquiring IQ samples with noise diode ON")
-        noise_on_measurement_result = (
-            self.sensor.signal_analyzer.acquire_time_domain_samples(
-                num_samples, num_samples_skip=nskip, cal_adjust=False
-            )
+        noise_on_measurement_result = self.sensor.acquire_time_domain_samples(
+            num_samples, nskip, cal_adjust=False
         )
         sample_rate = noise_on_measurement_result["sample_rate"]
 
@@ -242,10 +240,8 @@ class YFactorCalibration(Action):
 
         # Get noise diode off IQ
         logger.debug("Acquiring IQ samples with noise diode OFF")
-        noise_off_measurement_result = (
-            self.sensor.signal_analyzer.acquire_time_domain_samples(
-                num_samples, num_samples_skip=nskip, cal_adjust=False
-            )
+        noise_off_measurement_result = self.sensor.acquire_time_domain_samples(
+            num_samples, nskip, cal_adjust=False
         )
         assert (
             sample_rate == noise_off_measurement_result["sample_rate"]
@@ -259,24 +255,22 @@ class YFactorCalibration(Action):
             noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
             noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
         else:
-            if self.sensor.signal_analyzer.sensor_calibration.is_default:
+            if self.sensor.sensor_calibration.is_default:
                 raise Exception(
                     "Calibrations without IIR filter cannot be performed with default calibration."
                 )
 
             logger.debug("Skipping IIR filtering")
             # Get ENBW from sensor calibration
-            assert set(
-                self.sensor.signal_analyzer.sensor_calibration.calibration_parameters
-            ) <= set(
+            assert set(self.sensor.sensor_calibration.calibration_parameters) <= set(
                 sigan_params.keys()
             ), f"Action parameters do not include all required calibration parameters"
             cal_args = [
                 sigan_params[k]
-                for k in self.sensor.signal_analyzer.sensor_calibration.calibration_parameters
+                for k in self.sensor.sensor_calibration.calibration_parameters
             ]
-            self.sensor.signal_analyzer.recompute_sensor_calibration_data(cal_args)
-            enbw_hz = self.sensor.signal_analyzer.sensor_calibration_data["enbw"]
+            self.sensor.recompute_sensor_calibration_data(cal_args)
+            enbw_hz = self.sensor.sensor_calibration_data["enbw"]
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]
 
@@ -294,7 +288,7 @@ class YFactorCalibration(Action):
         )
 
         # Update sensor calibration with results
-        self.sensor.signal_analyzer.sensor_calibration.update(
+        self.sensor.sensor_calibration.update(
             sigan_params, utils.get_datetime_str_now(), gain, noise_figure, temp_c
         )
 

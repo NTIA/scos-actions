@@ -239,11 +239,10 @@ class Sensor:
         if cal_adjust:
             if self.sensor_calibration is not None:
                 logger.debug("Scaling samples using calibration data")
-                calibrated_gain__db = 0.0
                 self.recompute_sensor_calibration_data()
-                sensor_gain = self.sensor_calibration_data["gain"]
-                logger.debug(f"Using sensor gain: {sensor_gain} dB")
-                calibrated_gain__db += sensor_gain
+                calibrated_gain__db = self.sensor_calibration_data["gain"]
+                calibrated_nf__db = self.sensor_calibration_data["noise_figure"]
+                logger.debug(f"Using sensor gain: {calibrated_gain__db} dB")
                 if self.differential_calibration is not None:
                     # Also apply differential calibration correction
                     # TODO recompute functions match to current signal analyzer
@@ -252,6 +251,7 @@ class Sensor:
                     differential_loss = self.differential_calibration_data["loss"]
                     logger.debug(f"Using differential loss: {differential_loss} dB")
                     calibrated_gain__db -= differential_loss
+                    calibrated_nf__db += differential_loss
                     measurement_result[
                         "reference"
                     ] = self.differential_calibration.reference_point
@@ -259,9 +259,17 @@ class Sensor:
                     # No differential calibration exists
                     logger.debug("No differential calibration was applied")
                     measurement_result["reference"] = "calibration terminal"
+
                 linear_gain = 10.0 ** (calibrated_gain__db / 20.0)
-                logger.debug(f"Applying gain of {linear_gain}")
+                logger.debug(f"Applying total gain of {calibrated_gain__db}")
                 measurement_result["data"] /= linear_gain
+
+                # Metadata: record the gain and noise figure based on the actual
+                # scaling which was used.
+                measurement_result["applied_calibration"] = {
+                    "gain": calibrated_gain__db,
+                    "noise_figure": calibrated_nf__db,
+                }
             else:
                 # No sensor calibration exists
                 msg = "Unable to scale samples without sensor calibration data"
@@ -270,5 +278,6 @@ class Sensor:
         else:
             # Set the data reference in the measurement_result
             measurement_result["reference"] = "signal analyzer input"
+            measurement_result["calibration"] = None
 
         return measurement_result
