@@ -27,6 +27,8 @@ class Calibration:
     def _validate_fields(self) -> None:
         """Loosely check that the input types are as expected."""
         for f_name, f_def in self.__dataclass_fields__.items():
+            # Note that nested types are not checked: i.e., "List[str]"
+            # will surely be a list, but may not be filled with strings.
             f_type = get_origin(f_def.type) or f_def.type
             actual_value = getattr(self, f_name)
             if not isinstance(actual_value, f_type):
