@@ -4,7 +4,6 @@ from collections import namedtuple
 from typing import Optional
 
 import numpy as np
-from scos_actions.calibration.sensor_calibration import SensorCalibration
 from scos_actions.hardware.sigan_iface import SignalAnalyzerInterface
 from scos_actions.utils import get_datetime_str_now
 
@@ -28,11 +27,10 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
 
     def __init__(
         self,
-        sensor_cal: Optional[SensorCalibration] = None,
         switches: Optional[dict] = None,
         randomize_values: bool = False,
     ):
-        super().__init__(sensor_cal)
+        super().__init__(switches)
         # Define the default calibration dict
         self.DEFAULT_SENSOR_CALIBRATION = {
             "datetime": get_datetime_str_now(),
@@ -136,8 +134,8 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         pass
 
     def acquire_time_domain_samples(
-        self, num_samples, num_samples_skip=0, retries=5, cal_adjust=True
-    ):
+        self, num_samples: int, num_samples_skip: int = 0, retries: int = 5
+    ) -> dict:
         logger.warning("Using mock signal analyzer!")
         self.sigan_overload = False
         self._capture_time = None
@@ -194,14 +192,3 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     @property
     def last_calibration_time(self):
         return get_datetime_str_now()
-
-    def update_calibration(self, params):
-        pass
-
-    def recompute_sensor_calibration_data(self, cal_args: list) -> None:
-        if self.sensor_calibration is not None:
-            self.sensor_calibration_data.update(
-                self._sensor_calibration.get_calibration_dict(cal_args)
-            )
-        else:
-            logger.warning("Sensor calibration does not exist.")

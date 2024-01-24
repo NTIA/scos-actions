@@ -4,9 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Optional
 
 from its_preselector.web_relay import WebRelay
-from scos_actions.calibration.sensor_calibration import SensorCalibration
 from scos_actions.hardware.utils import power_cycle_sigan
-from scos_actions.utils import convert_string_to_millisecond_iso_format
 
 logger = logging.getLogger(__name__)
 
@@ -25,20 +23,10 @@ SIGAN_SETTINGS_KEYS = [
 class SignalAnalyzerInterface(ABC):
     def __init__(
         self,
-        sensor_cal: Optional[SensorCalibration] = None,
         switches: Optional[Dict[str, WebRelay]] = None,
     ):
-        self.sensor_calibration_data = {}
-        self._sensor_calibration = sensor_cal
         self._model = "Unknown"
         self.switches = switches
-
-    @property
-    def last_calibration_time(self) -> str:
-        """Returns the last calibration time from calibration data."""
-        return convert_string_to_millisecond_iso_format(
-            self.sensor_calibration.last_calibration_datetime
-        )
 
     @property
     @abstractmethod
@@ -67,16 +55,13 @@ class SignalAnalyzerInterface(ABC):
         self,
         num_samples: int,
         num_samples_skip: int = 0,
-        retries: int = 5,
-        cal_adjust: bool = True,
     ) -> dict:
         """
-        Acquire time domain IQ samples
+        Acquire time domain IQ samples, scaled to Volts at
+        the signal analyzer input.
 
         :param num_samples: Number of samples to acquire
         :param num_samples_skip: Number of samples to skip
-        :param retries: Maximum number of retries on failure
-        :param cal_adjust: If True, scale IQ samples based on calibration data.
         :return: dictionary containing data, sample_rate, frequency, capture_time, etc
         """
         pass
@@ -94,9 +79,7 @@ class SignalAnalyzerInterface(ABC):
         if not self.is_available:
             return False
         try:
-            measurement_result = self.acquire_time_domain_samples(
-                num_samples, cal_adjust=False
-            )
+            measurement_result = self.acquire_time_domain_samples(num_samples)
             data = measurement_result["data"]
         except Exception as e:
             logger.exception("Unable to acquire samples from device.")
@@ -132,16 +115,6 @@ class SignalAnalyzerInterface(ABC):
             )
         return
 
-    def recompute_sensor_calibration_data(self, cal_args: list) -> None:
-        """Set the sensor calibration data based on the current tuning."""
-        self.sensor_calibration_data = {}
-        if self.sensor_calibration is not None:
-            self.sensor_calibration_data.update(
-                self.sensor_calibration.get_calibration_dict(cal_args)
-            )
-        else:
-            logger.warning("Sensor calibration does not exist.")
-
     def get_status(self) -> dict:
         return {"model": self._model, "healthy": self.healthy()}
 
@@ -152,11 +125,3 @@ class SignalAnalyzerInterface(ABC):
     @model.setter
     def model(self, value: str):
         self._model = value
-
-    @property
-    def sensor_calibration(self) -> SensorCalibration:
-        return self._sensor_calibration
-
-    @sensor_calibration.setter
-    def sensor_calibration(self, cal: SensorCalibration):
-        self._sensor_calibration = cal
