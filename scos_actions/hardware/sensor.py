@@ -2,7 +2,7 @@ import datetime
 import hashlib
 import json
 import logging
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from its_preselector.preselector import Preselector
 from its_preselector.web_relay import WebRelay
@@ -37,8 +37,9 @@ class Sensor:
         self.switches = switches
         self.location = location
         self.capabilities = capabilities
-        self.sensor_calibration_data = {}
+        self._sensor_calibration_data = {}
         self._sensor_calibration = sensor_cal
+        self._differential_calibration_data = {}
         self._differential_calibration = differential_cal
         # There is no setter for start_time property
         self._start_time = datetime.datetime.utcnow()
@@ -134,47 +135,67 @@ class Sensor:
 
     @property
     def last_calibration_time(self) -> str:
-        """Get a datetime string for the most recent sensor calibration."""
+        """A datetime string for the most recent sensor calibration."""
         return convert_string_to_millisecond_iso_format(
             self.sensor_calibration.last_calibration_datetime
         )
 
+    @property
+    def sensor_calibration_data(self) -> Dict[str, Any]:
+        """Sensor calibration data for the current sensor settings."""
+        self._recompute_sensor_calibration_data()
+        return self._sensor_calibration_data
+
+    @property
+    def differential_calibration_data(self) -> Dict[str, float]:
+        """Differential calibration data for the current sensor settings."""
+        self._recompute_differential_calibration_data()
+        return self._differential_calibration_data
+
     def _get_calibration_args_from_sigan(self, calibration: Calibration) -> list:
         """Get current values of signal analyzer settings which are calibration parameters."""
-        cal_params = [
-            p for p in calibration.calibration_parameters if p in SIGAN_SETTINGS_KEYS
-        ]
-        if set(cal_params) <= set(calibration.calibration_parameters):
+        try:
+            # Get calibration parameters which are valid settings for signal analyzers
+            cal_params = [
+                p
+                for p in calibration.calibration_parameters
+                if p in SIGAN_SETTINGS_KEYS
+            ]
+            if len(cal_params) == 0:
+                err_text = "any"  # Formats error message below
+                raise ValueError
+            else:
+                err_text = "this"  # Formats error message below
+            cal_args = [vars(self.signal_analyzer)[f"_{p}"] for p in cal_params]
+        except Exception as e:
             msg = (
-                "One or more required calibration parameters is not a valid signal "
-                + f"analyzer property.\nRequired parameters: {calibration.calibration_parameters}"
-                + f"\nSignal analyzer properties: {list(vars(self.signal_analyzer).keys())}"
+                f"One or more calibration parameters is not a valid setting for {err_text} "
+                + f"signal analyzer.\nRequired parameters: {calibration.calibration_parameters}"
             )
-            logger.error(msg)
-            raise KeyError
-        cal_args = [vars(self.signal_analyzer)[f"_{p}"] for p in cal_params]
+            logger.exception(msg)
+            raise e
         logger.debug(f"Matched calibration params: {cal_args}")
         return cal_args  # Order matches calibration.calibration_parameters
 
-    def recompute_differential_calibration_data(self) -> None:
+    def _recompute_differential_calibration_data(self) -> None:
         """Set the differential calibration data based on the current tuning."""
-        self.differential_calibration_data = {}
+        self._differential_calibration_data = {}
         if self.differential_calibration is not None:
             cal_args = self._get_calibration_args_from_sigan(
                 self.differential_calibration
             )
-            self.differential_calibration_data.update(
+            self._differential_calibration_data.update(
                 self.differential_calibration.get_calibration_dict(cal_args)
             )
         else:
             logger.warning("Differential calibration does not exist.")
 
-    def recompute_sensor_calibration_data(self) -> None:
+    def _recompute_sensor_calibration_data(self) -> None:
         """Set the sensor calibration data based on the current tuning."""
-        self.sensor_calibration_data = {}
+        self._sensor_calibration_data = {}
         if self.sensor_calibration is not None:
             cal_args = self._get_calibration_args_from_sigan(self.sensor_calibration)
-            self.sensor_calibration_data.update(
+            self._sensor_calibration_data.update(
                 self.sensor_calibration.get_calibration_dict(cal_args)
             )
         else:
@@ -239,7 +260,6 @@ class Sensor:
         if cal_adjust:
             if self.sensor_calibration is not None:
                 logger.debug("Scaling samples using calibration data")
-                self.recompute_sensor_calibration_data()
                 calibrated_gain__db = self.sensor_calibration_data["gain"]
                 calibrated_nf__db = self.sensor_calibration_data["noise_figure"]
                 logger.debug(f"Using sensor gain: {calibrated_gain__db} dB")
@@ -247,7 +267,6 @@ class Sensor:
                     # Also apply differential calibration correction
                     # TODO recompute functions match to current signal analyzer
                     # settings. should they use the measurement_result instead?
-                    self.recompute_differential_calibration_data()
                     differential_loss = self.differential_calibration_data["loss"]
                     logger.debug(f"Using differential loss: {differential_loss} dB")
                     calibrated_gain__db -= differential_loss
