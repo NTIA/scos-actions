@@ -34,6 +34,7 @@ class TestBaseCalibration:
         self.sample_cal = Calibration(
             calibration_parameters=self.cal_params,
             calibration_data=self.cal_data,
+            calibration_reference="testing",
             is_default=False,
             file_path=self.dummy_file_path,
         )
@@ -41,6 +42,7 @@ class TestBaseCalibration:
         self.sample_default_cal = Calibration(
             calibration_parameters=self.cal_params,
             calibration_data=self.cal_data,
+            calibration_reference="testing",
             is_default=True,
             file_path=self.dummy_default_file_path,
         )
@@ -56,6 +58,7 @@ class TestBaseCalibration:
         # Note: does not check field order
         assert fields == {
             "calibration_parameters": List[str],
+            "calibration_reference": str,
             "is_default": bool,
             "calibration_data": dict,
             "file_path": Path,
@@ -64,13 +67,15 @@ class TestBaseCalibration:
     def test_field_validator(self):
         """Check that the input field type validator works."""
         with pytest.raises(TypeError):
-            _ = Calibration([], {}, False, False)
+            _ = Calibration([], {}, "", False, False)
         with pytest.raises(TypeError):
-            _ = Calibration([], {}, 100, Path(""))
+            _ = Calibration([], {}, "", 100, Path(""))
         with pytest.raises(TypeError):
-            _ = Calibration([], [10, 20], False, Path(""))
+            _ = Calibration([], {}, 5, False, Path(""))
         with pytest.raises(TypeError):
-            _ = Calibration({"test": 1}, {}, False, Path(""))
+            _ = Calibration([], [10, 20], "", False, Path(""))
+        with pytest.raises(TypeError):
+            _ = Calibration({"test": 1}, {}, "", False, Path(""))
 
     def test_get_calibration_dict(self):
         """Check the get_calibration_dict method with all dummy data."""
@@ -105,6 +110,7 @@ class TestBaseCalibration:
         sensor_cal = SensorCalibration(
             self.sample_cal.calibration_parameters,
             self.sample_cal.calibration_data,
+            "testing",
             False,
             tmp_path / "testing.json",
             "dt_str",

@@ -138,6 +138,7 @@ class TestSensorCalibrationFile:
         # Add the simple stuff to new cal format
         cal_data["last_calibration_datetime"] = get_datetime_str_now()
         cal_data["sensor_uid"] = "SAMPLE_CALIBRATION"
+        cal_data["calibration_reference"] = "TESTING"
 
         # Add SR/CF lookup table
         cal_data["clock_rate_lookup_by_sample_rate"] = []
@@ -245,6 +246,7 @@ class TestSensorCalibrationFile:
         cal = SensorCalibration(
             calibration_parameters=calibration_params,
             calibration_data=calibration_data,
+            calibration_reference="testing",
             is_default=False,
             file_path=Path(""),
             last_calibration_datetime=calibration_datetime,
@@ -264,6 +266,7 @@ class TestSensorCalibrationFile:
         cal = SensorCalibration(
             calibration_parameters=calibration_params,
             calibration_data=calibration_data,
+            calibration_reference="testing",
             is_default=False,
             file_path=Path("test_calibration.json"),
             last_calibration_datetime=calibration_datetime,
@@ -306,6 +309,7 @@ class TestSensorCalibrationFile:
         cal = SensorCalibration(
             calibration_parameters=calibration_params,
             calibration_data=calibration_data,
+            calibration_reference="testing",
             is_default=False,
             file_path=test_cal_path,
             last_calibration_datetime=calibration_datetime,

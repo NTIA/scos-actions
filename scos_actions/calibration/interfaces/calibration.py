@@ -1,3 +1,6 @@
+"""
+TODO
+"""
 import dataclasses
 import json
 import logging
@@ -17,6 +20,7 @@ logger = logging.getLogger(__name__)
 class Calibration:
     calibration_parameters: List[str]
     calibration_data: dict
+    calibration_reference: str
     is_default: bool
     file_path: Path
 

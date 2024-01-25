@@ -11,7 +11,7 @@ class TestDifferentialCalibration:
     def setup_differential_calibration_file(self, tmp_path: Path):
         dict_to_json = {
             "calibration_parameters": ["frequency"],
-            "reference_point": "antenna input",
+            "calibration_reference": "antenna input",
             "calibration_data": {3555e6: 11.5},
         }
         self.valid_file_path = tmp_path / "sample_diff_cal.json"
@@ -24,7 +24,7 @@ class TestDifferentialCalibration:
         with open(self.valid_file_path, "w") as f:
             f.write(json.dumps(dict_to_json))
 
-        dict_to_json.pop("reference_point", None)
+        dict_to_json.pop("calibration_reference", None)
 
         with open(self.invalid_file_path, "w") as f:
             f.write(json.dumps(dict_to_json))
