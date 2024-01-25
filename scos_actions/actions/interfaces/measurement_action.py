@@ -154,7 +154,11 @@ class MeasurementAction(Action):
         )
 
     def acquire_data(
-        self, num_samples: int, nskip: int = 0, cal_adjust: bool = True
+        self,
+        num_samples: int,
+        nskip: int = 0,
+        cal_adjust: bool = True,
+        cal_params: Optional[dict] = None,
     ) -> dict:
         logger.debug(
             f"Acquiring {num_samples} IQ samples, skipping the first {nskip} samples"
@@ -165,6 +169,7 @@ class MeasurementAction(Action):
             num_samples,
             num_samples_skip=nskip,
             cal_adjust=cal_adjust,
+            cal_params=cal_params,
         )
 
         return measurement_result

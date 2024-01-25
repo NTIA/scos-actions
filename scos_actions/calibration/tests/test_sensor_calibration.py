@@ -61,7 +61,9 @@ class TestSensorCalibrationFile:
         calc_gain_sigan = easy_gain(sr_m, f_m, g_m)
 
         # Get the scale factor from the algorithm
-        interp_cal_data = self.sample_cal.get_calibration_dict([sr, f, g])
+        interp_cal_data = self.sample_cal.get_calibration_dict(
+            {"sample_rate": sr, "frequency": f, "gain": g}
+        )
         interp_gain_siggan = interp_cal_data["gain"]
 
         # Save the point so we don't duplicate
@@ -91,7 +93,9 @@ class TestSensorCalibrationFile:
             )
         )
         if not isclose(calc_gain_sigan, interp_gain_siggan, abs_tol=tolerance):
-            interp_cal_data = self.sample_cal.get_calibration_dict([sr, f, g])
+            interp_cal_data = self.sample_cal.get_calibration_dict(
+                {"sample_rate": sr, "frequency": f, "gain": g}
+            )
 
         assert isclose(calc_gain_sigan, interp_gain_siggan, abs_tol=tolerance), msg
         return True
@@ -247,7 +251,7 @@ class TestSensorCalibrationFile:
             clock_rate_lookup_by_sample_rate=[],
             sensor_uid="TESTING",
         )
-        cal_data = cal.get_calibration_dict([100.0, 200.0])
+        cal_data = cal.get_calibration_dict({"sample_rate": 100.0, "frequency": 200.0})
         assert cal_data["NF"] == "NF at 100, 200"
 
     def test_get_calibration_dict_within_range(self):
@@ -267,7 +271,7 @@ class TestSensorCalibrationFile:
             sensor_uid="TESTING",
         )
         with pytest.raises(CalibrationException) as e_info:
-            _ = cal.get_calibration_dict([100.0, 250.0])
+            _ = cal.get_calibration_dict({"sample_rate": 100.0, "frequency": 250.0})
         assert e_info.value.args[0] == (
             f"Could not locate calibration data at 250.0"
             + f"\nAttempted lookup using key '250.0'"

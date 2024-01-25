@@ -100,7 +100,9 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             cal_adjust = get_parameter(CAL_ADJUST, measurement_params)
             sample_rate = self.sensor.signal_analyzer.sample_rate
             num_samples = int(sample_rate * duration_ms * 1e-3)
-            measurement_result = super().acquire_data(num_samples, nskip, cal_adjust)
+            measurement_result = super().acquire_data(
+                num_samples, nskip, cal_adjust, cal_params=measurement_params
+            )
             measurement_result.update(measurement_params)
             end_time = utils.get_datetime_str_now()
             measurement_result["end_time"] = end_time

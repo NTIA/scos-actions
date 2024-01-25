@@ -2,7 +2,7 @@ import datetime
 import hashlib
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from its_preselector.preselector import Preselector
 from its_preselector.web_relay import WebRelay
@@ -10,10 +10,7 @@ from scos_actions.calibration.differential_calibration import DifferentialCalibr
 from scos_actions.calibration.interfaces.calibration import Calibration
 from scos_actions.calibration.sensor_calibration import SensorCalibration
 from scos_actions.hardware.gps_iface import GPSInterface
-from scos_actions.hardware.sigan_iface import (
-    SIGAN_SETTINGS_KEYS,
-    SignalAnalyzerInterface,
-)
+from scos_actions.hardware.sigan_iface import SignalAnalyzerInterface
 from scos_actions.utils import convert_string_to_millisecond_iso_format
 
 logger = logging.getLogger(__name__)
@@ -143,63 +140,37 @@ class Sensor:
     @property
     def sensor_calibration_data(self) -> Dict[str, Any]:
         """Sensor calibration data for the current sensor settings."""
-        self._recompute_sensor_calibration_data()
         return self._sensor_calibration_data
 
     @property
     def differential_calibration_data(self) -> Dict[str, float]:
         """Differential calibration data for the current sensor settings."""
-        self._recompute_differential_calibration_data()
         return self._differential_calibration_data
 
-    def _get_calibration_args_from_sigan(self, calibration: Calibration) -> list:
-        """Get current values of signal analyzer settings which are calibration parameters."""
-        try:
-            # Get calibration parameters which are valid settings for signal analyzers
-            cal_params = [
-                p
-                for p in calibration.calibration_parameters
-                if p in SIGAN_SETTINGS_KEYS
-            ]
-            if len(cal_params) == 0:
-                err_text = "any"  # Formats error message below
-                raise ValueError
-            else:
-                err_text = "this"  # Formats error message below
-            cal_args = [vars(self.signal_analyzer)[f"_{p}"] for p in cal_params]
-        except Exception as e:
-            msg = (
-                f"One or more calibration parameters is not a valid setting for {err_text} "
-                + f"signal analyzer.\nRequired parameters: {calibration.calibration_parameters}"
-            )
-            logger.exception(msg)
-            raise e
-        logger.debug(f"Matched calibration params: {cal_args}")
-        return cal_args  # Order matches calibration.calibration_parameters
-
-    def _recompute_differential_calibration_data(self) -> None:
-        """Set the differential calibration data based on the current tuning."""
-        self._differential_calibration_data = {}
+    def recompute_calibration_data(self, params: dict) -> None:
+        """
+        Set the differential_calibration_data and sensor_calibration_data
+        based on the specified ``params``.
+        """
+        recomputed = False
         if self.differential_calibration is not None:
-            cal_args = self._get_calibration_args_from_sigan(
-                self.differential_calibration
-            )
             self._differential_calibration_data.update(
-                self.differential_calibration.get_calibration_dict(cal_args)
+                self.differential_calibration.get_calibration_dict(params)
             )
+            recomputed = True
         else:
-            logger.warning("Differential calibration does not exist.")
+            logger.debug("No differential calibration available to recompute")
 
-    def _recompute_sensor_calibration_data(self) -> None:
-        """Set the sensor calibration data based on the current tuning."""
-        self._sensor_calibration_data = {}
         if self.sensor_calibration is not None:
-            cal_args = self._get_calibration_args_from_sigan(self.sensor_calibration)
             self._sensor_calibration_data.update(
-                self.sensor_calibration.get_calibration_dict(cal_args)
+                self.sensor_calibration.get_calibration_dict(params)
             )
+            recomputed = True
         else:
-            logger.warning("Sensor calibration does not exist.")
+            logger.debug("No sensor calibration available to recompute")
+
+        if not recomputed:
+            logger.warning("Failed to recompute calibration data")
 
     def acquire_time_domain_samples(
         self,
@@ -207,6 +178,7 @@ class Sensor:
         num_samples_skip: int = 0,
         retries: int = 5,
         cal_adjust: bool = True,
+        cal_params: Optional[dict] = None,
     ) -> dict:
         """
         Acquire time-domain IQ samples from the signal analyzer.
@@ -224,6 +196,9 @@ class Sensor:
         :param num_samples_skip: Number of samples to skip
         :param retries: Maximum number of retries on failure
         :param cal_adjust: If True, use available calibration data to scale the samples.
+        :param cal_params: A dictionary with keys for all of the calibration parameters.
+            May contain additional keys. Example: ``{"sample_rate": 14000000.0, "gain": 10.0}``
+            Must be specified if ``cal_adjust`` is ``True``. Otherwise, ignored.
         :return: dictionary containing data, sample_rate, frequency, capture_time, etc
         :raises Exception: If the sample acquisition fails, or the sensor has
             no signal analyzer.
@@ -231,7 +206,6 @@ class Sensor:
         logger.debug("Sensor.acquire_time_domain_samples starting")
         logger.debug(f"Number of retries = {retries}")
         max_retries = retries
-        # TODO: Include RF path as a sensor cal argument?
         # Acquire samples from signal analyzer
         if self.signal_analyzer is not None:
             while True:
@@ -258,15 +232,18 @@ class Sensor:
 
         # Apply gain adjustment based on calibration
         if cal_adjust:
+            if cal_params is None:
+                raise ValueError(
+                    "Data scaling cannot occur without specified calibration parameters."
+                )
             if self.sensor_calibration is not None:
                 logger.debug("Scaling samples using calibration data")
+                self.recompute_calibration_data(cal_params)
                 calibrated_gain__db = self.sensor_calibration_data["gain"]
                 calibrated_nf__db = self.sensor_calibration_data["noise_figure"]
                 logger.debug(f"Using sensor gain: {calibrated_gain__db} dB")
                 if self.differential_calibration is not None:
                     # Also apply differential calibration correction
-                    # TODO recompute functions match to current signal analyzer
-                    # settings. should they use the measurement_result instead?
                     differential_loss = self.differential_calibration_data["loss"]
                     logger.debug(f"Using differential loss: {differential_loss} dB")
                     calibrated_gain__db -= differential_loss
@@ -297,6 +274,6 @@ class Sensor:
         else:
             # Set the data reference in the measurement_result
             measurement_result["reference"] = "signal analyzer input"
-            measurement_result["calibration"] = None
+            measurement_result["applied_calibration"] = None
 
         return measurement_result

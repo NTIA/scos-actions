@@ -164,7 +164,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def execute(self, schedule_entry: dict, task_id: int) -> dict:
         # Acquire IQ data and generate M4S result
         measurement_result = self.acquire_data(
-            self.num_samples, self.nskip, self.cal_adjust
+            self.num_samples, self.nskip, self.cal_adjust, cal_params=self.parameters
         )
         # Actual sample rate may differ from configured value
         sample_rate_Hz = measurement_result["sample_rate"]

@@ -16,7 +16,7 @@ class TestBaseCalibration:
         """Create a dummy calibration file in the pytest temp directory."""
         # Create some dummy calibration data
         self.cal_params = ["frequency", "gain"]
-        self.frequencies = [3555e9, 3565e9, 3575e9]
+        self.frequencies = [3555e6, 3565e6, 3575e6]
         self.gains = [10.0, 20.0, 30.0]
         cal_data = {}
         for frequency in self.frequencies:
@@ -75,31 +75,10 @@ class TestBaseCalibration:
     def test_get_calibration_dict(self):
         """Check the get_calibration_dict method with all dummy data."""
         for f in self.frequencies:
-            assert json.loads(
-                json.dumps(self.cal_data[f])
-            ) == self.sample_cal.get_calibration_dict([f])
             for g in self.gains:
                 assert json.loads(
                     json.dumps(self.cal_data[f][g])
-                ) == self.sample_cal.get_calibration_dict([f, g])
-
-    def test_retrieve_data_to_update(self):
-        """Check that the calibration data entry is correctly returned."""
-        for f in self.frequencies:
-            for g in self.gains:
-                params = {"frequency": f, "gain": g}
-                # Use the "is" keyword since this must not be a copy/identical dict
-                assert self.sample_cal.calibration_data[str(f)][
-                    str(g)
-                ] is self.sample_cal._retrieve_data_to_update(params)
-        # Method should work with len=0 calibration parameters
-        test_cal = Calibration([], {}, False, Path(""))
-        _ = test_cal._retrieve_data_to_update({"frequency": 3555e9, "gain": 10.0})
-        # And should fail if calibration parameters are not all supplied
-        with pytest.raises(ValueError):
-            _ = self.sample_cal._retrieve_data_to_update(
-                {"frequency": self.frequencies[0]}
-            )
+                ) == self.sample_cal.get_calibration_dict({"frequency": f, "gain": g})
 
     def test_to_and_from_json(self, tmp_path: Path):
         """Test the ``from_json`` factory method."""

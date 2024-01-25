@@ -626,13 +626,11 @@ class NasctnSeaDataProduct(Action):
         nskip = utils.get_parameter(NUM_SKIP, params)
         num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
         # Collect IQ data
-        measurement_result = self.sensor.acquire_time_domain_samples(num_samples, nskip)
+        measurement_result = self.sensor.acquire_time_domain_samples(
+            num_samples, nskip, cal_params=params
+        )
         # Store some metadata with the IQ
         measurement_result.update(params)
-        measurement_result["sensor_cal"] = self.sensor.sensor_calibration_data
-        measurement_result[
-            "differential_cal"
-        ] = self.sensor.differential_calibration_data
         toc = perf_counter()
         logger.debug(
             f"IQ Capture ({duration_ms} ms @ {(params[FREQUENCY]/1e6):.1f} MHz) completed in {toc-tic:.2f} s."
@@ -1126,7 +1124,9 @@ class NasctnSeaDataProduct(Action):
                 noise_figure=round(
                     measurement_result["applied_calibration"]["noise_figure"], 3
                 ),
-                temperature=round(measurement_result["sensor_cal"]["temperature"], 1),
+                temperature=round(
+                    self.sensor.sensor_calibration_data["temperature"], 1
+                ),
                 reference=measurement_result["reference"],
             ),
             sigan_settings=ntia_sensor.SiganSettings(

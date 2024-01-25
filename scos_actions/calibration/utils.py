@@ -8,6 +8,25 @@ class CalibrationException(Exception):
         super().__init__(msg)
 
 
+class CalibrationEntryMissingException(CalibrationException):
+    """Raised when filter_by_parameter cannot locate calibration data."""
+
+    def __init__(self, msg):
+        super().__init__(msg)
+
+
+class CalibrationParametersMissingException(CalibrationException):
+    """Raised when a dictionary does not contain all calibration parameters as keys."""
+
+    def __init__(self, provided_dict: dict, required_keys: list):
+        msg = (
+            "Missing required parameters to lookup calibration data.\n"
+            + f"Required parameters are {required_keys}\n"
+            + f"Provided parameters are {list(provided_dict.keys())}"
+        )
+        super().__init__(msg)
+
+
 def filter_by_parameter(calibrations: dict, value: Union[float, int, bool]) -> dict:
     """
     Select a certain element by the value of a top-level key in a dictionary.
@@ -42,16 +61,16 @@ def filter_by_parameter(calibrations: dict, value: Union[float, int, bool]) -> d
             raise KeyError
         else:
             return filtered_data
-    except AttributeError as e:
+    except AttributeError:
         # calibrations does not have ".get()"
         # Generally means that calibrations is None or not a dict
         msg = f"Provided calibration data is not a dict: {calibrations}"
         raise CalibrationException(msg)
-    except KeyError as e:
+    except KeyError:
         msg = (
             f"Could not locate calibration data at {value}"
             + f"\nAttempted lookup using key '{str(value).lower()}'"
             + f"{f'and {float(value)}' if isinstance(value, int) else ''}"
             + f"\nUsing calibration data: {calibrations}"
         )
-        raise CalibrationException(msg)
+        raise CalibrationEntryMissingException(msg)

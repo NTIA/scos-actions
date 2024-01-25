@@ -65,11 +65,3 @@ def test_required_components():
     with pytest.raises(RuntimeError):
         action(sensor, SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1)
     mock_sigan._is_available = True
-
-
-def test_num_samples_skip():
-    action = actions["test_single_frequency_iq_action"]
-    assert action.description
-    sensor = MockSensor()
-    action(sensor, SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1)
-    assert action.sensor.signal_analyzer._num_samples_skip == action.parameters["nskip"]

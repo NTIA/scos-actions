@@ -84,7 +84,9 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         # Use the sigan's actual reported instead of requested sample rate
         sample_rate = self.sensor.signal_analyzer.sample_rate
         num_samples = int(sample_rate * self.duration_ms * 1e-3)
-        measurement_result = self.acquire_data(num_samples, self.nskip, self.cal_adjust)
+        measurement_result = self.acquire_data(
+            num_samples, self.nskip, self.cal_adjust, cal_params=self.parameters
+        )
         end_time = utils.get_datetime_str_now()
         measurement_result.update(self.parameters)
         measurement_result["end_time"] = end_time

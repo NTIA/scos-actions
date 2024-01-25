@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Union
 
 from scos_actions.calibration.interfaces.calibration import Calibration
+from scos_actions.calibration.utils import CalibrationEntryMissingException
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +46,25 @@ class SensorCalibration(Calibration):
         :param temp_degC: Temperature at calibration time, in degrees Celsius.
         :param file_path: File path for saving the updated calibration data.
         """
-        # Get existing calibration data entry which will be updated
-        data_entry = self._retrieve_data_to_update(params)
+        try:
+            # Get existing calibration data entry which will be updated
+            data_entry = self.get_calibration_dict(params)
+        except CalibrationEntryMissingException:
+            # Existing entry does not exist for these parameters. Make one.
+            data_entry = self.calibration_data
+            for p_name in self.calibration_parameters:
+                p_val = params[p_name]
+                try:
+                    data_entry = data_entry[p_val]
+                except KeyError:
+                    logger.debug(
+                        f"Creating calibration data field for {p_name}={p_val}"
+                    )
+                    data_entry[p_val] = {}
+                    data_entry = data_entry[p_val]
+        except Exception as e:
+            logger.exception("Failed to update calibration data.")
+            raise e
 
         # Update last calibration datetime
         self.last_calibration_datetime = calibration_datetime_str
