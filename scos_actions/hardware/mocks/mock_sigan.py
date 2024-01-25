@@ -31,7 +31,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         randomize_values: bool = False,
     ):
         super().__init__(switches)
-        self.auto_dc_offset = False
+        self._model = "Mock Signal Analyzer"
         self._frequency = 700e6
         self._sample_rate = 10e6
         self.clock_rate = 40e6
@@ -39,8 +39,6 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         self._attenuation = 0
         self._preamp_enable = False
         self._reference_level = -30
-        self._overload = False
-        self._capture_time = None
         self._is_available = True
         self._plugin_version = SCOS_ACTIONS_VERSION
         self._firmware_version = "1.2.3"
@@ -60,14 +58,6 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     @property
     def plugin_version(self):
         return self._plugin_version
-
-    @property
-    def firmware_version(self):
-        return self._firmware_version
-
-    @property
-    def api_version(self):
-        return self._api_version
 
     @property
     def sample_rate(self):
@@ -124,56 +114,46 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         pass
 
     def acquire_time_domain_samples(
-        self, num_samples: int, num_samples_skip: int = 0, retries: int = 5
+        self, num_samples: int, num_samples_skip: int = 0
     ) -> dict:
         logger.warning("Using mock signal analyzer!")
-        self.sigan_overload = False
-        self._capture_time = None
-        self._num_samples_skip = num_samples_skip
+        overload = False
+        capture_time = None
 
         # Try to acquire the samples
-        max_retries = retries
         data = []
-        while True:
-            if self.times_failed_recv < self.times_to_fail_recv:
-                self.times_failed_recv += 1
-                data = np.ones(0, dtype=np.complex64)
+        if self.times_failed_recv < self.times_to_fail_recv:
+            self.times_failed_recv += 1
+            data = np.ones(0, dtype=np.complex64)
+        else:
+            capture_time = get_datetime_str_now()
+            if self.randomize_values:
+                i = np.random.normal(0.5, 0.5, num_samples)
+                q = np.random.normal(0.5, 0.5, num_samples)
+                rand_iq = np.empty(num_samples, dtype=np.complex64)
+                rand_iq.real = i
+                rand_iq.imag = q
+                data = rand_iq
             else:
-                self._capture_time = get_datetime_str_now()
-                if self.randomize_values:
-                    i = np.random.normal(0.5, 0.5, num_samples)
-                    q = np.random.normal(0.5, 0.5, num_samples)
-                    rand_iq = np.empty(num_samples, dtype=np.complex64)
-                    rand_iq.real = i
-                    rand_iq.imag = q
-                    data = rand_iq
-                else:
-                    data = np.ones(num_samples, dtype=np.complex64)
+                data = np.ones(num_samples, dtype=np.complex64)
 
-            data_len = len(data)
-            if not len(data) == num_samples:
-                if retries > 0:
-                    msg = "Signal analyzer error: requested {} samples, but got {}."
-                    logger.warning(msg.format(num_samples + num_samples_skip, data_len))
-                    logger.warning(f"Retrying {retries} more times.")
-                    retries = retries - 1
-                else:
-                    err = "Failed to acquire correct number of samples "
-                    err += f"{max_retries} times in a row."
-                    raise RuntimeError(err)
-            else:
-                logger.debug(f"Successfully acquired {num_samples} samples.")
-                return {
-                    "data": data,
-                    "overload": self._overload,
-                    "frequency": self._frequency,
-                    "gain": self._gain,
-                    "attenuation": self._attenuation,
-                    "preamp_enable": self._preamp_enable,
-                    "reference_level": self._reference_level,
-                    "sample_rate": self._sample_rate,
-                    "capture_time": self._capture_time,
-                }
+        if (data_len := len(data)) != num_samples:
+            err = "Failed to acquire correct number of samples: "
+            err += f"got {data_len} instead of {num_samples}"
+            raise RuntimeError(err)
+        else:
+            logger.debug(f"Successfully acquired {num_samples} samples.")
+            return {
+                "data": data,
+                "overload": overload,
+                "frequency": self._frequency,
+                "gain": self._gain,
+                "attenuation": self._attenuation,
+                "preamp_enable": self._preamp_enable,
+                "reference_level": self._reference_level,
+                "sample_rate": self._sample_rate,
+                "capture_time": capture_time,
+            }
 
     def set_times_to_fail_recv(self, n):
         self.times_to_fail_recv = n
