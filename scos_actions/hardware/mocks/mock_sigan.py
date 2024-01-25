@@ -31,15 +31,6 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         randomize_values: bool = False,
     ):
         super().__init__(switches)
-        # Define the default calibration dict
-        self.DEFAULT_SENSOR_CALIBRATION = {
-            "datetime": get_datetime_str_now(),
-            "gain": 0,  # Defaults to sigan gain
-            "enbw": None,  # Defaults to sigan enbw
-            "noise_figure": None,  # Defaults to sigan noise figure
-            "1db_compression_point": None,  # Defaults to sigan compression + preselector gain
-            "temperature": 26.85,
-        }
         self.auto_dc_offset = False
         self._frequency = 700e6
         self._sample_rate = 10e6
@@ -61,7 +52,6 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         self.times_failed_recv = 0
 
         self.randomize_values = randomize_values
-        self.sensor_calibration_data = self.DEFAULT_SENSOR_CALIBRATION
 
     @property
     def is_available(self):
@@ -188,7 +178,3 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     def set_times_to_fail_recv(self, n):
         self.times_to_fail_recv = n
         self.times_failed_recv = 0
-
-    @property
-    def last_calibration_time(self):
-        return get_datetime_str_now()
