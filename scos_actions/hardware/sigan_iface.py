@@ -26,6 +26,8 @@ class SignalAnalyzerInterface(ABC):
         switches: Optional[Dict[str, WebRelay]] = None,
     ):
         self._model = "Unknown"
+        self._api_version = "Unknown"
+        self._firmware_version = "Unknown"
         self.switches = switches
 
     @property
@@ -43,12 +45,12 @@ class SignalAnalyzerInterface(ABC):
     @property
     def firmware_version(self) -> str:
         """Returns the version of the signal analyzer firmware."""
-        return "Unknown"
+        return self._firmware_version
 
     @property
     def api_version(self) -> str:
         """Returns the version of the underlying signal analyzer API."""
-        return "Unknown"
+        return self._api_version
 
     @abstractmethod
     def acquire_time_domain_samples(
