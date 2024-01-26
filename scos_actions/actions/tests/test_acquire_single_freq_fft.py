@@ -29,7 +29,7 @@ def test_detector():
     measurement_action_completed.connect(callback)
     action = actions["test_single_frequency_m4s_action"]
     assert action.description
-    sensor = Sensor(signal_analyzer=MockSignalAnalyzer())
+    sensor = Sensor(signal_analyzer=MockSignalAnalyzer(), capabilities={})
     action(
         sensor=sensor,
         schedule_entry=SINGLE_FREQUENCY_FFT_ACQUISITION,
@@ -89,6 +89,6 @@ def test_detector():
 def test_num_samples_skip():
     action = actions["test_single_frequency_m4s_action"]
     assert action.description
-    sensor = Sensor(signal_analyzer=MockSignalAnalyzer())
+    sensor = Sensor(signal_analyzer=MockSignalAnalyzer(), capabilities={})
     action(sensor, SINGLE_FREQUENCY_FFT_ACQUISITION, 1)
     assert action.sensor.signal_analyzer._num_samples_skip == action.parameters["nskip"]

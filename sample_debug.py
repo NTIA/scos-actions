@@ -53,7 +53,9 @@ def callback(sender, **kwargs):
 measurement_action_completed.connect(callback)
 
 action = SingleFrequencyFftAcquisition(parameters)
-sensor = Sensor(signal_analyzer=MockSignalAnalyzer(randomize_values=True))
+sensor = Sensor(
+    signal_analyzer=MockSignalAnalyzer(randomize_values=True), capabilities={}
+)
 action(sensor, schedule_entry_json, 1)
 print("metadata:")
 print(json.dumps(_metadata, indent=4))

@@ -35,7 +35,7 @@ def test_metadata_timedomain_iq_multiple_acquisition():
     action = actions["test_multi_frequency_iq_action"]
     assert action.description
     mock_sigan = MockSignalAnalyzer()
-    sensor = Sensor(signal_analyzer=mock_sigan)
+    sensor = Sensor(signal_analyzer=mock_sigan, capabilities={})
     action(sensor, SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1)
     for i in range(_count):
         assert _datas[i].any()
@@ -49,7 +49,7 @@ def test_num_samples_skip():
     action = actions["test_multi_frequency_iq_action"]
     assert action.description
     mock_sigan = MockSignalAnalyzer()
-    sensor = Sensor(signal_analyzer=mock_sigan)
+    sensor = Sensor(signal_analyzer=mock_sigan, capabilities={})
     action(sensor, SINGLE_TIMEDOMAIN_IQ_MULTI_RECORDING_ACQUISITION, 1)
     if isinstance(action.parameters["nskip"], list):
         assert (

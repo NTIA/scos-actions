@@ -23,7 +23,7 @@ def test_monitor_sigan_not_available():
     action = actions["test_monitor_sigan"]
     mock_sigan = MockSignalAnalyzer()
     mock_sigan._is_available = False
-    sensor = Sensor(signal_analyzer=mock_sigan)
+    sensor = Sensor(signal_analyzer=mock_sigan, capabilities={})
     action(sensor, MONITOR_SIGAN_SCHEDULE, 1)
     assert _api_restart_triggered == True  # signal sent
     mock_sigan._is_available = True
@@ -40,7 +40,7 @@ def test_monitor_sigan_not_healthy():
     action = actions["test_monitor_sigan"]
     mock_sigan = MockSignalAnalyzer()
     mock_sigan.times_to_fail_recv = 6
-    sensor = Sensor(signal_analyzer=mock_sigan)
+    sensor = Sensor(signal_analyzer=mock_sigan, capabilities={})
     action(sensor, MONITOR_SIGAN_SCHEDULE, 1)
     assert _api_restart_triggered == True  # signal sent
 
@@ -57,6 +57,6 @@ def test_monitor_sigan_healthy():
     mock_sigan = MockSignalAnalyzer()
     mock_sigan._is_available = True
     mock_sigan.set_times_to_fail_recv(0)
-    sensor = Sensor(signal_analyzer=mock_sigan)
+    sensor = Sensor(signal_analyzer=mock_sigan, capabilities={})
     action(sensor, MONITOR_SIGAN_SCHEDULE, 1)
     assert _api_restart_triggered == False  # signal not sent

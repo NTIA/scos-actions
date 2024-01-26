@@ -1,14 +1,10 @@
 import logging
 import subprocess
-from pathlib import Path
 from typing import Dict
 
 import psutil
-from its_preselector.configuration_exception import ConfigurationException
-from its_preselector.controlbyweb_web_relay import ControlByWebWebRelay
 from its_preselector.web_relay import WebRelay
 
-from scos_actions import utils
 from scos_actions.hardware.hardware_configuration_exception import (
     HardwareConfigurationException,
 )

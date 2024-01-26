@@ -31,7 +31,7 @@ def test_metadata_timedomain_iq_single_acquisition():
     measurement_action_completed.connect(callback)
     action = actions["test_single_frequency_iq_action"]
     assert action.description
-    sensor = Sensor(signal_analyzer=MockSignalAnalyzer())
+    sensor = Sensor(signal_analyzer=MockSignalAnalyzer(), capabilities={})
     action(sensor, SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1)
     assert _data.any()
     assert _metadata
@@ -62,7 +62,7 @@ def test_required_components():
     action = actions["test_single_frequency_m4s_action"]
     mock_sigan = MockSignalAnalyzer()
     mock_sigan._is_available = False
-    sensor = Sensor(signal_analyzer=mock_sigan)
+    sensor = Sensor(signal_analyzer=mock_sigan, capabilities={})
     with pytest.raises(RuntimeError):
         action(sensor, SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1)
     mock_sigan._is_available = True
@@ -72,6 +72,6 @@ def test_num_samples_skip():
     action = actions["test_single_frequency_iq_action"]
     assert action.description
     mock_sigan = MockSignalAnalyzer()
-    sensor = Sensor(signal_analyzer=mock_sigan)
+    sensor = Sensor(signal_analyzer=mock_sigan, capabilities={})
     action(sensor, SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1)
     assert action.sensor.signal_analyzer._num_samples_skip == action.parameters["nskip"]
