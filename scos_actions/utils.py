@@ -5,8 +5,6 @@ from pathlib import Path
 
 from dateutil import parser
 
-from scos_actions.status import start_time
-
 logger = logging.getLogger(__name__)
 
 
@@ -121,7 +119,7 @@ def get_parameter(p: str, params: dict):
     return params[p]
 
 
-def get_days_up():
+def get_days_up(start_time):
     elapsed = datetime.utcnow() - start_time
     days = elapsed.days
     fractional_day = elapsed.seconds / (60 * 60 * 24)

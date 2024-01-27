@@ -1,10 +1,9 @@
 import logging
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from typing import Optional
 
-from scos_actions.capabilities import SENSOR_LOCATION, capabilities
-from scos_actions.hardware import preselector
-from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.metadata.structs import ntia_scos, ntia_sensor
@@ -34,41 +33,39 @@ class Action(ABC):
 
     PRESELECTOR_PATH_KEY = "rf_path"
 
-    def __init__(self, parameters, sigan, gps=None):
-        if gps is None:
-            gps = MockGPS()
+    def __init__(self, parameters: dict):
+        self._sensor = None
         self.parameters = deepcopy(parameters)
-        self.sigan = sigan
-        self.gps = gps
-        self.sensor_definition = capabilities["sensor"]
         self.sigmf_builder = None
-        if (
-            "preselector" in self.sensor_definition
-            and "rf_paths" in self.sensor_definition["preselector"]
-        ):
-            self.has_configurable_preselector = True
-        else:
-            self.has_configurable_preselector = False
 
     def configure(self, params: dict):
         self.configure_sigan(params)
         self.configure_preselector(params)
 
+    @property
+    def sensor(self):
+        return self._sensor
+
+    @sensor.setter
+    def sensor(self, value: Sensor):
+        self._sensor = value
+
     def configure_sigan(self, params: dict):
         sigan_params = {k: v for k, v in params.items() if k in SIGAN_SETTINGS_KEYS}
         for key, value in sigan_params.items():
-            if hasattr(self.sigan, key):
+            if hasattr(self.sensor.signal_analyzer, key):
                 logger.debug(f"Applying setting to sigan: {key}: {value}")
-                setattr(self.sigan, key, value)
+                setattr(self.sensor.signal_analyzer, key, value)
             else:
                 logger.warning(f"Sigan does not have attribute {key}")
 
     def configure_preselector(self, params: dict):
+        preselector = self.sensor.preselector
         if self.PRESELECTOR_PATH_KEY in params:
             path = params[self.PRESELECTOR_PATH_KEY]
             logger.debug(f"Setting preselector RF path: {path}")
             preselector.set_state(path)
-        elif self.has_configurable_preselector:
+        elif self.sensor.has_configurable_preselector:
             # Require the RF path to be specified if the sensor has a preselector.
             raise ParameterException(
                 f"No {self.PRESELECTOR_PATH_KEY} value specified in the YAML config."
@@ -104,9 +101,14 @@ class Action(ABC):
         )
         sigmf_builder.set_action(action_obj)
 
-        if SENSOR_LOCATION is not None:
-            sigmf_builder.set_geolocation(SENSOR_LOCATION)
-        sigmf_builder.set_sensor(ntia_sensor.Sensor(**self.sensor_definition))
+        if self.sensor.location is not None:
+            sigmf_builder.set_geolocation(self.sensor.location)
+        if self.sensor.capabilities is not None and hasattr(
+            self.sensor.capabilities, "sensor"
+        ):
+            sigmf_builder.set_sensor(
+                ntia_sensor.Sensor(**self.sensor.capabilities["sensor"])
+            )
 
         self.sigmf_builder = sigmf_builder
 
@@ -126,5 +128,10 @@ class Action(ABC):
         return get_parameter("name", self.parameters)
 
     @abstractmethod
-    def __call__(self, schedule_entry, task_id):
+    def __call__(
+        self,
+        sensor: Sensor = None,
+        schedule_entry: Optional[dict] = None,
+        task_id: Optional[int] = None,
+    ):
         pass

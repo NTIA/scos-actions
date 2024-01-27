@@ -15,6 +15,8 @@ class Calibration:
     calibration_parameters: List[str]
     calibration_data: dict
     clock_rate_lookup_by_sample_rate: List[Dict[str, float]]
+    is_default: bool
+    file_path: Path
 
     def __post_init__(self):
         # Convert key names in calibration_data to strings
@@ -55,7 +57,6 @@ class Calibration:
         gain_dB: float,
         noise_figure_dB: float,
         temp_degC: float,
-        file_path: Path,
     ) -> None:
         """
         Update the calibration data by overwriting or adding an entry.
@@ -116,11 +117,11 @@ class Calibration:
             "clock_rate_lookup_by_sample_rate": self.clock_rate_lookup_by_sample_rate,
             "calibration_data": self.calibration_data,
         }
-        with open(file_path, "w") as outfile:
+        with open(self.file_path, "w") as outfile:
             outfile.write(json.dumps(cal_dict))
 
 
-def load_from_json(fname: Path) -> Calibration:
+def load_from_json(fname: Path, is_default: bool) -> Calibration:
     """
     Load a calibration from a JSON file.
 
@@ -131,6 +132,8 @@ def load_from_json(fname: Path) -> Calibration:
         ``clock_rate_lookup_by_sample_rate``
 
     :param fname: The ``Path`` to the JSON calibration file.
+    :param is_default: If True, the loaded calibration file
+        is treated as the default calibration file.
     :raises Exception: If the provided file does not include
         the required keys.
     :return: The ``Calibration`` object generated from the file.
@@ -157,6 +160,8 @@ def load_from_json(fname: Path) -> Calibration:
         calibration["calibration_parameters"],
         calibration["calibration_data"],
         calibration["clock_rate_lookup_by_sample_rate"],
+        is_default,
+        fname,
     )
 
 

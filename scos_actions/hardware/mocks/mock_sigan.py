@@ -1,10 +1,12 @@
 """Mock a signal analyzer for testing."""
 import logging
 from collections import namedtuple
+from typing import Optional
 
 import numpy as np
 
 from scos_actions import __version__ as SCOS_ACTIONS_VERSION
+from scos_actions.calibration.calibration import Calibration
 from scos_actions.hardware.sigan_iface import SignalAnalyzerInterface
 from scos_actions.utils import get_datetime_str_now
 
@@ -24,8 +26,14 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     gain: requested gain in dB
     """
 
-    def __init__(self, randomize_values=False):
-        super().__init__()
+    def __init__(
+        self,
+        sensor_cal: Optional[Calibration] = None,
+        sigan_cal: Optional[Calibration] = None,
+        switches: Optional[dict] = None,
+        randomize_values: bool = False,
+    ):
+        super().__init__(sensor_cal, sigan_cal, switches)
         # Define the default calibration dicts
         self.DEFAULT_SIGAN_CALIBRATION = {
             "datetime": get_datetime_str_now(),
@@ -204,7 +212,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     def recompute_sensor_calibration_data(self, cal_args: list) -> None:
         if self.sensor_calibration is not None:
             self.sensor_calibration_data.update(
-                self.sensor_calibration.get_calibration_dict(cal_args)
+                self._sensor_calibration.get_calibration_dict(cal_args)
             )
         else:
             logger.warning("Sensor calibration does not exist.")

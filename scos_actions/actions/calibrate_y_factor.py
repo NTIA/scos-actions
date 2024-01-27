@@ -75,13 +75,9 @@ import time
 import numpy as np
 from scipy.constants import Boltzmann
 from scipy.signal import sosfilt
-
-from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.calibration import sensor_calibration, default_sensor_calibration
-from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
-from scos_actions.settings import SENSOR_CALIBRATION_FILE
 from scos_actions.signal_processing.calibration import (
     get_linear_enr,
     get_temperature,
@@ -91,13 +87,12 @@ from scos_actions.signal_processing.filtering import (
     generate_elliptic_iir_low_pass_filter,
     get_iir_enbw,
 )
-from scos_actions.signal_processing.power_analysis import (
-    calculate_power_watts,
-    create_statistical_detector,
-)
+from scos_actions.signal_processing.power_analysis import calculate_power_watts
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
 from scos_actions.signals import trigger_api_restart
 from scos_actions.utils import ParameterException, get_parameter
+
+from scos_actions import utils
 
 logger = logging.getLogger(__name__)
 
@@ -140,12 +135,9 @@ class YFactorCalibration(Action):
     :param sigan: instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters, sigan, gps=None):
-        if gps is None:
-            gps = MockGPS()
+    def __init__(self, parameters: dict):
         logger.debug("Initializing calibration action")
-        super().__init__(parameters, sigan, gps)
-        self.sigan = sigan
+        super().__init__(parameters)
         self.iteration_params = utils.get_iterable_parameters(parameters)
 
         # IIR Filter Setup
@@ -201,8 +193,9 @@ class YFactorCalibration(Action):
                     "Only one set of IIR filter parameters may be specified (including sample rate)."
                 )
 
-    def __call__(self, schedule_entry: dict, task_id: int):
+    def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
+        self.sensor = sensor
         self.test_required_components()
         detail = ""
 
@@ -214,7 +207,7 @@ class YFactorCalibration(Action):
                 detail += os.linesep + self.calibrate(p)
         return detail
 
-    def calibrate(self, params):
+    def calibrate(self, params: dict):
         # Configure signal analyzer
         self.configure_sigan(params)
 
@@ -230,25 +223,29 @@ class YFactorCalibration(Action):
 
         # Set noise diode on
         logger.debug("Setting noise diode on")
-        self.configure_preselector({RF_PATH: nd_on_state})
+        self.configure_preselector(params={RF_PATH: nd_on_state})
         time.sleep(0.25)
 
         # Get noise diode on IQ
         logger.debug("Acquiring IQ samples with noise diode ON")
-        noise_on_measurement_result = self.sigan.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip, cal_adjust=False
+        noise_on_measurement_result = (
+            self.sensor.signal_analyzer.acquire_time_domain_samples(
+                num_samples, num_samples_skip=nskip, cal_adjust=False
+            )
         )
         sample_rate = noise_on_measurement_result["sample_rate"]
 
         # Set noise diode off
         logger.debug("Setting noise diode off")
-        self.configure_preselector({RF_PATH: nd_off_state})
+        self.configure_preselector(params={RF_PATH: nd_off_state})
         time.sleep(0.25)
 
         # Get noise diode off IQ
         logger.debug("Acquiring IQ samples with noise diode OFF")
-        noise_off_measurement_result = self.sigan.acquire_time_domain_samples(
-            num_samples, num_samples_skip=nskip, cal_adjust=False
+        noise_off_measurement_result = (
+            self.sensor.signal_analyzer.acquire_time_domain_samples(
+                num_samples, num_samples_skip=nskip, cal_adjust=False
+            )
         )
         assert (
             sample_rate == noise_off_measurement_result["sample_rate"]
@@ -262,21 +259,24 @@ class YFactorCalibration(Action):
             noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
             noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
         else:
-            if default_sensor_calibration:
+            if self.sensor.signal_analyzer.sensor_calibration.is_default:
                 raise Exception(
                     "Calibrations without IIR filter cannot be performed with default calibration."
                 )
 
             logger.debug("Skipping IIR filtering")
             # Get ENBW from sensor calibration
-            assert set(sensor_calibration.calibration_parameters) <= set(
+            assert set(
+                self.sensor.signal_analyzer.sensor_calibration.calibration_parameters
+            ) <= set(
                 sigan_params.keys()
             ), f"Action parameters do not include all required calibration parameters"
             cal_args = [
-                sigan_params[k] for k in sensor_calibration.calibration_parameters
+                sigan_params[k]
+                for k in self.sensor.signal_analyzer.sensor_calibration.calibration_parameters
             ]
-            self.sigan.recompute_sensor_calibration_data(cal_args)
-            enbw_hz = self.sigan.sensor_calibration_data["enbw"]
+            self.sensor.signal_analyzer.recompute_sensor_calibration_data(cal_args)
+            enbw_hz = self.sensor.signal_analyzer.sensor_calibration_data["enbw"]
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]
 
@@ -285,20 +285,17 @@ class YFactorCalibration(Action):
         pwr_off_watts = calculate_power_watts(noise_off_data) / 2.0
 
         # Y-Factor
-        enr_linear = get_linear_enr(cal_source_idx)
-        temp_k, temp_c, _ = get_temperature(temp_sensor_idx)
+        enr_linear = get_linear_enr(
+            preselector=self.sensor.preselector, cal_source_idx=cal_source_idx
+        )
+        temp_k, temp_c, _ = get_temperature(self.sensor.preselector, temp_sensor_idx)
         noise_figure, gain = y_factor(
             pwr_on_watts, pwr_off_watts, enr_linear, enbw_hz, temp_k
         )
 
         # Update sensor calibration with results
-        sensor_calibration.update(
-            sigan_params,
-            utils.get_datetime_str_now(),
-            gain,
-            noise_figure,
-            temp_c,
-            SENSOR_CALIBRATION_FILE,
+        self.sensor.signal_analyzer.sensor_calibration.update(
+            sigan_params, utils.get_datetime_str_now(), gain, noise_figure, temp_c
         )
 
         # Debugging
@@ -382,9 +379,9 @@ class YFactorCalibration(Action):
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
-        if not self.sigan.is_available:
+        if not self.sensor.signal_analyzer.is_available:
             msg = "acquisition failed: signal analyzer required but not available"
             trigger_api_restart.send(sender=self.__class__)
             raise RuntimeError(msg)
-        if not self.sigan.healthy():
+        if not self.sensor.signal_analyzer.healthy():
             trigger_api_restart.send(sender=self.__class__)

@@ -1,9 +1,10 @@
 """Monitor the signal analyzer."""
 
 import logging
+from typing import Optional
 
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.signals import trigger_api_restart
 
 logger = logging.getLogger(__name__)
@@ -12,15 +13,18 @@ logger = logging.getLogger(__name__)
 class MonitorSignalAnalyzer(Action):
     """Monitor signal analyzer connection and restart container if unreachable."""
 
-    def __init__(self, sigan, parameters={"name": "monitor_sigan"}, gps=None):
-        if gps is None:
-            gps = MockGPS()
-        super().__init__(parameters=parameters, sigan=sigan, gps=gps)
+    def __init__(self, parameters={"name": "monitor_sigan"}):
+        super().__init__(parameters=parameters)
 
-    def __call__(self, schedule_entry: dict, task_id: int):
+    def __call__(
+        self,
+        sensor: Sensor,
+        schedule_entry: Optional[dict] = None,
+        task_id: Optional[int] = None,
+    ):
         logger.debug("Performing signal analyzer health check")
-
-        healthy = self.sigan.healthy()
+        self._sensor = sensor
+        healthy = self.sensor.signal_analyzer.healthy()
 
         if healthy:
             logger.info("signal analyzer healthy")

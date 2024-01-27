@@ -1,10 +1,10 @@
-import copy
 import logging
 import time
 from abc import ABC, abstractmethod
+from typing import Dict, Optional
 
-from scos_actions.calibration import sensor_calibration, sigan_calibration
-from scos_actions.capabilities import capabilities
+from its_preselector.web_relay import WebRelay
+from scos_actions.calibration.calibration import Calibration
 from scos_actions.hardware.utils import power_cycle_sigan
 from scos_actions.utils import convert_string_to_millisecond_iso_format
 
@@ -23,17 +23,24 @@ SIGAN_SETTINGS_KEYS = [
 
 
 class SignalAnalyzerInterface(ABC):
-    def __init__(self):
+    def __init__(
+        self,
+        sensor_cal: Optional[Calibration] = None,
+        sigan_cal: Optional[Calibration] = None,
+        switches: Optional[Dict[str, WebRelay]] = None,
+    ):
         self.sensor_calibration_data = {}
         self.sigan_calibration_data = {}
-        self.sensor_calibration = sensor_calibration
-        self.sigan_calibration = sigan_calibration
+        self._sensor_calibration = sensor_cal
+        self._sigan_calibration = sigan_cal
+        self._model = "Unknown"
+        self.switches = switches
 
     @property
     def last_calibration_time(self) -> str:
         """Returns the last calibration time from calibration data."""
         return convert_string_to_millisecond_iso_format(
-            sensor_calibration.last_calibration_datetime
+            self.sensor_calibration.last_calibration_datetime
         )
 
     @property
@@ -84,7 +91,7 @@ class SignalAnalyzerInterface(ABC):
         """
         pass
 
-    def healthy(self, num_samples=56000):
+    def healthy(self, num_samples: int = 56000) -> bool:
         """Perform health check by collecting IQ samples."""
         logger.debug("Performing health check.")
         if not self.is_available:
@@ -112,7 +119,7 @@ class SignalAnalyzerInterface(ABC):
         """
         logger.info("Attempting to power cycle the signal analyzer and reconnect.")
         try:
-            power_cycle_sigan()
+            power_cycle_sigan(self.switches)
         except Exception as hce:
             logger.warning(f"Unable to power cycle sigan: {hce}")
             return
@@ -130,9 +137,9 @@ class SignalAnalyzerInterface(ABC):
 
     def recompute_sensor_calibration_data(self, cal_args: list) -> None:
         self.sensor_calibration_data = {}
-        if sensor_calibration is not None:
+        if self.sensor_calibration is not None:
             self.sensor_calibration_data.update(
-                sensor_calibration.get_calibration_dict(cal_args)
+                self.sensor_calibration.get_calibration_dict(cal_args)
             )
         else:
             logger.warning("Sensor calibration does not exist.")
@@ -140,20 +147,36 @@ class SignalAnalyzerInterface(ABC):
     def recompute_sigan_calibration_data(self, cal_args: list) -> None:
         self.sigan_calibration_data = {}
         """Set the sigan calibration data based on the current tuning"""
-        if sigan_calibration is not None:
+        if self.sigan_calibration is not None:
             self.sigan_calibration_data.update(
-                sigan_calibration.get_calibration_dict(cal_args)
+                self.sigan_calibration.get_calibration_dict(cal_args)
             )
         else:
             logger.warning("Sigan calibration does not exist.")
 
-    def get_status(self):
-        try:
-            sigan_model = capabilities["sensor"]["signal_analyzer"]["sigan_spec"][
-                "model"
-            ]
-            if sigan_model.lower() in ["default", ""]:
-                raise KeyError
-        except KeyError:
-            sigan_model = str(self.__class__)
-        return {"model": sigan_model, "healthy": self.healthy()}
+    def get_status(self) -> dict:
+        return {"model": self._model, "healthy": self.healthy()}
+
+    @property
+    def model(self) -> str:
+        return self._model
+
+    @model.setter
+    def model(self, value: str):
+        self._model = value
+
+    @property
+    def sensor_calibration(self) -> Calibration:
+        return self._sensor_calibration
+
+    @sensor_calibration.setter
+    def sensor_calibration(self, cal: Calibration):
+        self._sensor_calibration = cal
+
+    @property
+    def sigan_calibration(self) -> Calibration:
+        return self._sigan_calibration
+
+    @sigan_calibration.setter
+    def sigan_calibration(self, cal: Calibration):
+        self._sigan_calibration = cal

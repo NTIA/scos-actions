@@ -2,6 +2,8 @@ import pytest
 
 from scos_actions.actions.tests.utils import check_metadata_fields
 from scos_actions.discover import test_actions as actions
+from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.signals import measurement_action_completed
 
 SINGLE_TIMEDOMAIN_IQ_ACQUISITION = {
@@ -29,7 +31,8 @@ def test_metadata_timedomain_iq_single_acquisition():
     measurement_action_completed.connect(callback)
     action = actions["test_single_frequency_iq_action"]
     assert action.description
-    action(SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1)
+    sensor = Sensor(signal_analyzer=MockSignalAnalyzer(), capabilities={})
+    action(sensor, SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1)
     assert _data.any()
     assert _metadata
     assert _task_id == 1
@@ -57,15 +60,18 @@ def test_metadata_timedomain_iq_single_acquisition():
 
 def test_required_components():
     action = actions["test_single_frequency_m4s_action"]
-    sigan = action.sigan
-    sigan._is_available = False
+    mock_sigan = MockSignalAnalyzer()
+    mock_sigan._is_available = False
+    sensor = Sensor(signal_analyzer=mock_sigan, capabilities={})
     with pytest.raises(RuntimeError):
-        action(SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1)
-    sigan._is_available = True
+        action(sensor, SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1)
+    mock_sigan._is_available = True
 
 
 def test_num_samples_skip():
     action = actions["test_single_frequency_iq_action"]
     assert action.description
-    action(SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1)
-    assert action.sigan._num_samples_skip == action.parameters["nskip"]
+    mock_sigan = MockSignalAnalyzer()
+    sensor = Sensor(signal_analyzer=mock_sigan, capabilities={})
+    action(sensor, SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1)
+    assert action.sensor.signal_analyzer._num_samples_skip == action.parameters["nskip"]

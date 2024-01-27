@@ -1,5 +1,3 @@
-from environs import Env
-
 from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
 
 

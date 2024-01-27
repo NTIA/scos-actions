@@ -30,7 +30,7 @@ gps = MockGPS()
 
 def test_load_from_yaml_existing():
     """Any existing action definitions should be valid yaml."""
-    load_from_yaml(actions.action_classes, sigan, gps)
+    load_from_yaml(actions.action_classes)
 
 
 def _test_load_from_yaml_check_error(yaml_to_write, expected_error):
@@ -44,7 +44,7 @@ def _test_load_from_yaml_check_error(yaml_to_write, expected_error):
             tmpfile.seek(0)
         # Now try to load the invalid yaml file, expecting an error
         with pytest.raises(expected_error):
-            load_from_yaml(actions.action_classes, sigan, gps=gps, yaml_dir=tmpdir)
+            load_from_yaml(actions.action_classes, yaml_dir=tmpdir)
         os.unlink(tmpfile.name)
 
 

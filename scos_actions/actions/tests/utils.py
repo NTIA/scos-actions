@@ -1,13 +1,5 @@
 from sigmf.validate import validate as sigmf_validate
 
-SENSOR_DEFINITION = {
-    "id": "",
-    "sensor_spec": {"id": "", "model": "greyhound"},
-    "antenna": {"antenna_spec": {"id": "", "model": "L-com HG3512UP-NF"}},
-    "signal_analyzer": {"sigan_spec": {"id": "", "model": "Ettus USRP B210"}},
-    "computer_spec": {"id": "", "model": "Intel NUC"},
-}
-
 
 def check_metadata_fields(
     metadata, action, entry_name, action_name, task_id, recording=None

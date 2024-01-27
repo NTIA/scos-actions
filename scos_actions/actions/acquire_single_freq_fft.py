@@ -89,7 +89,6 @@ The resulting matrix is real-valued, 32-bit floats representing dBm.
 import logging
 
 from numpy import float32, ndarray
-
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.structs import ntia_algorithm
@@ -143,10 +142,8 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     :param sigan: Instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters, sigan, gps=None):
-        if gps is None:
-            gps = MockGPS()
-        super().__init__(parameters, sigan, gps)
+    def __init__(self, parameters: dict):
+        super().__init__(parameters)
         # Pull parameters from action config
         self.fft_size = get_parameter(FFT_SIZE, self.parameters)
         self.nffts = get_parameter(NUM_FFTS, self.parameters)
@@ -180,9 +177,9 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         # Save measurement results
         measurement_result["data"] = m4s_result
         measurement_result.update(self.parameters)
-        measurement_result["calibration_datetime"] = self.sigan.sensor_calibration_data[
-            "datetime"
-        ]
+        measurement_result[
+            "calibration_datetime"
+        ] = self.sensor.signal_analyzer.sensor_calibration_data["datetime"]
         measurement_result["task_id"] = task_id
         measurement_result["classification"] = self.classification
 
