@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 
-from scos_actions.calibration import sensor_calibration, sigan_calibration
 from scos_actions.calibration.calibration import (
     Calibration,
     filter_by_parameter,
@@ -181,7 +180,7 @@ class TestCalibrationFile:
             json.dump(cal_data, file, indent=4)
 
         # Load the data back in
-        self.sample_cal = load_from_json(self.calibration_file)
+        self.sample_cal = load_from_json(self.calibration_file, False)
 
         # Create a list of previous points to ensure that we don't repeat
         self.pytest_points = []
@@ -235,6 +234,8 @@ class TestCalibrationFile:
             calibration_params,
             calibration_data,
             clock_rate_lookup_by_sample_rate,
+            False,
+            Path(""),
         )
         cal_data = cal.get_calibration_dict([100.0, 200.0])
         assert cal_data["NF"] == "NF at 100, 200"
@@ -247,11 +248,14 @@ class TestCalibrationFile:
             200.0: {100.0: {"NF": "NF at 200, 100"}},
         }
         clock_rate_lookup_by_sample_rate = {}
+        test_cal_path = Path("test_calibration.json")
         cal = Calibration(
             calibration_datetime,
             calibration_params,
             calibration_data,
             clock_rate_lookup_by_sample_rate,
+            False,
+            test_cal_path,
         )
         with pytest.raises(CalibrationException) as e_info:
             cal_data = cal.get_calibration_dict([100.0, 250.0])
@@ -286,17 +290,19 @@ class TestCalibrationFile:
         calibration_params = ["sample_rate", "frequency"]
         calibration_data = {100.0: {200.0: {"noise_figure": 0, "gain": 0}}}
         clock_rate_lookup_by_sample_rate = {}
+        test_cal_path = Path("test_calibration.json")
         cal = Calibration(
             calibration_datetime,
             calibration_params,
             calibration_data,
             clock_rate_lookup_by_sample_rate,
+            False,
+            test_cal_path,
         )
         action_params = {"sample_rate": 100.0, "frequency": 200.0}
         update_time = get_datetime_str_now()
-        test_cal_path = Path("test_calibration.json")
-        cal.update(action_params, update_time, 30.0, 5.0, 21, test_cal_path)
-        cal_from_file = load_from_json(test_cal_path)
+        cal.update(action_params, update_time, 30.0, 5.0, 21)
+        cal_from_file = load_from_json(test_cal_path, False)
         test_cal_path.unlink()
         file_utc_time = parse_datetime_iso_format_str(cal.last_calibration_datetime)
         cal_time_utc = parse_datetime_iso_format_str(update_time)

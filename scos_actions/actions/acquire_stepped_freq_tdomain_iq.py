@@ -38,8 +38,6 @@ signals.
 import logging
 
 import numpy as np
-
-from scos_actions import utils
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     CAL_ADJUST,
     DURATION_MS,
@@ -47,11 +45,13 @@ from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     NUM_SKIP,
     SingleFrequencyTimeDomainIqAcquisition,
 )
-from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.metadata.structs import ntia_sensor
 from scos_actions.metadata.structs.capture import CaptureSegment
 from scos_actions.signals import measurement_action_completed
 from scos_actions.utils import get_parameter
+
+from scos_actions import utils
 
 logger = logging.getLogger(__name__)
 
@@ -77,20 +77,16 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
     :param sigan: instance of SignalAnalyzerInterface
     """
 
-    def __init__(self, parameters, sigan, gps=None):
-        if gps is None:
-            gps = MockGPS()
-        super().__init__(parameters=parameters, sigan=sigan, gps=gps)
+    def __init__(self, parameters: dict):
+        super().__init__(parameters=parameters)
         num_center_frequencies = len(parameters[FREQUENCY])
-
         # Create iterable parameter set
         self.iterable_params = utils.get_iterable_parameters(parameters)
-
-        self.sigan = sigan  # make instance variable to allow mocking
         self.num_center_frequencies = num_center_frequencies
 
-    def __call__(self, schedule_entry: dict, task_id: int):
+    def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
+        self._sensor = sensor
         self.test_required_components()
         saved_samples = 0
 
@@ -102,7 +98,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             duration_ms = get_parameter(DURATION_MS, measurement_params)
             nskip = get_parameter(NUM_SKIP, measurement_params)
             cal_adjust = get_parameter(CAL_ADJUST, measurement_params)
-            sample_rate = self.sigan.sample_rate
+            sample_rate = self.sensor.signal_analyzer.sample_rate
             num_samples = int(sample_rate * duration_ms * 1e-3)
             measurement_result = super().acquire_data(num_samples, nskip, cal_adjust)
             measurement_result.update(measurement_params)
@@ -121,8 +117,8 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                 overload=measurement_result["overload"],
                 sigan_settings=sigan_settings,
             )
-            sigan_cal = self.sigan.sigan_calibration_data
-            sensor_cal = self.sigan.sensor_calibration_data
+            sigan_cal = self.sensor.signal_analyzer.sigan_calibration_data
+            sensor_cal = self.sensor.signal_analyzer.sensor_calibration_data
             if sigan_cal is not None:
                 if "1db_compression_point" in sigan_cal:
                     sigan_cal["compression_point"] = sigan_cal.pop(

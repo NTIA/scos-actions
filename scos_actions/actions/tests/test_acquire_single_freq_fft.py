@@ -1,6 +1,7 @@
-from scos_actions.actions.tests.utils import SENSOR_DEFINITION, check_metadata_fields
-from scos_actions.capabilities import capabilities
+from scos_actions.actions.tests.utils import check_metadata_fields
 from scos_actions.discover import test_actions as actions
+from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.signals import measurement_action_completed
 
 SINGLE_FREQUENCY_FFT_ACQUISITION = {
@@ -10,7 +11,6 @@ SINGLE_FREQUENCY_FFT_ACQUISITION = {
     "interval": None,
     "action": "test_single_frequency_m4s_action",
 }
-capabilities["sensor"] = SENSOR_DEFINITION
 
 
 def test_detector():
@@ -29,7 +29,12 @@ def test_detector():
     measurement_action_completed.connect(callback)
     action = actions["test_single_frequency_m4s_action"]
     assert action.description
-    action(SINGLE_FREQUENCY_FFT_ACQUISITION, 1)
+    sensor = Sensor(signal_analyzer=MockSignalAnalyzer(), capabilities={})
+    action(
+        sensor=sensor,
+        schedule_entry=SINGLE_FREQUENCY_FFT_ACQUISITION,
+        task_id=1,
+    )
     assert _task_id
     assert _data.any()
     assert _metadata
@@ -84,5 +89,6 @@ def test_detector():
 def test_num_samples_skip():
     action = actions["test_single_frequency_m4s_action"]
     assert action.description
-    action(SINGLE_FREQUENCY_FFT_ACQUISITION, 1)
-    assert action.sigan._num_samples_skip == action.parameters["nskip"]
+    sensor = Sensor(signal_analyzer=MockSignalAnalyzer(), capabilities={})
+    action(sensor, SINGLE_FREQUENCY_FFT_ACQUISITION, 1)
+    assert action.sensor.signal_analyzer._num_samples_skip == action.parameters["nskip"]

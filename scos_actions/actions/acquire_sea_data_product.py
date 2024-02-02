@@ -20,7 +20,6 @@ r"""Acquire a NASCTN SEA data product.
 
 Currently in development.
 """
-import json
 import logging
 import lzma
 import platform
@@ -39,9 +38,7 @@ from scipy.signal import sos2tf, sosfilt
 from scos_actions import __version__ as SCOS_ACTIONS_VERSION
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
-from scos_actions.capabilities import SENSOR_DEFINITION_HASH, SENSOR_LOCATION
-from scos_actions.hardware import preselector, switches
-from scos_actions.hardware.mocks.mock_gps import MockGPS
+from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.utils import (
     get_cpu_uptime_seconds,
     get_current_cpu_clock_speed,
@@ -77,7 +74,6 @@ from scos_actions.signal_processing.power_analysis import (
     create_statistical_detector,
 )
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
-from scos_actions.status import start_time
 from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
 
 env = Env()
@@ -121,7 +117,9 @@ NUM_ACTORS = 3  # Number of ray actors to initialize
 
 # Create power detectors
 TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["max", "mean"])
-FFT_M3_DETECTOR = create_statistical_detector("FftM3Detector", ["max", "mean", "median"])
+FFT_M3_DETECTOR = create_statistical_detector(
+    "FftM3Detector", ["max", "mean", "median"]
+)
 PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
 
 
@@ -158,7 +156,7 @@ class PowerSpectralDensity:
         # Compute the amplitude shift for PSD scaling. The FFT result
         # is in pseudo-power log units and must be scaled to a PSD.
         self.fft_scale_factor = (
-            - 10.0 * np.log10(impedance_ohms)  # Pseudo-power to power
+            -10.0 * np.log10(impedance_ohms)  # Pseudo-power to power
             + 27.0  # Watts to dBm (+30) and baseband to RF (-3)
             - 10.0 * np.log10(sample_rate_Hz * fft_size)  # PSD scaling
             + 20.0 * np.log10(window_ecf)  # Window energy correction
@@ -178,7 +176,9 @@ class PowerSpectralDensity:
         )
         # Power in Watts
         fft_amplitudes = calculate_pseudo_power(fft_amplitudes)
-        fft_result = apply_statistical_detector(fft_amplitudes, self.detector)  # (max, mean, median)
+        fft_result = apply_statistical_detector(
+            fft_amplitudes, self.detector
+        )  # (max, mean, median)
         percentile_result = np.percentile(fft_amplitudes, self.percentiles, axis=0)
         fft_result = np.vstack((fft_result, percentile_result))
         fft_result = np.fft.fftshift(fft_result, axes=(1,))  # Shift frequencies
@@ -449,10 +449,8 @@ class NasctnSeaDataProduct(Action):
     :param sigan: Instance of SignalAnalyzerInterface.
     """
 
-    def __init__(self, parameters, sigan, gps=None):
-        if gps is None:
-            gps = MockGPS()
-        super().__init__(parameters, sigan, gps)
+    def __init__(self, parameters: dict):
+        super().__init__(parameters)
         # Assume preselector is present
         rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
         self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
@@ -505,8 +503,9 @@ class NasctnSeaDataProduct(Action):
         # Get iterable parameter list
         self.iteration_params = utils.get_iterable_parameters(self.parameters)
 
-    def __call__(self, schedule_entry, task_id):
+    def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
+        self._sensor = sensor
         action_start_tic = perf_counter()
 
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
@@ -521,7 +520,7 @@ class NasctnSeaDataProduct(Action):
             schedule_entry,
             self.iteration_params,
         )
-        self.create_global_sensor_metadata()
+        self.create_global_sensor_metadata(self.sensor)
         self.create_global_data_product_metadata()
 
         # Initialize remote supervisor actors for IQ processing
@@ -607,7 +606,7 @@ class NasctnSeaDataProduct(Action):
         self.sigmf_builder.set_median_channel_powers(median_ch_pwrs)
         # Get diagnostics last to record action runtime
         self.capture_diagnostics(
-            action_start_tic, cpu_speed
+            self.sensor, action_start_tic, cpu_speed
         )  # Add diagnostics to metadata
 
         measurement_action_completed.send(
@@ -627,17 +626,23 @@ class NasctnSeaDataProduct(Action):
         nskip = utils.get_parameter(NUM_SKIP, params)
         num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
         # Collect IQ data
-        measurement_result = self.sigan.acquire_time_domain_samples(num_samples, nskip)
+        measurement_result = self.sensor.signal_analyzer.acquire_time_domain_samples(
+            num_samples, nskip
+        )
         # Store some metadata with the IQ
         measurement_result.update(params)
-        measurement_result["sensor_cal"] = self.sigan.sensor_calibration_data
+        measurement_result[
+            "sensor_cal"
+        ] = self.sensor.signal_analyzer.sensor_calibration_data
         toc = perf_counter()
         logger.debug(
             f"IQ Capture ({duration_ms} ms @ {(params[FREQUENCY]/1e6):.1f} MHz) completed in {toc-tic:.2f} s."
         )
         return measurement_result
 
-    def capture_diagnostics(self, action_start_tic: float, cpu_speeds: list) -> None:
+    def capture_diagnostics(
+        self, sensor: Sensor, action_start_tic: float, cpu_speeds: list
+    ) -> None:
         """
         Capture diagnostic sensor data.
 
@@ -701,7 +706,7 @@ class NasctnSeaDataProduct(Action):
         switch_diag = {}
         all_switch_status = {}
         # Add status for any switch
-        for switch in switches.values():
+        for switch in self.sensor.switches.values():
             switch_status = switch.get_status()
             del switch_status["name"]
             del switch_status["healthy"]
@@ -715,7 +720,7 @@ class NasctnSeaDataProduct(Action):
             switch_diag["door_closed"] = not bool(all_switch_status["door_state"])
 
         # Read preselector sensors
-        ps_diag = preselector.get_status()
+        ps_diag = sensor.preselector.get_status()
         del ps_diag["name"]
         del ps_diag["healthy"]
 
@@ -756,12 +761,12 @@ class NasctnSeaDataProduct(Action):
             logger.warning("Failed to get CPU overheating status")
         try:  # SCOS start time
             cpu_diag["software_start"] = convert_datetime_to_millisecond_iso_format(
-                start_time
+                self.sensor.start_time
             )
         except:
             logger.warning("Failed to get SCOS start time")
         try:  # SCOS uptime
-            cpu_diag["software_uptime"] = get_days_up()
+            cpu_diag["software_uptime"] = get_days_up(self.sensor.start_time)
         except:
             logger.warning("Failed to get SCOS uptime")
         try:  # SSD SMART data
@@ -777,11 +782,11 @@ class NasctnSeaDataProduct(Action):
             "scos_sensor_version": SCOS_SENSOR_GIT_TAG,
             "scos_actions_version": SCOS_ACTIONS_VERSION,
             "scos_sigan_plugin": ntia_diagnostics.ScosPlugin(
-                name="scos_tekrsa", version=self.sigan.plugin_version
+                name="scos_tekrsa", version=self.sensor.signal_analyzer.plugin_version
             ),
             "preselector_api_version": PRESELECTOR_API_VERSION,
-            "sigan_firmware_version": self.sigan.firmware_version,
-            "sigan_api_version": self.sigan.api_version,
+            "sigan_firmware_version": self.sensor.signal_analyzer.firmware_version,
+            "sigan_api_version": self.sensor.signal_analyzer.api_version,
         }
 
         toc = perf_counter()
@@ -830,7 +835,10 @@ class NasctnSeaDataProduct(Action):
             logger.warning("No internal_temp found in switch status.")
         try:
             switch_diag["temperature_sensors"].append(
-                {"name": "sigan_internal_temp", "value": self.sigan.temperature}
+                {
+                    "name": "sigan_internal_temp",
+                    "value": self.sensor.signal_analyzer.temperature,
+                }
             )
         except:
             logger.warning("Unable to read internal sigan temperature")
@@ -942,25 +950,25 @@ class NasctnSeaDataProduct(Action):
         else:
             logger.warning("No preselector_powered found in switch status.")
 
-    def create_global_sensor_metadata(self):
+    def create_global_sensor_metadata(self, sensor: Sensor):
         # Add (minimal) ntia-sensor metadata to the sigmf_builder:
         # sensor ID and sensor definition hash, to link to full sensor definition
         self.sigmf_builder.set_sensor(
             ntia_sensor.Sensor(
                 sensor_spec=ntia_core.HardwareSpec(
-                    id=self.sensor_definition["sensor_spec"]["id"],
+                    id=sensor.capabilities["sensor"]["sensor_spec"]["id"],
                 ),
-                sensor_sha512=SENSOR_DEFINITION_HASH,
+                sensor_sha512=sensor.capabilities["sensor"]["sensor_sha512"],
             )
         )
 
     def test_required_components(self):
         """Fail acquisition if a required component is not available."""
-        if not self.sigan.is_available:
+        if not self.sensor.signal_analyzer.is_available:
             msg = "Acquisition failed: signal analyzer is not available"
             trigger_api_restart.send(sender=self.__class__)
             raise RuntimeError(msg)
-        if not self.sigan.healthy():
+        if not self.sensor.signal_analyzer.healthy():
             trigger_api_restart.send(sender=self.__class__)
         return None
 
@@ -999,7 +1007,8 @@ class NasctnSeaDataProduct(Action):
             name="Power Spectral Density",
             series=[d.value for d in FFT_M3_DETECTOR]
             + [
-                f"{int(p)}th_percentile" if p.is_integer() else f"{p}th_percentile" for p in FFT_PERCENTILES
+                f"{int(p)}th_percentile" if p.is_integer() else f"{p}th_percentile"
+                for p in FFT_PERCENTILES
             ],  # ["max", "mean", "median", "25th_percentile", "75th_percentile", ... "99.99th_percentile"]
             length=int(FFT_SIZE * (5 / 7)),
             x_units="Hz",
@@ -1106,7 +1115,7 @@ class NasctnSeaDataProduct(Action):
 
         capture_segment = CaptureSegment(
             sample_start=channel_idx * self.total_channel_data_length,
-            frequency=self.sigan.frequency,
+            frequency=self.sensor.signal_analyzer.frequency,
             datetime=measurement_result["capture_time"],
             duration=measurement_result[DURATION_MS],
             overload=measurement_result["overload"],
@@ -1118,9 +1127,9 @@ class NasctnSeaDataProduct(Action):
                 reference=DATA_REFERENCE_POINT,
             ),
             sigan_settings=ntia_sensor.SiganSettings(
-                reference_level=self.sigan.reference_level,
-                attenuation=self.sigan.attenuation,
-                preamp_enable=self.sigan.preamp_enable,
+                reference_level=self.sensor.signal_analyzer.reference_level,
+                attenuation=self.sensor.signal_analyzer.attenuation,
+                preamp_enable=self.sensor.signal_analyzer.preamp_enable,
             ),
         )
         self.sigmf_builder.add_capture(capture_segment)
@@ -1153,13 +1162,10 @@ class NasctnSeaDataProduct(Action):
             # Do not include lengthy description
         )
         sigmf_builder.set_action(action_obj)
-
-        if SENSOR_LOCATION is not None:
-            sigmf_builder.set_geolocation(SENSOR_LOCATION)
+        if self.sensor.location is not None:
+            sigmf_builder.set_geolocation(self.sensor.location)
         else:
-            logger.error("Set the sensor location in the SCOS admin web UI")
-            raise RuntimeError
-
+            raise Exception("Sensor does not have a location defined.")
         sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
         sigmf_builder.set_sample_rate(sample_rate_Hz)
         sigmf_builder.set_num_channels(len(iter_params))

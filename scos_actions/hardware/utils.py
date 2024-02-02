@@ -1,9 +1,10 @@
 import logging
 import subprocess
+from typing import Dict
 
 import psutil
+from its_preselector.web_relay import WebRelay
 
-from scos_actions.hardware import switches
 from scos_actions.hardware.hardware_configuration_exception import (
     HardwareConfigurationException,
 )
@@ -126,7 +127,7 @@ def get_max_cpu_temperature(fahrenheit: bool = False) -> float:
         raise e
 
 
-def power_cycle_sigan():
+def power_cycle_sigan(switches: Dict[str, WebRelay]):
     """
     Performs a hard power cycle of the signal analyzer. This method requires power to the signal analyzer is
     controlled by a Web_Relay (see https://www.github.com/ntia/Preselector) and that the switch id of that
