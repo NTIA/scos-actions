@@ -53,7 +53,7 @@ dependencies = [
     "ray>=2.6.3,<2.8.0",
     "ruamel.yaml>=0.15",
     "scipy>=1.8.0",
-    "sigmf @ git+https://github.com/NTIA/SigMF@multi-recording-archive",
+    "sigmf @ git+https://github.com/NTIA/sigmf-python@multirecording2_its_review",
 ]
 
 [project.optional-dependencies]

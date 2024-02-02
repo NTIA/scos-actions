@@ -4,7 +4,7 @@ from sigmf.validate import validate as sigmf_validate
 def check_metadata_fields(
     metadata, action, entry_name, action_name, task_id, recording=None
 ):
-    assert sigmf_validate(metadata)
+    sigmf_validate(metadata)
     # schema_validate(sigmf_metadata, schema)
     assert "ntia-scos:action" in metadata["global"]
     assert metadata["global"]["ntia-scos:action"]["name"] == action_name

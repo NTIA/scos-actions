@@ -1144,7 +1144,6 @@ class NasctnSeaDataProduct(Action):
         iter_params: list,
     ) -> None:
         """Build SigMF that applies to the entire capture (all channels)"""
-        sigmf_builder = SigMFBuilder()
 
         # Keep only keys supported by ntia-scos ScheduleEntry SigMF
         schedule_entry_cleaned = {
@@ -1155,6 +1154,7 @@ class NasctnSeaDataProduct(Action):
         if "id" not in schedule_entry_cleaned:
             # If there is no ID, reuse the "name" as the ID
             schedule_entry_cleaned["id"] = schedule_entry_cleaned["name"]
+            sigmf_builder = SigMFBuilder(name=schedule_entry_cleaned["name"])
         schedule_entry_obj = ntia_scos.ScheduleEntry(**schedule_entry_cleaned)
         sigmf_builder.set_schedule(schedule_entry_obj)
 

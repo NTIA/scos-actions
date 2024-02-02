@@ -56,8 +56,8 @@ GLOBAL_INFO = {
 
 
 class SigMFBuilder:
-    def __init__(self):
-        self.sigmf_md = SigMFFile()
+    def __init__(self, name):
+        self.sigmf_md = SigMFFile(name=name)
         self.sigmf_md.set_global_info(GLOBAL_INFO.copy())
         self.metadata_generators = {}
 

@@ -81,7 +81,6 @@ class Action(ABC):
         Schedule entry and action information will be populated using `ntia-scos`
         fields, and sensor metadata will be filled using `ntia-sensor` fields.
         """
-        sigmf_builder = SigMFBuilder()
 
         schedule_entry_cleaned = {
             k: v
@@ -91,6 +90,7 @@ class Action(ABC):
         if "id" not in schedule_entry_cleaned:
             # If there is no ID, reuse the "name" as the ID as well
             schedule_entry_cleaned["id"] = schedule_entry_cleaned["name"]
+        sigmf_builder = SigMFBuilder(name=schedule_entry_cleaned["name"])
         schedule_entry_obj = ntia_scos.ScheduleEntry(**schedule_entry_cleaned)
         sigmf_builder.set_schedule(schedule_entry_obj)
 
