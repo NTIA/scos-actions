@@ -61,15 +61,16 @@ class Action(ABC):
 
     def configure_preselector(self, params: dict):
         preselector = self.sensor.preselector
-        if self.PRESELECTOR_PATH_KEY in params:
-            path = params[self.PRESELECTOR_PATH_KEY]
-            logger.debug(f"Setting preselector RF path: {path}")
-            preselector.set_state(path)
-        elif self.sensor.has_configurable_preselector:
-            # Require the RF path to be specified if the sensor has a preselector.
-            raise ParameterException(
-                f"No {self.PRESELECTOR_PATH_KEY} value specified in the YAML config."
-            )
+        if self.sensor.has_configurable_preselector:
+            if self.PRESELECTOR_PATH_KEY in params:
+                path = params[self.PRESELECTOR_PATH_KEY]
+                logger.debug(f"Setting preselector RF path: {path}")
+                preselector.set_state(path)
+            else:
+                # Require the RF path to be specified if the sensor has a preselector.
+                raise ParameterException(
+                    f"No {self.PRESELECTOR_PATH_KEY} value specified in the YAML config."
+                )
         else:
             # No preselector in use, so do not require an RF path
             pass
