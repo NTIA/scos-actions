@@ -1,6 +1,7 @@
 nasctn_sea_data_product:
   name: test_nasctn_sea_data_product
   rf_path: antenna
+  calibration_adjust: False
 # IIR filter settings
   iir_apply: True
   iir_gpass_dB: 0.1  # Max passband ripple below unity gain
