@@ -75,6 +75,8 @@ import time
 import numpy as np
 from scipy.constants import Boltzmann
 from scipy.signal import sosfilt
+
+from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
@@ -91,8 +93,6 @@ from scos_actions.signal_processing.power_analysis import calculate_power_watts
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
 from scos_actions.signals import trigger_api_restart
 from scos_actions.utils import ParameterException, get_parameter
-
-from scos_actions import utils
 
 logger = logging.getLogger(__name__)
 
@@ -196,6 +196,8 @@ class YFactorCalibration(Action):
     def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
         self.sensor = sensor
+        if self.sensor.sensor_calibration is None:
+            raise Exception("Sensor object must have a SensorCalibration object")
         self.test_required_components()
         detail = ""
 
