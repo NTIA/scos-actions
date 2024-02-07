@@ -316,7 +316,9 @@ class Sensor:
                 calibrated_gain__db = self.sensor_calibration_data["gain"]
                 calibrated_nf__db = self.sensor_calibration_data["noise_figure"]
                 logger.debug(f"Using sensor gain: {calibrated_gain__db} dB")
-                measurement_result = self.sensor_calibration.calibration_reference
+                measurement_result[
+                    "reference"
+                ] = self.sensor_calibration.calibration_reference
                 if self.differential_calibration is not None:
                     # Also apply differential calibration correction
                     differential_loss = self.differential_calibration_data["loss"]
