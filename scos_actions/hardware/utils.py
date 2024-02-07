@@ -4,6 +4,7 @@ from typing import Dict
 
 import psutil
 from its_preselector.web_relay import WebRelay
+
 from scos_actions.hardware.hardware_configuration_exception import (
     HardwareConfigurationException,
 )

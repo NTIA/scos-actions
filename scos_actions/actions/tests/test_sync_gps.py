@@ -2,6 +2,7 @@ import subprocess
 import sys
 
 import pytest
+
 from scos_actions.discover import test_actions
 from scos_actions.hardware.mocks.mock_sensor import MockSensor
 from scos_actions.signals import location_action_completed

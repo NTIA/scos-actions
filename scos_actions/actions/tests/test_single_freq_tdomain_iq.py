@@ -1,4 +1,5 @@
 import pytest
+
 from scos_actions.actions.tests.utils import check_metadata_fields
 from scos_actions.discover import test_actions as actions
 from scos_actions.hardware.mocks.mock_sensor import MockSensor
@@ -65,3 +66,12 @@ def test_required_components():
     with pytest.raises(RuntimeError):
         action(sensor, SINGLE_TIMEDOMAIN_IQ_ACQUISITION, 1)
     mock_sigan._is_available = True
+
+
+def test_num_samples_skip():
+    action = actions["test_single_frequency_iq_action"]
+    assert action.description
+    action(
+        sensor=MockSensor(), schedule_entry=SINGLE_TIMEDOMAIN_IQ_ACQUISITION, task_id=1
+    )
+    assert action.sensor.signal_analyzer._num_samples_skip == action.parameters["nskip"]
