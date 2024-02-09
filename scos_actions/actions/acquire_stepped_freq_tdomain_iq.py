@@ -104,6 +104,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             sample_rate = self.sensor.signal_analyzer.sample_rate
             num_samples = int(sample_rate * duration_ms * 1e-3)
             measurement_result = super().acquire_data(num_samples, nskip, cal_adjust)
+            logger.debug("Acquired measurement_result")
             measurement_result.update(measurement_params)
             end_time = utils.get_datetime_str_now()
             measurement_result["end_time"] = end_time
@@ -138,14 +139,8 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                     )
             measurement_result["capture_segment"] = capture_segment
 
+            logger.debug("Creating metadata for measurement result")
             self.create_metadata(measurement_result, recording_id)
-            measurement_action_completed.send(
-                sender=self.__class__,
-                task_id=task_id,
-                data=measurement_result["data"],
-                metadata=self.sigmf_builder.metadata,
-            )
-            saved_samples += num_samples
             snapshot = tracemalloc.take_snapshot()
             if last_snapshot:
                 stats = snapshot.compare_to(last_snapshot, 'lineno')
@@ -153,6 +148,15 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                 for stat in stats[:10]:
                     logger.debug(stat)
             last_snapshot = snapshot
+            logger.debug("sending measurement result to handler")
+            measurement_action_completed.send(
+                sender=self.__class__,
+                task_id=task_id,
+                data=measurement_result["data"],
+                metadata=self.sigmf_builder.metadata,
+            )
+            saved_samples += num_samples
+            
 
     @property
     def description(self):
