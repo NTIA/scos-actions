@@ -91,6 +91,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         self.test_required_components()
         saved_samples = 0
         last_snapshot = None
+        tracemalloc.start()
 
         for recording_id, measurement_params in enumerate(
             self.iterable_params, start=1
