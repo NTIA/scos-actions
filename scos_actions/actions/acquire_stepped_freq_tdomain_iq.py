@@ -38,6 +38,7 @@ signals.
 import logging
 
 import numpy as np
+import tracemalloc
 from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     CAL_ADJUST,
     DURATION_MS,
@@ -89,6 +90,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         self._sensor = sensor
         self.test_required_components()
         saved_samples = 0
+        last_snapshot = None
 
         for recording_id, measurement_params in enumerate(
             self.iterable_params, start=1
@@ -143,6 +145,13 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                 metadata=self.sigmf_builder.metadata,
             )
             saved_samples += num_samples
+            snapshot = tracemalloc.take_snapshot()
+            if last_snapshot:
+                stats = snapshot.compare_to(last_snapshot, 'lineno')
+                logger.debug("memory snapshot comparison")
+                for stat in stats[:10]:
+                    logger.debug(stat)
+            last_snapshot = snapshot
 
     @property
     def description(self):
