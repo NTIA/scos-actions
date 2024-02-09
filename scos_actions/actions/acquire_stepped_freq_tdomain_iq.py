@@ -90,8 +90,8 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
         self._sensor = sensor
         self.test_required_components()
         saved_samples = 0
-        last_snapshot = None
-        tracemalloc.start()
+        #last_snapshot = None
+        #tracemalloc.start()
 
         for recording_id, measurement_params in enumerate(
             self.iterable_params, start=1
@@ -141,13 +141,13 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
 
             logger.debug("Creating metadata for measurement result")
             self.create_metadata(measurement_result, recording_id)
-            snapshot = tracemalloc.take_snapshot()
-            if last_snapshot:
-                stats = snapshot.compare_to(last_snapshot, 'lineno')
-                logger.debug("memory snapshot comparison")
-                for stat in stats[:10]:
-                    logger.debug(stat)
-            last_snapshot = snapshot
+            # snapshot = tracemalloc.take_snapshot()
+            # if last_snapshot:
+            #     stats = snapshot.compare_to(last_snapshot, 'lineno')
+            #     logger.debug("memory snapshot comparison")
+            #     for stat in stats[:10]:
+            #         logger.debug(stat)
+            # last_snapshot = snapshot
             logger.debug("sending measurement result to handler")
             measurement_action_completed.send(
                 sender=self.__class__,
