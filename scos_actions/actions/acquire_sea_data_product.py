@@ -79,9 +79,6 @@ from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_d
 env = Env()
 logger = logging.getLogger(__name__)
 
-if not ray.is_initialized():
-    # Dashboard is only enabled if ray[default] is installed
-    ray.init()
 
 # Define parameter keys
 RF_PATH = "rf_path"
