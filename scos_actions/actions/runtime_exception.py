@@ -29,4 +29,4 @@ class RuntimeException(Action):
         logger.log(
             level=self.loglvl, msg=msg.format(name=schedule_entry_name, tid=task_id)
         )
-        RuntimeError("RuntimeError from RuntimeErrorAction")
+        raise RuntimeError("RuntimeError from RuntimeErrorAction")
