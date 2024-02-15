@@ -1,6 +1,7 @@
 """A simple action to create a segfault."""
-import ctypes
+
 import logging
+import sys
 from typing import Optional
 
 from scos_actions.actions.interfaces.action import Action
@@ -24,10 +25,6 @@ class SegFault(Action):
         self.loglvl = loglvl
 
     def __call__(self, sensor: Optional[Sensor], schedule_entry: dict, task_id: int):
-        i = ctypes.c_char('a')
-        j = ctypes.pointer(i)
-        c = 0
-        while True:
-                j[c] = 'a'
-                c += 1
-        j
+        sys.setrecursionlimit(1 << 30)
+        f = lambda f: f(f)
+        f(f)
