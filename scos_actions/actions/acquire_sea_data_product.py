@@ -102,6 +102,7 @@ REFERENCE_LEVEL = "reference_level"
 DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
 PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
+CAL_ADJUST = "calibration_adjust"
 
 # Constants
 DATA_TYPE = np.half
@@ -161,6 +162,7 @@ class PowerSpectralDensity:
             - 10.0 * np.log10(sample_rate_Hz * fft_size)  # PSD scaling
             + 20.0 * np.log10(window_ecf)  # Window energy correction
         )
+        self.cal_adjust = True
 
     def run(self, iq: ray.ObjectRef) -> np.ndarray:
         """
@@ -629,8 +631,7 @@ class NasctnSeaDataProduct(Action):
         cal_adjust = True
         for key, value in params.items():
             logger.debug(f"param {key}={value}")
-        if "calibration_adjust" in params:
-            cal_adjust = params["calibration_adjust"]
+        self.cal_adjust = utils.get_parameter(CAL_ADJUST, params)
         logger.debug(f"cal_adjust={cal_adjust}")
         measurement_result = self.sensor.signal_analyzer.acquire_time_domain_samples(
             num_samples, nskip, cal_adjust=cal_adjust
@@ -1134,7 +1135,7 @@ class NasctnSeaDataProduct(Action):
                 preamp_enable=self.sensor.signal_analyzer.preamp_enable,
             ),
         )
-        if "sensor_cal" in measurement_result:
+        if self.cal_adjust:
             capture_segment.sensor_calibration=ntia_sensor.Calibration(
                 datetime=measurement_result["sensor_cal"]["datetime"],
                 gain=round(measurement_result["sensor_cal"]["gain"], 3),
