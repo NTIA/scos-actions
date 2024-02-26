@@ -277,8 +277,15 @@ class Sensor:
         :raises Exception: If the sample acquisition fails, or the sensor has
             no signal analyzer.
         """
+        logger.debug("***********************************\n")
         logger.debug("Sensor.acquire_time_domain_samples starting")
         logger.debug(f"Number of retries = {retries}")
+        logger.debug(
+            f"USING DIFF. CAL: {self.differential_calibration.calibration_data}"
+        )
+        logger.debug(f"USING SENSOR CAL: {self.sensor_calibration.calibration_data}")
+        logger.debug("*************************************\n")
+
         max_retries = retries
         # Acquire samples from signal analyzer
         if self.signal_analyzer is not None:
@@ -316,18 +323,18 @@ class Sensor:
                 calibrated_gain__db = self.sensor_calibration_data["gain"]
                 calibrated_nf__db = self.sensor_calibration_data["noise_figure"]
                 logger.debug(f"Using sensor gain: {calibrated_gain__db} dB")
-                measurement_result[
-                    "reference"
-                ] = self.sensor_calibration.calibration_reference
+                measurement_result["reference"] = (
+                    self.sensor_calibration.calibration_reference
+                )
                 if self.differential_calibration is not None:
                     # Also apply differential calibration correction
                     differential_loss = self.differential_calibration_data["loss"]
                     logger.debug(f"Using differential loss: {differential_loss} dB")
                     calibrated_gain__db -= differential_loss
                     calibrated_nf__db += differential_loss
-                    measurement_result[
-                        "reference"
-                    ] = self.differential_calibration.calibration_reference
+                    measurement_result["reference"] = (
+                        self.differential_calibration.calibration_reference
+                    )
                 else:
                     # No differential calibration exists
                     logger.debug("No differential calibration was applied")
