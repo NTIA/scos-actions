@@ -628,17 +628,17 @@ class NasctnSeaDataProduct(Action):
         nskip = utils.get_parameter(NUM_SKIP, params)
         num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
         # Collect IQ data
-        cal_adjust = True
+        self.cal_adjust = True
         for key, value in params.items():
             logger.debug(f"param {key}={value}")
         self.cal_adjust = utils.get_parameter(CAL_ADJUST, params)
-        logger.debug(f"cal_adjust={cal_adjust}")
+        logger.debug(f"cal_adjust={self.cal_adjust}")
         measurement_result = self.sensor.signal_analyzer.acquire_time_domain_samples(
-            num_samples, nskip, cal_adjust=cal_adjust
+            num_samples, nskip, cal_adjust=self.cal_adjust
         )
         # Store some metadata with the IQ
         measurement_result.update(params)
-        if cal_adjust:
+        if self.cal_adjust:
             measurement_result[
                 "sensor_cal"
             ] = self.sensor.signal_analyzer.sensor_calibration_data
