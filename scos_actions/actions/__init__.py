@@ -11,5 +11,5 @@ action_classes = {
     "stepped_frequency_time_domain_iq": SteppedFrequencyTimeDomainIqAcquisition,
     "single_frequency_time_domain_iq": SingleFrequencyTimeDomainIqAcquisition,
     "y_factor_cal": YFactorCalibration,
-    "nasctn_sea_data_product": NasctnSeaDataProduct
+    "nasctn_sea_data_product": NasctnSeaDataProduct,
 }

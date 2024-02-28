@@ -1,15 +1,17 @@
 from scos_actions.actions import action_classes
 from scos_actions.actions.logger import Logger
-from scos_actions.actions.runtime_exception import RuntimeException
-from scos_actions.actions.system_exit_action import SystemExitAction
 from scos_actions.actions.monitor_sigan import MonitorSignalAnalyzer
+from scos_actions.actions.runtime_exception import RuntimeException
 from scos_actions.actions.sync_gps import SyncGps
+from scos_actions.actions.system_exit_action import SystemExitAction
 from scos_actions.discover.yaml import load_from_yaml
 from scos_actions.settings import ACTION_DEFINITIONS_DIR
 
-actions = {"logger": Logger(),
-           "RuntimeException": RuntimeException(),
-           "SystemExit": SystemExitAction()}
+actions = {
+    "logger": Logger(),
+    "RuntimeException": RuntimeException(),
+    "SystemExit": SystemExitAction(),
+}
 test_actions = {
     "test_sync_gps": SyncGps(parameters={"name": "test_sync_gps"}),
     "test_monitor_sigan": MonitorSignalAnalyzer(

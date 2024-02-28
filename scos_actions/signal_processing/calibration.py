@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 import numpy as np
 from its_preselector.preselector import Preselector
 from scipy.constants import Boltzmann
+
 from scos_actions.signal_processing.unit_conversion import (
     convert_celsius_to_fahrenheit,
     convert_celsius_to_kelvins,
