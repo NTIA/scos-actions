@@ -7,8 +7,9 @@ from scos_actions.hardware.sensor import Sensor
 
 
 def test_sensor():
+    sigan = MockSignalAnalyzer()
     sensor = Sensor(
-        signal_analyzer=MockSignalAnalyzer(), capabilities={}, gps=MockGPS()
+        signal_analyzer=sigan, capabilities={}, gps=MockGPS(sigan)
     )
     assert sensor is not None
     assert sensor.signal_analyzer is not None
@@ -23,8 +24,9 @@ def test_set_get_preselector():
 
 
 def test_set_get_gps():
-    gps = MockGPS()
-    sensor = Sensor(signal_analyzer=MockSignalAnalyzer(), capabilities={})
+    sigan = MockSignalAnalyzer()
+    gps = MockGPS(sigan)
+    sensor = Sensor(signal_analyzer=sigan, capabilities={})
     sensor.gps = gps
     assert sensor.gps == gps
 
