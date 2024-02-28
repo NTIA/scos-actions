@@ -7,6 +7,9 @@ logger = logging.getLogger(__name__)
 
 
 class MockGPS(GPSInterface):
+    def __init__(self, sigan):
+        self.sigan = sigan
+        
     def get_location(timeout_s=1):
         logger.warning("Using mock GPS!")
         return 39.995118, -105.261572, 1651.0
