@@ -20,7 +20,7 @@ class RuntimeErrorAction(Action):
         super().__init__(parameters={"name": "RuntimeErrorAction"})
 
     def __call__(self, sensor: Optional[Sensor], schedule_entry: dict, task_id: int):
-        msg = "Raising runtime exception {name}/{tid}"
+        msg = "Raising RuntimeError {name}/{tid}"
         schedule_entry_name = schedule_entry["name"]
         logger.log(msg=msg.format(name=schedule_entry_name, tid=task_id))
         raise RuntimeError("RuntimeError from RuntimeErrorAction")
