@@ -8,9 +8,7 @@ from scos_actions.hardware.sensor import Sensor
 
 def test_sensor():
     sigan = MockSignalAnalyzer()
-    sensor = Sensor(
-        signal_analyzer=sigan, capabilities={}, gps=MockGPS(sigan)
-    )
+    sensor = Sensor(signal_analyzer=sigan, capabilities={}, gps=MockGPS(sigan))
     assert sensor is not None
     assert sensor.signal_analyzer is not None
     assert sensor.gps is not None

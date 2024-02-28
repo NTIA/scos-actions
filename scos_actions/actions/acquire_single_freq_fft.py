@@ -89,6 +89,7 @@ The resulting matrix is real-valued, 32-bit floats representing dBm.
 import logging
 
 from numpy import float32, ndarray
+
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.structs import ntia_algorithm

@@ -31,9 +31,7 @@ def test_location_action_completed():
     location_action_completed.connect(callback)
     action = test_actions["test_sync_gps"]
     sigan = MockSignalAnalyzer()
-    sensor = Sensor(
-        signal_analyzer=sigan, capabilities={}, gps=MockGPS(sigan)
-    )
+    sensor = Sensor(signal_analyzer=sigan, capabilities={}, gps=MockGPS(sigan))
     if sys.platform == "linux":
         action(sensor, SYNC_GPS, 1)
         assert _latitude
