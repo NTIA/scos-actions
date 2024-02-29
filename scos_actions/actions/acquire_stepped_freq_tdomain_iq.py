@@ -130,9 +130,9 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                     sensor_cal["compression_point"] = sensor_cal.pop(
                         "1db_compression_point"
                     )
-                    capture_segment.sensor_calibration = ntia_sensor.Calibration(
-                        **sensor_cal
-                    )
+                capture_segment.sensor_calibration = ntia_sensor.Calibration(
+                    **sensor_cal
+                )
             measurement_result["capture_segment"] = capture_segment
 
             self.create_metadata(measurement_result, recording_id)
