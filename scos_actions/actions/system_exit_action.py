@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 class SystemExitAction(Action):
     """
     Raise a SystemExit.
-    This is useful for testing and debugging.
+    This is useful for testing and debugging. Note: this action
+    is currently not loaded in any scenario and must be manually
+    added to use.
 
     """
 
