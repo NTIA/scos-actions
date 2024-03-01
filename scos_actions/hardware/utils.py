@@ -1,6 +1,6 @@
 import logging
 import subprocess
-from typing import Dict
+from typing import Dict, Tuple, Union
 
 import psutil
 from its_preselector.web_relay import WebRelay
@@ -66,7 +66,23 @@ def get_current_cpu_temperature(fahrenheit: bool = False) -> float:
         raise e
 
 
-def get_disk_smart_data(disk: str) -> dict:
+def get_ntp_status() -> Union[Tuple[bool, bool], str]:
+    """
+    Get system NTP status by parsing the output of ``timedatectl``.
+
+    :returns: A tuple of booleans: (ntp_active, ntp_synchronized).
+    """
+    try:
+        status = subprocess.check_output(["timedatectl"]).decode("utf-8")
+    except Exception:
+        logger.exception(f"Unable to get NTP status from timedatectl")
+        return "Unavailable"
+    ntp_active = "NTP service: active" in status
+    ntp_synchronized = "System clock synchronized: yes" in status
+    return ntp_active, ntp_synchronized
+
+
+def get_disk_smart_data(disk: str) -> Union[dict, str]:
     """
     Get selected SMART data for the chosen disk.
 
@@ -81,7 +97,8 @@ def get_disk_smart_data(disk: str) -> dict:
     https://nvmexpress.org/wp-content/uploads/NVM-Express-1_4-2019.06.10-Ratified.pdf
 
     :param disk: The desired disk, e.g., ``/dev/nvme0n1``.
-    :return: A dictionary containing the retrieved data from the SMART report.
+    :return: A dictionary containing the retrieved data from the SMART report, or
+        the string "Unavailable" if ``smartctl`` fails to run.
     """
     try:
         report = subprocess.check_output(["smartctl", "-a", disk]).decode("utf-8")

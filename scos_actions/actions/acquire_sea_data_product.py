@@ -45,6 +45,7 @@ from scos_actions.hardware.utils import (
     get_current_cpu_temperature,
     get_disk_smart_data,
     get_max_cpu_temperature,
+    get_ntp_status,
 )
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.metadata.structs import (
@@ -778,6 +779,10 @@ class NasctnSeaDataProduct(Action):
             cpu_diag["ssd_smart_data"] = ntia_diagnostics.SsdSmartData(**smart_data)
         except:
             logger.warning("Failed to get SSD SMART data")
+        try:
+            cpu_diag["ntp_active"], cpu_diag["ntp_sync"] = get_ntp_status()
+        except:
+            logger.warning("Failed to get NTP status")
         try:  # Disk usage
             disk_usage = get_disk_usage()
             cpu_diag["disk_usage"] = disk_usage
