@@ -139,6 +139,7 @@ class Computer(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     :param scos_uptime: Number of days since the SCOS API container started.
     :param ssd_smart_data: Information provided by the drive Self-Monitoring,
         Analysis, and Reporting Technology.
+    :param disk_usage: Total computer disk usage, as a percentage.
     """
 
     cpu_min_clock: Optional[float] = None
@@ -154,6 +155,7 @@ class Computer(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     software_start: Optional[str] = None
     software_uptime: Optional[float] = None
     ssd_smart_data: Optional[SsdSmartData] = None
+    disk_usage: Optional[float] = None
 
 
 class ScosPlugin(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
