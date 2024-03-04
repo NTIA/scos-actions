@@ -89,10 +89,6 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         measurement_result.update(self.parameters)
         measurement_result["end_time"] = end_time
         measurement_result["task_id"] = task_id
-        if self.cal_adjust:
-            measurement_result[
-                "calibration_datetime"
-            ] = self.sensor.signal_analyzer.sensor_calibration_data["datetime"]
         measurement_result["classification"] = self.classification
         sigan_settings = self.get_sigan_settings(measurement_result)
         logger.debug(f"sigan settings:{sigan_settings}")
