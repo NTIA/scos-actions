@@ -259,7 +259,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
             self.fft_size, measurement_result["sample_rate"], self.frequency_Hz
         )
         m4s_graph = ntia_algorithm.Graph(
-            name="M4S Detector Result",
+            name="power_spectral_density",
             series=[det.value for det in self.fft_detector],
             length=self.fft_size,
             x_units="Hz",
