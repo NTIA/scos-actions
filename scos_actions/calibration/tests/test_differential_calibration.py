@@ -33,10 +33,10 @@ class TestDifferentialCalibration:
 
     def test_from_json(self):
         """Check from_json functionality with valid and invalid dummy data."""
-        diff_cal = DifferentialCalibration.from_json(self.valid_file_path, False)
+        diff_cal = DifferentialCalibration.from_json(self.valid_file_path)
         assert diff_cal == self.sample_diff_cal
         with pytest.raises(Exception):
-            _ = DifferentialCalibration.from_json(self.invalid_file_path, False)
+            _ = DifferentialCalibration.from_json(self.invalid_file_path)
 
     def test_update_not_implemented(self):
         """Check that the update method is not implemented."""

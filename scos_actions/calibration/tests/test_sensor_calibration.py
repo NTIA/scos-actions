@@ -184,7 +184,7 @@ class TestSensorCalibrationFile:
             json.dump(cal_data, file, indent=4)
 
         # Load the data back in
-        self.sample_cal = SensorCalibration.from_json(self.calibration_file, False)
+        self.sample_cal = SensorCalibration.from_json(self.calibration_file)
 
         # Create a list of previous points to ensure that we don't repeat
         self.pytest_points = []
@@ -318,7 +318,7 @@ class TestSensorCalibrationFile:
         action_params = {"sample_rate": 100.0, "frequency": 200.0}
         update_time = get_datetime_str_now()
         cal.update(action_params, update_time, 30.0, 5.0, 21)
-        cal_from_file = SensorCalibration.from_json(test_cal_path, False)
+        cal_from_file = SensorCalibration.from_json(test_cal_path)
         test_cal_path.unlink()
         file_utc_time = parse_datetime_iso_format_str(cal.last_calibration_datetime)
         cal_time_utc = parse_datetime_iso_format_str(update_time)
