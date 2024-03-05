@@ -1,4 +1,5 @@
 import pytest
+
 from scos_actions.calibration.utils import CalibrationException, filter_by_parameter
 
 
@@ -10,7 +11,7 @@ class TestCalibrationUtils:
         assert (
             e_info.value.args[0]
             == f"Could not locate calibration data at 400.0"
-            + f"\nAttempted lookup using key '400.0'"
+            + f"\nAttempted lookup using key '400.0' and 400.0"
             + f"\nUsing calibration data: {calibrations}"
         )
 
@@ -23,7 +24,7 @@ class TestCalibrationUtils:
             _ = filter_by_parameter(calibrations, 150.0)
         assert e_info.value.args[0] == (
             f"Could not locate calibration data at 150.0"
-            + f"\nAttempted lookup using key '150.0'"
+            + f"\nAttempted lookup using key '150.0' and 150.0"
             + f"\nUsing calibration data: {calibrations}"
         )
 

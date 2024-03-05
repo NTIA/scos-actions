@@ -277,7 +277,7 @@ class TestSensorCalibrationFile:
             _ = cal.get_calibration_dict({"sample_rate": 100.0, "frequency": 250.0})
         assert e_info.value.args[0] == (
             f"Could not locate calibration data at 250.0"
-            + f"\nAttempted lookup using key '250.0'"
+            + f"\nAttempted lookup using key '250.0' and 250.0"
             + f"\nUsing calibration data: {cal.calibration_data['100.0']}"
         )
 
