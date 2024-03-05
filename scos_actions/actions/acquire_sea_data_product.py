@@ -504,6 +504,13 @@ class NasctnSeaDataProduct(Action):
         """This is the entrypoint function called by the scheduler."""
         self._sensor = sensor
         action_start_tic = perf_counter()
+        # Ray should have already been initialized within scos-sensor,
+        # but check and initialize just in case.
+        if not ray.is_initialized():
+            logger.info("Initializing ray.")
+            logger.info("Set RAY_INIT=true to avoid initializing within " + __name__)
+            # Dashboard is only enabled if ray[default] is installed
+            ray.init()
 
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
         self.test_required_components()
