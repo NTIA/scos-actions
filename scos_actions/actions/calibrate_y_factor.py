@@ -17,7 +17,13 @@
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
 r"""Perform a Y-Factor Calibration.
-Supports calibration of gain and noise figure for one or more channels.
+Supports calculation of gain and noise figure for one or more channels using the
+Y-Factor method. Results are written to the file specified by the environment
+variable ``ONBOARD_CALIBRATION_FILE``. If the sensor already has a sensor calibration
+object, it is used as the starting point, and copied to a new onboard calibration object
+which is updated by this action. The sensor object's sensor calibration will be set to
+the updated onboard calibration object after this action is run.
+
 For each center frequency, sets the preselector to the noise diode path, turns
 noise diode on, performs a mean power measurement, turns the noise diode off and
 performs another mean power measurement. The mean power on and mean power off
@@ -73,11 +79,13 @@ import os
 import time
 
 import numpy as np
+from environs import Env
 from scipy.constants import Boltzmann
 from scipy.signal import sosfilt
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
+from scos_actions.calibration.sensor_calibration import SensorCalibration
 from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
 from scos_actions.signal_processing.calibration import (
@@ -92,9 +100,10 @@ from scos_actions.signal_processing.filtering import (
 from scos_actions.signal_processing.power_analysis import calculate_power_watts
 from scos_actions.signal_processing.unit_conversion import convert_watts_to_dBm
 from scos_actions.signals import trigger_api_restart
-from scos_actions.utils import ParameterException, get_parameter
+from scos_actions.utils import ParameterException, get_datetime_str_now, get_parameter
 
 logger = logging.getLogger(__name__)
+env = Env()
 
 # Define parameter keys
 RF_PATH = Action.PRESELECTOR_PATH_KEY
@@ -112,6 +121,7 @@ IIR_SB_EDGE = "iir_sb_edge_Hz"
 IIR_RESP_FREQS = "iir_num_response_frequencies"
 CAL_SOURCE_IDX = "cal_source_idx"
 TEMP_SENSOR_IDX = "temp_sensor_idx"
+REFERENCE_POINT = "reference_point"
 
 
 class YFactorCalibration(Action):
@@ -196,8 +206,44 @@ class YFactorCalibration(Action):
     def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
         self.sensor = sensor
+
+        # Prepare the sensor calibration object.
+        assert all(
+            self.iteration_params[0][REFERENCE_POINT] == p[REFERENCE_POINT]
+            for p in self.iteration_params
+        ), f"All iterations must use the same '{REFERENCE_POINT}' setting"
+        onboard_cal_reference = self.iteration_params[0][REFERENCE_POINT]
+
         if self.sensor.sensor_calibration is None:
-            raise Exception("Sensor object must have a SensorCalibration object")
+            # Create a new sensor calibration object and attach it to the sensor.
+            # The calibration parameters will be set to the sigan parameters used
+            # in the action YAML parameters.
+            logger.debug(f"Creating a new onboard cal object for the sensor.")
+            cal_params = [k for k in self.iteration_params if k in SIGAN_SETTINGS_KEYS]
+            cal_data = dict()
+            last_cal_datetime = get_datetime_str_now()
+            clock_rate_lookup_by_sample_rate = []
+            sensor_uid = "Sensor calibration file not provided"
+            self.sensor.sensor_calibration = SensorCalibration(
+                calibration_parameters=cal_params,
+                calibration_data=cal_data,
+                calibration_reference=onboard_cal_reference,
+                file_path=env("ONBOARD_CALIBRATION_FILE"),
+                last_calibration_datetime=last_cal_datetime,
+                clock_rate_lookup_by_sample_rate=clock_rate_lookup_by_sample_rate,
+                sensor_uid=sensor_uid,
+            )
+        elif self.sensor.sensor_calibration.file_path == env(
+            "ONBOARD_CALIBRATION_FILE"
+        ):
+            # Already using an onboard cal file.
+            logger.debug("Onboard calibration file already in use. Continuing.")
+        else:
+            # Sensor calibration file exists. Change it to an onboard cal file
+            logger.debug("Making new onboard cal file from existing sensor cal")
+            self.sensor.sensor_calibration.calibration_reference = onboard_cal_reference
+            self.sensor.sensor_calibration.file_path = env("ONBOARD_CALIBRATION_FILE")
+
         self.test_required_components()
         detail = ""
 
@@ -207,6 +253,8 @@ class YFactorCalibration(Action):
                 detail += self.calibrate(p)
             else:
                 detail += os.linesep + self.calibrate(p)
+        # Save results to onboard calibration file
+        self.sensor.sensor_calibration.to_json()
         return detail
 
     def calibrate(self, params: dict):
@@ -257,11 +305,6 @@ class YFactorCalibration(Action):
             noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
             noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
         else:
-            if self.sensor.sensor_calibration.is_default:
-                raise Exception(
-                    "Calibrations without IIR filter cannot be performed with default calibration."
-                )
-
             logger.debug("Skipping IIR filtering")
             # Get ENBW from sensor calibration
             assert set(self.sensor.sensor_calibration.calibration_parameters) <= set(
@@ -272,6 +315,11 @@ class YFactorCalibration(Action):
                 for k in self.sensor.sensor_calibration.calibration_parameters
             ]
             self.sensor.recompute_sensor_calibration_data(cal_args)
+            if "enbw" not in self.sensor.sensor_calibration_data:
+                raise Exception(
+                    "Unable to perform Y-Factor calibration without IIR filtering when no"
+                    " ENBW is provided in the sensor calibration file."
+                )
             enbw_hz = self.sensor.sensor_calibration_data["enbw"]
             noise_on_data = noise_on_measurement_result["data"]
             noise_off_data = noise_off_measurement_result["data"]
