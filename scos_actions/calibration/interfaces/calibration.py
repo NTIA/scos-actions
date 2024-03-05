@@ -1,6 +1,7 @@
 """
 TODO
 """
+
 import dataclasses
 import json
 import logging
@@ -21,7 +22,6 @@ class Calibration:
     calibration_parameters: List[str]
     calibration_data: dict
     calibration_reference: str
-    is_default: bool
     file_path: Path
 
     def __post_init__(self):
@@ -75,7 +75,7 @@ class Calibration:
         raise NotImplementedError
 
     @classmethod
-    def from_json(cls, fname: Path, is_default: bool):
+    def from_json(cls, fname: Path):
         """
         Load a calibration from a JSON file.
 
@@ -84,8 +84,6 @@ class Calibration:
         the class being constructed.
 
         :param fname: The ``Path`` to the JSON calibration file.
-        :param is_default: If True, the loaded calibration file
-            is treated as the default calibration file.
         :raises Exception: If the provided file does not include
             the required keys.
         :return: The ``Calibration`` object generated from the file.
@@ -96,7 +94,7 @@ class Calibration:
 
         # Check that only the required fields are in the dict
         required_keys = {f.name for f in dataclasses.fields(cls)}
-        required_keys -= {"is_default", "file_path"}  # are not required in JSON
+        required_keys -= {"file_path"}  # not required in JSON
         if cal_file_keys == required_keys:
             pass
         elif cal_file_keys >= required_keys:
@@ -115,7 +113,7 @@ class Calibration:
             )
 
         # Create and return the Calibration object
-        return cls(is_default=is_default, file_path=fname, **calibration)
+        return cls(file_path=fname, **calibration)
 
     def to_json(self) -> None:
         """
@@ -123,12 +121,11 @@ class Calibration:
 
         The JSON file will be located at ``self.file_path`` and will
         contain a copy of ``self.__dict__``, except for the ``file_path``
-        and ``is_default`` key/value pairs. This includes all dataclass
-        fields, with their parameter names as JSON key names.
+        key/value pair. This includes all dataclass fields, with their
+        parameter names as JSON key names.
         """
         dict_to_json = self.__dict__.copy()
         # Remove keys which should not save to JSON
         dict_to_json.pop("file_path", None)
-        dict_to_json.pop("is_default", None)
         with open(self.file_path, "w") as outfile:
             outfile.write(json.dumps(dict_to_json))

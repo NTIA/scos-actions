@@ -1,4 +1,5 @@
 """Test the SensorCalibration dataclass."""
+
 import dataclasses
 import datetime
 import json
@@ -9,6 +10,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import pytest
+
 from scos_actions.calibration.interfaces.calibration import Calibration
 from scos_actions.calibration.sensor_calibration import SensorCalibration
 from scos_actions.calibration.tests.utils import recursive_check_keys
@@ -247,7 +249,6 @@ class TestSensorCalibrationFile:
             calibration_parameters=calibration_params,
             calibration_data=calibration_data,
             calibration_reference="testing",
-            is_default=False,
             file_path=Path(""),
             last_calibration_datetime=calibration_datetime,
             clock_rate_lookup_by_sample_rate=[],
@@ -267,7 +268,6 @@ class TestSensorCalibrationFile:
             calibration_parameters=calibration_params,
             calibration_data=calibration_data,
             calibration_reference="testing",
-            is_default=False,
             file_path=Path("test_calibration.json"),
             last_calibration_datetime=calibration_datetime,
             clock_rate_lookup_by_sample_rate=[],
@@ -310,7 +310,6 @@ class TestSensorCalibrationFile:
             calibration_parameters=calibration_params,
             calibration_data=calibration_data,
             calibration_reference="testing",
-            is_default=False,
             file_path=test_cal_path,
             last_calibration_datetime=calibration_datetime,
             clock_rate_lookup_by_sample_rate=[],

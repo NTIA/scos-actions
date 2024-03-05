@@ -1,8 +1,10 @@
 """Test the DifferentialCalibration dataclass."""
+
 import json
 from pathlib import Path
 
 import pytest
+
 from scos_actions.calibration.differential_calibration import DifferentialCalibration
 
 
@@ -18,7 +20,7 @@ class TestDifferentialCalibration:
         self.invalid_file_path = tmp_path / "sample_diff_cal_invalid.json"
 
         self.sample_diff_cal = DifferentialCalibration(
-            is_default=False, file_path=self.valid_file_path, **dict_to_json
+            file_path=self.valid_file_path, **dict_to_json
         )
 
         with open(self.valid_file_path, "w") as f:

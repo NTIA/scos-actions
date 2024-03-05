@@ -1,10 +1,12 @@
 """Test the Calibration base dataclass."""
+
 import dataclasses
 import json
 from pathlib import Path
 from typing import List
 
 import pytest
+
 from scos_actions.calibration.interfaces.calibration import Calibration
 from scos_actions.calibration.sensor_calibration import SensorCalibration
 from scos_actions.calibration.tests.utils import recursive_check_keys
@@ -35,7 +37,6 @@ class TestBaseCalibration:
             calibration_parameters=self.cal_params,
             calibration_data=self.cal_data,
             calibration_reference="testing",
-            is_default=False,
             file_path=self.dummy_file_path,
         )
 
@@ -43,7 +44,6 @@ class TestBaseCalibration:
             calibration_parameters=self.cal_params,
             calibration_data=self.cal_data,
             calibration_reference="testing",
-            is_default=True,
             file_path=self.dummy_default_file_path,
         )
 
@@ -59,7 +59,6 @@ class TestBaseCalibration:
         assert fields == {
             "calibration_parameters": List[str],
             "calibration_reference": str,
-            "is_default": bool,
             "calibration_data": dict,
             "file_path": Path,
         }, "Calibration class fields have changed"
@@ -95,15 +94,6 @@ class TestBaseCalibration:
         assert self.sample_default_cal == Calibration.from_json(
             self.dummy_default_file_path, True
         )
-
-        # These should fail: the is_default parameter is different
-        # even though the other contents are identical.
-        with pytest.raises(AssertionError):
-            assert self.sample_cal == Calibration.from_json(self.dummy_file_path, True)
-        with pytest.raises(AssertionError):
-            assert self.sample_default_cal == Calibration.from_json(
-                self.dummy_default_file_path, False
-            )
 
         # from_json should ignore extra keys in the loaded file, but not fail
         # Test this by trying to load a SensorCalibration as a Calibration
