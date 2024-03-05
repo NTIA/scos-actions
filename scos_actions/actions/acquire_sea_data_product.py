@@ -1137,16 +1137,12 @@ class NasctnSeaDataProduct(Action):
         )
         if self.cal_adjust:
             capture_segment.sensor_calibration = ntia_sensor.Calibration(
-                    datetime=measurement_result["sensor_cal"]["datetime"],
-                    gain=round(measurement_result["sensor_cal"]["gain"], 3),
-                    noise_figure=round(
-                        measurement_result["sensor_cal"]["noise_figure"], 3
-                    ),
-                    temperature=round(
-                        measurement_result["sensor_cal"]["temperature"], 1
-                    ),
-                    reference=DATA_REFERENCE_POINT,
-                )
+                datetime=measurement_result["sensor_cal"]["datetime"],
+                gain=round(measurement_result["sensor_cal"]["gain"], 3),
+                noise_figure=round(measurement_result["sensor_cal"]["noise_figure"], 3),
+                temperature=round(measurement_result["sensor_cal"]["temperature"], 1),
+                reference=DATA_REFERENCE_POINT,
+            )
         self.sigmf_builder.add_capture(capture_segment)
 
     def get_sigmf_builder(
