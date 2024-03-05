@@ -34,11 +34,10 @@ signals.
 import logging
 
 from numpy import complex64
-from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.utils import get_parameter
 
 from scos_actions import utils
+from scos_actions.actions.interfaces.measurement_action import MeasurementAction
+from scos_actions.utils import get_parameter
 
 logger = logging.getLogger(__name__)
 
@@ -91,9 +90,9 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         measurement_result.update(self.parameters)
         measurement_result["end_time"] = end_time
         measurement_result["task_id"] = task_id
-        measurement_result[
-            "calibration_datetime"
-        ] = self.sensor.sensor_calibration_data["datetime"]
+        measurement_result["calibration_datetime"] = (
+            self.sensor.sensor_calibration_data["datetime"]
+        )
         measurement_result["classification"] = self.classification
         sigan_settings = self.get_sigan_settings(measurement_result)
         logger.debug(f"sigan settings:{sigan_settings}")

@@ -89,8 +89,8 @@ The resulting matrix is real-valued, 32-bit floats representing dBm.
 import logging
 
 from numpy import float32, ndarray
+
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.structs import ntia_algorithm
 from scos_actions.signal_processing.fft import (
     get_fft,
@@ -173,9 +173,9 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         # Save measurement results
         measurement_result["data"] = m4s_result
         measurement_result.update(self.parameters)
-        measurement_result[
-            "calibration_datetime"
-        ] = self.sensor.sensor_calibration_data["datetime"]
+        measurement_result["calibration_datetime"] = (
+            self.sensor.sensor_calibration_data["datetime"]
+        )
         measurement_result["task_id"] = task_id
         measurement_result["classification"] = self.classification
 
