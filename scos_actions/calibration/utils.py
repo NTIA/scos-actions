@@ -70,7 +70,7 @@ def filter_by_parameter(calibrations: dict, value: Union[float, int, bool]) -> d
         msg = (
             f"Could not locate calibration data at {value}"
             + f"\nAttempted lookup using key '{str(value).lower()}'"
-            + f"{f'and {float(value)}' if isinstance(value, float) and value.is_integer() else ''}"
+            + f"{f' and {float(value)}' if isinstance(value, float) and value.is_integer() else ''}"
             + f"\nUsing calibration data: {calibrations}"
         )
         raise CalibrationEntryMissingException(msg)
