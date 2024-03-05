@@ -5,6 +5,7 @@ Since most filtering functions are thin wrappers around SciPy, these
 tests mostly exist to ensure that tests will fail if substantial changes
 are made to the wrappers.
 """
+
 import numpy as np
 import pytest
 from scipy.signal import ellip, ellipord, firwin, kaiserord, sos2zpk, sosfreqz

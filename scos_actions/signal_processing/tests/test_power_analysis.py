@@ -1,6 +1,7 @@
 """
 Unit test for scos_actions.signal_processing.power_analysis
 """
+
 from enum import EnumMeta
 
 import numpy as np

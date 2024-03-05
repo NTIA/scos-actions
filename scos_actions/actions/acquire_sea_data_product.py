@@ -639,9 +639,9 @@ class NasctnSeaDataProduct(Action):
         # Store some metadata with the IQ
         measurement_result.update(params)
         if self.cal_adjust:
-            measurement_result[
-                "sensor_cal"
-            ] = self.sensor.signal_analyzer.sensor_calibration_data
+            measurement_result["sensor_cal"] = (
+                self.sensor.signal_analyzer.sensor_calibration_data
+            )
         toc = perf_counter()
         logger.debug(
             f"IQ Capture ({duration_ms} ms @ {(params[FREQUENCY]/1e6):.1f} MHz) completed in {toc-tic:.2f} s."
@@ -1136,8 +1136,7 @@ class NasctnSeaDataProduct(Action):
             ),
         )
         if self.cal_adjust:
-            capture_segment.sensor_calibration = (
-                ntia_sensor.Calibration(
+            capture_segment.sensor_calibration = ntia_sensor.Calibration(
                     datetime=measurement_result["sensor_cal"]["datetime"],
                     gain=round(measurement_result["sensor_cal"]["gain"], 3),
                     noise_figure=round(
@@ -1147,8 +1146,7 @@ class NasctnSeaDataProduct(Action):
                         measurement_result["sensor_cal"]["temperature"], 1
                     ),
                     reference=DATA_REFERENCE_POINT,
-                ),
-            )
+                )
         self.sigmf_builder.add_capture(capture_segment)
 
     def get_sigmf_builder(

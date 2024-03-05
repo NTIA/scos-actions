@@ -2,6 +2,7 @@
 This is a sample file showing how an action be created and called for debugging purposes
 using a mock signal analyzer.
 """
+
 import json
 
 from scos_actions.actions.acquire_single_freq_fft import SingleFrequencyFftAcquisition

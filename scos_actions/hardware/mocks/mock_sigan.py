@@ -1,4 +1,5 @@
 """Mock a signal analyzer for testing."""
+
 import logging
 from collections import namedtuple
 from typing import Optional
