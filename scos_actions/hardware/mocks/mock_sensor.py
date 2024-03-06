@@ -40,14 +40,14 @@ class MockSensor(Sensor):
                 "Calibration object provided to mock sensor will not be used to query calibration data."
             )
         super().__init__(
-            signal_analyzer,
-            gps,
-            preselector,
-            switches,
-            location,
-            capabilities,
-            sensor_cal,
-            differential_cal,
+            signal_analyzer=signal_analyzer,
+            gps=gps,
+            preselector=preselector,
+            switches=switches,
+            location=location,
+            capabilities=capabilities,
+            sensor_cal=sensor_cal,
+            differential_cal=differential_cal,
         )
 
     @property
