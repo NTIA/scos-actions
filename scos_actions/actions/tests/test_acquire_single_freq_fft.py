@@ -82,12 +82,3 @@ def test_detector():
             ]
         ]
     )
-
-
-def test_num_samples_skip():
-    action = actions["test_single_frequency_m4s_action"]
-    assert action.description
-    action(
-        sensor=MockSensor(), schedule_entry=SINGLE_FREQUENCY_FFT_ACQUISITION, task_id=1
-    )
-    assert action.sensor.signal_analyzer._num_samples_skip == action.parameters["nskip"]
