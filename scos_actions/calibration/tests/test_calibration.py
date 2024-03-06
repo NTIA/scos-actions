@@ -90,9 +90,9 @@ class TestBaseCalibration:
         self.sample_cal.to_json()
         self.sample_default_cal.to_json()
         # Then load and compare
-        assert self.sample_cal == Calibration.from_json(self.dummy_file_path, False)
+        assert self.sample_cal == Calibration.from_json(self.dummy_file_path)
         assert self.sample_default_cal == Calibration.from_json(
-            self.dummy_default_file_path, True
+            self.dummy_default_file_path
         )
 
         # from_json should ignore extra keys in the loaded file, but not fail
@@ -101,14 +101,13 @@ class TestBaseCalibration:
             self.sample_cal.calibration_parameters,
             self.sample_cal.calibration_data,
             "testing",
-            False,
             tmp_path / "testing.json",
             "dt_str",
             [],
             "uid",
         )
         sensor_cal.to_json()
-        loaded_cal = Calibration.from_json(tmp_path / "testing.json", False)
+        loaded_cal = Calibration.from_json(tmp_path / "testing.json")
         loaded_cal.file_path = self.sample_cal.file_path  # Force these to be the same
         assert loaded_cal == self.sample_cal
 
@@ -118,7 +117,7 @@ class TestBaseCalibration:
         with open(tmp_path / "almost_a_cal.json", "w") as outfile:
             outfile.write(json.dumps(almost_a_cal))
         with pytest.raises(Exception):
-            almost = Calibration.from_json(tmp_path / "almost_a_cal.json", False)
+            almost = Calibration.from_json(tmp_path / "almost_a_cal.json")
 
     def test_update_not_implemented(self):
         """Ensure the update abstract method is not implemented in the base class"""
