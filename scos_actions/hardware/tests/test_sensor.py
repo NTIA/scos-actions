@@ -28,8 +28,8 @@ def test_mock_sensor_defaults(mock_sensor):
     assert mock_sensor.switches == {}
     assert mock_sensor.location == _mock_location
     assert mock_sensor.capabilities == _mock_capabilities
-    assert mock_sensor.sensor_cal is None
-    assert mock_sensor.differential_cal is None
+    assert mock_sensor.sensor_calibration is None
+    assert mock_sensor.differential_calibration is None
     assert mock_sensor.has_configurable_preselector is False
     assert mock_sensor.has_configurable_preselector is False
     assert mock_sensor.sensor_calibration_data == _mock_sensor_cal_data
