@@ -280,10 +280,14 @@ class Sensor:
         logger.debug("***********************************\n")
         logger.debug("Sensor.acquire_time_domain_samples starting")
         logger.debug(f"Number of retries = {retries}")
-        logger.debug(
-            f"USING DIFF. CAL: {self.differential_calibration.calibration_data}"
-        )
-        logger.debug(f"USING SENSOR CAL: {self.sensor_calibration.calibration_data}")
+        if self.differential_calibration is not None:
+            logger.debug(
+                f"USING DIFF. CAL: {self.differential_calibration.calibration_data}"
+            )
+        if self.sensor_calibration is not None:
+            logger.debug(
+                f"USING SENSOR CAL: {self.sensor_calibration.calibration_data}"
+            )
         logger.debug("*************************************\n")
 
         max_retries = retries
