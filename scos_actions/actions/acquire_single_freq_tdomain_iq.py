@@ -34,11 +34,11 @@ signals.
 import logging
 
 from numpy import complex64
+
+from scos_actions import utils
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
 from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.utils import get_parameter
-
-from scos_actions import utils
 
 logger = logging.getLogger(__name__)
 
