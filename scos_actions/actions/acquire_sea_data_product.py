@@ -79,9 +79,6 @@ from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_d
 env = Env()
 logger = logging.getLogger(__name__)
 
-if not ray.is_initialized():
-    # Dashboard is only enabled if ray[default] is installed
-    ray.init()
 
 # Define parameter keys
 RF_PATH = "rf_path"
@@ -509,6 +506,13 @@ class NasctnSeaDataProduct(Action):
         """This is the entrypoint function called by the scheduler."""
         self._sensor = sensor
         action_start_tic = perf_counter()
+        # Ray should have already been initialized within scos-sensor,
+        # but check and initialize just in case.
+        if not ray.is_initialized():
+            logger.info("Initializing ray.")
+            logger.info("Set RAY_INIT=true to avoid initializing within " + __name__)
+            # Dashboard is only enabled if ray[default] is installed
+            ray.init()
 
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
         self.test_required_components()
