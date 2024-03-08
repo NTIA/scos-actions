@@ -7,6 +7,7 @@ from typing import Optional
 import numpy as np
 
 from scos_actions import __version__ as SCOS_ACTIONS_VERSION
+from scos_actions import __package__ as SCOS_ACTIONS_NAME
 from scos_actions.calibration.calibration import Calibration
 from scos_actions.hardware.sigan_iface import SignalAnalyzerInterface
 from scos_actions.utils import get_datetime_str_now
@@ -65,6 +66,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
         self._capture_time = None
         self._is_available = True
         self._plugin_version = SCOS_ACTIONS_VERSION
+        self._plugin_name = SCOS_ACTIONS_NAME
         self._firmware_version = "1.2.3"
         self._api_version = "v1.2.3"
 
@@ -84,6 +86,10 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     @property
     def plugin_version(self):
         return self._plugin_version
+    
+    @property
+    def plugin_name(self) -> str:
+        return self._plugin_name
 
     @property
     def firmware_version(self):
