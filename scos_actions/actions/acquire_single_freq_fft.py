@@ -188,7 +188,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
             sample_start=0,
             start_time=measurement_result["capture_time"],
             center_frequency_Hz=self.frequency_Hz,
-            duration_ms=int(self.num_samples / sample_rate_Hz),
+            duration_ms=int((self.num_samples / sample_rate_Hz)*1000),
             overload=measurement_result["overload"],
             sigan_settings=sigan_settings,
         )
