@@ -794,7 +794,8 @@ class NasctnSeaDataProduct(Action):
             "scos_sensor_version": SCOS_SENSOR_GIT_TAG,
             "scos_actions_version": SCOS_ACTIONS_VERSION,
             "scos_sigan_plugin": ntia_diagnostics.ScosPlugin(
-                name=self.sensor.signal_analyzer.plugin_name, version=self.sensor.signal_analyzer.plugin_version
+                name=self.sensor.signal_analyzer.plugin_name,
+                version=self.sensor.signal_analyzer.plugin_version,
             ),
             "preselector_api_version": PRESELECTOR_API_VERSION,
             "sigan_firmware_version": self.sensor.signal_analyzer.firmware_version,
