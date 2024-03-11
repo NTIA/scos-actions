@@ -89,6 +89,7 @@ class MockSignalAnalyzer(SignalAnalyzerInterface):
     
     @property
     def plugin_name(self) -> str:
+        """Returns the current package name of scos-actions."""
         return self._plugin_name
 
     @property
