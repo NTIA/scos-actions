@@ -112,7 +112,6 @@ FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
 IMPEDANCE_OHMS = 50.0
-DATA_REFERENCE_POINT = "noise source output"  # TODO delete
 NUM_ACTORS = 3  # Number of ray actors to initialize
 
 # Create power detectors
@@ -521,7 +520,6 @@ class NasctnSeaDataProduct(Action):
             self.iteration_params,
         )
         self.create_global_sensor_metadata(self.sensor)
-        self.create_global_data_product_metadata()
 
         # Initialize remote supervisor actors for IQ processing
         tic = perf_counter()
@@ -534,7 +532,7 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Spawned {NUM_ACTORS} supervisor actors in {toc-tic:.2f} s")
 
         # Collect all IQ data and spawn data product computation processes
-        dp_procs, cpu_speed = [], []
+        dp_procs, cpu_speed, reference_points = [], [], []
         capture_tic = perf_counter()
         for i, parameters in enumerate(self.iteration_params):
             measurement_result = self.capture_iq(parameters)
@@ -548,15 +546,22 @@ class NasctnSeaDataProduct(Action):
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc-tic:.2f} s")
             # Create capture segment with channel-specific metadata before sigan is reconfigured
-            tic = perf_counter()
             self.create_capture_segment(i, measurement_result)
-            toc = perf_counter()
-            logger.debug(f"Created capture metadata in {toc-tic:.2f} s")
+            # Query CPU speed for later averaging in diagnostics metadata
             cpu_speed.append(get_current_cpu_clock_speed())
+            # Append list of data reference points; later we require these to be identical
+            reference_points.append(measurement_result["reference"])
         capture_toc = perf_counter()
         logger.debug(
             f"Collected all IQ data and started all processing in {capture_toc-capture_tic:.2f} s"
         )
+
+        # Create data product metadata: requires all data reference points
+        # to be identical.
+        assert (
+            len(set(reference_points)) == 1
+        ), "Channel data were scaled to different reference points. Cannot build metadata."
+        self.create_global_data_product_metadata(reference_points[0])
 
         # Collect processed data product results
         all_data, max_max_ch_pwrs, med_mean_ch_pwrs, mean_ch_pwrs, median_ch_pwrs = (
@@ -971,7 +976,7 @@ class NasctnSeaDataProduct(Action):
             trigger_api_restart.send(sender=self.__class__)
         return None
 
-    def create_global_data_product_metadata(self) -> None:
+    def create_global_data_product_metadata(self, data_products_reference: str) -> None:
         p = self.parameters
         num_iq_samples = int(p[SAMPLE_RATE] * p[DURATION_MS] * 1e-3)
         iir_obj = ntia_algorithm.DigitalFilter(
@@ -1016,7 +1021,7 @@ class NasctnSeaDataProduct(Action):
             x_step=[p[SAMPLE_RATE] / FFT_SIZE],
             y_units="dBm/Hz",
             processing=[dft_obj.id],
-            reference=DATA_REFERENCE_POINT,  # TODO update
+            reference=data_products_reference,
             description=(
                 "Results of statistical detectors (max, mean, median, 25th_percentile, 75th_percentile, "
                 + "90th_percentile, 95th_percentile, 99th_percentile, 99.9th_percentile, 99.99th_percentile) "
@@ -1036,7 +1041,7 @@ class NasctnSeaDataProduct(Action):
             x_stop=[pvt_x_axis__s[-1]],
             x_step=[pvt_x_axis__s[1] - pvt_x_axis__s[0]],
             y_units="dBm",
-            reference=DATA_REFERENCE_POINT,  # TODO update
+            reference=data_products_reference,
             description=(
                 "Max- and mean-detected channel power vs. time, with "
                 + f"an integration time of {p[TD_BIN_SIZE_MS]} ms. "
@@ -1063,7 +1068,7 @@ class NasctnSeaDataProduct(Action):
             x_stop=[pfp_x_axis__s[-1]],
             x_step=[pfp_x_axis__s[1] - pfp_x_axis__s[0]],
             y_units="dBm",
-            reference=DATA_REFERENCE_POINT,  # TODO update
+            reference=data_products_reference,
             description=(
                 "Channelized periodic frame power statistics reported over"
                 + f" a {p[PFP_FRAME_PERIOD_MS]} ms frame period, with frame resolution"
@@ -1086,6 +1091,7 @@ class NasctnSeaDataProduct(Action):
             y_start=[apd_y_axis__dBm[0]],
             y_stop=[apd_y_axis__dBm[-1]],
             y_step=[apd_y_axis__dBm[1] - apd_y_axis__dBm[0]],
+            reference=data_products_reference,
             description=(
                 f"Estimate of the APD, using a {p[APD_BIN_SIZE_DB]} dB "
                 + "bin size for amplitude values. The data payload includes"
