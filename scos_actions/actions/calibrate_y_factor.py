@@ -19,7 +19,7 @@
 r"""Perform a Y-Factor Calibration.
 Supports calculation of gain and noise figure for one or more channels using the
 Y-Factor method. Results are written to the file specified by the environment
-variable ``ONBOARD_SENSOR_CALIBRATION_FILE``. If the sensor already has a sensor calibration
+variable ``ONBOARD_CALIBRATION_FILE``. If the sensor already has a sensor calibration
 object, it is used as the starting point, and copied to a new onboard calibration object
 which is updated by this action. The sensor object's sensor calibration will be set to
 the updated onboard calibration object after this action is run.
@@ -228,13 +228,13 @@ class YFactorCalibration(Action):
                 calibration_parameters=cal_params,
                 calibration_data=cal_data,
                 calibration_reference=onboard_cal_reference,
-                file_path=env("ONBOARD_SENSOR_CALIBRATION_FILE"),
+                file_path=env("ONBOARD_CALIBRATION_FILE"),
                 last_calibration_datetime=last_cal_datetime,
                 clock_rate_lookup_by_sample_rate=clock_rate_lookup_by_sample_rate,
                 sensor_uid=sensor_uid,
             )
         elif self.sensor.sensor_calibration.file_path == env(
-            "ONBOARD_SENSOR_CALIBRATION_FILE"
+            "ONBOARD_CALIBRATION_FILE"
         ):
             # Already using an onboard cal file.
             logger.debug("Onboard calibration file already in use. Continuing.")
