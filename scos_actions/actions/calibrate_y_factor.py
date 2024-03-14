@@ -77,6 +77,7 @@ $$ F_N = 10 \log_{{10}}(NF) $$
 import logging
 import os
 import time
+from pathlib import Path
 
 import numpy as np
 from environs import Env
@@ -228,7 +229,7 @@ class YFactorCalibration(Action):
                 calibration_parameters=cal_params,
                 calibration_data=cal_data,
                 calibration_reference=onboard_cal_reference,
-                file_path=env("ONBOARD_CALIBRATION_FILE"),
+                file_path=Path(env("ONBOARD_CALIBRATION_FILE")),
                 last_calibration_datetime=last_cal_datetime,
                 clock_rate_lookup_by_sample_rate=clock_rate_lookup_by_sample_rate,
                 sensor_uid=sensor_uid,
