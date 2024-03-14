@@ -98,10 +98,24 @@ class SensorCalibration(Calibration):
         elif len(self.calibration_data) == 0:
             return True;
         else:
-            now = datetime.now()
-            for cal_data in self.calibration_data:
-                cal_datetime =  parse_datetime_iso_format_str(cal_data["datetime"])
-                elapsed = now - cal_datetime
-                if elapsed.total_seconds() > time_limit:
-                    return True
-            return False
+            now_string = datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
+            now = parse_datetime_iso_format_str(now_string)
+            cal_data = self.calibration_data
+            return has_expired_cal_data(cal_data, now,time_limit)
+
+def has_expired_cal_data( cal_data: dict, now: datetime, time_limit: int) -> bool:
+    expired = False
+    if "datetime" in cal_data:
+        expired = expired or date_expired(cal_data, now, time_limit)
+
+    for key, value in cal_data.items():
+        if isinstance(value, dict):
+            expired = expired or has_expired_cal_data(value,now,time_limit)
+    return expired
+
+def date_expired( cal_data: dict, now: datetime, time_limit: int):
+    cal_datetime = parse_datetime_iso_format_str(cal_data["datetime"])
+    elapsed = now - cal_datetime
+    if elapsed.total_seconds() > time_limit:
+        return True
+    return False
