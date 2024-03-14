@@ -23,6 +23,7 @@ Currently in development.
 import logging
 import lzma
 import platform
+import ray
 import sys
 from enum import EnumMeta
 from time import perf_counter
@@ -505,7 +506,6 @@ class NasctnSeaDataProduct(Action):
         action_start_tic = perf_counter()
         # Ray should have already been initialized within scos-sensor,
         # but check and initialize just in case.
-        import ray
 
         if not ray.is_initialized():
             logger.info("Initializing ray.")
