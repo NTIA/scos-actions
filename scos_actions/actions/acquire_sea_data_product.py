@@ -30,7 +30,6 @@ from typing import Tuple
 
 import numpy as np
 import psutil
-import ray
 from environs import Env
 from its_preselector import __version__ as PRESELECTOR_API_VERSION
 from scipy.signal import sos2tf, sosfilt
@@ -506,6 +505,8 @@ class NasctnSeaDataProduct(Action):
         action_start_tic = perf_counter()
         # Ray should have already been initialized within scos-sensor,
         # but check and initialize just in case.
+        import ray
+
         if not ray.is_initialized():
             logger.info("Initializing ray.")
             logger.info("Set RAY_INIT=true to avoid initializing within " + __name__)
