@@ -92,7 +92,7 @@ class SensorCalibration(Calibration):
 
     def expired(self) -> bool:
         env = Env()
-        time_limit = env("CALIBRATION_EXPIRATION_LIMIT", default=None)
+        time_limit = env.int("CALIBRATION_EXPIRATION_LIMIT", default=None)
         if time_limit is None:
             return False
         elif self.calibration_data is None:
