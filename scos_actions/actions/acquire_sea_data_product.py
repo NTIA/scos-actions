@@ -538,7 +538,9 @@ class NasctnSeaDataProduct(Action):
         for i, parameters in enumerate(self.iteration_params):
             measurement_result = self.capture_iq(parameters)
             if i == 0:
-                self.create_global_data_product_metadata(measurement_result["reference"])
+                self.create_global_data_product_metadata(
+                    measurement_result["reference"]
+                )
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
 
@@ -564,7 +566,6 @@ class NasctnSeaDataProduct(Action):
         assert (
             len(set(reference_points)) == 1
         ), "Channel data were scaled to different reference points. Cannot build metadata."
-
 
         # Collect processed data product results
         all_data, max_max_ch_pwrs, med_mean_ch_pwrs, mean_ch_pwrs, median_ch_pwrs = (

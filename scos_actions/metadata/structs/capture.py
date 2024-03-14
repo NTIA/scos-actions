@@ -1,6 +1,7 @@
 from typing import Optional
 
 import msgspec
+
 from scos_actions.metadata.structs.ntia_sensor import Calibration, SiganSettings
 from scos_actions.metadata.utils import SIGMF_OBJECT_KWARGS
 

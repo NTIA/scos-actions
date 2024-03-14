@@ -12,8 +12,10 @@ from typing import Dict, List
 import pytest
 
 from scos_actions.calibration.interfaces.calibration import Calibration
-from scos_actions.calibration.sensor_calibration import SensorCalibration
-from scos_actions.calibration.sensor_calibration import has_expired_cal_data
+from scos_actions.calibration.sensor_calibration import (
+    SensorCalibration,
+    has_expired_cal_data,
+)
 from scos_actions.calibration.tests.utils import recursive_check_keys
 from scos_actions.calibration.utils import CalibrationException
 from scos_actions.tests.resources.utils import easy_gain
@@ -336,23 +338,57 @@ class TestSensorCalibrationFile:
     def test_has_expired_cal_data_not_expired(self):
         cal_date = "2024-03-14T15:48:38.039Z"
         now_date = "2024-03-14T15:49:38.039Z"
-        cal_data = {"3550": {"20.0": {"false": {"datetime": cal_date},},}}
-        expired = has_expired_cal_data(cal_data,  parse_datetime_iso_format_str( now_date), 100)
+        cal_data = {
+            "3550": {
+                "20.0": {
+                    "false": {"datetime": cal_date},
+                },
+            }
+        }
+        expired = has_expired_cal_data(
+            cal_data, parse_datetime_iso_format_str(now_date), 100
+        )
         assert expired == False
 
     def test_has_expired_cal_data_expired(self):
         cal_date = "2024-03-14T15:48:38.039Z"
         now_date = "2024-03-14T15:49:38.039Z"
-        cal_data = {"3550": {"20.0": {"false": {"datetime": cal_date},},}}
-        expired = has_expired_cal_data(cal_data, parse_datetime_iso_format_str( now_date), 30)
+        cal_data = {
+            "3550": {
+                "20.0": {
+                    "false": {"datetime": cal_date},
+                },
+            }
+        }
+        expired = has_expired_cal_data(
+            cal_data, parse_datetime_iso_format_str(now_date), 30
+        )
         assert expired == True
 
     def test_has_expired_cal_data_multipledates_expired(self):
         cal_date_1 = "2024-03-14T15:48:38.039Z"
         cal_date_2 = "2024-03-14T15:40:38.039Z"
         now_date = "2024-03-14T15:49:38.039Z"
-        cal_data = {"3550": {"20.0": {"false": {"datetime": cal_date_1},}, "true":{ "datetime": cal_date_2},}}
-        expired = has_expired_cal_data(cal_data, parse_datetime_iso_format_str( now_date), 100)
+        cal_data = {
+            "3550": {
+                "20.0": {
+                    "false": {"datetime": cal_date_1},
+                },
+                "true": {"datetime": cal_date_2},
+            }
+        }
+        expired = has_expired_cal_data(
+            cal_data, parse_datetime_iso_format_str(now_date), 100
+        )
         assert expired == True
-        cal_data = {"3550": {"20.0": {"false": {"datetime": cal_date_2},}, "true":{ "datetime": cal_date_1},}}
-        expired = has_expired_cal_data(cal_data, parse_datetime_iso_format_str( now_date), 100)
+        cal_data = {
+            "3550": {
+                "20.0": {
+                    "false": {"datetime": cal_date_2},
+                },
+                "true": {"datetime": cal_date_1},
+            }
+        }
+        expired = has_expired_cal_data(
+            cal_data, parse_datetime_iso_format_str(now_date), 100
+        )

@@ -5,6 +5,7 @@ import numpy as np
 from its_preselector.preselector import Preselector
 from numpy.typing import NDArray
 from scipy.constants import Boltzmann
+
 from scos_actions.calibration.utils import CalibrationException
 from scos_actions.signal_processing.unit_conversion import (
     convert_celsius_to_fahrenheit,

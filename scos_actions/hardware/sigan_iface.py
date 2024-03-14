@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Optional
 
 from its_preselector.web_relay import WebRelay
+
 from scos_actions.hardware.utils import power_cycle_sigan
 
 logger = logging.getLogger(__name__)

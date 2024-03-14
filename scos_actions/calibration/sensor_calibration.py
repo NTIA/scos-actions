@@ -1,11 +1,13 @@
 """
 TODO
 """
+
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from environs import Env
 from typing import Dict, List, Union
+
+from environs import Env
 
 from scos_actions.calibration.interfaces.calibration import Calibration
 from scos_actions.calibration.utils import CalibrationEntryMissingException
@@ -94,26 +96,28 @@ class SensorCalibration(Calibration):
         if time_limit is None:
             return False
         elif self.calibration_data is None:
-            return True;
+            return True
         elif len(self.calibration_data) == 0:
-            return True;
+            return True
         else:
             now_string = datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
             now = parse_datetime_iso_format_str(now_string)
             cal_data = self.calibration_data
-            return has_expired_cal_data(cal_data, now,time_limit)
+            return has_expired_cal_data(cal_data, now, time_limit)
 
-def has_expired_cal_data( cal_data: dict, now: datetime, time_limit: int) -> bool:
+
+def has_expired_cal_data(cal_data: dict, now: datetime, time_limit: int) -> bool:
     expired = False
     if "datetime" in cal_data:
         expired = expired or date_expired(cal_data, now, time_limit)
 
     for key, value in cal_data.items():
         if isinstance(value, dict):
-            expired = expired or has_expired_cal_data(value,now,time_limit)
+            expired = expired or has_expired_cal_data(value, now, time_limit)
     return expired
 
-def date_expired( cal_data: dict, now: datetime, time_limit: int):
+
+def date_expired(cal_data: dict, now: datetime, time_limit: int):
     cal_datetime = parse_datetime_iso_format_str(cal_data["datetime"])
     elapsed = now - cal_datetime
     if elapsed.total_seconds() > time_limit:
