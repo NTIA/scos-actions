@@ -3,10 +3,13 @@ TODO
 """
 import logging
 from dataclasses import dataclass
+from datetime import datetime
+from environs import Env
 from typing import Dict, List, Union
 
 from scos_actions.calibration.interfaces.calibration import Calibration
 from scos_actions.calibration.utils import CalibrationEntryMissingException
+from scos_actions.utils import parse_datetime_iso_format_str
 
 logger = logging.getLogger(__name__)
 
@@ -84,3 +87,21 @@ class SensorCalibration(Calibration):
 
         # Write updated calibration data to file
         self.to_json()
+
+    def expired(self) -> bool:
+        env = Env()
+        time_limit = env("CALIBRATION_EXPIRATION_LIMIT")
+        if time_limit is None:
+            return False
+        elif self.calibration_data is None:
+            return True;
+        elif len(self.calibration_data) == 0:
+            return True;
+        else:
+            now = datetime.now()
+            for cal_data in self.calibration_data:
+                cal_datetime =  parse_datetime_iso_format_str(cal_data["datetime"])
+                elapsed = now - cal_datetime
+                if elapsed.total_seconds() > time_limit:
+                    return True
+            return False
