@@ -451,6 +451,7 @@ class NasctnSeaDataProduct(Action):
     def __init__(self, parameters: dict):
         super().__init__(parameters)
         # Assume preselector is present
+        self.total_channel_data_length = None
         rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
         self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
 
@@ -1110,6 +1111,7 @@ class NasctnSeaDataProduct(Action):
             + pfp_length * len(PFP_M3_DETECTOR) * 2
             + apd_graph.length
         )
+        logger.debug(f"Total channel length:{self.total_channel_data_length}")
 
     def create_capture_segment(
         self,
