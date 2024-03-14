@@ -93,6 +93,7 @@ class SensorCalibration(Calibration):
     def expired(self) -> bool:
         env = Env()
         time_limit = env.int("CALIBRATION_EXPIRATION_LIMIT", default=None)
+        logger.debug("Checking if calibration has expired.")
         if time_limit is None:
             return False
         elif self.calibration_data is None:
@@ -121,5 +122,8 @@ def date_expired(cal_data: dict, now: datetime, time_limit: int):
     cal_datetime = parse_datetime_iso_format_str(cal_data["datetime"])
     elapsed = now - cal_datetime
     if elapsed.total_seconds() > time_limit:
+        logger.debug(
+            f"Calibration {cal_data} has expired at {elapsed.total_seconds()} seconds old."
+        )
         return True
     return False
