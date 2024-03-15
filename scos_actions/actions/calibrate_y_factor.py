@@ -438,6 +438,6 @@ class YFactorCalibration(Action):
         if not self.sensor.signal_analyzer.healthy():
             trigger_api_restart.send(sender=self.__class__)
 
-    def get_sigan_params(params: dict, sigan: SignalAnalyzerInterface) -> list:
+    def get_sigan_params(self, params: dict, sigan: SignalAnalyzerInterface) -> list:
         sigan_params = [k for k in params.keys() if hasattr(sigan, k)]
         return sigan_params
