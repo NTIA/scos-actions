@@ -88,7 +88,8 @@ from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.calibration.sensor_calibration import SensorCalibration
 from scos_actions.hardware.sensor import Sensor
-from scos_actions.hardware.utils import get_sigan_params
+from scos_actions.hardware.sigan_iface import SignalAnalyzerInterface
+
 from scos_actions.signal_processing.calibration import (
     get_linear_enr,
     get_temperature,
@@ -223,7 +224,7 @@ class YFactorCalibration(Action):
             logger.debug(
                 f"Creating a new onboard cal object for the sensor {sensor_uid}."
             )
-            cal_params = get_sigan_params(
+            cal_params = self.get_sigan_params(
                 self.iteration_params[0], self.sensor.signal_analyzer
             )
             logger.debug(f"cal_params: {cal_params}")
@@ -302,7 +303,7 @@ class YFactorCalibration(Action):
         assert (
             sample_rate == noise_off_measurement_result["sample_rate"]
         ), "Sample rate mismatch"
-        sigan_params = get_sigan_params(params, self.sensor.signal_analyzer)
+        sigan_params = self.get_sigan_params(params, self.sensor.signal_analyzer)
         logger.debug(f"sigan_params: {sigan_params}")
         # Apply IIR filtering to both captures if configured
         if self.iir_apply:
@@ -436,3 +437,7 @@ class YFactorCalibration(Action):
             raise RuntimeError(msg)
         if not self.sensor.signal_analyzer.healthy():
             trigger_api_restart.send(sender=self.__class__)
+
+    def get_sigan_params(params: dict, sigan: SignalAnalyzerInterface) -> list:
+        sigan_params = [k for k in params.keys() if hasattr(sigan, k)]
+        return sigan_params

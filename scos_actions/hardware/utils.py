@@ -8,7 +8,6 @@ from its_preselector.web_relay import WebRelay
 from scos_actions.hardware.hardware_configuration_exception import (
     HardwareConfigurationException,
 )
-from scos_actions.hardware.sigan_iface import SignalAnalyzerInterface
 from scos_actions.settings import SIGAN_POWER_CYCLE_STATES, SIGAN_POWER_SWITCH
 
 logger = logging.getLogger(__name__)
@@ -163,8 +162,3 @@ def power_cycle_sigan(switches: Dict[str, WebRelay]):
         raise HardwareConfigurationException(
             "Call to power cycle sigan, but no power switch or power cycle states specified "
         )
-
-
-def get_sigan_params(params: dict, sigan: SignalAnalyzerInterface) -> list:
-    sigan_params = [k for k in params.keys() if hasattr(sigan, k)]
-    return sigan_params
