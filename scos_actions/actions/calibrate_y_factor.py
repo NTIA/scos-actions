@@ -224,8 +224,10 @@ class YFactorCalibration(Action):
             logger.debug(
                 f"Creating a new onboard cal object for the sensor {sensor_uid}."
             )
-            cal_params = self.get_sigan_params(
-                self.iteration_params[0], self.sensor.signal_analyzer
+            cal_params = list(
+                self.get_sigan_params(
+                    self.iteration_params[0], self.sensor.signal_analyzer
+                ).keys()
             )
             logger.debug(f"cal_params: {cal_params}")
             cal_data = dict()
@@ -438,6 +440,10 @@ class YFactorCalibration(Action):
         if not self.sensor.signal_analyzer.healthy():
             trigger_api_restart.send(sender=self.__class__)
 
-    def get_sigan_params(self, params: dict, sigan: SignalAnalyzerInterface) -> list:
-        sigan_params = [k for k in params.keys() if hasattr(sigan, k)]
+    def get_sigan_params(self, params: dict, sigan: SignalAnalyzerInterface) -> dict:
+        sigan_params = {}
+        for k, v in params.items():
+            if hasattr(sigan, k):
+                sigan_params[k] = v
+
         return sigan_params
