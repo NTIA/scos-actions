@@ -50,7 +50,7 @@ class Action(ABC):
         self._sensor = value
 
     def configure_sigan(self, params: dict):
-        for key, value in params:
+        for key, value in params.items():
             if hasattr(self.sensor.signal_analyzer, key):
                 logger.debug(f"Applying setting to sigan: {key}: {value}")
                 setattr(self.sensor.signal_analyzer, key, value)
