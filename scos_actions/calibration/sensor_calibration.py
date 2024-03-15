@@ -54,6 +54,7 @@ class SensorCalibration(Calibration):
         :param temp_degC: Temperature at calibration time, in degrees Celsius.
         :param file_path: File path for saving the updated calibration data.
         """
+        logger.debug("Updating calibration file.")
         try:
             # Get existing calibration data entry which will be updated
             data_entry = self.get_calibration_dict(params)

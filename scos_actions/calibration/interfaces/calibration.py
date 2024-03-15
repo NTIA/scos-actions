@@ -129,3 +129,4 @@ class Calibration:
         dict_to_json.pop("file_path", None)
         with open(self.file_path, "w") as outfile:
             outfile.write(json.dumps(dict_to_json))
+        logger.debug("Finished updating calibration file.")
