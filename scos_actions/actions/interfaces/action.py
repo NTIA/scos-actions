@@ -4,7 +4,6 @@ from copy import deepcopy
 from typing import Optional
 
 from scos_actions.hardware.sensor import Sensor
-from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.metadata.structs import ntia_scos, ntia_sensor
 from scos_actions.utils import ParameterException, get_parameter
@@ -51,13 +50,12 @@ class Action(ABC):
         self._sensor = value
 
     def configure_sigan(self, params: dict):
-        sigan_params = {k: v for k, v in params.items() if k in SIGAN_SETTINGS_KEYS}
-        for key, value in sigan_params.items():
+        for key, value in params:
             if hasattr(self.sensor.signal_analyzer, key):
                 logger.debug(f"Applying setting to sigan: {key}: {value}")
                 setattr(self.sensor.signal_analyzer, key, value)
             else:
-                logger.warning(f"Sigan does not have attribute {key}")
+                logger.debug(f"Sigan does not have attribute {key}")
 
     def configure_preselector(self, params: dict):
         preselector = self.sensor.preselector

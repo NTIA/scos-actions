@@ -10,17 +10,6 @@ from scos_actions.hardware.utils import power_cycle_sigan
 logger = logging.getLogger(__name__)
 
 
-# All setting names for all supported sigans
-SIGAN_SETTINGS_KEYS = [
-    "sample_rate",
-    "frequency",
-    "gain",
-    "attenuation",
-    "reference_level",
-    "preamp_enable",
-]
-
-
 class SignalAnalyzerInterface(ABC):
     def __init__(
         self,

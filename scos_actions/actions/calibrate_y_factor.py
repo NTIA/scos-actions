@@ -88,7 +88,7 @@ from scos_actions import utils
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.calibration.sensor_calibration import SensorCalibration
 from scos_actions.hardware.sensor import Sensor
-from scos_actions.hardware.sigan_iface import SIGAN_SETTINGS_KEYS
+from scos_actions.hardware.utils import get_sigan_params
 from scos_actions.signal_processing.calibration import (
     get_linear_enr,
     get_temperature,
@@ -219,12 +219,17 @@ class YFactorCalibration(Action):
             # Create a new sensor calibration object and attach it to the sensor.
             # The calibration parameters will be set to the sigan parameters used
             # in the action YAML parameters.
-            logger.debug(f"Creating a new onboard cal object for the sensor.")
-            cal_params = [k for k in self.iteration_params if k in SIGAN_SETTINGS_KEYS]
+            sensor_uid = self.sensor.capabilities["sensor"]["sensor_spec"]["id"]
+            logger.debug(
+                f"Creating a new onboard cal object for the sensor {sensor_uid}."
+            )
+            cal_params = get_sigan_params(
+                self.iteration_params[0], self.sensor.signal_analyzer
+            )
+            logger.debug(f"cal_params: {cal_params}")
             cal_data = dict()
             last_cal_datetime = get_datetime_str_now()
             clock_rate_lookup_by_sample_rate = []
-            sensor_uid = "Sensor calibration file not provided"
             self.sensor.sensor_calibration = SensorCalibration(
                 calibration_parameters=cal_params,
                 calibration_data=cal_data,
@@ -297,7 +302,8 @@ class YFactorCalibration(Action):
         assert (
             sample_rate == noise_off_measurement_result["sample_rate"]
         ), "Sample rate mismatch"
-        sigan_params = {k: v for k, v in params.items() if k in SIGAN_SETTINGS_KEYS}
+        sigan_params = get_sigan_params(params, self.sensor.signal_analyzer)
+        logger.debug(f"sigan_params: {sigan_params}")
         # Apply IIR filtering to both captures if configured
         if self.iir_apply:
             # Estimate of IIR filter ENBW does NOT account for passband ripple in sensor transfer function!
