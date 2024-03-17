@@ -122,6 +122,7 @@ def has_expired_cal_data(cal_data: dict, now: datetime, time_limit: int) -> bool
 def date_expired(cal_data: dict, now: datetime, time_limit: int):
     cal_datetime = parse_datetime_iso_format_str(cal_data["datetime"])
     elapsed = now - cal_datetime
+    logger.debug(f"{cal_datetime} is {elapsed} seconds old")
     if elapsed.total_seconds() > time_limit:
         logger.debug(
             f"Calibration {cal_data} has expired at {elapsed.total_seconds()} seconds old."
