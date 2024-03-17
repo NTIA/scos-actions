@@ -173,22 +173,18 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         # Save measurement results
         measurement_result["data"] = m4s_result
         measurement_result.update(self.parameters)
-        # measurement_result["calibration_datetime"] = (
-        #     self.sensor.sensor_calibration_data["datetime"]
-        # )
         measurement_result["task_id"] = task_id
         measurement_result["classification"] = self.classification
 
         # Build capture metadata
         sigan_settings = self.get_sigan_settings(measurement_result)
         logger.debug(f"sigan settings:{sigan_settings}")
+        measurement_result["duration_ms"] = int(self.num_samples / sample_rate_Hz)
+        measurement_result["center_frequency_Hz"] = self.frequency_Hz
         measurement_result["capture_segment"] = self.create_capture_segment(
             sample_start=0,
-            start_time=measurement_result["capture_time"],
-            center_frequency_Hz=self.frequency_Hz,
-            duration_ms=int(self.num_samples / sample_rate_Hz),
-            overload=measurement_result["overload"],
             sigan_settings=sigan_settings,
+            measurement_result=measurement_result,
         )
 
         return measurement_result

@@ -98,11 +98,8 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         logger.debug(f"sigan settings:{sigan_settings}")
         measurement_result["capture_segment"] = self.create_capture_segment(
             sample_start=0,
-            start_time=measurement_result["capture_time"],
-            center_frequency_Hz=self.frequency_Hz,
-            duration_ms=self.duration_ms,
-            overload=measurement_result["overload"],
             sigan_settings=sigan_settings,
+            measurement_result=measurement_result,
         )
         return measurement_result
 

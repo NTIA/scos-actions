@@ -121,15 +121,8 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             )
             sensor_cal = self.sensor.sensor_calibration_data
             if sensor_cal is not None:
-                if "1db_compression_point" in sensor_cal:
-                    sensor_cal["compression_point"] = sensor_cal.pop(
-                        "1db_compression_point"
-                    )
-                if "reference" not in sensor_cal:
-                    # If the calibration data already includes this, don't overwrite
-                    sensor_cal["reference"] = measurement_result["reference"]
-                capture_segment.sensor_calibration = ntia_sensor.Calibration(
-                    **sensor_cal
+                capture_segment.sensor_calibration = self.get_calibration(
+                    measurement_result
                 )
             measurement_result["capture_segment"] = capture_segment
 

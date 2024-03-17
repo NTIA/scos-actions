@@ -23,7 +23,6 @@ Currently in development.
 import logging
 import lzma
 import platform
-import ray
 import sys
 from enum import EnumMeta
 from time import perf_counter
@@ -31,6 +30,7 @@ from typing import Tuple
 
 import numpy as np
 import psutil
+import ray
 from environs import Env
 from its_preselector import __version__ as PRESELECTOR_API_VERSION
 from scipy.signal import sos2tf, sosfilt
@@ -1151,6 +1151,10 @@ class NasctnSeaDataProduct(Action):
                 preamp_enable=self.sensor.signal_analyzer.preamp_enable,
             ),
         )
+        if "compression_point" in measurement_result:
+            capture_segment.sensor_calibration.compression_point = measurement_result[
+                "compression_point"
+            ]
         self.sigmf_builder.add_capture(capture_segment)
 
     def get_sigmf_builder(
