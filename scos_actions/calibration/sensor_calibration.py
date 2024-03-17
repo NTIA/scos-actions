@@ -95,15 +95,17 @@ class SensorCalibration(Calibration):
         env = Env()
         time_limit = env.int("CALIBRATION_EXPIRATION_LIMIT", default=None)
         logger.debug("Checking if calibration has expired.")
+        now_string = datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
+        now = parse_datetime_iso_format_str(now_string)
         if time_limit is None:
             return False
         elif self.calibration_data is None:
             return True
         elif len(self.calibration_data) == 0:
             return True
+        elif date_expired(self.last_calibration_datetime, now, time_limit):
+            return True
         else:
-            now_string = datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
-            now = parse_datetime_iso_format_str(now_string)
             cal_data = self.calibration_data
             return has_expired_cal_data(cal_data, now, time_limit)
 
@@ -111,7 +113,7 @@ class SensorCalibration(Calibration):
 def has_expired_cal_data(cal_data: dict, now: datetime, time_limit: int) -> bool:
     expired = False
     if "datetime" in cal_data:
-        expired = expired or date_expired(cal_data, now, time_limit)
+        expired = expired or date_expired(cal_data["datetime"], now, time_limit)
 
     for key, value in cal_data.items():
         if isinstance(value, dict):
@@ -119,8 +121,8 @@ def has_expired_cal_data(cal_data: dict, now: datetime, time_limit: int) -> bool
     return expired
 
 
-def date_expired(cal_data: dict, now: datetime, time_limit: int):
-    cal_datetime = parse_datetime_iso_format_str(cal_data["datetime"])
+def date_expired(cal_date: str, now: datetime, time_limit: int):
+    cal_datetime = parse_datetime_iso_format_str(cal_date)
     elapsed = now - cal_datetime
     logger.debug(f"{cal_datetime} is {elapsed} seconds old")
     if elapsed.total_seconds() > time_limit:
