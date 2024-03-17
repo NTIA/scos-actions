@@ -89,7 +89,6 @@ from scos_actions.actions.interfaces.action import Action
 from scos_actions.calibration.sensor_calibration import SensorCalibration
 from scos_actions.hardware.sensor import Sensor
 from scos_actions.hardware.sigan_iface import SignalAnalyzerInterface
-
 from scos_actions.signal_processing.calibration import (
     get_linear_enr,
     get_temperature,
@@ -263,7 +262,7 @@ class YFactorCalibration(Action):
             else:
                 detail += os.linesep + self.calibrate(p)
         # Save results to onboard calibration file
-        self.sensor.sensor_calibration.to_json()
+        # self.sensor.sensor_calibration.to_json()
         return detail
 
     def calibrate(self, params: dict):

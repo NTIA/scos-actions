@@ -62,7 +62,7 @@ class SensorCalibration(Calibration):
             # Existing entry does not exist for these parameters. Make one.
             data_entry = self.calibration_data
             for p_name in self.calibration_parameters:
-                p_val = params[p_name]
+                p_val = str(params[p_name]).lower()
                 try:
                     data_entry = data_entry[p_val]
                 except KeyError:

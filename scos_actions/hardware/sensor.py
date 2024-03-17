@@ -280,14 +280,6 @@ class Sensor:
         logger.debug("***********************************\n")
         logger.debug("Sensor.acquire_time_domain_samples starting")
         logger.debug(f"Number of retries = {retries}")
-        if self.differential_calibration is not None:
-            logger.debug(
-                f"USING DIFF. CAL: {self.differential_calibration.calibration_data}"
-            )
-        if self.sensor_calibration is not None:
-            logger.debug(
-                f"USING SENSOR CAL: {self.sensor_calibration.calibration_data}"
-            )
         logger.debug("*************************************\n")
 
         max_retries = retries
@@ -301,7 +293,7 @@ class Sensor:
                         )
                     )
                     break
-                except Exception as e:
+                except BaseException as e:
                     retries -= 1
                     logger.info("Error while acquiring samples from signal analyzer.")
                     if retries == 0:
@@ -322,8 +314,16 @@ class Sensor:
                     "Data scaling cannot occur without specified calibration parameters."
                 )
             if self.sensor_calibration is not None:
-                logger.debug("Scaling samples using calibration data")
+                logger.debug("Scaling samples. Fetching calibration data.")
                 self.recompute_calibration_data(cal_params)
+                if self.differential_calibration is not None:
+                    logger.debug(
+                        f"USING DIFF. CAL: {self.differential_calibration.calibration_data}"
+                    )
+                if self.sensor_calibration is not None:
+                    logger.debug(
+                        f"USING SENSOR CAL: {self.sensor_calibration.calibration_data}"
+                    )
                 calibrated_gain__db = self.sensor_calibration_data["gain"]
                 calibrated_nf__db = self.sensor_calibration_data["noise_figure"]
                 logger.debug(f"Using sensor gain: {calibrated_gain__db} dB")
