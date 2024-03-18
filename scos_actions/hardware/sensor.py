@@ -339,6 +339,7 @@ class Sensor:
                     measurement_result["reference"] = (
                         self.differential_calibration.calibration_reference
                     )
+
                 else:
                     # No differential calibration exists
                     logger.debug("No differential calibration was applied")
@@ -353,6 +354,11 @@ class Sensor:
                     "gain": calibrated_gain__db,
                     "noise_figure": calibrated_nf__db,
                 }
+                if "compression_point" in self.sensor_calibration_data:
+                    measurement_result["applied_calibration"]["compression_point"] = (
+                        self.sensor_calibration_data["compression_point"]
+                    )
+
             else:
                 # No sensor calibration exists
                 msg = "Unable to scale samples without sensor calibration data"
