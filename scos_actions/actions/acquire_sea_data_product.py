@@ -1151,10 +1151,10 @@ class NasctnSeaDataProduct(Action):
                 preamp_enable=self.sensor.signal_analyzer.preamp_enable,
             ),
         )
-        if "compression_point" in measurement_result:
+        if "compression_point" in measurement_result["applied_calibration"]:
             capture_segment.sensor_calibration.compression_point = measurement_result[
-                "compression_point"
-            ]
+                "applied_calibration"
+            ]["compression_point"]
         self.sigmf_builder.add_capture(capture_segment)
 
     def get_sigmf_builder(
