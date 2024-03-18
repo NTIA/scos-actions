@@ -74,7 +74,11 @@ from scos_actions.signal_processing.power_analysis import (
     create_statistical_detector,
 )
 from scos_actions.signals import measurement_action_completed, trigger_api_restart
-from scos_actions.utils import convert_datetime_to_millisecond_iso_format, get_days_up
+from scos_actions.utils import (
+    convert_datetime_to_millisecond_iso_format,
+    get_days_up,
+    get_disk_usage,
+)
 
 env = Env()
 logger = logging.getLogger(__name__)
@@ -785,6 +789,11 @@ class NasctnSeaDataProduct(Action):
             cpu_diag["ssd_smart_data"] = ntia_diagnostics.SsdSmartData(**smart_data)
         except:
             logger.warning("Failed to get SSD SMART data")
+        try:  # Disk usage
+            disk_usage = get_disk_usage()
+            cpu_diag["disk_usage"] = disk_usage
+        except:
+            logger.warning("Failed to get disk usage")
 
         # Get software versions
         software_diag = {

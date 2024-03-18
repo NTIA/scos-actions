@@ -112,7 +112,6 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             sigan_settings = self.get_sigan_settings(measurement_result)
             capture_segment = CaptureSegment(
                 sample_start=0,
-                global_index=saved_samples,
                 frequency=measurement_params[FREQUENCY],
                 datetime=measurement_result["capture_time"],
                 duration=duration_ms,
