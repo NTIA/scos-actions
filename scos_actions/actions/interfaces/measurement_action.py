@@ -68,7 +68,7 @@ class MeasurementAction(Action):
             temperature=round(self.sensor.sensor_calibration_data["temperature"], 1),
             reference=measurement_result["reference"],
         )
-        if "comporession_point" in measurement_result:
+        if "compression_point" in measurement_result:
             cal_meta.compression_point = measurement_result["compression_point"]
         return cal_meta
 
