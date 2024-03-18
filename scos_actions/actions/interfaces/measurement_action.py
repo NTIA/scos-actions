@@ -44,7 +44,7 @@ class MeasurementAction(Action):
         capture_segment = CaptureSegment(
             sample_start=sample_start,
             frequency=self.sensor.signal_analyzer.frequency,
-            datetime=measurement_result["start_time"],
+            datetime=measurement_result["capture_time"],
             duration=measurement_result["duration_ms"],
             overload=measurement_result["overload"],
             sigan_settings=sigan_settings,
