@@ -52,26 +52,37 @@ class MeasurementAction(Action):
         sensor_cal = self.sensor.sensor_calibration_data
         # Rename compression point keys if they exist
         # then set calibration metadata if it exists
-        if sensor_cal is not None:
+        if (
+            sensor_cal is not None
+            and measurement_result["applied_calibration"] is not None
+        ):
             capture_segment.sensor_calibration = self.get_calibration(
                 measurement_result
             )
         return capture_segment
 
     def get_calibration(self, measurement_result: dict) -> ntia_sensor.Calibration:
-        cal_meta = ntia_sensor.Calibration(
-            datetime=self.sensor.sensor_calibration_data["datetime"],
-            gain=round(measurement_result["applied_calibration"]["gain"], 3),
-            noise_figure=round(
-                measurement_result["applied_calibration"]["noise_figure"], 3
-            ),
-            temperature=round(self.sensor.sensor_calibration_data["temperature"], 1),
-            reference=measurement_result["reference"],
-        )
-        if "compression_point" in measurement_result["applied_calibration"]:
-            cal_meta.compression_point = measurement_result["applied_calibration"][
-                "compression_point"
-            ]
+        cal_meta = None
+        if (
+            self.sensor.sensor_calibration_data
+            is measurement_result["applied_calibration"]
+            is not None
+        ):
+            cal_meta = ntia_sensor.Calibration(
+                datetime=self.sensor.sensor_calibration_data["datetime"],
+                gain=round(measurement_result["applied_calibration"]["gain"], 3),
+                noise_figure=round(
+                    measurement_result["applied_calibration"]["noise_figure"], 3
+                ),
+                temperature=round(
+                    self.sensor.sensor_calibration_data["temperature"], 1
+                ),
+                reference=measurement_result["reference"],
+            )
+            if "compression_point" in measurement_result["applied_calibration"]:
+                cal_meta.compression_point = measurement_result["applied_calibration"][
+                    "compression_point"
+                ]
         return cal_meta
 
     def create_metadata(

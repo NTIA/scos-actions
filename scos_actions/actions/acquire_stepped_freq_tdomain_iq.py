@@ -119,7 +119,10 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
                 sigan_settings=sigan_settings,
             )
             sensor_cal = self.sensor.sensor_calibration_data
-            if sensor_cal is not None:
+            if (
+                sensor_cal is not None
+                and measurement_result["applied_calibration"] is not None
+            ):
                 capture_segment.sensor_calibration = self.get_calibration(
                     measurement_result
                 )
