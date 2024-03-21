@@ -43,15 +43,14 @@ class MeasurementAction(Action):
     ) -> CaptureSegment:
         capture_segment = CaptureSegment(
             sample_start=sample_start,
-            frequency=self.sensor.signal_analyzer.frequency,
+            frequency=measurement_result["frequency"],
             datetime=measurement_result["capture_time"],
             duration=measurement_result["duration_ms"],
             overload=measurement_result["overload"],
             sigan_settings=sigan_settings,
         )
         sensor_cal = self.sensor.sensor_calibration_data
-        # Rename compression point keys if they exist
-        # then set calibration metadata if it exists
+        # Set calibration metadata if it exists
         if (
             sensor_cal is not None
             and measurement_result["applied_calibration"] is not None

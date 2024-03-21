@@ -110,22 +110,9 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             measurement_result["name"] = self.name
             measurement_result["classification"] = self.classification
             sigan_settings = self.get_sigan_settings(measurement_result)
-            capture_segment = CaptureSegment(
-                sample_start=0,
-                frequency=measurement_params[FREQUENCY],
-                datetime=measurement_result["capture_time"],
-                duration=duration_ms,
-                overload=measurement_result["overload"],
-                sigan_settings=sigan_settings,
+            capture_segment = self.create_capture_segment(
+                0, sigan_settings, measurement_result
             )
-            sensor_cal = self.sensor.sensor_calibration_data
-            if (
-                sensor_cal is not None
-                and measurement_result["applied_calibration"] is not None
-            ):
-                capture_segment.sensor_calibration = self.get_calibration(
-                    measurement_result
-                )
             measurement_result["capture_segment"] = capture_segment
 
             self.create_metadata(measurement_result, recording_id)

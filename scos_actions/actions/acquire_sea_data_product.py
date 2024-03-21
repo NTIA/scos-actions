@@ -425,7 +425,7 @@ class IQProcessor:
         ]
         del params
 
-    def run(self, iqdata: np.ndarray):
+    def run(self, iqdata: np.ndarray) -> list:
         """
         Filter the input IQ data and concurrently compute FFT, PVT, PFP, and APD results.
 

@@ -262,9 +262,14 @@ class Sensor:
 
         Gain adjustment can be applied to acquired samples using ``cal_adjust``.
         If ``True``, the samples acquired from the signal analyzer will be
-        scaled based on the calibrated ``gain`` value in the ``SensorCalibration``,
-        if one exists for this sensor, and "calibration terminal" will be the value
-        of the "reference" key in the returned dict.
+        scaled based on the calibrated ``gain`` and ``loss`` values in
+        the ``SensorCalibration`` and ``DifferentialCalibration.``
+        If no ``DifferentialCalibration`` exists, "calibration terminal"
+        will be the value of the "reference" key in the
+        returned dict. If a ``DifferentialCalibration`` exists, the gain and
+        noise figure will be adjusted with the loss specified in the
+        ``DifferentialCalibration`` and the "reference" will be set to the
+        calibration_reference of the ``DifferentialCalibration``.
 
         :param num_samples: Number of samples to acquire
         :param num_samples_skip: Number of samples to skip

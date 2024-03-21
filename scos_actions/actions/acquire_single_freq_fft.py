@@ -179,7 +179,9 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         # Build capture metadata
         sigan_settings = self.get_sigan_settings(measurement_result)
         logger.debug(f"sigan settings:{sigan_settings}")
-        measurement_result["duration_ms"] = int(self.num_samples / sample_rate_Hz)
+        measurement_result["duration_ms"] = round(
+            (self.num_samples / sample_rate_Hz) * 1000
+        )
         measurement_result["center_frequency_Hz"] = self.frequency_Hz
         measurement_result["capture_segment"] = self.create_capture_segment(
             sample_start=0,

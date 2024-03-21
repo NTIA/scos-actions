@@ -261,8 +261,6 @@ class YFactorCalibration(Action):
                 detail += self.calibrate(p)
             else:
                 detail += os.linesep + self.calibrate(p)
-        # Save results to onboard calibration file
-        # self.sensor.sensor_calibration.to_json()
         return detail
 
     def calibrate(self, params: dict):
