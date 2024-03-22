@@ -182,7 +182,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         measurement_result["duration_ms"] = round(
             (self.num_samples / sample_rate_Hz) * 1000
         )
-        measurement_result["center_frequency_Hz"] = self.frequency_Hz
         measurement_result["capture_segment"] = self.create_capture_segment(
             sample_start=0,
             sigan_settings=sigan_settings,
