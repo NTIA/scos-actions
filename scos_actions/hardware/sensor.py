@@ -78,7 +78,7 @@ class Sensor:
         self._gps = gps
 
     @property
-    def preselector(self) -> Preselector:
+    def preselector(self) -> Optional[Preselector]:
         """
         RF front end that may include calibration sources, filters, and/or amplifiers.
         """
@@ -104,7 +104,7 @@ class Sensor:
         self._switches = switches
 
     @property
-    def location(self) -> dict:
+    def location(self) -> Optional[dict]:
         """
         The GeoJSON dictionary of the sensor's location.
         """
@@ -118,7 +118,7 @@ class Sensor:
         self._location = loc
 
     @property
-    def capabilities(self) -> dict:
+    def capabilities(self) -> Optional[dict]:
         """
         A dictionary of the sensor's capabilities. The dictionary should
         include a 'sensor' key that maps to the ntia-sensor
