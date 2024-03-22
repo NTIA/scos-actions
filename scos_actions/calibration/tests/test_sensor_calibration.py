@@ -42,7 +42,7 @@ class TestSensorCalibrationFile:
     def run_pytest_point(self, sr, f, g, reason, sr_m=False, f_m=False, g_m=False):
         """Test the calculated value against the algorithm
         Parameters:
-            sr, f, g -> Set values for the mock USRP
+            sr, f, g -> Set values for the mock signal analzyer
             reason: Test case string for failure reference
             sr_m, f_m, g_m -> Set values to use when calculating the expected value
                               May differ in from actual set points in edge cases
@@ -392,3 +392,4 @@ class TestSensorCalibrationFile:
         expired = has_expired_cal_data(
             cal_data, parse_datetime_iso_format_str(now_date), 100
         )
+        assert expired == True
