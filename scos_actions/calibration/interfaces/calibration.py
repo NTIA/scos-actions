@@ -1,7 +1,3 @@
-"""
-TODO
-"""
-
 import dataclasses
 import json
 import logging
@@ -19,6 +15,19 @@ logger = logging.getLogger(__name__)
 
 @dataclasses.dataclass
 class Calibration:
+    """
+    Base class to handle calibrated gains, noise figures, compression points, and losses.
+    The calibration_parameters defined the settings used to perform calibrations and the
+    order in which calibrations may be accessed in the calibration_data dictionary.
+    For example, if calibration_parameters where [frequency, sample_rate] then the
+    calibration for a particular frequency and sample rate would be accessed in
+    the calibration_data dictionary by the string value of the frequency and
+    sample rate, like calibration_data["3555000000.0"]["14000000.0"]. The
+    calibration_reference indicates the reference point for the calibration, e.d.,
+    antenna terminal, or noise source output. The file_path determines where
+    updates (if allowed) will be saved.
+    """
+
     calibration_parameters: List[str]
     calibration_data: dict
     calibration_reference: str

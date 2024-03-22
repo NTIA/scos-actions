@@ -1,7 +1,3 @@
-"""
-TODO
-"""
-
 import logging
 from dataclasses import dataclass
 from datetime import datetime
@@ -18,6 +14,16 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SensorCalibration(Calibration):
+    """
+    Extends the ``Calibration`` class to represent calibration
+    data that may be updated. Within scos-senso,``SensorCalibration``
+    instances are used to handle calibration files generated prior
+    to deployment through a lab-based calibration as well as the result
+    of calibrations that are performed by the sensor in the field. This
+    class provides an implementation fo the update method to allow calibration
+    data to be updated with new values.
+    """
+
     last_calibration_datetime: str
     clock_rate_lookup_by_sample_rate: List[Dict[str, float]]
     sensor_uid: str
@@ -41,8 +47,8 @@ class SensorCalibration(Calibration):
         Update the calibration data by overwriting or adding an entry.
 
         This updates the instance variables of the ``SensorCalibration``
-        object and additionally writes these changes to the specified
-        output file.
+        object and additionally writes these changes to file specified
+        by the instance's file_path property.
 
         :param params: Parameters used for calibration. This must include
             entries for all of the ``Calibration.calibration_parameters``
@@ -52,7 +58,6 @@ class SensorCalibration(Calibration):
         :param gain_dB: Gain value from calibration, in dB.
         :param noise_figure_dB: Noise figure value for calibration, in dB.
         :param temp_degC: Temperature at calibration time, in degrees Celsius.
-        :param file_path: File path for saving the updated calibration data.
         """
         logger.debug(f"Updating calibration file for params {params}")
         try:
