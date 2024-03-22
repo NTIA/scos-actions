@@ -7,7 +7,7 @@ from environs import Env
 
 from scos_actions.calibration.interfaces.calibration import Calibration
 from scos_actions.calibration.utils import CalibrationEntryMissingException
-from scos_actions.utils import parse_datetime_iso_format_str
+from scos_actions.utils import parse_datetime_iso_format_str, get_datetime_str_now
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ class SensorCalibration(Calibration):
         env = Env()
         time_limit = env.int("CALIBRATION_EXPIRATION_LIMIT", default=None)
         logger.debug("Checking if calibration has expired.")
-        now_string = datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
+        now_string = get_datetime_str_now()
         now = parse_datetime_iso_format_str(now_string)
         if time_limit is None:
             return False
