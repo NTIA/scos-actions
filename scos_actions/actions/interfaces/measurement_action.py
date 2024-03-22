@@ -51,21 +51,16 @@ class MeasurementAction(Action):
         )
         sensor_cal = self.sensor.sensor_calibration_data
         # Set calibration metadata if it exists
-        if (
-            sensor_cal is not None
-            and measurement_result["applied_calibration"] is not None
-        ):
-            capture_segment.sensor_calibration = self.get_calibration(
-                measurement_result
-            )
+        cal_meta = self.get_calibration(measurement_result)
+        if cal_meta is not None:
+            capture_segment.sensor_calibration = cal_meta
         return capture_segment
 
     def get_calibration(self, measurement_result: dict) -> ntia_sensor.Calibration:
         cal_meta = None
         if (
-            self.sensor.sensor_calibration_data
-            is measurement_result["applied_calibration"]
-            is not None
+            self.sensor.sensor_calibration_data is not None
+            and measurement_result["applied_calibration"] is not None
         ):
             cal_meta = ntia_sensor.Calibration(
                 datetime=self.sensor.sensor_calibration_data["datetime"],
@@ -120,12 +115,6 @@ class MeasurementAction(Action):
             self.sigmf_builder.set_classification(measurement_result["classification"])
         except KeyError:
             logger.warning(warning_str.format("classification"))
-        try:
-            self.sigmf_builder.set_last_calibration_time(
-                measurement_result["calibration_datetime"]
-            )
-        except KeyError:
-            logger.warning(warning_str.format("calibration_datetime"))
         try:
             cap = measurement_result["capture_segment"]
             logger.debug(f"Adding capture:{cap}")

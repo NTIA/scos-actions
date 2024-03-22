@@ -426,11 +426,6 @@ class SigMFBuilder:
             start_index=start_index, length=length, metadata=annotation_md
         )
 
-    def set_last_calibration_time(self, last_cal_time):
-        self.sigmf_md.set_global_field(
-            "ntia-sensor:calibration_datetime", last_cal_time
-        )
-
     def add_to_global(self, key, value):
         self.sigmf_md.set_global_field(key, value)
 

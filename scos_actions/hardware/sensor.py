@@ -363,7 +363,8 @@ class Sensor:
                     measurement_result["applied_calibration"]["compression_point"] = (
                         self.sensor_calibration_data["compression_point"]
                     )
-
+                applied_cal = measurement_result["applied_calibration"]
+                logger.debug(f"Setting applied_calibration to: {applied_cal}")
             else:
                 # No sensor calibration exists
                 msg = "Unable to scale samples without sensor calibration data"
