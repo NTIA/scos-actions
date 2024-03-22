@@ -305,7 +305,7 @@ class TestSensorCalibrationFile:
                     break
 
     def test_update(self):
-        calibration_datetime = get_datetime_str_now()
+        calibration_datetime = "2024-03-17T19:16:55.172Z"
         calibration_params = ["sample_rate", "frequency"]
         calibration_data = {100.0: {200.0: {"noise_figure": 0, "gain": 0}}}
         test_cal_path = Path("test_calibration.json")
