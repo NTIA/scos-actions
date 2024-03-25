@@ -7,7 +7,7 @@ from environs import Env
 
 from scos_actions.calibration.interfaces.calibration import Calibration
 from scos_actions.calibration.utils import CalibrationEntryMissingException
-from scos_actions.utils import parse_datetime_iso_format_str, get_datetime_str_now
+from scos_actions.utils import get_datetime_str_now, parse_datetime_iso_format_str
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class SensorCalibration(Calibration):
     """
     Extends the ``Calibration`` class to represent calibration
-    data that may be updated. Within scos-senso,``SensorCalibration``
+    data that may be updated. Within SCOS Sensor,``SensorCalibration``
     instances are used to handle calibration files generated prior
     to deployment through a lab-based calibration as well as the result
     of calibrations that are performed by the sensor in the field. This
