@@ -52,12 +52,15 @@ def filter_by_parameter(calibrations: dict, value: Union[float, int, bool]) -> d
     """
     try:
         filtered_data = calibrations.get(str(value).lower(), None)
+        attempts = f"\n\tstr({value}).lower() = {str(value).lower()}"
         if filtered_data is None and isinstance(value, int):
             # Try equivalent float for ints, i.e., match "1.0" to 1
             filtered_data = calibrations.get(str(float(value)), None)
+            attempts += f"\n\tstr(float({value})) = {str(float(value))}"
         if filtered_data is None and isinstance(value, float) and value.is_integer():
             # Check for, e.g., key '25' if value is '25.0'
             filtered_data = calibrations.get(str(int(value)), None)
+            attempts += f"\n\tstr(int({value})) = {str(int(value))}"
         if filtered_data is None:
             raise KeyError
         else:
@@ -70,9 +73,7 @@ def filter_by_parameter(calibrations: dict, value: Union[float, int, bool]) -> d
     except KeyError:
         msg = (
             f"Could not locate calibration data at {value}"
-            + f"\nAttempted lookup using key '{str(value).lower()}'"
-            + f"{f' and {float(value)}' if isinstance(value, int) else ''}"
-            + f"{f' and {int(value)}' if isinstance(value, float) and value.is_integer() else ''}"
+            + f"\nAttempted lookup using keys: {attempts}"
             + f"\nUsing calibration data: {calibrations}"
         )
         raise CalibrationEntryMissingException(msg)

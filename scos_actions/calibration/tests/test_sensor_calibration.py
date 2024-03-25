@@ -276,11 +276,17 @@ class TestSensorCalibrationFile:
             clock_rate_lookup_by_sample_rate=[],
             sensor_uid="TESTING",
         )
+
+        lookup_fail_value = 250.0
         with pytest.raises(CalibrationException) as e_info:
-            _ = cal.get_calibration_dict({"sample_rate": 100.0, "frequency": 250.0})
+            _ = cal.get_calibration_dict(
+                {"sample_rate": 100.0, "frequency": lookup_fail_value}
+            )
         assert e_info.value.args[0] == (
-            f"Could not locate calibration data at 250.0"
-            + f"\nAttempted lookup using key '250.0'"
+            f"Could not locate calibration data at {lookup_fail_value}"
+            + "\nAttempted lookup using keys: "
+            + f"\n\tstr({lookup_fail_value}).lower() = {str(lookup_fail_value).lower()}"
+            + f"\n\tstr(int({lookup_fail_value})) = {int(lookup_fail_value)}"
             + f"\nUsing calibration data: {cal.calibration_data['100.0']}"
         )
 
