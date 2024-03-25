@@ -20,7 +20,7 @@ class SensorCalibration(Calibration):
     instances are used to handle calibration files generated prior
     to deployment through a lab-based calibration as well as the result
     of calibrations that are performed by the sensor in the field. This
-    class provides an implementation fo the update method to allow calibration
+    class provides an implementation for the update method to allow calibration
     data to be updated with new values.
     """
 
