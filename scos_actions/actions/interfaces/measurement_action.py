@@ -49,7 +49,6 @@ class MeasurementAction(Action):
             overload=measurement_result["overload"],
             sigan_settings=sigan_settings,
         )
-        sensor_cal = self.sensor.sensor_calibration_data
         # Set calibration metadata if it exists
         cal_meta = self.get_calibration(measurement_result)
         if cal_meta is not None:
