@@ -39,7 +39,8 @@ def filter_by_parameter(calibrations: dict, value: Union[float, int, bool]) -> d
     If ``value`` is a float or bool, ``str(value).lower()`` is used
     as the dictionary key. If ``value`` is an int, and the previous
     approach does not work, ``str(float(value))`` is attempted. This
-    allows for value ``1`` to match a key ``"1.0"``.
+    allows for value ``1`` to match a key ``"1.0"``, or a value of
+    ``1.0`` to match a key ``"1"``.
 
     :param calibrations: Calibration data dictionary.
     :param value: The parameter value for filtering. This value should
