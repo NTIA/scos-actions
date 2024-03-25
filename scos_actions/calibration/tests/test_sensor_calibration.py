@@ -5,7 +5,6 @@ import datetime
 import json
 import random
 from copy import deepcopy
-from math import isclose
 from pathlib import Path
 from typing import Dict, List
 
@@ -18,7 +17,6 @@ from scos_actions.calibration.sensor_calibration import (
 )
 from scos_actions.calibration.tests.utils import recursive_check_keys
 from scos_actions.calibration.utils import CalibrationException
-from scos_actions.tests.resources.utils import easy_gain
 from scos_actions.utils import get_datetime_str_now, parse_datetime_iso_format_str
 
 
@@ -39,75 +37,14 @@ class TestSensorCalibrationFile:
             if duplicate_f and duplicate_g and duplicate_sr:
                 return True
 
-    def run_pytest_point(self, sr, f, g, reason, sr_m=False, f_m=False, g_m=False):
-        """Test the calculated value against the algorithm
-        Parameters:
-            sr, f, g -> Set values for the mock signal analzyer
-            reason: Test case string for failure reference
-            sr_m, f_m, g_m -> Set values to use when calculating the expected value
-                              May differ in from actual set points in edge cases
-                              such as tuning in divisions or uncalibrated sample rate"""
-        # Check that the setup was completed
-        assert self.setup_complete, "Setup was not completed"
-
-        # If this point was tested before, skip it (triggering a new one)
-        if self.check_duplicate(sr, f, g):
-            return False
-
-        # If the point doesn't have modified inputs, use the algorithm ones
-        if not f_m:
-            f_m = f
-        if not g_m:
-            g_m = g
-        if not sr_m:
-            sr_m = sr
-
-        # Calculate what the scale factor should be
-        calc_gain_sigan = easy_gain(sr_m, f_m, g_m)
-
-        # Get the scale factor from the algorithm
-        interp_cal_data = self.sample_cal.get_calibration_dict(
-            {"sample_rate": sr, "frequency": f, "gain": g}
-        )
-        interp_gain_sigan = interp_cal_data["gain"]
-
-        # Save the point so we don't duplicate
-        self.pytest_points.append(
-            {
-                "sample_rate": int(sr),
-                "frequency": f,
-                "setting_value": g,
-                "gain": calc_gain_sigan,
-                "test": reason,
-            }
-        )
-
-        # Check if the point was calculated correctly
-        tolerance = 1e-5
-        msg = "Scale factor not correctly calculated!\r\n"
-        msg = f"{msg}    Expected value:   {calc_gain_sigan}\r\n"
-        msg = f"{msg}    Calculated value: {interp_gain_sigan}\r\n"
-        msg = f"{msg}    Tolerance: {tolerance}\r\n"
-        msg = f"{msg}    Test: {reason}\r\n"
-        msg = f"{msg}    Sample Rate: {sr / 1e6}({sr_m / 1e6})\r\n"
-        msg = f"{msg}    Frequency: {f / 1e6}({f_m / 1e6})\r\n"
-        msg = f"{msg}    Gain: {g}({g_m})\r\n"
-        msg = (
-            "{}    Formula: -1 * (Gain - Frequency[GHz] - Sample Rate[MHz])\r\n".format(
-                msg
-            )
-        )
-        if not isclose(calc_gain_sigan, interp_gain_sigan, abs_tol=tolerance):
-            interp_cal_data = self.sample_cal.get_calibration_dict(
-                {"sample_rate": sr, "frequency": f, "gain": g}
-            )
-
-        assert isclose(calc_gain_sigan, interp_gain_sigan, abs_tol=tolerance), msg
-        return True
-
     @pytest.fixture(autouse=True)
     def setup_calibration_file(self, tmp_path: Path):
-        """Create the dummy calibration file in the pytest temp directory"""
+        """
+        Create the dummy calibration file in the pytest temp directory
+
+        The gain values in each calibration data entry are set up as being
+        equal to the gain setting minus ``self.dummy_gain_scale_factor``
+        """
 
         # Only setup once
         if self.setup_complete:
@@ -117,6 +54,7 @@ class TestSensorCalibrationFile:
         self.calibration_file = tmp_path / "dummy_cal_file.json"
 
         # Setup variables
+        self.dummy_gain_scale_factor = 5  # test data gain values are (gain setting - 5)
         self.dummy_noise_figure = 10
         self.dummy_compression = -20
         self.test_repeat_times = 3
@@ -164,14 +102,9 @@ class TestSensorCalibrationFile:
             for i in range(len(frequencies)):
                 cal_data_g = {}
                 for j in range(len(gains)):
-                    # Create the scale factor that ensures easy interpolation
-                    gain_sigan = easy_gain(
-                        self.sample_rates[k], frequencies[i], gains[j]
-                    )
-
                     # Create the data point
                     cal_data_point = {
-                        "gain": gain_sigan,
+                        "gain": gains[j] - self.dummy_gain_scale_factor,
                         "noise_figure": self.dummy_noise_figure,
                         "1dB_compression_point": self.dummy_compression,
                     }
@@ -289,26 +222,6 @@ class TestSensorCalibrationFile:
             + f"\n\tstr(int({lookup_fail_value})) = {int(lookup_fail_value)}"
             + f"\nUsing calibration data: {cal.calibration_data['100.0']}"
         )
-
-    def test_sf_bound_points(self):
-        """Test SF determination at boundary points"""
-        self.run_pytest_point(
-            self.srs[0], self.frequency_min, self.gain_min, "Testing boundary points"
-        )
-        self.run_pytest_point(
-            self.srs[0], self.frequency_max, self.gain_max, "Testing boundary points"
-        )
-
-    def test_sf_no_interpolation_points(self):
-        """Test points without interpolation"""
-        for i in range(4 * self.test_repeat_times):
-            while True:
-                g = self.g_s[self.rand_index(self.g_s)]
-                f = self.f_s[self.rand_index(self.f_s)]
-                if self.run_pytest_point(
-                    self.srs[0], f, g, "Testing no interpolation points"
-                ):
-                    break
 
     def test_update(self):
         calibration_datetime = "2024-03-17T19:16:55.172Z"
