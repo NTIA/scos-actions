@@ -69,7 +69,7 @@ class TestSensorCalibrationFile:
         interp_cal_data = self.sample_cal.get_calibration_dict(
             {"sample_rate": sr, "frequency": f, "gain": g}
         )
-        interp_gain_siggan = interp_cal_data["gain"]
+        interp_gain_sigan = interp_cal_data["gain"]
 
         # Save the point so we don't duplicate
         self.pytest_points.append(
@@ -86,7 +86,7 @@ class TestSensorCalibrationFile:
         tolerance = 1e-5
         msg = "Scale factor not correctly calculated!\r\n"
         msg = f"{msg}    Expected value:   {calc_gain_sigan}\r\n"
-        msg = f"{msg}    Calculated value: {interp_gain_siggan}\r\n"
+        msg = f"{msg}    Calculated value: {interp_gain_sigan}\r\n"
         msg = f"{msg}    Tolerance: {tolerance}\r\n"
         msg = f"{msg}    Test: {reason}\r\n"
         msg = f"{msg}    Sample Rate: {sr / 1e6}({sr_m / 1e6})\r\n"
@@ -97,12 +97,12 @@ class TestSensorCalibrationFile:
                 msg
             )
         )
-        if not isclose(calc_gain_sigan, interp_gain_siggan, abs_tol=tolerance):
+        if not isclose(calc_gain_sigan, interp_gain_sigan, abs_tol=tolerance):
             interp_cal_data = self.sample_cal.get_calibration_dict(
                 {"sample_rate": sr, "frequency": f, "gain": g}
             )
 
-        assert isclose(calc_gain_sigan, interp_gain_siggan, abs_tol=tolerance), msg
+        assert isclose(calc_gain_sigan, interp_gain_sigan, abs_tol=tolerance), msg
         return True
 
     @pytest.fixture(autouse=True)
