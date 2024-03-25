@@ -70,7 +70,7 @@ class Calibration:
             )
         cal_data = self.calibration_data
         for p_name in self.calibration_parameters:
-            p_value = str(params[p_name]).lower()
+            p_value = params[p_name]
             logger.debug(f"Looking up calibration data at {p_name}={p_value}")
             cal_data = filter_by_parameter(cal_data, p_value)
 
