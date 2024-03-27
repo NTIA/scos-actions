@@ -1,6 +1,7 @@
 """
 Unit test for scos_actions.signal_processing.unit_conversion
 """
+
 import numpy as np
 import pytest
 

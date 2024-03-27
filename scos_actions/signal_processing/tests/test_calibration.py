@@ -1,6 +1,7 @@
 """
 Unit test for scos_actions.signal_processing.calibration
 """
+
 import numpy as np
 from scipy.constants import Boltzmann
 

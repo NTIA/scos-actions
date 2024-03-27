@@ -1,6 +1,7 @@
 """
 Unit test for scos_actions.signal_processing.fft
 """
+
 import numpy as np
 import pytest
 from scipy.signal import get_window
