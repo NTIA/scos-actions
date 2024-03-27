@@ -27,7 +27,7 @@ GLOBAL_INFO = {
         },
         {
             "name": "ntia-diagnostics",
-            "version": "2.0.0",
+            "version": "2.2.0",
             "optional": True,
         },
         {
@@ -266,7 +266,7 @@ class SigMFBuilder:
         """
         self.sigmf_md.set_global_field("core:collection", collection)
 
-    ### ntia-algorithm v2.0.0 ###
+    ### ntia-algorithm v2.0.1 ###
 
     def set_data_products(self, data_products: List[Graph]) -> None:
         """
@@ -311,7 +311,7 @@ class SigMFBuilder:
         """
         self.sigmf_md.set_global_field("ntia-core:classification", classification)
 
-    ### ntia-diagnostics v1.0.0 ###
+    ### ntia-diagnostics v2.2.0 ###
 
     def set_diagnostics(self, diagnostics: Diagnostics) -> None:
         """

@@ -129,16 +129,20 @@ class Computer(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     :param cpu_mean_clock: Mean sampled clock speed, in MHz.
     :param cpu_uptime: Number of days since the computer started.
     :param action_cpu_usage: CPU utilization during action execution, as a percentage.
+    :param action_runtime: Total action execution time, in seconds.
     :param system_load_5m: Number of processes in a runnable state over the
         previous 5 minutes as a percentage of the number of CPUs.
     :param memory_usage: Average percent of memory used during action execution.
     :param cpu_overheating: Whether the CPU is overheating.
     :param cpu_temp: CPU temperature, in degrees Celsius.
-    :param scos_start: The time at which the SCOS API container started. Must be
+    :param software_start: The time at which the sensor software started. Must be
         an ISO 8601 formatted string.
-    :param scos_uptime: Number of days since the SCOS API container started.
+    :param software_uptime: Number of days since the sensor software started.
     :param ssd_smart_data: Information provided by the drive Self-Monitoring,
         Analysis, and Reporting Technology.
+    :param ntp_active: True if NTP service is active on the computer.
+    :param ntp_sync: True if the system clock is synchronized with NTP.
+    :param disk_usage: Total computer disk usage, as a percentage.
     """
 
     cpu_min_clock: Optional[float] = None
@@ -154,6 +158,9 @@ class Computer(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     software_start: Optional[str] = None
     software_uptime: Optional[float] = None
     ssd_smart_data: Optional[SsdSmartData] = None
+    ntp_active: Optional[bool] = None
+    ntp_sync: Optional[bool] = None
+    disk_usage: Optional[float] = None
 
 
 class ScosPlugin(msgspec.Struct, **SIGMF_OBJECT_KWARGS):

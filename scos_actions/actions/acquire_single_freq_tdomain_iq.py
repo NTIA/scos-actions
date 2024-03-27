@@ -37,7 +37,6 @@ from numpy import complex64
 
 from scos_actions import utils
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.utils import get_parameter
 
 logger = logging.getLogger(__name__)
@@ -84,7 +83,9 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         # Use the sigan's actual reported instead of requested sample rate
         sample_rate = self.sensor.signal_analyzer.sample_rate
         num_samples = int(sample_rate * self.duration_ms * 1e-3)
-        measurement_result = self.acquire_data(num_samples, self.nskip, self.cal_adjust)
+        measurement_result = self.acquire_data(
+            num_samples, self.nskip, self.cal_adjust, cal_params=self.parameters
+        )
         end_time = utils.get_datetime_str_now()
         measurement_result.update(self.parameters)
         measurement_result["end_time"] = end_time
@@ -94,11 +95,8 @@ class SingleFrequencyTimeDomainIqAcquisition(MeasurementAction):
         logger.debug(f"sigan settings:{sigan_settings}")
         measurement_result["capture_segment"] = self.create_capture_segment(
             sample_start=0,
-            start_time=measurement_result["capture_time"],
-            center_frequency_Hz=self.frequency_Hz,
-            duration_ms=self.duration_ms,
-            overload=measurement_result["overload"],
             sigan_settings=sigan_settings,
+            measurement_result=measurement_result,
         )
         return measurement_result
 

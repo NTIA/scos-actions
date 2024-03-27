@@ -1,5 +1,6 @@
 import json
 import logging
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -124,3 +125,11 @@ def get_days_up(start_time):
     days = elapsed.days
     fractional_day = elapsed.seconds / (60 * 60 * 24)
     return round(days + fractional_day, 4)
+
+
+def get_disk_usage() -> float:
+    """Return the total disk usage as a percentage."""
+    usage = shutil.disk_usage("/")
+    percent_used = round(100 * usage.used / usage.total)
+    logger.debug(f"{percent_used} disk used")
+    return round(percent_used, 2)

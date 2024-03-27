@@ -91,7 +91,6 @@ import logging
 from numpy import float32, ndarray
 
 from scos_actions.actions.interfaces.measurement_action import MeasurementAction
-from scos_actions.hardware.mocks.mock_gps import MockGPS
 from scos_actions.metadata.structs import ntia_algorithm
 from scos_actions.signal_processing.fft import (
     get_fft,
@@ -153,10 +152,6 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         self.classification = get_parameter(CLASSIFICATION, self.parameters)
         self.cal_adjust = get_parameter(CAL_ADJUST, self.parameters)
         assert isinstance(self.cal_adjust, bool)
-        if self.cal_adjust:
-            self.data_reference = "calibration terminal"
-        else:
-            self.data_reference = "signal analyzer input"
         # FFT setup
         self.fft_detector = create_statistical_detector(
             "M4sDetector", ["min", "max", "mean", "median", "sample"]
@@ -169,7 +164,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
     def execute(self, schedule_entry: dict, task_id: int) -> dict:
         # Acquire IQ data and generate M4S result
         measurement_result = self.acquire_data(
-            self.num_samples, self.nskip, self.cal_adjust
+            self.num_samples, self.nskip, self.cal_adjust, cal_params=self.parameters
         )
         # Actual sample rate may differ from configured value
         sample_rate_Hz = measurement_result["sample_rate"]
@@ -184,13 +179,13 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
         # Build capture metadata
         sigan_settings = self.get_sigan_settings(measurement_result)
         logger.debug(f"sigan settings:{sigan_settings}")
+        measurement_result["duration_ms"] = round(
+            (self.num_samples / sample_rate_Hz) * 1000
+        )
         measurement_result["capture_segment"] = self.create_capture_segment(
             sample_start=0,
-            start_time=measurement_result["capture_time"],
-            center_frequency_Hz=self.frequency_Hz,
-            duration_ms=round((self.num_samples / sample_rate_Hz) * 1000),
-            overload=measurement_result["overload"],
             sigan_settings=sigan_settings,
+            measurement_result=measurement_result,
         )
 
         return measurement_result
@@ -267,7 +262,7 @@ class SingleFrequencyFftAcquisition(MeasurementAction):
             x_stop=[frequencies[-1]],
             x_step=[frequencies[1] - frequencies[0]],
             y_units="dBm",
-            reference=self.data_reference,
+            reference=measurement_result["reference"],
             description=(
                 "Results of min, max, mean, and median statistical detectors, "
                 + f"along with a random sampling, from a set of {self.nffts} "

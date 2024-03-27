@@ -4,9 +4,7 @@ import sys
 import pytest
 
 from scos_actions.discover import test_actions
-from scos_actions.hardware.mocks.mock_gps import MockGPS
-from scos_actions.hardware.mocks.mock_sigan import MockSignalAnalyzer
-from scos_actions.hardware.sensor import Sensor
+from scos_actions.hardware.mocks.mock_sensor import MockSensor
 from scos_actions.signals import location_action_completed
 
 SYNC_GPS = {
@@ -30,8 +28,7 @@ def test_location_action_completed():
 
     location_action_completed.connect(callback)
     action = test_actions["test_sync_gps"]
-    sigan = MockSignalAnalyzer()
-    sensor = Sensor(signal_analyzer=sigan, capabilities={}, gps=MockGPS(sigan))
+    sensor = MockSensor()
     if sys.platform == "linux":
         action(sensor, SYNC_GPS, 1)
         assert _latitude
