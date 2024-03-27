@@ -25,7 +25,7 @@ this_doesnt_exist:
 """
 
 sigan = MockSignalAnalyzer()
-gps = MockGPS(sigan)
+gps = MockGPS()
 
 
 def test_load_from_yaml_existing():

@@ -23,7 +23,7 @@ def test_set_get_preselector():
 
 def test_set_get_gps():
     sigan = MockSignalAnalyzer()
-    gps = MockGPS(sigan)
+    gps = MockGPS()
     sensor = Sensor(signal_analyzer=sigan, capabilities={})
     sensor.gps = gps
     assert sensor.gps == gps
