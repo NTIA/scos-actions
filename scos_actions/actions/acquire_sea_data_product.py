@@ -103,6 +103,7 @@ REFERENCE_LEVEL = "reference_level"
 DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
 PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
+CAL_ADJUST = "calibration_adjust"
 
 # Constants
 DATA_TYPE = np.half
@@ -161,6 +162,7 @@ class PowerSpectralDensity:
             - 10.0 * np.log10(sample_rate_Hz * fft_size)  # PSD scaling
             + 20.0 * np.log10(window_ecf)  # Window energy correction
         )
+        self.cal_adjust = True
 
     def run(self, iq: ray.ObjectRef) -> np.ndarray:
         """
@@ -643,9 +645,16 @@ class NasctnSeaDataProduct(Action):
         duration_ms = utils.get_parameter(DURATION_MS, params)
         nskip = utils.get_parameter(NUM_SKIP, params)
         num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            for key, value in params.items():
+                logger.debug(f"param {key}={value}")
+        self.cal_adjust = True
+        if CAL_ADJUST in params:
+            self.cal_adjust = utils.get_parameter(CAL_ADJUST, params)
+        logger.debug(f"cal_adjust={self.cal_adjust}")
         # Collect IQ data
         measurement_result = self.sensor.acquire_time_domain_samples(
-            num_samples, nskip, cal_params=params
+            num_samples, nskip, cal_params=params, cal_adjust=self.cal_adjust
         )
         # Store some metadata with the IQ
         measurement_result.update(params)
@@ -802,7 +811,8 @@ class NasctnSeaDataProduct(Action):
             "scos_sensor_version": SCOS_SENSOR_GIT_TAG,
             "scos_actions_version": SCOS_ACTIONS_VERSION,
             "scos_sigan_plugin": ntia_diagnostics.ScosPlugin(
-                name="scos_tekrsa", version=self.sensor.signal_analyzer.plugin_version
+                name=self.sensor.signal_analyzer.plugin_name,
+                version=self.sensor.signal_analyzer.plugin_version,
             ),
             "preselector_api_version": PRESELECTOR_API_VERSION,
             "sigan_firmware_version": self.sensor.signal_analyzer.firmware_version,
@@ -1143,7 +1153,14 @@ class NasctnSeaDataProduct(Action):
             datetime=measurement_result["capture_time"],
             duration=measurement_result[DURATION_MS],
             overload=measurement_result["overload"],
-            sensor_calibration=ntia_sensor.Calibration(
+            sigan_settings=ntia_sensor.SiganSettings(
+                reference_level=self.sensor.signal_analyzer.reference_level,
+                attenuation=self.sensor.signal_analyzer.attenuation,
+                preamp_enable=self.sensor.signal_analyzer.preamp_enable,
+            ),
+        )
+        if self.cal_adjust:
+            capture_segment.sensor_calibration = ntia_sensor.Calibration(
                 datetime=self.sensor.sensor_calibration_data["datetime"],
                 gain=round(measurement_result["applied_calibration"]["gain"], 3),
                 noise_figure=round(
@@ -1153,13 +1170,7 @@ class NasctnSeaDataProduct(Action):
                     self.sensor.sensor_calibration_data["temperature"], 1
                 ),
                 reference=measurement_result["reference"],
-            ),
-            sigan_settings=ntia_sensor.SiganSettings(
-                reference_level=self.sensor.signal_analyzer.reference_level,
-                attenuation=self.sensor.signal_analyzer.attenuation,
-                preamp_enable=self.sensor.signal_analyzer.preamp_enable,
-            ),
-        )
+            )
         if "compression_point" in measurement_result["applied_calibration"]:
             capture_segment.sensor_calibration.compression_point = measurement_result[
                 "applied_calibration"
