@@ -38,35 +38,45 @@ class MeasurementAction(Action):
     def create_capture_segment(
         self,
         sample_start: int,
-        start_time: str,
-        center_frequency_Hz: float,
-        duration_ms: int,
-        overload: bool,
         sigan_settings: Optional[ntia_sensor.SiganSettings],
+        measurement_result: dict,
     ) -> CaptureSegment:
         capture_segment = CaptureSegment(
             sample_start=sample_start,
-            frequency=center_frequency_Hz,
-            datetime=start_time,
-            duration=duration_ms,
-            overload=overload,
+            frequency=measurement_result["frequency"],
+            datetime=measurement_result["capture_time"],
+            duration=measurement_result["duration_ms"],
+            overload=measurement_result["overload"],
             sigan_settings=sigan_settings,
         )
-        sigan_cal = self.sensor.signal_analyzer.sigan_calibration_data
-        sensor_cal = self.sensor.signal_analyzer.sensor_calibration_data
-        # Rename compression point keys if they exist
-        # then set calibration metadata if it exists
-        if sensor_cal is not None:
-            if "1db_compression_point" in sensor_cal:
-                sensor_cal["compression_point"] = sensor_cal.pop(
-                    "1db_compression_point"
-                )
-            capture_segment.sensor_calibration = ntia_sensor.Calibration(**sensor_cal)
-        if sigan_cal is not None:
-            if "1db_compression_point" in sigan_cal:
-                sigan_cal["compression_point"] = sigan_cal.pop("1db_compression_point")
-            capture_segment.sigan_calibration = ntia_sensor.Calibration(**sigan_cal)
+        # Set calibration metadata if it exists
+        cal_meta = self.get_calibration(measurement_result)
+        if cal_meta is not None:
+            capture_segment.sensor_calibration = cal_meta
         return capture_segment
+
+    def get_calibration(self, measurement_result: dict) -> ntia_sensor.Calibration:
+        cal_meta = None
+        if (
+            self.sensor.sensor_calibration_data is not None
+            and measurement_result["applied_calibration"] is not None
+        ):
+            cal_meta = ntia_sensor.Calibration(
+                datetime=self.sensor.sensor_calibration_data["datetime"],
+                gain=round(measurement_result["applied_calibration"]["gain"], 3),
+                noise_figure=round(
+                    measurement_result["applied_calibration"]["noise_figure"], 3
+                ),
+                temperature=round(
+                    self.sensor.sensor_calibration_data["temperature"], 1
+                ),
+                reference=measurement_result["reference"],
+            )
+            if "compression_point" in measurement_result["applied_calibration"]:
+                cal_meta.compression_point = measurement_result["applied_calibration"][
+                    "compression_point"
+                ]
+        return cal_meta
 
     def create_metadata(
         self,
@@ -104,12 +114,6 @@ class MeasurementAction(Action):
             self.sigmf_builder.set_classification(measurement_result["classification"])
         except KeyError:
             logger.warning(warning_str.format("classification"))
-        try:
-            self.sigmf_builder.set_last_calibration_time(
-                measurement_result["calibration_datetime"]
-            )
-        except KeyError:
-            logger.warning(warning_str.format("calibration_datetime"))
         try:
             cap = measurement_result["capture_segment"]
             logger.debug(f"Adding capture:{cap}")
@@ -160,17 +164,22 @@ class MeasurementAction(Action):
         )
 
     def acquire_data(
-        self, num_samples: int, nskip: int = 0, cal_adjust: bool = True
+        self,
+        num_samples: int,
+        nskip: int = 0,
+        cal_adjust: bool = True,
+        cal_params: Optional[dict] = None,
     ) -> dict:
         logger.debug(
             f"Acquiring {num_samples} IQ samples, skipping the first {nskip} samples"
             + f" and {'' if cal_adjust else 'not '}applying gain adjustment based"
             + " on calibration data"
         )
-        measurement_result = self.sensor.signal_analyzer.acquire_time_domain_samples(
+        measurement_result = self.sensor.acquire_time_domain_samples(
             num_samples,
             num_samples_skip=nskip,
             cal_adjust=cal_adjust,
+            cal_params=cal_params,
         )
 
         return measurement_result

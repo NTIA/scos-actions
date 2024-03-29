@@ -14,6 +14,8 @@ capture_segment_rename_map = {
     "duration": "ntia-sensor:duration",
     "overload": "ntia-sensor:overload",
     "sensor_calibration": "ntia-sensor:sensor_calibration",
+    # sigan_calibration is unused by SCOS Sensor but still defined
+    # in the ntia-sensor extension as of v2.0.0
     "sigan_calibration": "ntia-sensor:sigan_calibration",
     "sigan_settings": "ntia-sensor:sigan_settings",
 }

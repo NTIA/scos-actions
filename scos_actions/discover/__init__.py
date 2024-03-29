@@ -5,7 +5,9 @@ from scos_actions.actions.sync_gps import SyncGps
 from scos_actions.discover.yaml import load_from_yaml
 from scos_actions.settings import ACTION_DEFINITIONS_DIR
 
-actions = {"logger": Logger()}
+actions = {
+    "logger": Logger(),
+}
 test_actions = {
     "test_sync_gps": SyncGps(parameters={"name": "test_sync_gps"}),
     "test_monitor_sigan": MonitorSignalAnalyzer(

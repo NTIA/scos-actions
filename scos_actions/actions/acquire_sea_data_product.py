@@ -45,7 +45,6 @@ from scos_actions.hardware.utils import (
     get_current_cpu_temperature,
     get_disk_smart_data,
     get_max_cpu_temperature,
-    get_ntp_status,
 )
 from scos_actions.metadata.sigmf_builder import SigMFBuilder
 from scos_actions.metadata.structs import (
@@ -84,9 +83,6 @@ from scos_actions.utils import (
 env = Env()
 logger = logging.getLogger(__name__)
 
-if not ray.is_initialized():
-    # Dashboard is only enabled if ray[default] is installed
-    ray.init()
 
 # Define parameter keys
 RF_PATH = "rf_path"
@@ -117,7 +113,6 @@ FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
 IMPEDANCE_OHMS = 50.0
-DATA_REFERENCE_POINT = "noise source output"
 NUM_ACTORS = 3  # Number of ray actors to initialize
 
 # Create power detectors
@@ -457,6 +452,7 @@ class NasctnSeaDataProduct(Action):
     def __init__(self, parameters: dict):
         super().__init__(parameters)
         # Assume preselector is present
+        self.total_channel_data_length = None
         rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
         self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
 
@@ -512,6 +508,14 @@ class NasctnSeaDataProduct(Action):
         """This is the entrypoint function called by the scheduler."""
         self._sensor = sensor
         action_start_tic = perf_counter()
+        # Ray should have already been initialized within scos-sensor,
+        # but check and initialize just in case.
+
+        if not ray.is_initialized():
+            logger.info("Initializing ray.")
+            logger.info("Set RAY_INIT=true to avoid initializing within " + __name__)
+            # Dashboard is only enabled if ray[default] is installed
+            ray.init()
 
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
         self.test_required_components()
@@ -526,8 +530,6 @@ class NasctnSeaDataProduct(Action):
             self.iteration_params,
         )
         self.create_global_sensor_metadata(self.sensor)
-        self.create_global_data_product_metadata()
-
         # Initialize remote supervisor actors for IQ processing
         tic = perf_counter()
         # This uses iteration_params[0] because
@@ -539,10 +541,15 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Spawned {NUM_ACTORS} supervisor actors in {toc-tic:.2f} s")
 
         # Collect all IQ data and spawn data product computation processes
-        dp_procs, cpu_speed = [], []
+        dp_procs, cpu_speed, reference_points = [], [], []
         capture_tic = perf_counter()
+
         for i, parameters in enumerate(self.iteration_params):
             measurement_result = self.capture_iq(parameters)
+            if i == 0:
+                self.create_global_data_product_metadata(
+                    measurement_result["reference"]
+                )
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
 
@@ -553,15 +560,21 @@ class NasctnSeaDataProduct(Action):
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc-tic:.2f} s")
             # Create capture segment with channel-specific metadata before sigan is reconfigured
-            tic = perf_counter()
             self.create_capture_segment(i, measurement_result)
-            toc = perf_counter()
-            logger.debug(f"Created capture metadata in {toc-tic:.2f} s")
+            # Query CPU speed for later averaging in diagnostics metadata
             cpu_speed.append(get_current_cpu_clock_speed())
+            # Append list of data reference points; later we require these to be identical
+            reference_points.append(measurement_result["reference"])
         capture_toc = perf_counter()
         logger.debug(
             f"Collected all IQ data and started all processing in {capture_toc-capture_tic:.2f} s"
         )
+
+        # Create data product metadata: requires all data reference points
+        # to be identical.
+        assert (
+            len(set(reference_points)) == 1
+        ), "Channel data were scaled to different reference points. Cannot build metadata."
 
         # Collect processed data product results
         all_data, max_max_ch_pwrs, med_mean_ch_pwrs, mean_ch_pwrs, median_ch_pwrs = (
@@ -631,14 +644,11 @@ class NasctnSeaDataProduct(Action):
         nskip = utils.get_parameter(NUM_SKIP, params)
         num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
         # Collect IQ data
-        measurement_result = self.sensor.signal_analyzer.acquire_time_domain_samples(
-            num_samples, nskip
+        measurement_result = self.sensor.acquire_time_domain_samples(
+            num_samples, nskip, cal_params=params
         )
         # Store some metadata with the IQ
         measurement_result.update(params)
-        measurement_result[
-            "sensor_cal"
-        ] = self.sensor.signal_analyzer.sensor_calibration_data
         toc = perf_counter()
         logger.debug(
             f"IQ Capture ({duration_ms} ms @ {(params[FREQUENCY]/1e6):.1f} MHz) completed in {toc-tic:.2f} s."
@@ -779,10 +789,6 @@ class NasctnSeaDataProduct(Action):
             cpu_diag["ssd_smart_data"] = ntia_diagnostics.SsdSmartData(**smart_data)
         except:
             logger.warning("Failed to get SSD SMART data")
-        try:
-            cpu_diag["ntp_active"], cpu_diag["ntp_sync"] = get_ntp_status()
-        except:
-            logger.warning("Failed to get NTP status")
         try:  # Disk usage
             disk_usage = get_disk_usage()
             cpu_diag["disk_usage"] = disk_usage
@@ -988,7 +994,7 @@ class NasctnSeaDataProduct(Action):
             trigger_api_restart.send(sender=self.__class__)
         return None
 
-    def create_global_data_product_metadata(self) -> None:
+    def create_global_data_product_metadata(self, data_products_reference: str) -> None:
         p = self.parameters
         num_iq_samples = int(p[SAMPLE_RATE] * p[DURATION_MS] * 1e-3)
         iir_obj = ntia_algorithm.DigitalFilter(
@@ -1033,7 +1039,7 @@ class NasctnSeaDataProduct(Action):
             x_step=[p[SAMPLE_RATE] / FFT_SIZE],
             y_units="dBm/Hz",
             processing=[dft_obj.id],
-            reference=DATA_REFERENCE_POINT,
+            reference=data_products_reference,
             description=(
                 "Results of statistical detectors (max, mean, median, 25th_percentile, 75th_percentile, "
                 + "90th_percentile, 95th_percentile, 99th_percentile, 99.9th_percentile, 99.99th_percentile) "
@@ -1053,7 +1059,7 @@ class NasctnSeaDataProduct(Action):
             x_stop=[pvt_x_axis__s[-1]],
             x_step=[pvt_x_axis__s[1] - pvt_x_axis__s[0]],
             y_units="dBm",
-            reference=DATA_REFERENCE_POINT,
+            reference=data_products_reference,
             description=(
                 "Max- and mean-detected channel power vs. time, with "
                 + f"an integration time of {p[TD_BIN_SIZE_MS]} ms. "
@@ -1080,7 +1086,7 @@ class NasctnSeaDataProduct(Action):
             x_stop=[pfp_x_axis__s[-1]],
             x_step=[pfp_x_axis__s[1] - pfp_x_axis__s[0]],
             y_units="dBm",
-            reference=DATA_REFERENCE_POINT,
+            reference=data_products_reference,
             description=(
                 "Channelized periodic frame power statistics reported over"
                 + f" a {p[PFP_FRAME_PERIOD_MS]} ms frame period, with frame resolution"
@@ -1103,6 +1109,7 @@ class NasctnSeaDataProduct(Action):
             y_start=[apd_y_axis__dBm[0]],
             y_stop=[apd_y_axis__dBm[-1]],
             y_step=[apd_y_axis__dBm[1] - apd_y_axis__dBm[0]],
+            reference=data_products_reference,
             description=(
                 f"Estimate of the APD, using a {p[APD_BIN_SIZE_DB]} dB "
                 + "bin size for amplitude values. The data payload includes"
@@ -1121,6 +1128,7 @@ class NasctnSeaDataProduct(Action):
             + pfp_length * len(PFP_M3_DETECTOR) * 2
             + apd_graph.length
         )
+        logger.debug(f"Total channel length:{self.total_channel_data_length}")
 
     def create_capture_segment(
         self,
@@ -1136,11 +1144,15 @@ class NasctnSeaDataProduct(Action):
             duration=measurement_result[DURATION_MS],
             overload=measurement_result["overload"],
             sensor_calibration=ntia_sensor.Calibration(
-                datetime=measurement_result["sensor_cal"]["datetime"],
-                gain=round(measurement_result["sensor_cal"]["gain"], 3),
-                noise_figure=round(measurement_result["sensor_cal"]["noise_figure"], 3),
-                temperature=round(measurement_result["sensor_cal"]["temperature"], 1),
-                reference=DATA_REFERENCE_POINT,
+                datetime=self.sensor.sensor_calibration_data["datetime"],
+                gain=round(measurement_result["applied_calibration"]["gain"], 3),
+                noise_figure=round(
+                    measurement_result["applied_calibration"]["noise_figure"], 3
+                ),
+                temperature=round(
+                    self.sensor.sensor_calibration_data["temperature"], 1
+                ),
+                reference=measurement_result["reference"],
             ),
             sigan_settings=ntia_sensor.SiganSettings(
                 reference_level=self.sensor.signal_analyzer.reference_level,
@@ -1148,6 +1160,10 @@ class NasctnSeaDataProduct(Action):
                 preamp_enable=self.sensor.signal_analyzer.preamp_enable,
             ),
         )
+        if "compression_point" in measurement_result["applied_calibration"]:
+            capture_segment.sensor_calibration.compression_point = measurement_result[
+                "applied_calibration"
+            ]["compression_point"]
         self.sigmf_builder.add_capture(capture_segment)
 
     def get_sigmf_builder(
