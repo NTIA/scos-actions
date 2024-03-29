@@ -8,7 +8,11 @@ from its_preselector.web_relay import WebRelay
 from scos_actions.hardware.hardware_configuration_exception import (
     HardwareConfigurationException,
 )
-from scos_actions.settings import SIGAN_POWER_CYCLE_STATES, SIGAN_POWER_SWITCH
+from scos_actions.settings import (
+    IN_DOCKER,
+    SIGAN_POWER_CYCLE_STATES,
+    SIGAN_POWER_SWITCH,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,12 +77,40 @@ def get_ntp_status() -> Union[Tuple[bool, bool], str]:
     :returns: A tuple of booleans: (ntp_active, ntp_synchronized).
     """
     try:
-        status = subprocess.check_output(["timedatectl"]).decode("utf-8")
+        if IN_DOCKER:
+            # https://stackoverflow.com/questions/22944631/how-to-get-the-ip-address-of-the-docker-host-from-inside-a-docker-container
+            host_ip = (
+                subprocess.check_output(["/sbin/ip route|awk '/default/ { print $3 }'"])
+                .decode("utf-8")
+                .strip()
+            )
+            assert host_ip.startswith("172.")
+            host_ip = f"-h {host_ip}"
+        else:
+            host_ip = ""
+
+        chronyc_sources = f"chronyc {host_ip} sources".split()
+        chronyc_tracking = f"chronyc {host_ip} tracking".split()
+        sources = subprocess.check_output(chronyc_sources).decode("utf-8")
+        tracking = subprocess.check_output(chronyc_tracking).decode("utf-8")
     except Exception:
-        logger.exception(f"Unable to get NTP status from timedatectl")
+        logger.exception(f"Unable to get NTP status from chrony")
         return "Unavailable"
-    ntp_active = "NTP service: active" in status
-    ntp_synchronized = "System clock synchronized: yes" in status
+    # ^ means server, * means best source
+    # see https://chrony-project.org/doc/4.4/chronyc.html#sources
+    ntp_active = "^*" in sources
+    # see https://chrony-project.org/doc/4.4/chronyc.html#tracking
+    tracking = tracking.splitlines()
+    system_time = None
+    for line in tracking:
+        if line.startswith("System time"):
+            system_time = line
+    assert system_time
+    system_time = system_time.split()
+    drift = system_time[3]
+    assert system_time[4] == "seconds"
+    drift = float(drift)
+    ntp_synchronized = drift < 1.0
     return ntp_active, ntp_synchronized
 
 

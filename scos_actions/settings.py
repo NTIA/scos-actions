@@ -18,6 +18,8 @@ if SWITCH_CONFIGS_DIR:
 logger.debug(f"scos-actions: SWITCH_CONFIGS_DIR:{SWITCH_CONFIGS_DIR}")
 SCOS_SENSOR_GIT_TAG = env("SCOS_SENSOR_GIT_TAG", default="unknown")
 logger.debug(f"scos-actions: SCOS_SENSOR_GIT_TAG:{SCOS_SENSOR_GIT_TAG}")
+IN_DOCKER = env.bool("IN_DOCKER", default=False)
+logger.debug(f"scos-actions: IN_DOCKER:{IN_DOCKER}")
 MOCK_SIGAN = env.bool("MOCK_SIGAN", True)
 logger.debug(f"scos-actions: MOCK_SIGAN:{MOCK_SIGAN}")
 MOCK_SIGAN_RANDOM = env.bool("MOCK_SIGAN_RANDOM", default=False)
