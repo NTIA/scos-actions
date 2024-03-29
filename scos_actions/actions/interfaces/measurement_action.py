@@ -3,6 +3,7 @@ from abc import abstractmethod
 from typing import Optional
 
 import numpy as np
+
 from scos_actions.actions.interfaces.action import Action
 from scos_actions.hardware.sensor import Sensor
 from scos_actions.metadata.structs import ntia_sensor
