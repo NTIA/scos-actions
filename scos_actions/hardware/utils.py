@@ -72,18 +72,24 @@ def get_current_cpu_temperature(fahrenheit: bool = False) -> float:
 
 def get_ntp_status() -> Union[Tuple[bool, bool], str]:
     """
-    Get system NTP status by parsing the output of ``timedatectl``.
+    Get system NTP status by parsing the output of ``chronyc sources`` and ``chronyc tracking``.
 
     :returns: A tuple of booleans: (ntp_active, ntp_synchronized).
     """
     try:
         if IN_DOCKER:
             # https://stackoverflow.com/questions/22944631/how-to-get-the-ip-address-of-the-docker-host-from-inside-a-docker-container
-            host_ip = (
-                subprocess.check_output(["/sbin/ip route|awk '/default/ { print $3 }'"])
-                .decode("utf-8")
-                .strip()
-            )
+            ip_route = subprocess.check_output(["/sbin/ip", "route"])
+            host_ip = None
+            for line in ip_route.splitlines():
+                if "default" in line:
+                    host_ip = line.split()[2].strip()
+            # host_ip = (
+            #     subprocess.check_output(["/sbin/ip" "route|awk '/default/ { print $3 }'"])
+            #     .decode("utf-8")
+            #     .strip()
+            # )
+            assert host_ip
             assert host_ip.startswith("172.")
             host_ip = f"-h {host_ip}"
         else:
