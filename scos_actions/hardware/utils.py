@@ -79,7 +79,7 @@ def get_ntp_status() -> Union[Tuple[bool, bool], str]:
     try:
         if IN_DOCKER:
             # https://stackoverflow.com/questions/22944631/how-to-get-the-ip-address-of-the-docker-host-from-inside-a-docker-container
-            ip_route = subprocess.check_output(["/sbin/ip", "route"])
+            ip_route = subprocess.check_output(["/sbin/ip", "route"]).decode("utf-8")
             host_ip = None
             for line in ip_route.splitlines():
                 if "default" in line:
