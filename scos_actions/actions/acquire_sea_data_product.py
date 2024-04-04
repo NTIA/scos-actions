@@ -1171,10 +1171,10 @@ class NasctnSeaDataProduct(Action):
                 ),
                 reference=measurement_result["reference"],
             )
-        if "compression_point" in measurement_result["applied_calibration"]:
-            capture_segment.sensor_calibration.compression_point = measurement_result[
-                "applied_calibration"
-            ]["compression_point"]
+            if "compression_point" in measurement_result["applied_calibration"]:
+                capture_segment.sensor_calibration.compression_point = measurement_result[
+                    "applied_calibration"
+                ]["compression_point"]
         self.sigmf_builder.add_capture(capture_segment)
 
     def get_sigmf_builder(
