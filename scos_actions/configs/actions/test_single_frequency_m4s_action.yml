@@ -8,3 +8,4 @@ single_frequency_fft:
   nskip: 15.36e4
   calibration_adjust: False
   classification: UNCLASSIFIED
+  rf_path: antenna

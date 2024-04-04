@@ -17,3 +17,4 @@ stepped_frequency_time_domain_iq:
   nskip: 15.36e4
   calibration_adjust: False
   classification: UNCLASSIFIED
+  rf_path: antenna
