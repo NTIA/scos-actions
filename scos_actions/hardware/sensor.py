@@ -4,6 +4,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
+import numpy as np
 from its_preselector.preselector import Preselector
 from its_preselector.web_relay import WebRelay
 
@@ -246,6 +247,26 @@ class Sensor:
         if not recomputed:
             logger.warning("Failed to recompute calibration data")
 
+    def check_sensor_overload(self, data) -> bool:
+        """Check for sensor overload in the measurement data."""
+        measured_data = data.astype(np.complex64)
+
+        time_domain_avg_power = 10 * np.log10(np.mean(np.abs(measured_data) ** 2))
+        time_domain_avg_power += (
+            10 * np.log10(1 / (2 * 50)) + 30
+        )  # Convert log(V^2) to dBm
+        # explicitly check is not None since 1db compression could be 0
+        if self.sensor_calibration_data["compression_point"] is not None:
+            return bool(
+                time_domain_avg_power
+                > self.sensor_calibration_data["compression_point"]
+            )
+        else:
+            logger.debug(
+                "Compression point is None, returning False for sensor overload."
+            )
+            return False
+
     def acquire_time_domain_samples(
         self,
         num_samples: int,
@@ -288,6 +309,7 @@ class Sensor:
         logger.debug("*************************************\n")
 
         max_retries = retries
+        sensor_overload = False
         # Acquire samples from signal analyzer
         if self.signal_analyzer is not None:
             while True:
@@ -362,6 +384,15 @@ class Sensor:
                 if "compression_point" in self.sensor_calibration_data:
                     measurement_result["applied_calibration"]["compression_point"] = (
                         self.sensor_calibration_data["compression_point"]
+                    )
+                    sensor_overload = self.check_sensor_overload(
+                        measurement_result["data"]
+                    )
+                    if sensor_overload:
+                        logger.warning("Sensor overload occurred!")
+                    # measurement_result["overload"] could be true based on sigan overload or sensor overload
+                    measurement_result["overload"] = (
+                        measurement_result["overload"] or sensor_overload
                     )
                 applied_cal = measurement_result["applied_calibration"]
                 logger.debug(f"Setting applied_calibration to: {applied_cal}")
