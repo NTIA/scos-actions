@@ -611,6 +611,7 @@ class NasctnSeaDataProduct(Action):
                 else:
                     # For 2D arrays (PSD, PVT, PFP)
                     for d in data:
+                        logger.debug(f"Adding {type(d)}: {d}")
                         channel_data.append(ray.get(d))
 
             toc = perf_counter()
