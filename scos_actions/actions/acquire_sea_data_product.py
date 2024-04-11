@@ -597,7 +597,7 @@ class NasctnSeaDataProduct(Action):
                 data_products = ray.get(data_ref)
                 logger.debug(f"data products is {type(data_products)}")
                 for dp_num, data_product_reference in enumerate(data_products):
-                    logger.debug(f"Getting dp {dp_num}")
+                    logger.debug(f"Getting dp {dp_num}, {data_product_reference}")
                     data_product = ray.get(data_product_reference)
                     logger.debug(f"{dp_num} data product is: {type(data_product)}" )
                     if dp_num == 1:
