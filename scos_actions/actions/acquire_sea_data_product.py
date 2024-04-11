@@ -594,31 +594,32 @@ class NasctnSeaDataProduct(Action):
             for i, data_ref in enumerate(channel_data_refs):
                 # Now block until the data is ready
                 logger.debug(f"{i} Requesting object {data_ref}")
-                data = ray.get(data_ref)
-                logger.debug(f"ray get returned {type(data)}")
-                if i == 1:
-                    # Power-vs-Time results, a tuple of arrays
-                    data, summaries = data  # Split the tuple
-                    logger.debug(f"data is {type(data)}: {data}")
-                    data = ray.get(data)
-                    logger.debug(f"summaries is {type(summaries)}: {summaries}")
-                    summaries = ray.get(summaries)
-                    max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
-                    med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
-                    mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
-                    median_ch_pwrs.append(DATA_TYPE(summaries[3]))
-                    del summaries
-                if i == 3:  # Separate condition is intentional
-                    # APD result: append instead of extend,
-                    # since the result is a single 1D array
-                    channel_data.append(ray.get(data))
-                else:
-                    # For 2D arrays (PSD, PVT, PFP)
-                    for d in data:
-                        logger.debug(f"d is {type(d)}:{d}")
-                        d = ray.get(d)
-                        logger.debug(f"Remote obj was {type(d)}: {d}")
-                        channel_data.extend(d)
+                data_products = ray.get(data_ref)
+                logger.debug(f"data products is {type(data_products)}")
+                for dp_num, data_product_reference in enumerate(data_products):
+                    data_product = ray.get(data_product_reference)
+                    logger.debug(f"{dp_num} data product is: {type(data_product)}" )
+                    if dp_num == 1:
+                        # Power-vs-Time results, a tuple of arrays
+                        logger.debug("splitting tuple")
+                        data, summaries = data_product  # Split the tuple
+                        logger.debug(f"data is {type(data)}: {data}")
+                        logger.debug(f"summaries is {type(summaries)}: {summaries}")
+                        summaries = ray.get(summaries)
+                        max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
+                        med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
+                        mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
+                        median_ch_pwrs.append(DATA_TYPE(summaries[3]))
+                        del summaries
+                    if dp_num == 3:  # Separate condition is intentional
+                        # APD result: append instead of extend,
+                        # since the result is a single 1D array
+                        logger.debug("appending data product")
+                        channel_data.append(data_product)
+                    else:
+                        # For 2D arrays (PSD, PVT, PFP)
+                        logger.debug(f"dp {dp_num}exending channel data")
+                        channel_data.extend(data_product)
 
             toc = perf_counter()
             logger.debug(f"Waited {toc-tic} s for channel data")
