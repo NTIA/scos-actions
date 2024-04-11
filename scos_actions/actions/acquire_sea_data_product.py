@@ -585,9 +585,11 @@ class NasctnSeaDataProduct(Action):
             [],
         )
         result_tic = perf_counter()
+        logger.debug(f"Have {len(dp_procs)} results")
         for channel_data_process in dp_procs:
             # Retrieve object references for channel data
             channel_data_refs = ray.get(channel_data_process)
+            logger.debug(f"channel_data_refs is {type(channel_data_refs)}: {channel_data_refs}")
             channel_data = []
             for i, data_ref in enumerate(channel_data_refs):
                 # Now block until the data is ready
@@ -613,6 +615,7 @@ class NasctnSeaDataProduct(Action):
                 else:
                     # For 2D arrays (PSD, PVT, PFP)
                     for d in data:
+                        logger.debug(f"d is {type(d)}:{d}")
                         d = ray.get(d)
                         logger.debug(f"Remote obj was {type(d)}: {d}")
                         channel_data.extend(d)
