@@ -605,7 +605,6 @@ class NasctnSeaDataProduct(Action):
                         data, summaries = data_product  # Split the tuple
                         logger.debug(f"data is {type(data)}: {data}")
                         logger.debug(f"summaries is {type(summaries)}: {summaries}")
-                        summaries = ray.get(summaries)
                         max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
                         med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
                         mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
