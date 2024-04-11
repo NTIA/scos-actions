@@ -593,7 +593,7 @@ class NasctnSeaDataProduct(Action):
                 # Now block until the data is ready
                 logger.debug(f"{i} Requesting object {data_ref}")
                 data = ray.get(data_ref)
-                logger.debug("ray get returned " + type(data))
+                logger.debug(f"ray get returned {type(data)}")
                 if i == 1:
                     # Power-vs-Time results, a tuple of arrays
                     data, summaries = data  # Split the tuple
