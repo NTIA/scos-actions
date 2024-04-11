@@ -9,7 +9,6 @@ from its_preselector.preselector import Preselector
 from its_preselector.web_relay import WebRelay
 
 from scos_actions.calibration.differential_calibration import DifferentialCalibration
-from scos_actions.calibration.interfaces.calibration import Calibration
 from scos_actions.calibration.sensor_calibration import SensorCalibration
 from scos_actions.hardware.gps_iface import GPSInterface
 from scos_actions.hardware.sigan_iface import SignalAnalyzerInterface

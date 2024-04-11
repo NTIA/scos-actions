@@ -83,17 +83,6 @@ class TestSensorCalibrationFile:
         cal_data["sensor_uid"] = "SAMPLE_CALIBRATION"
         cal_data["calibration_reference"] = "TESTING"
 
-        # Add SR/CF lookup table
-        cal_data["clock_rate_lookup_by_sample_rate"] = []
-        for sr in self.sample_rates:
-            cr = sr
-            while cr <= 40e6:
-                cr *= 2
-            cr /= 2
-            cal_data["clock_rate_lookup_by_sample_rate"].append(
-                {"sample_rate": int(sr), "clock_frequency": int(cr)}
-            )
-
         # Create the JSON architecture for the calibration data
         cal_data["calibration_data"] = {}
         cal_data["calibration_parameters"] = ["sample_rate", "frequency", "gain"]
@@ -151,7 +140,6 @@ class TestSensorCalibrationFile:
         # Note: does not check field order
         assert fields == {
             "last_calibration_datetime": str,
-            "clock_rate_lookup_by_sample_rate": List[Dict[str, float]],
             "sensor_uid": str,
         }
 
@@ -167,13 +155,6 @@ class TestSensorCalibrationFile:
                 [], {}, False, Path(""), datetime.datetime.now(), [], "uid"
             )
 
-    def test_get_clock_rate(self):
-        """Test the get_clock_rate method"""
-        # Test getting a clock rate by sample rate
-        assert self.sample_cal.get_clock_rate(10e6) == 40e6
-        # If there isn't an entry, the sample rate should be returned
-        assert self.sample_cal.get_clock_rate(-999) == -999
-
     def test_get_calibration_dict_exact_match_lookup(self):
         calibration_datetime = get_datetime_str_now()
         calibration_params = ["sample_rate", "frequency"]
@@ -187,7 +168,6 @@ class TestSensorCalibrationFile:
             calibration_reference="testing",
             file_path=Path(""),
             last_calibration_datetime=calibration_datetime,
-            clock_rate_lookup_by_sample_rate=[],
             sensor_uid="TESTING",
         )
         cal_data = cal.get_calibration_dict({"sample_rate": 100.0, "frequency": 200.0})
@@ -206,7 +186,6 @@ class TestSensorCalibrationFile:
             calibration_reference="testing",
             file_path=Path("test_calibration.json"),
             last_calibration_datetime=calibration_datetime,
-            clock_rate_lookup_by_sample_rate=[],
             sensor_uid="TESTING",
         )
 
@@ -234,7 +213,6 @@ class TestSensorCalibrationFile:
             calibration_reference="testing",
             file_path=test_cal_path,
             last_calibration_datetime=calibration_datetime,
-            clock_rate_lookup_by_sample_rate=[],
             sensor_uid="TESTING",
         )
         action_params = {"sample_rate": 100.0, "frequency": 200.0}
