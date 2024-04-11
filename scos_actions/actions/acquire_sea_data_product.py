@@ -597,6 +597,7 @@ class NasctnSeaDataProduct(Action):
                 data_products = ray.get(data_ref)
                 logger.debug(f"data products is {type(data_products)}")
                 for dp_num, data_product_reference in enumerate(data_products):
+                    logger.debug(f"Getting dp {dp_num}")
                     data_product = ray.get(data_product_reference)
                     logger.debug(f"{dp_num} data product is: {type(data_product)}" )
                     if dp_num == 1:
@@ -610,14 +611,14 @@ class NasctnSeaDataProduct(Action):
                         mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
                         median_ch_pwrs.append(DATA_TYPE(summaries[3]))
                         del summaries
-                    if dp_num == 3:  # Separate condition is intentional
+                    elif dp_num == 3:  # Separate condition is intentional
                         # APD result: append instead of extend,
                         # since the result is a single 1D array
                         logger.debug("appending data product")
                         channel_data.append(data_product)
                     else:
                         # For 2D arrays (PSD, PVT, PFP)
-                        logger.debug(f"dp {dp_num}exending channel data")
+                        logger.debug(f"dp {dp_num} extending channel data")
                         channel_data.extend(data_product)
 
             toc = perf_counter()
