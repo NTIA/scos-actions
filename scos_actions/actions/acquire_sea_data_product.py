@@ -597,6 +597,8 @@ class NasctnSeaDataProduct(Action):
                 if i == 1:
                     # Power-vs-Time results, a tuple of arrays
                     data, summaries = data  # Split the tuple
+                    data = ray.get(data)
+                    summaries = ray.get(summaries)
                     max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
                     med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
                     mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
@@ -605,10 +607,12 @@ class NasctnSeaDataProduct(Action):
                 if i == 3:  # Separate condition is intentional
                     # APD result: append instead of extend,
                     # since the result is a single 1D array
-                    channel_data.append(data)
+                    channel_data.append(ray.get(data))
                 else:
                     # For 2D arrays (PSD, PVT, PFP)
-                    channel_data.extend(data)
+                    for d in data:
+                        channel_data.append(ray.get(d))
+
             toc = perf_counter()
             logger.debug(f"Waited {toc-tic} s for channel data")
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
