@@ -612,10 +612,10 @@ class NasctnSeaDataProduct(Action):
                     channel_data.append(ray.get(data))
                 else:
                     # For 2D arrays (PSD, PVT, PFP)
-                    logger.debug(f"Adding {type(d)}: {d}")
-                    d = ray.get(d)
-                    logger.debug(f"Remove obj was {type(d)}: {d}")
-                    channel_data.extend(d)
+                    for d in data:
+                        d = ray.get(d)
+                        logger.debug(f"Remote obj was {type(d)}: {d}")
+                        channel_data.extend(d)
 
             toc = perf_counter()
             logger.debug(f"Waited {toc-tic} s for channel data")
