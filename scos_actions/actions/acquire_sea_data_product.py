@@ -597,7 +597,9 @@ class NasctnSeaDataProduct(Action):
                 if i == 1:
                     # Power-vs-Time results, a tuple of arrays
                     data, summaries = data  # Split the tuple
+                    logger.debug(f"data is {type(data)}: {data}")
                     data = ray.get(data)
+                    logger.debug(f"summaries is {type(summaries)}: {summaries}")
                     summaries = ray.get(summaries)
                     max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
                     med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
@@ -610,9 +612,10 @@ class NasctnSeaDataProduct(Action):
                     channel_data.append(ray.get(data))
                 else:
                     # For 2D arrays (PSD, PVT, PFP)
-                    for d in data:
-                        logger.debug(f"Adding {type(d)}: {d}")
-                        channel_data.append(ray.get(d))
+                    logger.debug(f"Adding {type(d)}: {d}")
+                    d = ray.get(d)
+                    logger.debug(f"Remove obj was {type(d)}: {d}")
+                    channel_data.extend(d)
 
             toc = perf_counter()
             logger.debug(f"Waited {toc-tic} s for channel data")
