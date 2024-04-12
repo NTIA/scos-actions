@@ -588,30 +588,29 @@ class NasctnSeaDataProduct(Action):
             # Now block until the data is ready
             dp_refs_tuple = ray.get(data_products_refs[i])
             psd_ref, pvt_ref, pfp_ref, apd_ref = dp_refs_tuple
+            logger.debug("Getting PSD data.")
             psd_data = ray.get(psd_ref)
-            logger.debug(f"PSD: {psd_data}")
             channel_data.extend(psd_data)
+
+            logger.debug("Getting PVT data.")
             pvt_data = ray.get(pvt_ref)
-            logger.debug(f"PVT DATA: {pvt_data}")
             # Power-vs-Time results, a tuple of arrays
-            logger.debug("splitting tuple")
+            logger.debug("Splitting PVT tuple")
             data, summaries = pvt_data  # Split the tuple
-            logger.debug(f"data is {type(data)}: {data}")
-            logger.debug(f"summaries is {type(summaries)}: {summaries}")
             max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
             med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
             mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
             median_ch_pwrs.append(DATA_TYPE(summaries[3]))
             del summaries
 
+            logger.debug("Getting PFP data.")
             pfp_data = ray.get(pfp_ref)
-            logger.debug(f"PFP: {pfp_data}")
             channel_data.extend(pfp_data)
 
             # APD result: append instead of extend,
             # since the result is a single 1D array
+            logger.debug("Getting APD data.")
             apd_data = ray.get(apd_ref)
-            logger.debug(f"APD: {apd_data}")
             channel_data.append(apd_data)
 
             toc = perf_counter()
