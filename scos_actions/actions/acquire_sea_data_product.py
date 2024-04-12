@@ -586,7 +586,7 @@ class NasctnSeaDataProduct(Action):
             logger.debug(f"Working on channel {index}")
             channel_data = []
             # Now block until the data is ready
-            dp_refs_tuple = ray.get(data_products_refs[i])
+            dp_refs_tuple = ray.get(data_products_refs[index])
             psd_ref, pvt_ref, pfp_ref, apd_ref = dp_refs_tuple
             logger.debug("Getting PSD data.")
             psd_data = ray.get(psd_ref)
