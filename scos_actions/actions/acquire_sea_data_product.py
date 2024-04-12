@@ -113,7 +113,7 @@ FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
 IMPEDANCE_OHMS = 50.0
-NUM_ACTORS = 3  # Number of ray actors to initialize
+NUM_ACTORS = env.int("RAY_WORKERS", default=3)  # Number of ray actors to initialize
 
 # Create power detectors
 TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["max", "mean"])
@@ -588,14 +588,11 @@ class NasctnSeaDataProduct(Action):
             # Now block until the data is ready
             dp_refs_tuple = ray.get(data_products_refs[index])
             psd_ref, pvt_ref, pfp_ref, apd_ref = dp_refs_tuple
-            logger.debug("Getting PSD data.")
             psd_data = ray.get(psd_ref)
             channel_data.extend(psd_data)
 
-            logger.debug("Getting PVT data.")
             pvt_data = ray.get(pvt_ref)
             # Power-vs-Time results, a tuple of arrays
-            logger.debug("Splitting PVT tuple")
             data, summaries = pvt_data  # Split the tuple
             max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
             med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
@@ -603,13 +600,11 @@ class NasctnSeaDataProduct(Action):
             median_ch_pwrs.append(DATA_TYPE(summaries[3]))
             del summaries
 
-            logger.debug("Getting PFP data.")
             pfp_data = ray.get(pfp_ref)
             channel_data.extend(pfp_data)
 
             # APD result: append instead of extend,
             # since the result is a single 1D array
-            logger.debug("Getting APD data.")
             apd_data = ray.get(apd_ref)
             channel_data.append(apd_data)
 
