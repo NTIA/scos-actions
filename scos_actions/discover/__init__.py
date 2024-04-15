@@ -23,12 +23,12 @@ def init(
     return yaml_actions, yaml_test_actions
 
 
-yaml_actions, yaml_test_actions = init()
-actions.update(yaml_actions)
 if (
     SIGAN_MODULE == "scos_actions.hardware.mocks.mock_sigan"
     and SIGAN_CLASS == "MockSignalAnalyzer"
 ):
+    yaml_actions, yaml_test_actions = init()
+    actions.update(yaml_actions)
     test_actions.update(
         {
             "test_sync_gps": SyncGps(parameters={"name": "test_sync_gps"}),
