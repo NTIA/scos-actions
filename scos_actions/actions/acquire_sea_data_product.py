@@ -402,9 +402,8 @@ class IQProcessor:
     immediately, which can be later used to retrieve the procesed results.
     """
 
-    def __init__(self, params: dict, iir_sos: np.ndarray):
+    def __init__(self, params: dict):
         # initialize worker processes
-        self.iir_sos = iir_sos
         self.fft_worker = PowerSpectralDensity.remote(
             params[SAMPLE_RATE], params[NUM_FFTS]
         )
@@ -421,7 +420,7 @@ class IQProcessor:
         del params
 
     @ray.method(num_returns=4)
-    def run(self, iqdata: np.ndarray) -> list:
+    def run(self, iqdata: ray.ObjectRef) -> list:
         """
         Filter the input IQ data and concurrently compute FFT, PVT, PFP, and APD results.
 
@@ -429,8 +428,6 @@ class IQProcessor:
         :return: A list of Ray object references which can be used to
             retrieve the processed results. The order is [FFT, PVT, PFP, APD].
         """
-        # Filter IQ and place it in the object store
-        iqdata = ray.put(sosfilt(self.iir_sos, iqdata))
         # Compute PSD, PVT, PFP, and APD concurrently.
         fft_reference = self.fft_worker.run.remote(iqdata)
         pvt_reference = self.pvt_worker.run.remote(iqdata)
@@ -532,7 +529,7 @@ class NasctnSeaDataProduct(Action):
         tic = perf_counter()
         # This uses iteration_params[0] because
         iq_processors = [
-            IQProcessor.remote(self.iteration_params[0], self.iir_sos)
+            IQProcessor.remote(self.iteration_params[0])
             for _ in range(NUM_ACTORS)
         ]
         toc = perf_counter()
@@ -550,7 +547,11 @@ class NasctnSeaDataProduct(Action):
                 )
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
-            data_products_refs.append(iq_processors[i % NUM_ACTORS].run.remote(measurement_result["data"]))
+            filtered_iq = sosfilt(self.iir_sos, measurement_result["data"])
+            filter_end = perf_counter()
+            logger.debug(f"Filtered IQ in {filter_end - tic:.2f} s")
+            filtered_iq_ref = ray.put(filtered_iq)
+            data_products_refs.append(iq_processors[i % NUM_ACTORS].run.remote(filtered_iq_ref))
 
             del measurement_result["data"]
             toc = perf_counter()
