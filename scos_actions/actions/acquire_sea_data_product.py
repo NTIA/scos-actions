@@ -208,10 +208,9 @@ class NasctnSeaDataProduct(Action):
         # This uses iteration_params[0] because
 
         toc = perf_counter()
-        logger.debug(f"Spawned {NUM_ACTORS} supervisor actors in {toc - tic:.2f} s")
 
         # Collect all IQ data and spawn data product computation processes
-        data_products_refs, cpu_speed, reference_points = [], [], []
+        cpu_speed, reference_points = [], [], []
         capture_tic = perf_counter()
         channel_queues = []
         for i, parameters in enumerate(self.iteration_params):
@@ -255,7 +254,7 @@ class NasctnSeaDataProduct(Action):
             [],
         )
         result_tic = perf_counter()
-        channel_count = len(data_products_refs)
+        channel_count = len(channel_queues)
         logger.debug(f"Have {channel_count} channel results")
         for q in channel_queues:
             channel_data = []
@@ -264,8 +263,10 @@ class NasctnSeaDataProduct(Action):
                 data = q.get()
                 data_product_type = data[0]
                 if data_product_type == "PSD":
+                    logger.debug("Found PSD data.")
                     channel_data.extend(data[1])
                 elif data_product_type == "PVT":
+                    logger.debug("Found PVT data.")
                     # Power-vs-Time results, a tuple of arrays
                     pvt_data, summaries = data[1]  # Split the tuple
                     max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
@@ -274,8 +275,10 @@ class NasctnSeaDataProduct(Action):
                     median_ch_pwrs.append(DATA_TYPE(summaries[3]))
                     del summaries
                 elif data_product_type == "PFP":
+                    logger.debug("Found PFP data.")
                     channel_data.extend(data[1])
                 elif data_product_type == "APD":
+                    logger.debug("Found APD data.")
                     # APD result: append instead of extend,
                     # since the result is a single 1D array
                     channel_data.append(data[1])
