@@ -897,6 +897,7 @@ class NasctnSeaDataProduct(Action):
         """
         # Filter IQ and place it in the object store
         filtered_iq = sosfilt(iir_sos, iqdata)
+        logger.debug(f"Filtered IQ is of length: {len(filtered_iq)}")
         del iqdata
         # Compute PSD, PVT, PFP, and APD concurrently.
         psd_process = Process(target=self.compute_power_spectral_density, args=(channel_q, filtered_iq,params[SAMPLE_RATE], params[NUM_FFTS]))
