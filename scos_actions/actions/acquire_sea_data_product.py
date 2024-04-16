@@ -210,7 +210,7 @@ class NasctnSeaDataProduct(Action):
         toc = perf_counter()
 
         # Collect all IQ data and spawn data product computation processes
-        cpu_speed, reference_points = [], [], []
+        cpu_speed, reference_points = [], []
         capture_tic = perf_counter()
         channel_queues = []
         for i, parameters in enumerate(self.iteration_params):
