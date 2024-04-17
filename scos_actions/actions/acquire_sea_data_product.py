@@ -24,6 +24,7 @@ import logging
 import lzma
 import platform
 import sys
+import time
 from enum import EnumMeta
 from time import perf_counter
 from typing import Tuple
@@ -230,7 +231,7 @@ def compute_apd(channel_list: list,
         max_bin_dBW_RF,
         impedance_ohms,
     )
-    channel_list.put(["APD", p])
+    channel_list.apend(["APD", p])
 
 
 def compute_power_vs_time(channel_list: list,
@@ -279,7 +280,7 @@ def compute_power_vs_time(channel_list: list,
     )
     # Return order ((max array, mean array), (max-of-max, median-of-mean, mean, median))
     pvt_tuple = pvt_result, pvt_summary
-    channel_list.put(["PVT", pvt_tuple])
+    channel_list.append(["PVT", pvt_tuple])
 
 
 def compute_periodic_frame_power(channel_list: list,
@@ -341,7 +342,7 @@ def compute_periodic_frame_power(channel_list: list,
 
     # Finish conversion to power and scale result
     pfp = 10.0 * np.log10(pfp) + pfp_scale_factor
-    return channel_list.put(["PFP", pfp])
+    return channel_list.append(["PFP", pfp])
 
 
 class NasctnSeaDataProduct(Action):
@@ -483,7 +484,11 @@ class NasctnSeaDataProduct(Action):
             channel_data = []
             # Now block until the data is ready
             for i in range(4):
-                data = q.get()
+                while len(q) < i+1:
+                    logger.debug("Waiting 1s for data product...")
+                    time.sleep(1)
+
+                data = q[i]
                 data_product_type = data[0]
                 if data_product_type == "PSD":
                     logger.debug("Found PSD data.")
