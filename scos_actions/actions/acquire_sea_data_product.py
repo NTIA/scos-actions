@@ -202,7 +202,7 @@ def compute_power_spectral_density(channel_list: list, iq: np.ndarray,
     # Returned order is (max, mean, median, 25%, 75%, 90%, 95%, 99%, 99.9%, 99.99%)
     # Total of 10 arrays, each of length 125 (output shape (10, 125))
     # Percentile computation linearly interpolates. See numpy documentation.
-    channel_list.put(["PSD", fft_result])
+    channel_list.append(["PSD", fft_result])
 
 
 def compute_apd(channel_list: list,
