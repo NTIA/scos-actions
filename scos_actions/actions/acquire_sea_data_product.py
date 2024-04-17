@@ -27,7 +27,7 @@ import sys
 from enum import EnumMeta
 from time import perf_counter
 from typing import Tuple
-import multiprocessing as mp
+
 import numpy as np
 import psutil
 from environs import Env
