@@ -445,7 +445,7 @@ class NasctnSeaDataProduct(Action):
             tic = perf_counter()
             channel_q = Queue()
             channel_queues.append(channel_q)
-            iq_process = Process(target=self.process_iq, args=(channel_q, measurement_result["data"], parameters, self.iir_sos))
+            iq_process = Process(target=process_iq, args=(channel_q, measurement_result["data"], parameters, self.iir_sos))
             iq_process.start()
             del measurement_result["data"]
             toc = perf_counter()
