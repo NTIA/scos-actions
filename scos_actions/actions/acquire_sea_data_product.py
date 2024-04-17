@@ -27,7 +27,7 @@ import sys
 from enum import EnumMeta
 from time import perf_counter
 from typing import Tuple
-
+import multiprocessing as mp
 import numpy as np
 import psutil
 from environs import Env
@@ -132,6 +132,7 @@ class NasctnSeaDataProduct(Action):
 
     def __init__(self, parameters: dict):
         super().__init__(parameters)
+        mp.set_start_method('spawn')
         # Assume preselector is present
         self.total_channel_data_length = None
         rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
