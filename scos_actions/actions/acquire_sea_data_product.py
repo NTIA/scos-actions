@@ -132,7 +132,6 @@ class NasctnSeaDataProduct(Action):
 
     def __init__(self, parameters: dict):
         super().__init__(parameters)
-        mp.set_start_method('spawn')
         # Assume preselector is present
         self.total_channel_data_length = None
         rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
