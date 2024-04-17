@@ -231,7 +231,7 @@ def compute_apd(channel_list: list,
         max_bin_dBW_RF,
         impedance_ohms,
     )
-    channel_list.apend(["APD", p])
+    channel_list.append(["APD", p])
 
 
 def compute_power_vs_time(channel_list: list,
