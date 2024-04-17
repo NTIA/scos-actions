@@ -30,8 +30,8 @@ from typing import Tuple
 
 import numpy as np
 import psutil
+import threading
 from environs import Env
-from multiprocessing import Process, Queue
 from its_preselector import __version__ as PRESELECTOR_API_VERSION
 from scipy.signal import sos2tf, sosfilt
 
@@ -123,10 +123,10 @@ PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "m
 
 
 def process_iq(
-               channel_q: Queue,
-               iqdata: np.ndarray,
-               params: dict,
-               iir_sos: np.ndarray) -> list:
+        channel_list: list,
+        iqdata: np.ndarray,
+        params: dict,
+        iir_sos: np.ndarray) -> list:
     """
     Filter the input IQ data and concurrently compute FFT, PVT, PFP, and APD results.
 
@@ -138,21 +138,21 @@ def process_iq(
     filtered_iq = sosfilt(iir_sos, iqdata)
     del iqdata
     # Compute PSD, PVT, PFP, and APD concurrently.
-    psd_process = Process(target=compute_power_spectral_density,
-                          args=(channel_q, filtered_iq, params[SAMPLE_RATE], params[NUM_FFTS]))
+    psd_process = threading.Thread(target=compute_power_spectral_density,
+                                   args=(channel_list, filtered_iq, params[SAMPLE_RATE], params[NUM_FFTS]))
     psd_process.start()
-    pvt_process = Process(target=compute_power_vs_time,
-                          args=(channel_q, filtered_iq, params[SAMPLE_RATE], params[TD_BIN_SIZE_MS]))
+    pvt_process = threading.Thread(target=compute_power_vs_time,
+                                   args=(channel_list, filtered_iq, params[SAMPLE_RATE], params[TD_BIN_SIZE_MS]))
     pvt_process.start()
-    pfp_process = Process(target=compute_periodic_frame_power,
-                          args=(channel_q, filtered_iq, params[SAMPLE_RATE], params[PFP_FRAME_PERIOD_MS]))
+    pfp_process = threading.Thread(target=compute_periodic_frame_power,
+                                   args=(channel_list, filtered_iq, params[SAMPLE_RATE], params[PFP_FRAME_PERIOD_MS]))
     pfp_process.start()
-    apd_process = Process(target=compute_apd, args=(
-    channel_q, filtered_iq, params[APD_BIN_SIZE_DB], params[APD_MIN_BIN_DBM], params[APD_MAX_BIN_DBM]))
+    apd_process = threading.Thread(target=compute_apd, args=(
+        channel_list, filtered_iq, params[APD_BIN_SIZE_DB], params[APD_MIN_BIN_DBM], params[APD_MAX_BIN_DBM]))
     apd_process.start()
 
 
-def compute_power_spectral_density( channel_q: Queue, iq: np.ndarray,
+def compute_power_spectral_density(channel_list: list, iq: np.ndarray,
                                    sample_rate_Hz: float,
                                    num_ffts: int,
                                    fft_size: int = FFT_SIZE,
@@ -201,10 +201,10 @@ def compute_power_spectral_density( channel_q: Queue, iq: np.ndarray,
     # Returned order is (max, mean, median, 25%, 75%, 90%, 95%, 99%, 99.9%, 99.99%)
     # Total of 10 arrays, each of length 125 (output shape (10, 125))
     # Percentile computation linearly interpolates. See numpy documentation.
-    channel_q.put(["PSD", fft_result])
+    channel_list.put(["PSD", fft_result])
 
 
-def compute_apd(channel_q: Queue,
+def compute_apd(channel_list: list,
                 iq: np.ndarray,
                 bin_size_dB: float,
                 min_bin_dBm_baseband: float,
@@ -230,15 +230,15 @@ def compute_apd(channel_q: Queue,
         max_bin_dBW_RF,
         impedance_ohms,
     )
-    channel_q.put(["APD", p])
+    channel_list.put(["APD", p])
 
 
-def compute_power_vs_time(channel_q: Queue,
+def compute_power_vs_time(channel_list: list,
                           iq: np.ndarray,
                           sample_rate_Hz: float,
                           bin_size_ms: float,
                           impedance_ohms: float = IMPEDANCE_OHMS,
-                          detector: EnumMeta = TD_DETECTOR ) -> Tuple[np.ndarray, np.ndarray]:
+                          detector: EnumMeta = TD_DETECTOR) -> Tuple[np.ndarray, np.ndarray]:
     """
     Compute power versus time results from IQ samples.
 
@@ -279,10 +279,10 @@ def compute_power_vs_time(channel_q: Queue,
     )
     # Return order ((max array, mean array), (max-of-max, median-of-mean, mean, median))
     pvt_tuple = pvt_result, pvt_summary
-    channel_q.put(["PVT", pvt_tuple])
+    channel_list.put(["PVT", pvt_tuple])
 
 
-def compute_periodic_frame_power(channel_q: Queue,
+def compute_periodic_frame_power(channel_list: list,
                                  iq: np.ndarray,
                                  sample_rate_Hz: float,
                                  frame_period_ms: float,
@@ -341,7 +341,7 @@ def compute_periodic_frame_power(channel_q: Queue,
 
     # Finish conversion to power and scale result
     pfp = 10.0 * np.log10(pfp) + pfp_scale_factor
-    return channel_q.put(["PFP", pfp])
+    return channel_list.put(["PFP", pfp])
 
 
 class NasctnSeaDataProduct(Action):
@@ -434,7 +434,7 @@ class NasctnSeaDataProduct(Action):
         # Collect all IQ data and spawn data product computation processes
         cpu_speed, reference_points = [], []
         capture_tic = perf_counter()
-        channel_queues = []
+        channel_lists = []
         for i, parameters in enumerate(self.iteration_params):
             measurement_result = self.capture_iq(parameters)
             if i == 0:
@@ -443,9 +443,10 @@ class NasctnSeaDataProduct(Action):
                 )
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
-            channel_q = Queue()
-            channel_queues.append(channel_q)
-            iq_process = Process(target=process_iq, args=(channel_q, measurement_result["data"], parameters, self.iir_sos))
+            channel_list = []
+            channel_lists.append(channel_list)
+            iq_process = threading.Thread(target=process_iq,
+                                 args=(channel_list, measurement_result["data"], parameters, self.iir_sos))
             iq_process.start()
             del measurement_result["data"]
             toc = perf_counter()
@@ -476,9 +477,9 @@ class NasctnSeaDataProduct(Action):
             [],
         )
         result_tic = perf_counter()
-        channel_count = len(channel_queues)
+        channel_count = len(channel_lists)
         logger.debug(f"Have {channel_count} channel results")
-        for q in channel_queues:
+        for q in channel_lists:
             channel_data = []
             # Now block until the data is ready
             for i in range(4):
@@ -510,7 +511,7 @@ class NasctnSeaDataProduct(Action):
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
 
         result_toc = perf_counter()
-        del  channel_data
+        del channel_data
         logger.debug(f"Got all processed data in {result_toc - result_tic:.2f} s")
 
         # Build metadata and convert data to compressed bytes
@@ -1104,7 +1105,6 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_classification("CUI")
 
         self.sigmf_builder = sigmf_builder
-
 
     @staticmethod
     def transform_data(channel_data_products: list):
