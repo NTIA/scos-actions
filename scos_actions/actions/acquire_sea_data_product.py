@@ -171,7 +171,7 @@ def compute_power_spectral_density(channel_list: list, iq: np.ndarray,
     :return: A 2D NumPy array of statistical detector results computed
         from PSD amplitudes, ordered (max, mean).
     """
-
+    logger.debug(f"Start PSD memory: {psutil.virtual_memory().percent}")
     # Get truncation points: truncate FFT result to middle 125 samples (middle 10 MHz from 14 MHz)
     bin_start = int(fft_size / 7)  # bin_start = 25 with FFT_SIZE 175
     bin_end = fft_size - bin_start  # bin_end = 150 with FFT_SIZE 175
@@ -203,6 +203,7 @@ def compute_power_spectral_density(channel_list: list, iq: np.ndarray,
     # Returned order is (max, mean, median, 25%, 75%, 90%, 95%, 99%, 99.9%, 99.99%)
     # Total of 10 arrays, each of length 125 (output shape (10, 125))
     # Percentile computation linearly interpolates. See numpy documentation.
+    logger.debug(f"End PSD memory: {psutil.virtual_memory().percent}")
     with lock:
         channel_list.append(["PSD", fft_result])
 
@@ -220,6 +221,7 @@ def compute_apd(channel_list: list,
         already exist in the Ray object store).
     :return: A NumPy array containing the APD probability axis as percentages.
     """
+    logger.debug(f"Start APD memory: {psutil.virtual_memory().percent}")
     # get_apd requires amplitude bin edge values in dBW
     # Scale input to get_apd to account for:
     #     dBm -> dBW (-30)
@@ -233,6 +235,7 @@ def compute_apd(channel_list: list,
         max_bin_dBW_RF,
         impedance_ohms,
     )
+    logger.debug(f"End APD memory: {psutil.virtual_memory().percent}")
     with lock:
         channel_list.append(["APD", p])
 
@@ -254,6 +257,7 @@ def compute_power_vs_time(channel_list: list,
         the (max-of-max, median-of-mean, mean, median) single-valued
         summary statistics.
     """
+    logger.debug(f"Start PVT memory: {psutil.virtual_memory().percent}")
     block_size = int(bin_size_ms * sample_rate_Hz * 1e-3)
     detector = detector
     impedance_ohms = impedance_ohms
@@ -283,6 +287,7 @@ def compute_power_vs_time(channel_list: list,
     )
     # Return order ((max array, mean array), (max-of-max, median-of-mean, mean, median))
     pvt_tuple = pvt_result, pvt_summary
+    logger.debug(f"End PVT memory: {psutil.virtual_memory().percent}")
     with lock:
         channel_list.append(["PVT", pvt_tuple])
 
@@ -303,6 +308,7 @@ def compute_periodic_frame_power(channel_list: list,
         The order is (min-of-mean, max-of-mean, mean-of-mean,
         min-of-max, max-of-max, mean-of-max).
     """
+    logger.debug(f"Start PFP memory: {psutil.virtual_memory().percent}")
     impedance_ohms = impedance_ohms
     sampling_period_s = 1.0 / sample_rate_Hz
     frame_period_s = 1e-3 * frame_period_ms
@@ -346,6 +352,7 @@ def compute_periodic_frame_power(channel_list: list,
 
     # Finish conversion to power and scale result
     pfp = 10.0 * np.log10(pfp) + pfp_scale_factor
+    logger.debug(f"End PFP memory: {psutil.virtual_memory().percent}")
     with lock:
         channel_list.append(["PFP", pfp])
 
@@ -454,8 +461,6 @@ class NasctnSeaDataProduct(Action):
             iq_process = threading.Thread(target=process_iq,
                                  args=(channel_list, measurement_result["data"], parameters, self.iir_sos))
             iq_process.start()
-            logger.debug("Deleting measurement_result data")
-            #del measurement_result["data"]
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc - tic:.2f} s")
             # Create capture segment with channel-specific metadata before sigan is reconfigured
