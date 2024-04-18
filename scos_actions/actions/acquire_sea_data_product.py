@@ -494,8 +494,8 @@ class NasctnSeaDataProduct(Action):
             for i in range(4):
                 waited = 0
                 while len(q) < i+1 and waited < max_wait:
-                    logger.debug("Waiting 1s for data product...")
-                    time.sleep(1)
+                    logger.debug(f"Waiting {wait_time} s for data product...")
+                    time.sleep(wait_time)
                     waited += wait_time
                 if waited >= max_wait:
                     raise RuntimeError("Maximum wait time exceeded for data product.")
