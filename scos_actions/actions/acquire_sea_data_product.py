@@ -141,16 +141,16 @@ def process_iq(
     del iqdata
     # Compute PSD, PVT, PFP, and APD concurrently.
     psd_process = threading.Thread(target=compute_power_spectral_density,
-                                   args=(channel_list, filtered_iq, params[SAMPLE_RATE], params[NUM_FFTS]))
+                                   args=(channel_list, np.copy(filtered_iq), params[SAMPLE_RATE], params[NUM_FFTS]))
     psd_process.start()
     pvt_process = threading.Thread(target=compute_power_vs_time,
-                                   args=(channel_list, filtered_iq, params[SAMPLE_RATE], params[TD_BIN_SIZE_MS]))
+                                   args=(channel_list, np.copy(filtered_iq), params[SAMPLE_RATE], params[TD_BIN_SIZE_MS]))
     pvt_process.start()
     pfp_process = threading.Thread(target=compute_periodic_frame_power,
-                                   args=(channel_list, filtered_iq, params[SAMPLE_RATE], params[PFP_FRAME_PERIOD_MS]))
+                                   args=(channel_list, np.copy(filtered_iq), params[SAMPLE_RATE], params[PFP_FRAME_PERIOD_MS]))
     pfp_process.start()
     apd_process = threading.Thread(target=compute_apd, args=(
-        channel_list, filtered_iq, params[APD_BIN_SIZE_DB], params[APD_MIN_BIN_DBM], params[APD_MAX_BIN_DBM]))
+        channel_list, np.copy(filtered_iq), params[APD_BIN_SIZE_DB], params[APD_MIN_BIN_DBM], params[APD_MAX_BIN_DBM]))
     apd_process.start()
 
 
