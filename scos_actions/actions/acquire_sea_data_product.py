@@ -124,34 +124,6 @@ FFT_M3_DETECTOR = create_statistical_detector(
 PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
 lock = Lock()
 
-def process_iq(
-        channel_list: list,
-        iqdata: np.ndarray,
-        params: dict,
-        iir_sos: np.ndarray) -> list:
-    """
-    Filter the input IQ data and concurrently compute FFT, PVT, PFP, and APD results.
-
-    :param iqdata: Complex-valued input waveform samples.
-    :return: A list of Ray object references which can be used to
-        retrieve the processed results. The order is [FFT, PVT, PFP, APD].
-    """
-    # Filter IQ and place it in the object store
-    filtered_iq = sosfilt(iir_sos, iqdata)
-    del iqdata
-    # Compute PSD, PVT, PFP, and APD concurrently.
-    psd_process = threading.Thread(target=compute_power_spectral_density,
-                                   args=(channel_list, filtered_iq, params[SAMPLE_RATE], params[NUM_FFTS]))
-    psd_process.start()
-    pvt_process = threading.Thread(target=compute_power_vs_time,
-                                   args=(channel_list, filtered_iq, params[SAMPLE_RATE], params[TD_BIN_SIZE_MS]))
-    pvt_process.start()
-    pfp_process = threading.Thread(target=compute_periodic_frame_power,
-                                   args=(channel_list, filtered_iq, params[SAMPLE_RATE], params[PFP_FRAME_PERIOD_MS]))
-    pfp_process.start()
-    apd_process = threading.Thread(target=compute_apd, args=(
-        channel_list, filtered_iq, params[APD_BIN_SIZE_DB], params[APD_MIN_BIN_DBM], params[APD_MAX_BIN_DBM]))
-    apd_process.start()
 
 
 def compute_power_spectral_density(channel_list: list, iq: np.ndarray,
@@ -451,10 +423,15 @@ class NasctnSeaDataProduct(Action):
             tic = perf_counter()
             channel_list = []
             channel_lists.append(channel_list)
-            iq_process = threading.Thread(target=process_iq,
-                                 args=(channel_list, measurement_result["data"], parameters, self.iir_sos))
-            iq_process.start()
+            filtered_iq = sosfilt(self.iir_sos, measurement_result["data"])
+            # Compute PSD, PVT, PFP, and APD concurrently.
+            compute_power_spectral_density(channel_list, filtered_iq, parameters[SAMPLE_RATE], parameters[NUM_FFTS])
+            compute_power_vs_time(channel_list, filtered_iq, parameters[SAMPLE_RATE], parameters[TD_BIN_SIZE_MS])
+            compute_periodic_frame_power(channel_list, filtered_iq, parameters[SAMPLE_RATE], parameters[PFP_FRAME_PERIOD_MS])
+            compute_apd(channel_list, filtered_iq, parameters[APD_BIN_SIZE_DB], parameters[APD_MIN_BIN_DBM], parameters[APD_MAX_BIN_DBM])
             logger.debug("Deleting measurement_result data")
+            del measurement_result["data"]
+            del filtered_iq
             #del measurement_result["data"]
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc - tic:.2f} s")
