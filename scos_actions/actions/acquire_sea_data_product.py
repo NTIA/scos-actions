@@ -26,6 +26,7 @@ import platform
 import sys
 import time
 from enum import EnumMeta
+from threading import Lock
 from time import perf_counter
 from typing import Tuple
 
@@ -121,7 +122,7 @@ FFT_M3_DETECTOR = create_statistical_detector(
     "FftM3Detector", ["max", "mean", "median"]
 )
 PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
-
+lock = Lock()
 
 def process_iq(
         channel_list: list,
@@ -202,7 +203,8 @@ def compute_power_spectral_density(channel_list: list, iq: np.ndarray,
     # Returned order is (max, mean, median, 25%, 75%, 90%, 95%, 99%, 99.9%, 99.99%)
     # Total of 10 arrays, each of length 125 (output shape (10, 125))
     # Percentile computation linearly interpolates. See numpy documentation.
-    channel_list.append(["PSD", fft_result])
+    with lock:
+        channel_list.append(["PSD", fft_result])
 
 
 def compute_apd(channel_list: list,
@@ -231,7 +233,8 @@ def compute_apd(channel_list: list,
         max_bin_dBW_RF,
         impedance_ohms,
     )
-    channel_list.append(["APD", p])
+    with lock:
+        channel_list.append(["APD", p])
 
 
 def compute_power_vs_time(channel_list: list,
@@ -280,7 +283,8 @@ def compute_power_vs_time(channel_list: list,
     )
     # Return order ((max array, mean array), (max-of-max, median-of-mean, mean, median))
     pvt_tuple = pvt_result, pvt_summary
-    channel_list.append(["PVT", pvt_tuple])
+    with lock:
+        channel_list.append(["PVT", pvt_tuple])
 
 
 def compute_periodic_frame_power(channel_list: list,
@@ -342,7 +346,8 @@ def compute_periodic_frame_power(channel_list: list,
 
     # Finish conversion to power and scale result
     pfp = 10.0 * np.log10(pfp) + pfp_scale_factor
-    return channel_list.append(["PFP", pfp])
+    with lock:
+        channel_list.append(["PFP", pfp])
 
 
 class NasctnSeaDataProduct(Action):
@@ -449,6 +454,7 @@ class NasctnSeaDataProduct(Action):
             iq_process = threading.Thread(target=process_iq,
                                  args=(channel_list, measurement_result["data"], parameters, self.iir_sos))
             iq_process.start()
+            logger.debug("Deleting measurement_result data")
             del measurement_result["data"]
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc - tic:.2f} s")
