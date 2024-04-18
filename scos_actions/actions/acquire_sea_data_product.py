@@ -486,14 +486,19 @@ class NasctnSeaDataProduct(Action):
         result_tic = perf_counter()
         channel_count = len(channel_lists)
         logger.debug(f"Have {channel_count} channel results")
+        max_wait = 5
+        wait_time = .5
         for q in channel_lists:
             channel_data = []
             # Now block until the data is ready
             for i in range(4):
-                while len(q) < i+1:
+                waited = 0
+                while len(q) < i+1 and waited < max_wait:
                     logger.debug("Waiting 1s for data product...")
                     time.sleep(1)
-
+                    waited += wait_time
+                if waited >= max_wait:
+                    raise RuntimeError("Maximum wait time exceeded for data product.")
                 data = q[i]
                 data_product_type = data[0]
                 if data_product_type == "PSD":

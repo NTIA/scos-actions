@@ -1,10 +1,11 @@
 from enum import Enum, EnumMeta
-
+import logging
 import numexpr as ne
 import numpy as np
 
 from scos_actions.signal_processing import NUMEXPR_THRESHOLD
 
+logger = logging.getLogger(__name__)
 
 def calculate_power_watts(val_volts, impedance_ohms: float = 50.0):
     """
@@ -27,6 +28,7 @@ def calculate_power_watts(val_volts, impedance_ohms: float = 50.0):
     if np.isscalar(val_volts) or val_volts.size < NUMEXPR_THRESHOLD:
         power = (np.abs(val_volts) ** 2.0) / impedance_ohms
     else:
+        logger.debug("Using numexpr")
         power = ne.evaluate("(abs(val_volts).real**2)/impedance_ohms")
     return power
 
