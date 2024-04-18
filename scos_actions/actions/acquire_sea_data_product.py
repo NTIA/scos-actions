@@ -455,7 +455,7 @@ class NasctnSeaDataProduct(Action):
                                  args=(channel_list, measurement_result["data"], parameters, self.iir_sos))
             iq_process.start()
             logger.debug("Deleting measurement_result data")
-            del measurement_result["data"]
+            #del measurement_result["data"]
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc - tic:.2f} s")
             # Create capture segment with channel-specific metadata before sigan is reconfigured
