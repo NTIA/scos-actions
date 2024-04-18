@@ -459,7 +459,7 @@ class NasctnSeaDataProduct(Action):
             channel_list = []
             channel_lists.append(channel_list)
             iq_process = threading.Thread(target=process_iq,
-                                 args=(channel_list, measurement_result["data"], parameters, self.iir_sos))
+                                 args=(channel_list, np.copy(measurement_result["data"]), parameters, self.iir_sos))
             iq_process.start()
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc - tic:.2f} s")
