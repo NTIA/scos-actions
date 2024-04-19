@@ -155,7 +155,7 @@ def compute_power_spectral_density(channel_list: list, iq: np.ndarray,
             - 10.0 * np.log10(sample_rate_Hz * fft_size)  # PSD scaling
             + 20.0 * np.log10(window_ecf)  # Window energy correction
     )
-
+    logger.debug(f"Getting fft of IQ of length: {len(iq)}")
     fft_amplitudes = get_fft(
         iq, fft_size, "backward", fft_window, num_ffts, False, 1
     )
@@ -423,7 +423,7 @@ class NasctnSeaDataProduct(Action):
             tic = perf_counter()
             channel_list = []
             channel_lists.append(channel_list)
-            filtered_iq = sosfilt(self.iir_sos, measurement_result["data"])
+            filtered_iq = sosfilt(self.iir_sos, np.copy(measurement_result["data"]))
             # Compute PSD, PVT, PFP, and APD concurrently.
             compute_power_spectral_density(channel_list, filtered_iq, parameters[SAMPLE_RATE], parameters[NUM_FFTS])
             compute_power_vs_time(channel_list, filtered_iq, parameters[SAMPLE_RATE], parameters[TD_BIN_SIZE_MS])
