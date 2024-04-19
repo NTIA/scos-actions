@@ -137,7 +137,7 @@ def process_iq(
         retrieve the processed results. The order is [FFT, PVT, PFP, APD].
     """
     # Filter IQ and place it in the object store
-    filtered_iq = sosfilt(iir_sos, iqdata)
+    filtered_iq = sosfilt(iir_sos, np.copy(iqdata))
     del iqdata
     # Compute PSD, PVT, PFP, and APD concurrently.
     psd_process = threading.Thread(target=compute_power_spectral_density,
