@@ -137,7 +137,7 @@ def process_iq(
         retrieve the processed results. The order is [FFT, PVT, PFP, APD].
     """
     # Filter IQ and place it in the object store
-    filtered_iq = sosfilt(iir_sos, np.copy(iqdata))
+    filtered_iq = sosfilt(iir_sos, iqdata)
     del iqdata
     # Compute PSD, PVT, PFP, and APD concurrently.
     psd_process = threading.Thread(target=compute_power_spectral_density,
@@ -459,7 +459,7 @@ class NasctnSeaDataProduct(Action):
             channel_list = []
             channel_lists.append(channel_list)
             iq_process = threading.Thread(target=process_iq,
-                                 args=(channel_list, np.copy(measurement_result["data"]), parameters, self.iir_sos))
+                                 args=(channel_list, np.copy(measurement_result["data"]), parameters, np.copy(self.iir_sos)))
             iq_process.start()
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc - tic:.2f} s")
