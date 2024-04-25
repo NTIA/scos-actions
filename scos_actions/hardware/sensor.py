@@ -5,6 +5,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+from numpy.typing import ArrayLike
 from its_preselector.preselector import Preselector
 from its_preselector.web_relay import WebRelay
 
@@ -246,16 +247,14 @@ class Sensor:
         if not recomputed:
             logger.warning("Failed to recompute calibration data")
 
-    def check_sensor_overload(self, data) -> bool:
+    def check_sensor_overload(self, data: ArrayLike) -> bool:
         """Check for sensor overload in the measurement data."""
-        measured_data = data.astype(np.complex64)
-
-        time_domain_avg_power = 10 * np.log10(np.mean(np.abs(measured_data) ** 2))
-        time_domain_avg_power += (
-            10 * np.log10(1 / (2 * 50)) + 30
-        )  # Convert log(V^2) to dBm
         # explicitly check is not None since 1db compression could be 0
         if self.sensor_calibration_data["compression_point"] is not None:
+            time_domain_avg_power = 10 * np.log10(np.mean(np.abs(data) ** 2))
+            time_domain_avg_power += (
+                10 * np.log10(1 / (2 * 50)) + 30
+            )  # Convert log(V^2) to dBm
             return bool(
                 time_domain_avg_power
                 > self.sensor_calibration_data["compression_point"]

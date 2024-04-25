@@ -1,12 +1,11 @@
 from scos_actions.actions import action_classes
-from scos_actions.actions.logger import Logger
 from scos_actions.actions.monitor_sigan import MonitorSignalAnalyzer
 from scos_actions.actions.sync_gps import SyncGps
 from scos_actions.discover.yaml import load_from_yaml
 from scos_actions.settings import ACTION_DEFINITIONS_DIR, SIGAN_CLASS, SIGAN_MODULE
 
-actions = {"logger": Logger()}
-test_actions = {"logger": Logger()}
+actions = {}
+test_actions = {}
 
 
 def init(

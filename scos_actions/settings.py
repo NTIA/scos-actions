@@ -1,4 +1,6 @@
 import logging
+import sys
+from os import path
 from pathlib import Path
 
 from environs import Env
@@ -21,14 +23,20 @@ MOCK_SIGAN = env.bool("MOCK_SIGAN", True)
 logger.debug(f"scos-actions: MOCK_SIGAN:{MOCK_SIGAN}")
 MOCK_SIGAN_RANDOM = env.bool("MOCK_SIGAN_RANDOM", default=False)
 logger.debug(f"scos-actions: MOCK_SIGAN_RANDOM:{MOCK_SIGAN_RANDOM}")
-RUNNING_TESTS = env.bool("RUNNING_TESTS", False)
+__cmd = path.split(sys.argv[0])[-1]
+RUNNING_TESTS = env.bool("RUNNING_TESTS", "test" in __cmd)
 logger.debug(f"scos-actions: RUNNING_TESTS:{RUNNING_TESTS}")
 logger.debug(f"scos-actions: RUNNING_TESTS:{RUNNING_TESTS}")
 FQDN = env("FQDN", None)
 logger.debug(f"scos-actions: FQDN:{FQDN}")
-SIGAN_MODULE = env.str("SIGAN_MODULE", default="scos_actions.hardware.mocks.mock_sigan")
+
+SIGAN_MODULE = env.str("SIGAN_MODULE", default=None)
+if RUNNING_TESTS:
+    SIGAN_MODULE = "scos_actions.hardware.mocks.mock_sigan"
 logger.debug(f"scos-actions: SIGAN_MODULE:{SIGAN_MODULE}")
-SIGAN_CLASS = env.str("SIGAN_CLASS", default="MockSignalAnalyzer")
+SIGAN_CLASS = env.str("SIGAN_CLASS", default=None)
+if RUNNING_TESTS:
+    SIGAN_CLASS = "MockSignalAnalyzer"
 logger.debug(f"scos-actions: SIGAN_CLASS:{SIGAN_CLASS}")
 SIGAN_POWER_SWITCH = env("SIGAN_POWER_SWITCH", default=None)
 logger.debug(f"scos-actions: SIGAN_POWER_SWITCH:{SIGAN_POWER_SWITCH}")
