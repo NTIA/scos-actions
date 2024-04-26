@@ -1,26 +1,22 @@
 nasctn_sea_data_product:
-  name: test_nasctn_sea_data_product
+  name: test_SEA_CBRS_Measure_Baseline
   rf_path: antenna
+  calibration_adjust: False
 # IIR filter settings
-  iir_apply: True
   iir_gpass_dB: 0.1  # Max passband ripple below unity gain
   iir_gstop_dB: 40  # Minimum stopband attenuation
   iir_pb_edge_Hz: 5e6  # Passband edge frequency
   iir_sb_edge_Hz: 5.008e6  # Stopband edge frequency
-# Mean/Max FFT settings
-  fft_size: 175
+# FFT settings
   nffts: 320e3
-  fft_window_type: flattop # See scipy.signal.get_window for supported input
 # PFP frame
   pfp_frame_period_ms: 10
 # APD downsampling settings
-  apd_bin_size_dB: 0.5  # Set to 0 or negative for no downsampling
-  apd_min_bin_dBm: -180
+  apd_bin_size_dB: 1.0  # Set to 0 or negative for no downsampling
   apd_max_bin_dBm: -30
+  apd_min_bin_dBm: -180
 # Time domain power statistics settings
   td_bin_size_ms: 10
-# Round all power results to X decimal places
-  round_to_places: 2
 # Sigan Settings
   preamp_enable: True
   reference_level: -25

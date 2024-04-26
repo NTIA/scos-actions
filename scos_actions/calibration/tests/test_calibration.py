@@ -103,7 +103,6 @@ class TestBaseCalibration:
             "testing",
             tmp_path / "testing.json",
             "dt_str",
-            [],
             "uid",
         )
         sensor_cal.to_json()
