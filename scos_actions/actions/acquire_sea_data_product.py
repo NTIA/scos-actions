@@ -784,11 +784,11 @@ class NasctnSeaDataProduct(Action):
             cpu_diag["software_uptime"] = get_days_up(self.sensor.start_time)
         except:
             logger.warning("Failed to get SCOS uptime")
-        try:  # SSD SMART data
-            smart_data = get_disk_smart_data("/dev/nvme0n1")
-            cpu_diag["ssd_smart_data"] = ntia_diagnostics.SsdSmartData(**smart_data)
-        except:
-            logger.warning("Failed to get SSD SMART data")
+       # try:  # SSD SMART data
+       #     smart_data = get_disk_smart_data("/dev/nvme0n1")
+       #     cpu_diag["ssd_smart_data"] = ntia_diagnostics.SsdSmartData(**smart_data)
+       # except:
+       #     logger.warning("Failed to get SSD SMART data")
         try:  # Disk usage
             disk_usage = get_disk_usage()
             cpu_diag["disk_usage"] = disk_usage
