@@ -1143,17 +1143,6 @@ class NasctnSeaDataProduct(Action):
             datetime=measurement_result["capture_time"],
             duration=measurement_result[DURATION_MS],
             overload=measurement_result["overload"],
-            sensor_calibration=ntia_sensor.Calibration(
-                datetime=self.sensor.sensor_calibration_data["datetime"],
-                gain=round(measurement_result["applied_calibration"]["gain"], 3),
-                noise_figure=round(
-                    measurement_result["applied_calibration"]["noise_figure"], 3
-                ),
-                temperature=round(
-                    self.sensor.sensor_calibration_data["temperature"], 1
-                ),
-                reference=measurement_result["reference"],
-            ),
             sigan_settings=ntia_sensor.SiganSettings(
                 gain=self.sensor.signal_analyzer.gain
             ),
