@@ -645,7 +645,7 @@ class NasctnSeaDataProduct(Action):
         num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
         # Collect IQ data
         measurement_result = self.sensor.acquire_time_domain_samples(
-            num_samples, nskip, cal_params=params
+            num_samples, nskip, cal_params=params, cal_adjust=False
         )
         # Store some metadata with the IQ
         measurement_result.update(params)
