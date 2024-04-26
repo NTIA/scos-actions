@@ -721,23 +721,23 @@ class NasctnSeaDataProduct(Action):
         switch_diag = {}
         all_switch_status = {}
         # Add status for any switch
-        for switch in self.sensor.switches.values():
-            switch_status = switch.get_status()
-            del switch_status["name"]
-            del switch_status["healthy"]
-            all_switch_status.update(switch_status)
+       # for switch in self.sensor.switches.values():
+            #switch_status = switch.get_status()
+            #del switch_status["name"]
+            #del switch_status["healthy"]
+            #all_switch_status.update(switch_status)
 
-        self.set_ups_states(all_switch_status, switch_diag)
-        self.add_temperature_and_humidity_sensors(all_switch_status, switch_diag)
-        self.add_power_sensors(all_switch_status, switch_diag)
-        self.add_power_states(all_switch_status, switch_diag)
-        if "door_state" in all_switch_status:
-            switch_diag["door_closed"] = not bool(all_switch_status["door_state"])
+        #self.set_ups_states(all_switch_status, switch_diag)
+        #self.add_temperature_and_humidity_sensors(all_switch_status, switch_diag)
+        #self.add_power_sensors(all_switch_status, switch_diag)
+        #self.add_power_states(all_switch_status, switch_diag)
+        #if "door_state" in all_switch_status:
+            #switch_diag["door_closed"] = not bool(all_switch_status["door_state"])
 
         # Read preselector sensors
-        ps_diag = sensor.preselector.get_status()
-        del ps_diag["name"]
-        del ps_diag["healthy"]
+        #ps_diag = sensor.preselector.get_status()
+        #del ps_diag["name"]
+        #del ps_diag["healthy"]
 
         # Read computer performance metrics
         cpu_diag = {  # Start with CPU min/max/mean speeds
@@ -813,8 +813,8 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Got all diagnostics in {toc-tic} s")
         diagnostics = {
             "datetime": utils.get_datetime_str_now(),
-            "preselector": ntia_diagnostics.Preselector(**ps_diag),
-            "spu": ntia_diagnostics.SPU(**switch_diag),
+            #"preselector": ntia_diagnostics.Preselector(**ps_diag),
+            #"spu": ntia_diagnostics.SPU(**switch_diag),
             "computer": ntia_diagnostics.Computer(**cpu_diag),
             "software": ntia_diagnostics.Software(**software_diag),
         }
