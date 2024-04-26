@@ -27,4 +27,3 @@ stepped_frequency_time_domain_iq:
     - 10000
   nskip: 15.36e4
   calibration_adjust: False
-  rf_path: antenna

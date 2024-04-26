@@ -33,12 +33,6 @@ class SignalAnalyzerInterface(ABC):
         pass
 
     @property
-    @abstractmethod
-    def plugin_name(self) -> str:
-        """Returns the name of the SCOS plugin defining this interface."""
-        pass
-
-    @property
     def firmware_version(self) -> str:
         """Returns the version of the signal analyzer firmware."""
         return self._firmware_version

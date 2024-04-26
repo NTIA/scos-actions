@@ -25,7 +25,15 @@ class SensorCalibration(Calibration):
     """
 
     last_calibration_datetime: str
+    clock_rate_lookup_by_sample_rate: List[Dict[str, float]]
     sensor_uid: str
+
+    def get_clock_rate(self, sample_rate: Union[float, int]) -> Union[float, int]:
+        """Find the clock rate (Hz) using the given sample_rate (samples per second)"""
+        for mapping in self.clock_rate_lookup_by_sample_rate:
+            if mapping["sample_rate"] == sample_rate:
+                return mapping["clock_frequency"]
+        return sample_rate
 
     def update(
         self,
