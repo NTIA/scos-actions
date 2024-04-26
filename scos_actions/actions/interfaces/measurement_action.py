@@ -67,16 +67,15 @@ class MeasurementAction(Action):
                 noise_figure=round(
                     measurement_result["applied_calibration"]["noise_figure"], 3
                 ),
+                temperature=round(
+                    self.sensor.sensor_calibration_data["temperature"], 1
+                ),
                 reference=measurement_result["reference"],
             )
             if "compression_point" in measurement_result["applied_calibration"]:
                 cal_meta.compression_point = measurement_result["applied_calibration"][
                     "compression_point"
                 ]
-            if "temperature" in self.sensor.sensor_calibration_data:
-                cal_meta.temperature = round(
-                    self.sensor.sensor_calibration_data["temperature"], 1
-                )
         return cal_meta
 
     def create_metadata(

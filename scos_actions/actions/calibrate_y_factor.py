@@ -231,12 +231,14 @@ class YFactorCalibration(Action):
             logger.debug(f"cal_params: {cal_params}")
             cal_data = dict()
             last_cal_datetime = get_datetime_str_now()
+            clock_rate_lookup_by_sample_rate = []
             self.sensor.sensor_calibration = SensorCalibration(
                 calibration_parameters=cal_params,
                 calibration_data=cal_data,
                 calibration_reference=onboard_cal_reference,
                 file_path=Path(env("ONBOARD_CALIBRATION_FILE")),
                 last_calibration_datetime=last_cal_datetime,
+                clock_rate_lookup_by_sample_rate=clock_rate_lookup_by_sample_rate,
                 sensor_uid=sensor_uid,
             )
         elif self.sensor.sensor_calibration.file_path == env(

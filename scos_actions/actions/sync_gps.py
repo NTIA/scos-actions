@@ -19,12 +19,12 @@ class SyncGps(Action):
     def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
         logger.debug("Syncing to GPS")
         self.sensor = sensor
-        dt = self.sensor.gps.get_gps_time(self.sensor)
+        dt = self.sensor.gps.get_gps_time()
         date_cmd = ["date", "-s", "{:}".format(dt.strftime("%Y/%m/%d %H:%M:%S"))]
         subprocess.check_output(date_cmd, shell=True)
         logger.info(f"Set system time to GPS time {dt.ctime()}")
 
-        location = sensor.gps.get_location(self.sensor)
+        location = sensor.gps.get_location()
         if location is None:
             raise RuntimeError("Unable to synchronize to GPS")
 
