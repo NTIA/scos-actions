@@ -519,7 +519,7 @@ class NasctnSeaDataProduct(Action):
 
         _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
         self.test_required_components()
-        self.configure_preselector(self.rf_path)
+        #self.configure_preselector(self.rf_path)
 
         # Initialize metadata object
         self.get_sigmf_builder(
@@ -1155,9 +1155,7 @@ class NasctnSeaDataProduct(Action):
                 reference=measurement_result["reference"],
             ),
             sigan_settings=ntia_sensor.SiganSettings(
-                reference_level=self.sensor.signal_analyzer.reference_level,
-                attenuation=self.sensor.signal_analyzer.attenuation,
-                preamp_enable=self.sensor.signal_analyzer.preamp_enable,
+                gain=self.sensor.signal_analyzer.gain
             ),
         )
         if "compression_point" in measurement_result["applied_calibration"]:
