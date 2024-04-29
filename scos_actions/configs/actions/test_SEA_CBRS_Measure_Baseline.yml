@@ -1,7 +1,6 @@
 nasctn_sea_data_product:
   name: test_SEA_CBRS_Measure_Baseline
   rf_path: antenna
-  calibration_adjust: False
 # IIR filter settings
   iir_gpass_dB: 0.1  # Max passband ripple below unity gain
   iir_gstop_dB: 40  # Minimum stopband attenuation
