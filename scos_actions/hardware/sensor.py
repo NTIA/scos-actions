@@ -5,9 +5,9 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-from numpy.typing import ArrayLike
 from its_preselector.preselector import Preselector
 from its_preselector.web_relay import WebRelay
+from numpy.typing import ArrayLike
 
 from scos_actions.calibration.differential_calibration import DifferentialCalibration
 from scos_actions.calibration.sensor_calibration import SensorCalibration

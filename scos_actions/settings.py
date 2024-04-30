@@ -26,7 +26,6 @@ logger.debug(f"scos-actions: MOCK_SIGAN_RANDOM:{MOCK_SIGAN_RANDOM}")
 __cmd = path.split(sys.argv[0])[-1]
 RUNNING_TESTS = env.bool("RUNNING_TESTS", "test" in __cmd)
 logger.debug(f"scos-actions: RUNNING_TESTS:{RUNNING_TESTS}")
-logger.debug(f"scos-actions: RUNNING_TESTS:{RUNNING_TESTS}")
 FQDN = env("FQDN", None)
 logger.debug(f"scos-actions: FQDN:{FQDN}")
 
