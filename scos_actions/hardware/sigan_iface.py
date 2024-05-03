@@ -71,17 +71,22 @@ class SignalAnalyzerInterface(ABC):
         """
         pass
 
-    def healthy(self, num_samples: int = 56000) -> bool:
+    def healthy(self, num_samples: int = 56000, retries: int = 3) -> bool:
         """Perform health check by collecting IQ samples."""
         logger.debug("Performing health check.")
         if not self.is_available:
             return False
-        try:
-            measurement_result = self.acquire_time_domain_samples(num_samples)
-            data = measurement_result["data"]
-        except Exception as e:
-            logger.exception("Unable to acquire samples from device.")
-            return False
+        while True:
+            try:
+                measurement_result = self.acquire_time_domain_samples(num_samples)
+                data = measurement_result["data"]
+                break
+            except BaseException as e:
+                retries -= 1
+                logger.debug("Unable to acquire samples during health check. Retrying...")
+                if retries == 0:
+                    logger.exception("Unable to acquire samples from device during health check.")
+                    return False
 
         if not len(data) == num_samples:
             logger.error("Data length doesn't match request.")
