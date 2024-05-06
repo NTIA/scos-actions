@@ -45,6 +45,7 @@ from scos_actions.actions.acquire_single_freq_tdomain_iq import (
     DURATION_MS,
     FREQUENCY,
     NUM_SKIP,
+    SAMPLE_RATE,
     SingleFrequencyTimeDomainIqAcquisition,
 )
 from scos_actions.hardware.sensor import Sensor
@@ -98,7 +99,7 @@ class SteppedFrequencyTimeDomainIqAcquisition(SingleFrequencyTimeDomainIqAcquisi
             duration_ms = get_parameter(DURATION_MS, measurement_params)
             nskip = get_parameter(NUM_SKIP, measurement_params)
             cal_adjust = get_parameter(CAL_ADJUST, measurement_params)
-            sample_rate = self.sensor.signal_analyzer.sample_rate
+            sample_rate = get_parameter(SAMPLE_RATE, measurement_params)
             num_samples = int(sample_rate * duration_ms * 1e-3)
             measurement_result = super().acquire_data(
                 num_samples, nskip, cal_adjust, cal_params=measurement_params
