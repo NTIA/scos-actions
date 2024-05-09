@@ -801,9 +801,7 @@ class NasctnSeaDataProduct(Action):
             "python_version": sys.version.split()[0],
             "scos_sensor_version": SCOS_SENSOR_GIT_TAG,
             "scos_actions_version": SCOS_ACTIONS_VERSION,
-            "scos_sigan_plugin": ntia_diagnostics.ScosPlugin(
-                name="scos_tekrsa", version=self.sensor.signal_analyzer.plugin_version
-            ),
+            "scos_sigan_plugin": "scos_tekrsa",
             "preselector_api_version": PRESELECTOR_API_VERSION,
             "sigan_firmware_version": self.sensor.signal_analyzer.firmware_version,
             "sigan_api_version": self.sensor.signal_analyzer.api_version,
