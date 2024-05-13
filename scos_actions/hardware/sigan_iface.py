@@ -83,14 +83,15 @@ class SignalAnalyzerInterface(ABC):
                 break
             except BaseException as e:
                 retries -= 1
-                logger.debug(
-                    "Unable to acquire samples during health check. Retrying..."
-                )
                 if retries == 0:
                     logger.exception(
                         "Unable to acquire samples from device during health check."
                     )
                     return False
+                else:
+                    logger.debug(
+                        "Unable to acquire samples during health check. Retrying..."
+                    )
 
         if not len(data) == num_samples:
             logger.error("Data length doesn't match request.")
