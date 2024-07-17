@@ -40,8 +40,17 @@ def sr():  # Sample rate, Hz
 
 @pytest.fixture
 def example_sos(gpass, gstop, pb, sb, sr):
-    o, w = ellipord(pb, sb, gpass, gstop, False, sr)
-    return ellip(o, gpass, gstop, w, "lowpass", False, "sos", sr)
+    o, w = ellipord(wp=pb, ws=sb, gpass=gpass, gstop=gstop, analog=False, fs=sr)
+    return ellip(
+        N=o,
+        rp=gpass,
+        rs=gstop,
+        Wn=w,
+        btype="lowpass",
+        analog=False,
+        output="sos",
+        fs=sr,
+    )
 
 
 def test_generate_elliptic_iir_low_pass_filter(example_sos, gpass, gstop, pb, sb, sr):
@@ -56,8 +65,16 @@ def test_generate_elliptic_iir_low_pass_filter(example_sos, gpass, gstop, pb, sb
 def test_generate_fir_low_pass_filter():
     # Same approach as above for IIR: basically duplicate the functionality here
     att, wid, xoff, sr = 10, 100, 1000, 10e3
-    o, b = kaiserord(att, wid / (0.5 * sr))
-    true_taps = firwin(o + 1, xoff, wid, ("kaiser", b), "lowpass", True, fs=sr)
+    o, b = kaiserord(ripple=att, width=wid / (0.5 * sr))
+    true_taps = firwin(
+        numtaps=o + 1,
+        cutoff=xoff,
+        width=wid,
+        window=("kaiser", b),
+        pass_zero="lowpass",
+        scale=True,
+        fs=sr,
+    )
     test_taps = filtering.generate_fir_low_pass_filter(att, wid, xoff, sr)
     assert isinstance(test_taps, np.ndarray)
     assert test_taps.shape == (o + 1,)
@@ -66,7 +83,7 @@ def test_generate_fir_low_pass_filter():
 
 def test_get_iir_frequency_response(example_sos, pb, sb, sr):
     for worN in [100, np.linspace(pb - 500, sb + 500, 3050)]:
-        true_w, true_h = sosfreqz(example_sos, worN, True, sr)
+        true_w, true_h = sosfreqz(sos=example_sos, worN=worN, whole=True, fs=sr)
         test_w, test_h = filtering.get_iir_frequency_response(example_sos, worN, sr)
         if isinstance(worN, int):
             assert all(len(x) == worN for x in [test_w, test_h])
@@ -78,7 +95,7 @@ def test_get_iir_frequency_response(example_sos, pb, sb, sr):
 
 def test_get_iir_phase_response(example_sos, pb, sb, sr):
     for worN in [100, np.linspace(pb - 500, sb + 500, 3050)]:
-        true_w, h = sosfreqz(example_sos, worN, False, sr)
+        true_w, h = sosfreqz(sos=example_sos, worN=worN, whole=False, fs=sr)
         true_angles = np.unwrap(np.angle(h))
         test_w, test_angles = filtering.get_iir_phase_response(example_sos, worN, sr)
         if isinstance(worN, int):
@@ -103,6 +120,6 @@ def test_is_stable(example_sos):
     stable_test = filtering.is_stable(example_sos)
     assert isinstance(stable_test, bool)
     assert stable_test is True
-    _, poles, _ = sos2zpk(example_sos)
+    _, poles, _ = sos2zpk(sos=example_sos)
     stable_true = all([p < 1 for p in np.square(np.abs(poles))])
     assert stable_true == stable_test

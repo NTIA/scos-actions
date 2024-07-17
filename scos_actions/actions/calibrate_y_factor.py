@@ -307,8 +307,12 @@ class YFactorCalibration(Action):
             # Estimate of IIR filter ENBW does NOT account for passband ripple in sensor transfer function!
             enbw_hz = self.iir_enbw_hz
             logger.debug("Applying IIR filter to IQ captures")
-            noise_on_data = sosfilt(self.iir_sos, noise_on_measurement_result["data"])
-            noise_off_data = sosfilt(self.iir_sos, noise_off_measurement_result["data"])
+            noise_on_data = sosfilt(
+                sos=self.iir_sos, x=noise_on_measurement_result["data"]
+            )
+            noise_off_data = sosfilt(
+                sos=self.iir_sos, x=noise_off_measurement_result["data"]
+            )
         else:
             logger.debug("Skipping IIR filtering")
             # Get ENBW from sensor calibration

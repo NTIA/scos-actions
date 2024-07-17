@@ -36,9 +36,23 @@ def generate_elliptic_iir_low_pass_filter(
             + f"edge frequency {pb_edge_Hz} Hz."
         )
     ord, wn = ellipord(
-        pb_edge_Hz, sb_edge_Hz, gpass_dB, gstop_dB, False, sample_rate_Hz
+        wp=pb_edge_Hz,
+        ws=sb_edge_Hz,
+        gpass=gpass_dB,
+        gstop=gstop_dB,
+        analog=False,
+        fs=sample_rate_Hz,
     )
-    sos = ellip(ord, gpass_dB, gstop_dB, wn, "lowpass", False, "sos", sample_rate_Hz)
+    sos = ellip(
+        N=ord,
+        rp=gpass_dB,
+        rs=gstop_dB,
+        Wn=wn,
+        btype="lowpass",
+        analog=False,
+        output="sos",
+        fs=sample_rate_Hz,
+    )
     return sos
 
 
@@ -62,14 +76,16 @@ def generate_fir_low_pass_filter(
     :param sample_rate_Hz: Sampling rate, in Hz.
     :return: Coeffiecients of the FIR low pass filter.
     """
-    ord, beta = kaiserord(attenuation_dB, width_Hz / (0.5 * sample_rate_Hz))
+    ord, beta = kaiserord(
+        ripple=attenuation_dB, width=width_Hz / (0.5 * sample_rate_Hz)
+    )
     taps = firwin(
-        ord + 1,
-        cutoff_Hz,
-        width_Hz,
-        ("kaiser", beta),
-        "lowpass",
-        True,
+        numtaps=ord + 1,
+        cutoff=cutoff_Hz,
+        width=width_Hz,
+        window=("kaiser", beta),
+        pass_zero="lowpass",
+        scale=True,
         fs=sample_rate_Hz,
     )
     return taps
@@ -91,7 +107,7 @@ def get_iir_frequency_response(
         The second is the array containing the frequency response values, which
         are complex values in linear units.
     """
-    w, h = sosfreqz(sos, worN, whole=True, fs=sample_rate_Hz)
+    w, h = sosfreqz(sos=sos, worN=worN, whole=True, fs=sample_rate_Hz)
     return w, h
 
 
@@ -110,7 +126,7 @@ def get_iir_phase_response(
         frequencies, in Hz, for which the phase response was calculated.
         The second is the array containing the phase response values, in radians.
     """
-    w, h = sosfreqz(sos, worN, whole=False, fs=sample_rate_Hz)
+    w, h = sosfreqz(sos=sos, worN=worN, whole=False, fs=sample_rate_Hz)
     angles = np.unwrap(np.angle(h))
     return w, angles
 
@@ -156,6 +172,6 @@ def is_stable(sos: np.ndarray) -> bool:
     :param sos: Second-order sections representation of the IIR filter.
     :return: True if the filter is stable, False if not.
     """
-    _, poles, _ = sos2zpk(sos)
+    _, poles, _ = sos2zpk(sos=sos)
     stable = all([p < 1 for p in np.square(np.abs(poles))])
     return stable

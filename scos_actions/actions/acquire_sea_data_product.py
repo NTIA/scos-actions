@@ -434,7 +434,7 @@ class IQProcessor:
             retrieve the processed results. The order is [FFT, PVT, PFP, APD].
         """
         # Filter IQ and place it in the object store
-        iqdata = ray.put(sosfilt(self.iir_sos, iqdata))
+        iqdata = ray.put(sosfilt(sos=self.iir_sos, x=iqdata))
         # Compute PSD, PVT, PFP, and APD concurrently.
         # Do not wait until they finish. Yield references to their results.
         yield [worker.run.remote(iqdata) for worker in self.workers]
@@ -490,7 +490,7 @@ class NasctnSeaDataProduct(Action):
             self.iir_sb_edge_Hz,
             self.sample_rate_Hz,
         )
-        self.iir_numerators, self.iir_denominators = sos2tf(self.iir_sos)
+        self.iir_numerators, self.iir_denominators = sos2tf(sos=self.iir_sos)
 
         # Remove IIR parameters which aren't needed after filter generation
         for key in [
