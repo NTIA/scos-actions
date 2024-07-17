@@ -55,7 +55,7 @@ def test_get_fft():
     fft_size = 1024
     num_ffts = 5
     signal_amplitude = 500
-    window = get_window("flattop", fft_size, True)
+    window = get_window(window="flattop", Nx=fft_size, fftbins=True)
     window_acf = window_amplitude_correction(window)
 
     # Generated signal is constant: the FFT should be zero in all bins except
@@ -175,7 +175,7 @@ def test_get_fft_window():
     # generated using SciPy
     for w_type in supported_window_types:
         win = fft.get_fft_window(w_type, 1024)
-        true_win = get_window(w_type, 1024, True)
+        true_win = get_window(window=w_type, Nx=1024, fftbins=True)
         assert isinstance(win, np.ndarray)
         assert win.size == 1024
         assert np.array_equal(win, true_win)
@@ -193,10 +193,10 @@ def test_get_fft_window():
     # Check that input formatting works as expected
     for bad_w_type, true_w_type in window_alt_format_map.items():
         win = fft.get_fft_window(bad_w_type, 1024)
-        true_win = get_window(true_w_type, 1024, True)
+        true_win = get_window(window=true_w_type, Nx=1024, fftbins=True)
         assert np.array_equal(win, true_win)
         with pytest.raises(ValueError, match="Unknown window type."):
-            _ = get_window(bad_w_type, 1024, True)
+            _ = get_window(window=bad_w_type, Nx=1024, fftbins=True)
 
 
 def test_get_fft_window_correction():
@@ -216,7 +216,7 @@ def test_get_fft_window_correction():
 
     # Function under test should raise a ValueError for invalid correction type
     bad_correction_type = ["amp", "e", "both", "other"]
-    test_good_window = get_window("flattop", 1024, True)
+    test_good_window = get_window(window="flattop", Nx=1024, fftbins=True)
     for ct in bad_correction_type:
         with pytest.raises(ValueError, match=f"Invalid window correction type: {ct}"):
             _ = fft.get_fft_window_correction(test_good_window, ct)
@@ -253,7 +253,7 @@ def test_get_fft_enbw():
     fft_size = 1024
     sample_rate__Hz = 14e6
     for w_type in window_types:
-        window = get_window(w_type, fft_size, True)
+        window = get_window(window=w_type, Nx=fft_size, fftbins=True)
         true_fft_bin_enbw__Hz = fft_bin_enbw(window, sample_rate__Hz)
         test_fft_bin_enbw__Hz = fft.get_fft_enbw(window, sample_rate__Hz)
         assert isinstance(test_fft_bin_enbw__Hz, float)

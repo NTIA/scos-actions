@@ -43,7 +43,16 @@ def generate_elliptic_iir_low_pass_filter(
         analog=False,
         fs=sample_rate_Hz,
     )
-    sos = ellip(ord, gpass_dB, gstop_dB, wn, "lowpass", False, "sos", sample_rate_Hz)
+    sos = ellip(
+        N=ord,
+        rp=gpass_dB,
+        rs=gstop_dB,
+        Wn=wn,
+        btype="lowpass",
+        analog=False,
+        output="sos",
+        fs=sample_rate_Hz,
+    )
     return sos
 
 

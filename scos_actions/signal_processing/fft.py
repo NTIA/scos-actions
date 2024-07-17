@@ -97,7 +97,7 @@ def get_fft(
             time_data *= fft_window
 
     # Take the FFT
-    complex_fft = sp_fft(time_data, norm=norm, workers=workers)
+    complex_fft = sp_fft(x=time_data, norm=norm, workers=workers)
 
     # Shift the frequencies if desired
     if shift:
@@ -129,7 +129,7 @@ def get_fft_window(window_type: str, window_length: int) -> np.ndarray:
         window_type = "hann"
 
     # Get window samples
-    window = get_window(window_type, window_length, fftbins=True)
+    window = get_window(window=window_type, Nx=window_length, fftbins=True)
 
     # Return the window
     return window
