@@ -362,7 +362,7 @@ class PeriodicFramePower:
         # compute statistics first by cycle
         mean_power = power_bins.mean(axis=0)
         max_power = power_bins.max(axis=0)
-        del power_bins
+        #del power_bins
 
         # then do the detector
         pfp = np.array(
@@ -438,7 +438,7 @@ class IQProcessor:
         # Compute PSD, PVT, PFP, and APD concurrently.
         # Do not wait until they finish. Yield references to their results.
         yield [worker.run.remote(iqdata) for worker in self.workers]
-        del iqdata
+        #del iqdata
 
 
 class NasctnSeaDataProduct(Action):
@@ -556,7 +556,7 @@ class NasctnSeaDataProduct(Action):
             dp_procs.append(
                 iq_processors[i % NUM_ACTORS].run.remote(measurement_result["data"])
             )
-            del measurement_result["data"]
+            #del measurement_result["data"]
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc-tic:.2f} s")
             # Create capture segment with channel-specific metadata before sigan is reconfigured
@@ -589,31 +589,33 @@ class NasctnSeaDataProduct(Action):
             # Retrieve object references for channel data
             channel_data_refs = ray.get(channel_data_process)
             channel_data = []
-            for i, data_ref in enumerate(channel_data_refs):
-                # Now block until the data is ready
-                data = ray.get(data_ref)
-                if i == 1:
-                    # Power-vs-Time results, a tuple of arrays
-                    data, summaries = data  # Split the tuple
-                    max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
-                    med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
-                    mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
-                    median_ch_pwrs.append(DATA_TYPE(summaries[3]))
-                    del summaries
-                if i == 3:  # Separate condition is intentional
-                    # APD result: append instead of extend,
-                    # since the result is a single 1D array
-                    channel_data.append(data)
-                else:
-                    # For 2D arrays (PSD, PVT, PFP)
-                    channel_data.extend(data)
+            for object_ref in channel_data_refs: # only one
+                data_arr = ray.get(object_ref)
+                for i, data_ref in enumerate(data_arr):
+                    # Now block until the data is ready
+                    data = ray.get(data_ref)
+                    if i == 1:
+                        # Power-vs-Time results, a tuple of arrays
+                        data, summaries = data  # Split the tuple
+                        max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
+                        med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
+                        mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
+                        median_ch_pwrs.append(DATA_TYPE(summaries[3]))
+                        #del summaries
+                    if i == 3:  # Separate condition is intentional
+                        # APD result: append instead of extend,
+                        # since the result is a single 1D array
+                        channel_data.append(data)
+                    else:
+                        # For 2D arrays (PSD, PVT, PFP)
+                        channel_data.extend(data)
             toc = perf_counter()
             logger.debug(f"Waited {toc-tic} s for channel data")
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
         for ray_actor in iq_processors:
             ray.kill(ray_actor)
         result_toc = perf_counter()
-        del dp_procs, iq_processors, channel_data, channel_data_refs
+        #del dp_procs, iq_processors, channel_data, channel_data_refs
         logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
 
         # Build metadata and convert data to compressed bytes
@@ -735,9 +737,9 @@ class NasctnSeaDataProduct(Action):
             switch_diag["door_closed"] = not bool(all_switch_status["door_state"])
 
         # Read preselector sensors
-        ps_diag = sensor.preselector.get_status()
-        del ps_diag["name"]
-        del ps_diag["healthy"]
+        #ps_diag = sensor.preselector.get_status()
+        #del ps_diag["name"]
+        #del ps_diag["healthy"]
 
         # Read computer performance metrics
         cpu_diag = {  # Start with CPU min/max/mean speeds
@@ -813,7 +815,7 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Got all diagnostics in {toc-tic} s")
         diagnostics = {
             "datetime": utils.get_datetime_str_now(),
-            "preselector": ntia_diagnostics.Preselector(**ps_diag),
+            #"preselector": ntia_diagnostics.Preselector(**ps_diag),
             "spu": ntia_diagnostics.SPU(**switch_diag),
             "computer": ntia_diagnostics.Computer(**cpu_diag),
             "software": ntia_diagnostics.Software(**software_diag),
