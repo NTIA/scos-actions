@@ -113,7 +113,7 @@ FFT_WINDOW_TYPE = "flattop"
 FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
 FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
 IMPEDANCE_OHMS = 50.0
-NUM_ACTORS = 3  # Number of ray actors to initialize
+NUM_ACTORS = env.int("RAY_WORKERS", default=3)  # Number of ray actors to initialize
 
 # Create power detectors
 TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["max", "mean"])
@@ -417,14 +417,10 @@ class IQProcessor:
         self.apd_worker = AmplitudeProbabilityDistribution.remote(
             params[APD_BIN_SIZE_DB], params[APD_MIN_BIN_DBM], params[APD_MAX_BIN_DBM]
         )
-        self.workers = [
-            self.fft_worker,
-            self.pvt_worker,
-            self.pfp_worker,
-            self.apd_worker,
-        ]
+
         del params
 
+    @ray.method(num_returns=4)
     def run(self, iqdata: np.ndarray) -> list:
         """
         Filter the input IQ data and concurrently compute FFT, PVT, PFP, and APD results.
@@ -436,9 +432,11 @@ class IQProcessor:
         # Filter IQ and place it in the object store
         iqdata = ray.put(sosfilt(sos=self.iir_sos, x=iqdata))
         # Compute PSD, PVT, PFP, and APD concurrently.
-        # Do not wait until they finish. Yield references to their results.
-        yield [worker.run.remote(iqdata) for worker in self.workers]
-        #del iqdata
+        fft_reference = self.fft_worker.run.remote(iqdata)
+        pvt_reference = self.pvt_worker.run.remote(iqdata)
+        pfp_reference = self.pfp_worker.run.remote(iqdata)
+        apd_reference = self.apd_worker.run.remote(iqdata)
+        return fft_reference, pvt_reference, pfp_reference, apd_reference
 
 
 class NasctnSeaDataProduct(Action):
@@ -541,7 +539,7 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Spawned {NUM_ACTORS} supervisor actors in {toc-tic:.2f} s")
 
         # Collect all IQ data and spawn data product computation processes
-        dp_procs, cpu_speed, reference_points = [], [], []
+        data_products_refs, cpu_speed, reference_points = [], [], []
         capture_tic = perf_counter()
 
         for i, parameters in enumerate(self.iteration_params):
@@ -552,11 +550,9 @@ class NasctnSeaDataProduct(Action):
                 )
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
+            data_products_refs.append(iq_processors[i % NUM_ACTORS].run.remote(measurement_result["data"]))
 
-            dp_procs.append(
-                iq_processors[i % NUM_ACTORS].run.remote(measurement_result["data"])
-            )
-            #del measurement_result["data"]
+            del measurement_result["data"]
             toc = perf_counter()
             logger.debug(f"IQ data delivered for processing in {toc-tic:.2f} s")
             # Create capture segment with channel-specific metadata before sigan is reconfigured
@@ -585,37 +581,42 @@ class NasctnSeaDataProduct(Action):
             [],
         )
         result_tic = perf_counter()
-        for channel_data_process in dp_procs:
-            # Retrieve object references for channel data
-            channel_data_refs = ray.get(channel_data_process)
+        channel_count = len(data_products_refs)
+        logger.debug(f"Have {channel_count} channel results")
+        for index in range(len(data_products_refs)):
+            logger.debug(f"Working on channel {index}")
             channel_data = []
-            for object_ref in channel_data_refs: # only one
-                data_arr = ray.get(object_ref)
-                for i, data_ref in enumerate(data_arr):
-                    # Now block until the data is ready
-                    data = ray.get(data_ref)
-                    if i == 1:
-                        # Power-vs-Time results, a tuple of arrays
-                        data, summaries = data  # Split the tuple
-                        max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
-                        med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
-                        mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
-                        median_ch_pwrs.append(DATA_TYPE(summaries[3]))
-                        #del summaries
-                    if i == 3:  # Separate condition is intentional
-                        # APD result: append instead of extend,
-                        # since the result is a single 1D array
-                        channel_data.append(data)
-                    else:
-                        # For 2D arrays (PSD, PVT, PFP)
-                        channel_data.extend(data)
+            # Now block until the data is ready
+            dp_refs_tuple = ray.get(data_products_refs[index])
+            psd_ref, pvt_ref, pfp_ref, apd_ref = dp_refs_tuple
+            psd_data = ray.get(psd_ref)
+            channel_data.extend(psd_data)
+
+            pvt_data = ray.get(pvt_ref)
+            # Power-vs-Time results, a tuple of arrays
+            data, summaries = pvt_data  # Split the tuple
+            max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
+            med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
+            mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
+            median_ch_pwrs.append(DATA_TYPE(summaries[3]))
+            del summaries
+
+            pfp_data = ray.get(pfp_ref)
+            channel_data.extend(pfp_data)
+
+            # APD result: append instead of extend,
+            # since the result is a single 1D array
+            apd_data = ray.get(apd_ref)
+            channel_data.append(apd_data)
+
             toc = perf_counter()
             logger.debug(f"Waited {toc-tic} s for channel data")
             all_data.extend(NasctnSeaDataProduct.transform_data(channel_data))
+
         for ray_actor in iq_processors:
             ray.kill(ray_actor)
         result_toc = perf_counter()
-        #del dp_procs, iq_processors, channel_data, channel_data_refs
+        del  iq_processors, channel_data
         logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
 
         # Build metadata and convert data to compressed bytes
