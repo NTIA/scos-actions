@@ -362,7 +362,7 @@ class PeriodicFramePower:
         # compute statistics first by cycle
         mean_power = power_bins.mean(axis=0)
         max_power = power_bins.max(axis=0)
-        #del power_bins
+        del power_bins
 
         # then do the detector
         pfp = np.array(
@@ -738,9 +738,9 @@ class NasctnSeaDataProduct(Action):
             switch_diag["door_closed"] = not bool(all_switch_status["door_state"])
 
         # Read preselector sensors
-        #ps_diag = sensor.preselector.get_status()
-        #del ps_diag["name"]
-        #del ps_diag["healthy"]
+        ps_diag = sensor.preselector.get_status()
+        del ps_diag["name"]
+        del ps_diag["healthy"]
 
         # Read computer performance metrics
         cpu_diag = {  # Start with CPU min/max/mean speeds
@@ -816,7 +816,7 @@ class NasctnSeaDataProduct(Action):
         logger.debug(f"Got all diagnostics in {toc-tic} s")
         diagnostics = {
             "datetime": utils.get_datetime_str_now(),
-            #"preselector": ntia_diagnostics.Preselector(**ps_diag),
+            "preselector": ntia_diagnostics.Preselector(**ps_diag),
             "spu": ntia_diagnostics.SPU(**switch_diag),
             "computer": ntia_diagnostics.Computer(**cpu_diag),
             "software": ntia_diagnostics.Software(**software_diag),
