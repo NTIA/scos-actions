@@ -346,11 +346,13 @@ class YFactorCalibration(Action):
             pwr_on_watts, pwr_off_watts, enr_linear, enbw_hz, temp_k
         )
 
-        # Update sensor calibration with results
-        self.sensor.sensor_calibration.update(
-            sigan_params, utils.get_datetime_str_now(), gain, noise_figure, temp_c
-        )
-
+        if not np.isnan(gain) and not np.isnan(noise_figure):
+            # Update sensor calibration with results
+            self.sensor.sensor_calibration.update(
+                sigan_params, utils.get_datetime_str_now(), gain, noise_figure, temp_c
+            )
+        else:
+            logger.warn(f"Not updating calibration. NF: {noise_figure}, Gain: {gain}")
         # Debugging
         noise_floor_dBm = convert_watts_to_dBm(Boltzmann * temp_k * enbw_hz)
         logger.debug(f"Noise floor: {noise_floor_dBm:.2f} dBm")
