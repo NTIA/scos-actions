@@ -352,15 +352,15 @@ class YFactorCalibration(Action):
                 sigan_params, utils.get_datetime_str_now(), gain, noise_figure, temp_c
             )
         else:
-            logger.warn(f"Not updating calibration. NF: {noise_figure}, Gain: {gain}")
+            logger.warning(f"Calibration result is NaN at {params[FREQUENCY]}:")
+            logger.warning(f"\tNF: {noise_figure}, Gain: {gain}")
         # Debugging
         noise_floor_dBm = convert_watts_to_dBm(Boltzmann * temp_k * enbw_hz)
         logger.debug(f"Noise floor: {noise_floor_dBm:.2f} dBm")
         logger.debug(f"Noise figure: {noise_figure:.2f} dB")
         logger.debug(f"Gain: {gain:.2f} dB")
 
-        # Detail results contain only FFT version of result for now
-        return f"Noise Figure: {noise_figure}, Gain: {gain}"
+        return f"Noise Figure: {noise_figure:.2f}, Gain: {gain:.2f}"
 
     @property
     def description(self):
