@@ -350,11 +350,11 @@ class YFactorCalibration(Action):
         # Update sensor calibration with results
         # temp for debugging:
         if "frequency" in sigan_params:
-            if sigan_params["frequency"] > 3690000000:
+            if int(sigan_params["frequency"]) in [3695000000, 3705000000]:
                 gain = nan
                 noise_figure = nan
             else:
-                logger.debug(f"Frequency {sigan_params['frequency']} not greater than 3690000000")
+                logger.debug(f"Frequency {sigan_params['frequency']} not 3695 MHz or 3705 MHz")
         else:
             logger.debug("Frequency not in sigan_params!")
         self.sensor.sensor_calibration.update(
