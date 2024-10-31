@@ -75,6 +75,7 @@ $$ F_N = 10 \log_{{10}}(NF) $$
 """
 
 import logging
+from math import nan
 import os
 import time
 from pathlib import Path
@@ -347,6 +348,9 @@ class YFactorCalibration(Action):
         )
 
         # Update sensor calibration with results
+        # temp for debugging:
+        gain = nan
+        noise_figure = nan
         self.sensor.sensor_calibration.update(
             sigan_params, utils.get_datetime_str_now(), gain, noise_figure, temp_c
         )
