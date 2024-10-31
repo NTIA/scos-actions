@@ -550,7 +550,9 @@ class NasctnSeaDataProduct(Action):
                 )
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
-            data_products_refs.append(iq_processors[i % NUM_ACTORS].run.remote(measurement_result["data"]))
+            data_products_refs.append(
+                iq_processors[i % NUM_ACTORS].run.remote(measurement_result["data"])
+            )
 
             del measurement_result["data"]
             toc = perf_counter()
@@ -599,6 +601,7 @@ class NasctnSeaDataProduct(Action):
             med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
             mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
             median_ch_pwrs.append(DATA_TYPE(summaries[3]))
+            channel_data.extend(data)
             del summaries
 
             pfp_data = ray.get(pfp_ref)
@@ -616,7 +619,7 @@ class NasctnSeaDataProduct(Action):
         for ray_actor in iq_processors:
             ray.kill(ray_actor)
         result_toc = perf_counter()
-        del  iq_processors, channel_data
+        del iq_processors, channel_data
         logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
 
         # Build metadata and convert data to compressed bytes
