@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 from its_preselector.preselector import Preselector
@@ -23,7 +23,7 @@ def y_factor(
     enr_linear: float,
     enbw_hz: float,
     temp_kelvins: float = 300.0,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """
     Perform Y-Factor calculations of noise figure and gain.
 
@@ -105,7 +105,7 @@ def get_linear_enr(
 
 def get_temperature(
     preselector: Preselector, sensor_idx: Optional[int] = None
-) -> Tuple[float, float, float]:
+) -> tuple[float, float, float]:
     """
     Get the temperature from a preselector sensor.
 

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 import msgspec
 
@@ -57,8 +57,8 @@ class Antenna(msgspec.Struct, rename={"antenna_type": "type"}, **SIGMF_OBJECT_KW
     polarization: Optional[float] = None
     cross_polar_discrimination: Optional[float] = None
     gain: Optional[float] = None
-    horizontal_gain_pattern: Optional[List[float]] = None
-    vertical_gain_pattern: Optional[List[float]] = None
+    horizontal_gain_pattern: Optional[list[float]] = None
+    vertical_gain_pattern: Optional[list[float]] = None
     horizontal_beamwidth: Optional[float] = None
     vertical_beamwidth: Optional[float] = None
     voltage_standing_wave_ratio: Optional[float] = None

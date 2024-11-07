@@ -2,7 +2,7 @@ import datetime
 import hashlib
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import numpy as np
 from its_preselector.preselector import Preselector
@@ -38,7 +38,7 @@ class Sensor:
         capabilities: dict,
         gps: Optional[GPSInterface] = None,
         preselector: Optional[Preselector] = None,
-        switches: Optional[Dict[str, WebRelay]] = {},
+        switches: Optional[dict[str, WebRelay]] = {},
         location: Optional[dict] = None,
         sensor_cal: Optional[SensorCalibration] = None,
         differential_cal: Optional[DifferentialCalibration] = None,
@@ -93,7 +93,7 @@ class Sensor:
         self._preselector = preselector
 
     @property
-    def switches(self) -> Dict[str, WebRelay]:
+    def switches(self) -> dict[str, WebRelay]:
         """
         Dictionary of WebRelays, indexed by name. WebRelays may enable/disable other
         components within the sensor and/or provide a variety of sensors.
@@ -101,7 +101,7 @@ class Sensor:
         return self._switches
 
     @switches.setter
-    def switches(self, switches: Dict[str, WebRelay]):
+    def switches(self, switches: dict[str, WebRelay]):
         self._switches = switches
 
     @property
@@ -213,12 +213,12 @@ class Sensor:
         )
 
     @property
-    def sensor_calibration_data(self) -> Dict[str, Any]:
+    def sensor_calibration_data(self) -> dict[str, Any]:
         """Sensor calibration data for the current sensor settings."""
         return self._sensor_calibration_data
 
     @property
-    def differential_calibration_data(self) -> Dict[str, float]:
+    def differential_calibration_data(self) -> dict[str, float]:
         """Differential calibration data for the current sensor settings."""
         return self._differential_calibration_data
 

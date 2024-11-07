@@ -3,7 +3,7 @@ import json
 import logging
 from abc import abstractmethod
 from pathlib import Path
-from typing import List, get_origin
+from typing import get_origin
 
 from scos_actions.calibration.utils import (
     CalibrationParametersMissingException,
@@ -28,7 +28,7 @@ class Calibration:
     updates (if allowed) will be saved.
     """
 
-    calibration_parameters: List[str]
+    calibration_parameters: list[str]
     calibration_data: dict
     calibration_reference: str
     file_path: Path
@@ -43,7 +43,7 @@ class Calibration:
     def _validate_fields(self) -> None:
         """Loosely check that the input types are as expected."""
         for f_name, f_def in self.__dataclass_fields__.items():
-            # Note that nested types are not checked: i.e., "List[str]"
+            # Note that nested types are not checked: i.e., "list[str]"
             # will surely be a list, but may not be filled with strings.
             f_type = get_origin(f_def.type) or f_def.type
             actual_value = getattr(self, f_name)

@@ -102,7 +102,7 @@ if the new functionality can be supported by most signal analyzers.
 ### Requirements and Configuration
 
 Set up a development environment using a tool like [Conda](https://docs.conda.io/en/latest/)
-or [venv](https://docs.python.org/3/library/venv.html#module-venv), with `python>=3.8`. Then,
+or [venv](https://docs.python.org/3/library/venv.html#module-venv), with `python>=3.9`. Then,
 from the cloned directory, install the development dependencies by running:
 
 ```bash

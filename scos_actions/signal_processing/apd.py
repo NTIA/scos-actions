@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import numexpr as ne
 import numpy as np
 
@@ -12,7 +10,7 @@ def get_apd(
     min_bin: float = None,
     max_bin: float = None,
     impedance_ohms: float = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Estimate the APD by sampling the CCDF.
 
     The size of the output depends on ``bin_size_dB``, which
