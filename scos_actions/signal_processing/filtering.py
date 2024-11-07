@@ -74,7 +74,7 @@ def generate_fir_low_pass_filter(
     :param width_Hz: Width of the transition region, in Hz.
     :param cutoff_Hz: Filter cutoff frequency, in Hz.
     :param sample_rate_Hz: Sampling rate, in Hz.
-    :return: Coeffiecients of the FIR low pass filter.
+    :return: Coefficients of the FIR low pass filter.
     """
     ord, beta = kaiserord(
         ripple=attenuation_dB, width=width_Hz / (0.5 * sample_rate_Hz)

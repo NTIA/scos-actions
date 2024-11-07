@@ -398,7 +398,7 @@ class IQProcessor:
     The ``run`` method can be called to filter and process IQ samples.
     Filtering happens before the remote workers are called, which run
     concurrently. The ``run`` method returns Ray object references
-    immediately, which can be later used to retrieve the procesed results.
+    immediately, which can be later used to retrieve the processed results.
     """
 
     def __init__(self, params: dict, iir_sos: np.ndarray):
