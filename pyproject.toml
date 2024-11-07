@@ -7,7 +7,7 @@ name = "scos-actions"
 dynamic = ["version"]
 description = "The base plugin providing common actions and interfaces for SCOS Sensor plugins"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = { file = "LICENSE.md" }
 
 authors = [
@@ -35,34 +35,32 @@ classifiers = [
     "Environment :: Plugins",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
 ]
 
 dependencies = [
     "environs>=9.5.0",
-    "django>=4.2,<5.0",
+    "django>=4.2.8,<5.0",  # As of 4.2.8, Python 3.13 is not supported.
     "its_preselector @ git+https://github.com/NTIA/Preselector@3.1.0",
     "msgspec>=0.16.0,<1.0.0",
     "numexpr>=2.8.3",
-    "numpy>=1.22.0",
+    "numpy>=1.25.0",
     "psutil>=5.9.4",
     "python-dateutil>=2.0",
     "ray>=2.10.0",
     "ruamel.yaml>=0.15",
-    "scipy>=1.8.0",
+    "scipy>=1.11.4",
     "sigmf @ git+https://github.com/NTIA/SigMF@multi-recording-archive",
 ]
 
 [project.optional-dependencies]
 test = [
-    "pytest>=7.3.1,<8.0",
-    "pytest-cov>=4.0.0,<5.0",
-    "tox>=4.5.1,<5.0",
+    "pytest>=8.0,<9.0",
+    "pytest-cov>=6.0,<7.0",
+    "tox>=4.5.1,<5.0",  # Keep in sync with min_version in tox.ini
 ]
 dev = [
     "hatchling>=1.14.1,<2.0",

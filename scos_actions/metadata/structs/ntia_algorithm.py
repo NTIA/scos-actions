@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import msgspec
 
@@ -16,7 +16,7 @@ class DigitalFilter(msgspec.Struct, tag=True, **SIGMF_OBJECT_KWARGS):
     Interface for generating `ntia-algorithm` `DigitalFilter` objects.
 
     :param id: Unique ID of the filter.
-    :param filter_type: Type of the digital fitler, given by the `FilterType`
+    :param filter_type: Type of the digital filter, given by the `FilterType`
         enum.
     :param feedforward_coefficients: Coefficients that define the feedforward
         filter stage.
@@ -32,8 +32,8 @@ class DigitalFilter(msgspec.Struct, tag=True, **SIGMF_OBJECT_KWARGS):
 
     id: str
     filter_type: FilterType
-    feedforward_coefficients: Optional[List[float]] = None
-    feedback_coefficients: Optional[List[float]] = None
+    feedforward_coefficients: Optional[list[float]] = None
+    feedback_coefficients: Optional[list[float]] = None
     attenuation_cutoff: Optional[float] = None
     frequency_cutoff: Optional[float] = None
     description: Optional[str] = None
@@ -49,19 +49,19 @@ class Graph(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
 
     name: str
-    series: Optional[List[str]] = None
+    series: Optional[list[str]] = None
     length: Optional[int] = None
     x_units: Optional[str] = None
-    x_axis: Optional[List[Union[int, float, str]]] = None
-    x_start: Optional[List[float]] = None
-    x_stop: Optional[List[float]] = None
-    x_step: Optional[List[float]] = None
+    x_axis: Optional[list[Union[int, float, str]]] = None
+    x_start: Optional[list[float]] = None
+    x_stop: Optional[list[float]] = None
+    x_step: Optional[list[float]] = None
     y_units: Optional[str] = None
-    y_axis: Optional[List[Union[int, float, str]]] = None
-    y_start: Optional[List[float]] = None
-    y_stop: Optional[List[float]] = None
-    y_step: Optional[List[float]] = None
-    processing: Optional[List[str]] = None
+    y_axis: Optional[list[Union[int, float, str]]] = None
+    y_start: Optional[list[float]] = None
+    y_stop: Optional[list[float]] = None
+    y_step: Optional[list[float]] = None
+    processing: Optional[list[str]] = None
     reference: Optional[str] = None
     description: Optional[str] = None
 

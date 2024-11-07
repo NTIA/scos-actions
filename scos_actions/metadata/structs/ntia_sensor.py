@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import Optional
 
 import msgspec
 
@@ -110,10 +110,10 @@ class Preselector(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     """
 
     preselector_spec: Optional[HardwareSpec] = None
-    cal_sources: Optional[List[CalSource]] = None
-    amplifiers: Optional[List[Amplifier]] = None
-    filters: Optional[List[Filter]] = None
-    rf_paths: Optional[List[RFPath]] = None
+    cal_sources: Optional[list[CalSource]] = None
+    amplifiers: Optional[list[Amplifier]] = None
+    filters: Optional[list[Filter]] = None
+    rf_paths: Optional[list[RFPath]] = None
 
 
 class Calibration(

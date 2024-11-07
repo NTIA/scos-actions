@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 import msgspec
 
@@ -13,7 +13,7 @@ class Preselector(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     :param noise_diode_temp: Temperature of the noise diode, in degrees Celsius.
     :param noise_diode_powered: Boolean indicating if the noise diode is powered.
     :param lna_powered: Boolean indicating if the lna is powered.
-    :param lna_temp: Temparature of the low noise amplifier, in degrees Celsius.
+    :param lna_temp: Temperature of the low noise amplifier, in degrees Celsius.
     :param antenna_path_enabled: Boolean indicating if the antenna path is enabled.
     :param noise_diode_path_enabled: Boolean indicating if the noise diode path is enabled.
     :param humidity: Relative humidity inside the preselector enclosure, as a percentage.
@@ -80,9 +80,9 @@ class SPU(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     ups_healthy: Optional[bool] = None
     replace_battery: Optional[bool] = None
 
-    temperature_sensors: Optional[List[DiagnosticSensor]] = None
-    humidity_sensors: Optional[List[DiagnosticSensor]] = None
-    power_sensors: Optional[List[DiagnosticSensor]] = None
+    temperature_sensors: Optional[list[DiagnosticSensor]] = None
+    humidity_sensors: Optional[list[DiagnosticSensor]] = None
+    power_sensors: Optional[list[DiagnosticSensor]] = None
     door_closed: Optional[bool] = None
 
 
@@ -97,7 +97,7 @@ class SsdSmartData(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     :param available_spare: Normalized percentage (0 to 100) of the remaining
         spare capacity available.
     :param available_spare_threshold: When the `available_spare` falls below
-        this threshold, an aynchronous event completion may occur. Indicated as
+        this threshold, an asynchronous event completion may occur. Indicated as
         a normalized percentage (0 to 100).
     :param percentage_used: Contains a vendor specific estimate of the percentage
         of NVM subsystem life used based on the actual usage and the manufacturer’s
