@@ -1,5 +1,5 @@
 import json
-from typing import List, Union
+from typing import Union
 
 import msgspec
 from sigmf import SigMFFile
@@ -268,7 +268,7 @@ class SigMFBuilder:
 
     ### ntia-algorithm v2.0.1 ###
 
-    def set_data_products(self, data_products: List[Graph]) -> None:
+    def set_data_products(self, data_products: list[Graph]) -> None:
         """
         Set the value of the Global "ntia-algorithm:data_products" field.
 
@@ -276,7 +276,7 @@ class SigMFBuilder:
         """
         self.sigmf_md.set_global_field("ntia-algorithm:data_products", data_products)
 
-    def set_processing(self, processing: List[str]) -> None:
+    def set_processing(self, processing: list[str]) -> None:
         """
         Set the value of the Global "ntia-algorithm:processing" field.
 
@@ -286,7 +286,7 @@ class SigMFBuilder:
         self.sigmf_md.set_global_field("ntia-algorithm:processing", processing)
 
     def set_processing_info(
-        self, processing_info: List[Union[DigitalFilter, DFT]]
+        self, processing_info: list[Union[DigitalFilter, DFT]]
     ) -> None:
         """
         Set the value of the Global "ntia-algorithm:processing_info" field.
@@ -324,7 +324,7 @@ class SigMFBuilder:
     ### ntia-nasctn-sea v0.6.0 ###
 
     def set_max_of_max_channel_powers(
-        self, max_of_max_channel_powers: List[float]
+        self, max_of_max_channel_powers: list[float]
     ) -> None:
         """
         Set the value of the Global "ntia-nasctn-sea:max_of_max_channel_powers" field.
@@ -335,7 +335,7 @@ class SigMFBuilder:
             "ntia-nasctn-sea:max_of_max_channel_powers", max_of_max_channel_powers
         )
 
-    def set_mean_channel_powers(self, mean_channel_powers: List[float]) -> None:
+    def set_mean_channel_powers(self, mean_channel_powers: list[float]) -> None:
         """
         Set the value of the Global "ntia-nasctn-sea:mean_channel_powers" field.
 
@@ -345,7 +345,7 @@ class SigMFBuilder:
             "ntia-nasctn-sea:mean_channel_powers", mean_channel_powers
         )
 
-    def set_median_channel_powers(self, median_channel_powers: List[float]) -> None:
+    def set_median_channel_powers(self, median_channel_powers: list[float]) -> None:
         """
         Set the value of the Global "ntia-nasctn-sea:median_channel_powers" field.
 
@@ -356,7 +356,7 @@ class SigMFBuilder:
         )
 
     def set_median_of_mean_channel_powers(
-        self, median_of_mean_channel_powers: List[float]
+        self, median_of_mean_channel_powers: list[float]
     ) -> None:
         """
         Set the value of the Global "ntia-nasctn-sea:median_of_mean_channel_powers" field.

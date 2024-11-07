@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Union
 
 import numpy as np
 from scipy.signal import ellip, ellipord, firwin, kaiserord, sos2zpk, sosfreqz
@@ -93,7 +93,7 @@ def generate_fir_low_pass_filter(
 
 def get_iir_frequency_response(
     sos: np.ndarray, worN: Union[int, np.ndarray], sample_rate_Hz: float
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Get the frequency response of an IIR filter.
 
@@ -113,7 +113,7 @@ def get_iir_frequency_response(
 
 def get_iir_phase_response(
     sos: np.ndarray, worN: Union[int, np.ndarray], sample_rate_Hz: float
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Get the phase response of an IIR filter.
 

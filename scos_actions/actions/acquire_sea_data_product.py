@@ -26,7 +26,6 @@ import platform
 import sys
 from enum import EnumMeta
 from time import perf_counter
-from typing import Tuple
 
 import numpy as np
 import psutil
@@ -261,7 +260,7 @@ class PowerVsTime:
         self.detector = detector
         self.impedance_ohms = impedance_ohms
 
-    def run(self, iq: ray.ObjectRef) -> Tuple[np.ndarray, np.ndarray]:
+    def run(self, iq: ray.ObjectRef) -> tuple[np.ndarray, np.ndarray]:
         """
         Compute power versus time results from IQ samples.
 

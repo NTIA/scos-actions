@@ -3,7 +3,6 @@
 import dataclasses
 import json
 from pathlib import Path
-from typing import List
 
 import pytest
 
@@ -57,7 +56,7 @@ class TestBaseCalibration:
         fields = {f.name: f.type for f in dataclasses.fields(Calibration)}
         # Note: does not check field order
         assert fields == {
-            "calibration_parameters": List[str],
+            "calibration_parameters": list[str],
             "calibration_reference": str,
             "calibration_data": dict,
             "file_path": Path,
