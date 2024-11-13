@@ -355,14 +355,6 @@ class YFactorCalibration(Action):
             pwr_on_watts, pwr_off_watts, enr_linear, enbw_hz, temp_k
         )
 
-        # TODO: For testing, manually trigger NaN behavior on certain channels
-        if params[FREQUENCY] == 3535e6:
-            gain = np.nan
-        if params[FREQUENCY] == 3545e6:
-            noise_figure = np.nan
-        if params[FREQUENCY] == 3555e6:
-            noise_figure = np.inf
-
         if np.isfinite(gain) and np.isfinite(noise_figure):
             # Update sensor calibration with results
             self.sensor.sensor_calibration.update(
