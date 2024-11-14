@@ -255,10 +255,19 @@ class YFactorCalibration(Action):
 
         # Run calibration routine
         for i, p in enumerate(self.iteration_params):
+            cal_result = self.calibrate(p)
+            # Retry once if channel calibration failed
+            if cal_result == "FAILED":
+                logger.warning(f"Retrying calibration at {p[FREQUENCY]/1e6} MHz")
+                cal_result = self.calibrate(p)
+                if cal_result == "FAILED":
+                    logger.warning(
+                        f"Retry failed. Calibration data not updated for f={p[FREQUENCY]}"
+                    )
             if i == 0:
-                detail += self.calibrate(p)
+                detail += cal_result
             else:
-                detail += os.linesep + self.calibrate(p)
+                detail += os.linesep + cal_result
         return detail
 
     def calibrate(self, params: dict):
@@ -346,19 +355,24 @@ class YFactorCalibration(Action):
             pwr_on_watts, pwr_off_watts, enr_linear, enbw_hz, temp_k
         )
 
-        # Update sensor calibration with results
-        self.sensor.sensor_calibration.update(
-            sigan_params, utils.get_datetime_str_now(), gain, noise_figure, temp_c
-        )
-
+        if np.isfinite(gain) and np.isfinite(noise_figure):
+            # Update sensor calibration with results
+            self.sensor.sensor_calibration.update(
+                sigan_params, utils.get_datetime_str_now(), gain, noise_figure, temp_c
+            )
+        else:
+            # At least one of {noise figure, gain} is NaN or infinite. This triggers
+            # a single retry for this set of params. See __call__ above.
+            logger.warning(f"Calibration result is NaN at {params[FREQUENCY]/1e6} MHz:")
+            logger.warning(f"\tNF: {noise_figure}, Gain: {gain}")
+            return "FAILED"
         # Debugging
         noise_floor_dBm = convert_watts_to_dBm(Boltzmann * temp_k * enbw_hz)
         logger.debug(f"Noise floor: {noise_floor_dBm:.2f} dBm")
         logger.debug(f"Noise figure: {noise_figure:.2f} dB")
         logger.debug(f"Gain: {gain:.2f} dB")
 
-        # Detail results contain only FFT version of result for now
-        return f"Noise Figure: {noise_figure}, Gain: {gain}"
+        return f"Noise Figure: {noise_figure:.2f}, Gain: {gain:.2f}"
 
     @property
     def description(self):
