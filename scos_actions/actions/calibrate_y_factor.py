@@ -256,10 +256,19 @@ class YFactorCalibration(Action):
 
         # Run calibration routine
         for i, p in enumerate(self.iteration_params):
+            cal_result = self.calibrate(p)
+            # Retry once if channel calibration failed
+            if cal_result == "FAILED":
+                logger.warning(f"Retrying calibration at {p[FREQUENCY]/1e6} MHz")
+                cal_result = self.calibrate(p)
+                if cal_result == "FAILED":
+                    logger.warning(
+                        f"Retry failed. Calibration data not updated for f={p[FREQUENCY]}"
+                    )
             if i == 0:
-                detail += self.calibrate(p)
+                detail += cal_result
             else:
-                detail += os.linesep + self.calibrate(p)
+                detail += os.linesep + cal_result
         return detail
 
     def calibrate(self, params: dict):
@@ -367,8 +376,7 @@ class YFactorCalibration(Action):
         logger.debug(f"Noise figure: {noise_figure:.2f} dB")
         logger.debug(f"Gain: {gain:.2f} dB")
 
-        # Detail results contain only FFT version of result for now
-        return f"Noise Figure: {noise_figure}, Gain: {gain}"
+        return f"Noise Figure: {noise_figure:.2f}, Gain: {gain:.2f}"
 
     @property
     def description(self):

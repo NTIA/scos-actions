@@ -1,7 +1,7 @@
 import logging
 import time
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Optional
 
 from its_preselector.web_relay import WebRelay
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class SignalAnalyzerInterface(ABC):
     def __init__(
         self,
-        switches: Optional[Dict[str, WebRelay]] = None,
+        switches: Optional[dict[str, WebRelay]] = None,
     ):
         self._model = "Unknown"
         self._api_version = "Unknown"

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 import msgspec
 
@@ -43,4 +43,4 @@ class ScheduleEntry(msgspec.Struct, **SIGMF_OBJECT_KWARGS):
     stop: Optional[str] = None
     interval: Optional[int] = None
     priority: Optional[int] = None
-    roles: Optional[List[str]] = None
+    roles: Optional[list[str]] = None
