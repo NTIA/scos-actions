@@ -54,7 +54,7 @@ from scos_actions.metadata.structs import (
     ntia_sensor,
 )
 from scos_actions.metadata.structs.capture import CaptureSegment
-from scos_actions.settings import SCOS_SENSOR_GIT_TAG
+from scos_actions.settings import SCOS_SENSOR_GIT_TAG, SSD_DEVICE
 from scos_actions.signal_processing.apd import get_apd
 from scos_actions.signal_processing.fft import (
     get_fft,
@@ -712,7 +712,8 @@ class NasctnSeaDataProduct(Action):
         Various CPU metrics make assumptions about the system: only
         Intel CPUs are supported.
 
-        Disk health check assumes the SSD is ``/dev/nvme0n1`` and
+        Disk health check assumes collects SMART diagnostics on the
+        SSD specified by the `SSD_DEVICE` environment variable. This
         requires the Docker container to have the required privileges
         or capabilities and device passthrough. For more information,
         see ``scos_actions.hardware.utils.get_disk_smart_data()``.
