@@ -712,7 +712,7 @@ class NasctnSeaDataProduct(Action):
         Various CPU metrics make assumptions about the system: only
         Intel CPUs are supported.
 
-        Disk health check assumes collects SMART diagnostics on the
+        Disk health check collects SMART diagnostics on the
         SSD specified by the `SSD_DEVICE` environment variable. This
         requires the Docker container to have the required privileges
         or capabilities and device passthrough. For more information,
