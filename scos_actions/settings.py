@@ -45,3 +45,6 @@ PRESELECTOR_MODULE = env("PRESELECTOR_MODULE", default=None)
 logger.debug(f"scos-actions: PRESELECTOR_MODULE:{PRESELECTOR_MODULE}")
 PRESELECTOR_CLASS = env("PRESELECTOR_CLASS", default=None)
 logger.debug(f"scos-actions: PRESELECTOR_CLASS:{PRESELECTOR_CLASS}")
+
+SSD_DEVICE = env("SSD_DEVICE", default="/dev/nvme0n1")
+logger.debug(f"scos-actions: SSD-DEVICE:{SSD_DEVICE}")
