@@ -77,6 +77,7 @@ $$ F_N = 10 \log_{{10}}(NF) $$
 import logging
 from math import nan
 import os
+import random
 import time
 from pathlib import Path
 
@@ -151,6 +152,7 @@ class YFactorCalibration(Action):
         logger.debug("Initializing calibration action")
         super().__init__(parameters)
         self.iteration_params = utils.get_iterable_parameters(parameters)
+        self.nan_cal = False
 
         # IIR Filter Setup
         try:
@@ -208,6 +210,7 @@ class YFactorCalibration(Action):
     def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
         """This is the entrypoint function called by the scheduler."""
         self.sensor = sensor
+        self.nan_cal = random.choice([True, False])
 
         # Prepare the sensor calibration object.
         assert all(
@@ -359,7 +362,7 @@ class YFactorCalibration(Action):
         # Update sensor calibration with results
         # temp for debugging:
         if "frequency" in sigan_params:
-            if int(sigan_params["frequency"]) in [3695000000, 3705000000]:
+            if (int(sigan_params["frequency"]) in [3695000000, 3705000000]) and self.nan_cal:
                 gain = nan
                 noise_figure = nan
             else:
