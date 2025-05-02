@@ -1209,8 +1209,8 @@ class NasctnSeaDataProduct(Action):
         sigmf_builder.set_num_channels(len(iter_params))
         sigmf_builder.set_task(task_id)
 
-        # Mark data as CUI (basic)
-        sigmf_builder.set_classification("CUI")
+
+        sigmf_builder.set_classification("Unclassified")
 
         self.sigmf_builder = sigmf_builder
 
