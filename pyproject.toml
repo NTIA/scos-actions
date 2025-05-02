@@ -17,7 +17,6 @@ authors = [
 maintainers = [
     { name = "Doug Boulware", email = "dboulware@ntia.gov" },
     { name = "Justin Haze", email = "jhaze@ntia.gov" },
-    { name = "Anthony Romaniello", email = "aromaniello@ntia.gov" },
 ]
 
 keywords = [
