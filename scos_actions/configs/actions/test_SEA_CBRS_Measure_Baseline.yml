@@ -8,6 +8,7 @@ nasctn_sea_data_product:
   iir_sb_edge_Hz: 5.008e6  # Stopband edge frequency
 # FFT settings
   nffts: 320e3
+  fft_size: 175
 # PFP frame
   pfp_frame_period_ms: 10
 # APD downsampling settings

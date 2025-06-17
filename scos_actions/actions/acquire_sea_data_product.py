@@ -90,6 +90,7 @@ IIR_GSTOP = "iir_gstop_dB"
 IIR_PB_EDGE = "iir_pb_edge_Hz"
 IIR_SB_EDGE = "iir_sb_edge_Hz"
 NUM_FFTS = "nffts"
+FFT_SIZE = "fft_size"
 APD_BIN_SIZE_DB = "apd_bin_size_dB"
 APD_MIN_BIN_DBM = "apd_min_bin_dBm"
 APD_MAX_BIN_DBM = "apd_max_bin_dBm"
@@ -106,11 +107,9 @@ PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
 # Constants
 DATA_TYPE = np.half
 PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
-FFT_SIZE = 175  # 80 kHz resolution @ 14 MHz sampling rate
 FFT_PERCENTILES = np.array([25, 75, 90, 95, 99, 99.9, 99.99])
 FFT_WINDOW_TYPE = "flattop"
-FFT_WINDOW = get_fft_window(FFT_WINDOW_TYPE, FFT_SIZE)
-FFT_WINDOW_ECF = get_fft_window_correction(FFT_WINDOW, "energy")
+FFT_WINDOW_CORRECTION_TYPE = "energy"
 IMPEDANCE_OHMS = 50.0
 NUM_ACTORS = env.int("RAY_WORKERS", default=3)  # Number of ray actors to initialize
 
@@ -137,9 +136,7 @@ class PowerSpectralDensity:
         self,
         sample_rate_Hz: float,
         num_ffts: int,
-        fft_size: int = FFT_SIZE,
-        fft_window: np.ndarray = FFT_WINDOW,
-        window_ecf: float = FFT_WINDOW_ECF,
+        fft_size: int,
         detector: EnumMeta = FFT_M3_DETECTOR,
         percentiles: np.ndarray = FFT_PERCENTILES,
         impedance_ohms: float = IMPEDANCE_OHMS,
@@ -147,7 +144,8 @@ class PowerSpectralDensity:
         self.detector = detector
         self.percentiles = percentiles
         self.fft_size = fft_size
-        self.fft_window = fft_window
+        self.fft_window = get_fft_window(FFT_WINDOW_TYPE, fft_size)
+        fft_window_correction = get_fft_window_correction(self.fft_window, FFT_WINDOW_CORRECTION_TYPE)
         self.num_ffts = num_ffts
         # Get truncation points: truncate FFT result to middle 125 samples (middle 10 MHz from 14 MHz)
         self.bin_start = int(fft_size / 7)  # bin_start = 25 with FFT_SIZE 175
@@ -158,7 +156,7 @@ class PowerSpectralDensity:
             -10.0 * np.log10(impedance_ohms)  # Pseudo-power to power
             + 27.0  # Watts to dBm (+30) and baseband to RF (-3)
             - 10.0 * np.log10(sample_rate_Hz * fft_size)  # PSD scaling
-            + 20.0 * np.log10(window_ecf)  # Window energy correction
+            + 20.0 * np.log10(fft_window_correction)  # Window energy correction
         )
 
     def run(self, iq: ray.ObjectRef) -> np.ndarray:
@@ -405,7 +403,7 @@ class IQProcessor:
         # initialize worker processes
         self.iir_sos = iir_sos
         self.fft_worker = PowerSpectralDensity.remote(
-            params[SAMPLE_RATE], params[NUM_FFTS]
+            params[SAMPLE_RATE], params[NUM_FFTS], params[FFT_SIZE]
         )
         self.pvt_worker = PowerVsTime.remote(
             params[SAMPLE_RATE], params[TD_BIN_SIZE_MS]
@@ -462,6 +460,7 @@ class NasctnSeaDataProduct(Action):
                 IIR_PB_EDGE,
                 IIR_SB_EDGE,
                 NUM_FFTS,
+                FFT_SIZE,
                 SAMPLE_RATE,
                 DURATION_MS,
                 TD_BIN_SIZE_MS,
@@ -1017,20 +1016,20 @@ class NasctnSeaDataProduct(Action):
         dft_obj = ntia_algorithm.DFT(
             id="psd_fft",
             equivalent_noise_bandwidth=round(
-                get_fft_enbw(FFT_WINDOW, p[SAMPLE_RATE]), 2
+                get_fft_enbw(get_fft_window(FFT_WINDOW_TYPE, p[FFT_SIZE]), p[SAMPLE_RATE]), 2
             ),
-            samples=FFT_SIZE,
+            samples=int(p[FFT_SIZE]),
             dfts=int(p[NUM_FFTS]),
             window=FFT_WINDOW_TYPE,
             baseband=True,
-            description=f"First and last {int(FFT_SIZE / 7)} samples from {FFT_SIZE}-point FFT discarded",
+            description=f"First and last {int(p[FFT_SIZE] / 7)} samples from {p[FFT_SIZE]}-point FFT discarded",
         )
         self.sigmf_builder.set_processing_info([iir_obj, dft_obj])
 
-        psd_length = int(FFT_SIZE * (5 / 7))
-        psd_bin_start = int(FFT_SIZE / 7)  # bin_start = 125 with FFT_SIZE 875
-        psd_bin_end = FFT_SIZE - psd_bin_start  # bin_end = 750 with FFT_SIZE 875
-        psd_x_axis__Hz = get_fft_frequencies(FFT_SIZE, p[SAMPLE_RATE], 0.0)  # Baseband
+        psd_length = int(p[FFT_SIZE] * (5 / 7))
+        psd_bin_start = int(p[FFT_SIZE] / 7)  # bin_start = 125 with FFT_SIZE 875
+        psd_bin_end = p[FFT_SIZE] - psd_bin_start  # bin_end = 750 with FFT_SIZE 875
+        psd_x_axis__Hz = get_fft_frequencies(p[FFT_SIZE], p[SAMPLE_RATE], 0.0)  # Baseband
         psd_graph = ntia_algorithm.Graph(
             name="Power Spectral Density",
             series=[d.value for d in FFT_M3_DETECTOR]
@@ -1038,18 +1037,18 @@ class NasctnSeaDataProduct(Action):
                 f"{int(p)}th_percentile" if p.is_integer() else f"{p}th_percentile"
                 for p in FFT_PERCENTILES
             ],  # ["max", "mean", "median", "25th_percentile", "75th_percentile", ... "99.99th_percentile"]
-            length=int(FFT_SIZE * (5 / 7)),
+            length=int(p[FFT_SIZE] * (5 / 7)),
             x_units="Hz",
             x_start=[psd_x_axis__Hz[psd_bin_start]],
             x_stop=[psd_x_axis__Hz[psd_bin_end - 1]],  # -1 for zero-indexed array
-            x_step=[p[SAMPLE_RATE] / FFT_SIZE],
+            x_step=[p[SAMPLE_RATE] / p[FFT_SIZE]],
             y_units="dBm/Hz",
             processing=[dft_obj.id],
             reference=data_products_reference,
             description=(
                 "Results of statistical detectors (max, mean, median, 25th_percentile, 75th_percentile, "
                 + "90th_percentile, 95th_percentile, 99th_percentile, 99.9th_percentile, 99.99th_percentile) "
-                + f"applied to power spectral density samples, with the first and last {int(FFT_SIZE / 7)} "
+                + f"applied to power spectral density samples, with the first and last {int(p[FFT_SIZE] / 7)} "
                 + "samples discarded. FFTs computed on IIR-filtered data."
             ),
         )
