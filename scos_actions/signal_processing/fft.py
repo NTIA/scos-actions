@@ -129,7 +129,14 @@ def get_fft_window(window_type: str, window_length: int) -> np.ndarray:
         window_type = "hann"
 
     # Get window samples
-    window = get_window(window=window_type, Nx=window_length, fftbins=True)
+    try:
+        window = get_window(window=window_type, Nx=window_length, fftbins=True)
+    except ValueError as exc:
+        if "must have parameters" in str(exc):
+            raise ValueError(
+                f"The '{window_type}' window needs one or more parameters -- pass a tuple."
+            ) from exc
+        raise
 
     # Return the window
     return window
