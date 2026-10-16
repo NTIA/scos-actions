@@ -1,0 +1,1023 @@
+# What follows is a parameterizable description of the algorithm used by this
+# action. The first line is the summary and should be written in plain text.
+# Everything following that is the extended description, which can be written
+# in Markdown and MathJax. Each name in curly brackets '{}' will be replaced
+# with the value specified in the `description` method which can be found at
+# the very bottom of this file. Since this parameterization step affects
+# everything in curly brackets, math notation such as {m \over n} must be
+# escaped to {{m \over n}}.
+#
+# To print out this docstring after parameterization, see
+# scos-sensor/scripts/print_action_docstring.py. You can then paste that into the
+# SCOS Markdown Editor (link below) to see the final rendering.
+#
+# Resources:
+# - MathJax reference: https://math.meta.stackexchange.com/q/5020
+# - Markdown reference: https://commonmark.org/help/
+# - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
+#
+r"""Acquire a Generalized SEA data product.
+
+Currently in development.
+"""
+import logging
+import lzma
+import platform
+import sys
+from time import perf_counter
+from typing import Optional
+
+import numpy as np
+import psutil
+import ray
+from environs import Env
+from its_preselector import __version__ as PRESELECTOR_API_VERSION
+from scipy.signal import sos2tf, sosfilt
+
+from scos_actions import __version__ as SCOS_ACTIONS_VERSION
+from scos_actions import utils
+from scos_actions.actions.interfaces.action import Action
+from scos_actions.hardware.sensor import Sensor
+from scos_actions.hardware.utils import (
+    get_cpu_uptime_seconds,
+    get_current_cpu_clock_speed,
+    get_current_cpu_temperature,
+    get_disk_smart_data,
+    get_max_cpu_temperature,
+)
+from scos_actions.metadata.sigmf_builder import SigMFBuilder
+from scos_actions.metadata.structs import (
+    ntia_algorithm,
+    ntia_core,
+    ntia_diagnostics,
+    ntia_scos,
+    ntia_sensor,
+)
+from scos_actions.metadata.structs.capture import CaptureSegment
+from scos_actions.product import product_classes
+from scos_actions.settings import SCOS_SENSOR_GIT_TAG, SSD_DEVICE
+from scos_actions.signal_processing.fft import (
+    get_fft_enbw,
+    get_fft_frequencies,
+    get_fft_window,
+)
+from scos_actions.signal_processing.filtering import (
+    generate_elliptic_iir_low_pass_filter,
+)
+from scos_actions.signal_processing.power_analysis import (
+    create_statistical_detector,
+)
+from scos_actions.signals import measurement_action_completed, trigger_api_restart
+from scos_actions.utils import (
+    convert_datetime_to_millisecond_iso_format,
+    get_days_up,
+    get_disk_usage,
+)
+
+env = Env()
+logger = logging.getLogger(__name__)
+
+
+# Define parameter keys
+RF_PATH = "rf_path"
+IIR_GPASS = "iir_gpass_dB"
+IIR_GSTOP = "iir_gstop_dB"
+IIR_PB_EDGE = "iir_pb_edge_Hz"
+IIR_SB_EDGE = "iir_sb_edge_Hz"
+NUM_FFTS = "nffts"
+FFT_SIZE = "fft_size"
+APD_BIN_SIZE_DB = "apd_bin_size_dB"
+APD_MIN_BIN_DBM = "apd_min_bin_dBm"
+APD_MAX_BIN_DBM = "apd_max_bin_dBm"
+TD_BIN_SIZE_MS = "td_bin_size_ms"
+FREQUENCY = "frequency"
+SAMPLE_RATE = "sample_rate"
+ATTENUATION = "attenuation"
+PREAMP_ENABLE = "preamp_enable"
+REFERENCE_LEVEL = "reference_level"
+DURATION_MS = "duration_ms"
+NUM_SKIP = "nskip"
+PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
+
+CAPTURES = "captures"
+
+# Constants
+DATA_TYPE = np.half
+PFP_FRAME_RESOLUTION_S = (1e-3 * (1 + 1 / (14)) / 15) / 4
+FFT_PERCENTILES = np.array([25, 75, 90, 95, 99, 99.9, 99.99])
+FFT_WINDOW_TYPE = "flattop"
+FFT_WINDOW_CORRECTION_TYPE = "energy"
+IMPEDANCE_OHMS = 50.0
+NUM_ACTORS = env.int("RAY_WORKERS", default=3)  # Number of ray actors to initialize
+
+# Create power detectors
+TD_DETECTOR = create_statistical_detector("TdMeanMaxDetector", ["max", "mean"])
+FFT_M3_DETECTOR = create_statistical_detector(
+    "FftM3Detector", ["max", "mean", "median"]
+)
+PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "mean"])
+
+
+@ray.remote
+class IQProcessor:
+    """
+    Supervisor actor for IQ processing.
+
+    Note: the current implementation in ``__call__`` makes the
+    assumption that all ``params`` used are identical for each
+    consecutive capture (i.e., each channel). The ``params`` which
+    fall under this assumption are: ``SAMPLE_RATE``, ``NUM_FFTS``,
+    ``TD_BIN_SIZE_MS``, ``PFP_FRAME_PERIOD_MS``, ``APD_BIN_SIZE_DB``,
+    ``APD_MIN_BIN_DBM``, and ``APD_MAX_BIN_DBM``. A single set of IIR
+    second-order-sections (``iir_sos``) is also used for filtering.
+
+    Upon initialization of this supervisor actor, workers are spawned
+    for each of the components of the data product. Initializing these
+    processes allows for certain parts of the computation, which do not
+    depend on the IQ data, to be performed ahead-of-time. The workers are
+    stateful, and reuse the initialized values for each consecutive run.
+
+    The ``run`` method can be called to filter and process IQ samples.
+    Filtering happens before the remote workers are called, which run
+    concurrently. The ``run`` method returns Ray object references
+    immediately, which can be later used to retrieve the processed results.
+    """
+
+    def __init__(self, params: dict, iir_sos: np.ndarray):
+        # initialize worker processes
+        self.iir_sos = iir_sos
+
+        self.fft_worker = product_classes["psd"].remote(
+            params[SAMPLE_RATE],
+            params[NUM_FFTS],
+            params[FFT_SIZE],
+            fft_window_type = FFT_WINDOW_TYPE,
+            fft_window_correction_type = FFT_WINDOW_CORRECTION_TYPE,
+            detector = FFT_M3_DETECTOR,
+            percentiles = FFT_PERCENTILES,
+            impedance_ohms = IMPEDANCE_OHMS,
+        )
+        self.pvt_worker = product_classes["pvt"].remote(
+            params[SAMPLE_RATE],
+            params[TD_BIN_SIZE_MS],
+            impedance_ohms = IMPEDANCE_OHMS,
+            detector = TD_DETECTOR,
+        )
+        self.pfp_worker = product_classes["pfp"].remote(
+            params[SAMPLE_RATE],
+            params[PFP_FRAME_PERIOD_MS],
+            detector_period_s = PFP_FRAME_RESOLUTION_S,
+            impedance_ohms = IMPEDANCE_OHMS,
+            detector = PFP_M3_DETECTOR,
+        )
+        self.apd_worker = product_classes["apd"].remote(
+            params[APD_BIN_SIZE_DB],
+            params[APD_MIN_BIN_DBM],
+            params[APD_MAX_BIN_DBM],
+            impedance_ohms = IMPEDANCE_OHMS,
+        )
+
+        del params
+
+    @ray.method(num_returns=4)
+    def run(self, iqdata: np.ndarray) -> list:
+        """
+        Filter the input IQ data and concurrently compute FFT, PVT, PFP, and APD results.
+
+        :param iqdata: Complex-valued input waveform samples.
+        :return: A list of Ray object references which can be used to
+            retrieve the processed results. The order is [FFT, PVT, PFP, APD].
+        """
+        # Filter IQ and place it in the object store
+        iqdata = ray.put(sosfilt(sos=self.iir_sos, x=iqdata))
+        # Compute PSD, PVT, PFP, and APD concurrently.
+        fft_reference = self.fft_worker.run.remote(iqdata)
+        pvt_reference = self.pvt_worker.run.remote(iqdata)
+        pfp_reference = self.pfp_worker.run.remote(iqdata)
+        apd_reference = self.apd_worker.run.remote(iqdata)
+        return fft_reference, pvt_reference, pfp_reference, apd_reference
+
+
+class GeneralizedSeaDataProduct(Action):
+    """Acquire a stepped-frequency Generalized SEA data product.
+
+    :param parameters: The dictionary of parameters needed for
+        the action and the signal analyzer.
+    :param sigan: Instance of SignalAnalyzerInterface.
+    """
+
+    def __init__(self, parameters: dict):
+        super().__init__(parameters)
+        # Assume preselector is present
+        self.total_channel_data_length = None
+        rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
+        self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
+
+        # Check that certain parameters are specified only once (not per-channel)
+        assert not any(
+            isinstance(self.parameters[k], list)
+            for k in (
+                IIR_GPASS,
+                IIR_GSTOP,
+                IIR_PB_EDGE,
+                IIR_SB_EDGE,
+                NUM_FFTS,
+                FFT_SIZE,
+                SAMPLE_RATE,
+                DURATION_MS,
+                TD_BIN_SIZE_MS,
+                PFP_FRAME_PERIOD_MS,
+                APD_BIN_SIZE_DB,
+                APD_MAX_BIN_DBM,
+                APD_MIN_BIN_DBM,
+            )
+        )
+
+        # Setup/pull config parameters
+        self.iir_gpass_dB = utils.get_parameter(IIR_GPASS, self.parameters)
+        self.iir_gstop_dB = utils.get_parameter(IIR_GSTOP, self.parameters)
+        self.iir_pb_edge_Hz = utils.get_parameter(IIR_PB_EDGE, self.parameters)
+        self.iir_sb_edge_Hz = utils.get_parameter(IIR_SB_EDGE, self.parameters)
+        self.sample_rate_Hz = utils.get_parameter(SAMPLE_RATE, self.parameters)
+
+        # Construct IIR filter
+        self.iir_sos = generate_elliptic_iir_low_pass_filter(
+            self.iir_gpass_dB,
+            self.iir_gstop_dB,
+            self.iir_pb_edge_Hz,
+            self.iir_sb_edge_Hz,
+            self.sample_rate_Hz,
+        )
+        self.iir_numerators, self.iir_denominators = sos2tf(sos=self.iir_sos)
+
+        # Remove IIR parameters which aren't needed after filter generation
+        for key in [
+            IIR_GPASS,
+            IIR_GSTOP,
+            IIR_PB_EDGE,
+            IIR_SB_EDGE,
+        ]:
+            self.parameters.pop(key)
+
+
+
+    def __call__(self, sensor: Sensor, schedule_entry: dict, task_id: int):
+        """This is the entrypoint function called by the scheduler."""
+        self._sensor = sensor
+
+        # Ray should have already been initialized within scos-sensor,
+        # but check and initialize just in case.
+        if not ray.is_initialized():
+            logger.info("Initializing ray.")
+            logger.info("Set RAY_INIT=true to avoid initializing within " + __name__)
+            # Dashboard is only enabled if ray[default] is installed
+            ray.init()
+
+        _ = psutil.cpu_percent(interval=None)  # Initialize CPU usage monitor
+        self.test_required_components()
+        self.configure_preselector(self.rf_path)
+
+        # Get iterable parameter list
+        grouped_iteration_params = []
+        if CAPTURES in self.parameters:
+            for grouped_captures in self.parameters[CAPTURES]:
+                grouped_captures_parameters = self.parameters.copy()
+                grouped_captures_parameters[FREQUENCY] = grouped_captures[FREQUENCY]
+                del grouped_captures_parameters[CAPTURES]
+                del grouped_captures_parameters["data_products"]
+                iteration_params = utils.get_iterable_parameters(grouped_captures_parameters)
+                grouped_iteration_params.append(iteration_params)
+        else:
+            iteration_params = utils.get_iterable_parameters(self.parameters)
+            grouped_iteration_params.append(iteration_params)
+
+        #for iteration_params in grouped_iteration_params:
+        for recording_id, iteration_params in enumerate(
+                grouped_iteration_params, start=1
+        ):
+            self.one_capture(sensor, schedule_entry, task_id, recording_id, iteration_params)
+
+    def one_capture(self, sensor: Sensor, schedule_entry: dict, task_id: int, recording_id: int, iteration_params: list):
+        action_start_tic = perf_counter()
+
+        # Initialize metadata object
+        self.get_sigmf_builder(
+            # Assumes the sigan correctly uses the configured sample rate.
+            iteration_params[0][SAMPLE_RATE],
+            task_id,
+            schedule_entry,
+            iteration_params,
+        )
+
+        # Set the recording, if provided
+        if recording_id is not None:
+            self.sigmf_builder.set_recording(recording_id)
+
+        self.create_global_sensor_metadata(self.sensor)
+        # Initialize remote supervisor actors for IQ processing
+        tic = perf_counter()
+        # This uses iteration_params[0] because
+        iq_processors = [
+            IQProcessor.remote(iteration_params[0], self.iir_sos)
+            for _ in range(NUM_ACTORS)
+        ]
+        toc = perf_counter()
+        logger.debug(f"Spawned {NUM_ACTORS} supervisor actors in {toc-tic:.2f} s")
+
+        # Collect all IQ data and spawn data product computation processes
+        data_products_refs, cpu_speed, reference_points = [], [], []
+        capture_tic = perf_counter()
+
+        for i, parameters in enumerate(iteration_params):
+            measurement_result = self.capture_iq(parameters)
+            if i == 0:
+                self.create_global_data_product_metadata(
+                    measurement_result["reference"]
+                )
+            # Start data product processing but do not block next IQ capture
+            tic = perf_counter()
+            data_products_refs.append(
+                iq_processors[i % NUM_ACTORS].run.remote(measurement_result["data"])
+            )
+
+            del measurement_result["data"]
+            toc = perf_counter()
+            logger.debug(f"IQ data delivered for processing in {toc-tic:.2f} s")
+            # Create capture segment with channel-specific metadata before sigan is reconfigured
+            self.create_capture_segment(i, measurement_result)
+            # Query CPU speed for later averaging in diagnostics metadata
+            cpu_speed.append(get_current_cpu_clock_speed())
+            # Append list of data reference points; later we require these to be identical
+            reference_points.append(measurement_result["reference"])
+        capture_toc = perf_counter()
+        logger.debug(
+            f"Collected all IQ data and started all processing in {capture_toc-capture_tic:.2f} s"
+        )
+
+        # Create data product metadata: requires all data reference points
+        # to be identical.
+        assert (
+            len(set(reference_points)) == 1
+        ), "Channel data were scaled to different reference points. Cannot build metadata."
+
+        # Collect processed data product results
+        all_data, max_max_ch_pwrs, med_mean_ch_pwrs, mean_ch_pwrs, median_ch_pwrs = (
+            [],
+            [],
+            [],
+            [],
+            [],
+        )
+        result_tic = perf_counter()
+        channel_count = len(data_products_refs)
+        logger.debug(f"Have {channel_count} channel results")
+        for index in range(len(data_products_refs)):
+            logger.debug(f"Working on channel {index}")
+            channel_data = []
+            # Now block until the data is ready
+            dp_refs_tuple = ray.get(data_products_refs[index])
+            psd_ref, pvt_ref, pfp_ref, apd_ref = dp_refs_tuple
+            psd_data = ray.get(psd_ref)
+            channel_data.extend(psd_data)
+
+            pvt_data = ray.get(pvt_ref)
+            # Power-vs-Time results, a tuple of arrays
+            data, summaries = pvt_data  # Split the tuple
+            max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
+            med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
+            mean_ch_pwrs.append(DATA_TYPE(summaries[2]))
+            median_ch_pwrs.append(DATA_TYPE(summaries[3]))
+            channel_data.extend(data)
+            del summaries
+
+            pfp_data = ray.get(pfp_ref)
+            channel_data.extend(pfp_data)
+
+            # APD result: append instead of extend,
+            # since the result is a single 1D array
+            apd_data = ray.get(apd_ref)
+            channel_data.append(apd_data)
+
+            toc = perf_counter()
+            logger.debug(f"Waited {toc-tic} s for channel data")
+            all_data.extend(GeneralizedSeaDataProduct.transform_data(channel_data))
+
+        for ray_actor in iq_processors:
+            ray.kill(ray_actor)
+        result_toc = perf_counter()
+        del iq_processors, channel_data
+        logger.debug(f"Got all processed data in {result_toc-result_tic:.2f} s")
+
+        # Build metadata and convert data to compressed bytes
+        all_data = self.compress_bytes_data(np.array(all_data).tobytes())
+        self.sigmf_builder.set_max_of_max_channel_powers(max_max_ch_pwrs)
+        self.sigmf_builder.set_median_of_mean_channel_powers(med_mean_ch_pwrs)
+        self.sigmf_builder.set_mean_channel_powers(mean_ch_pwrs)
+        self.sigmf_builder.set_median_channel_powers(median_ch_pwrs)
+        # Get diagnostics last to record action runtime
+        if sensor.preselector is not None:
+            self.capture_diagnostics(
+                self.sensor, action_start_tic, cpu_speed
+            )  # Add diagnostics to metadata
+
+        measurement_action_completed.send(
+            sender=self.__class__,
+            task_id=task_id,
+            data=all_data,
+            metadata=self.sigmf_builder.metadata,
+        )
+
+    def capture_iq(self, params: dict) -> dict:
+        """Acquire a single gap-free stream of IQ samples."""
+        tic = perf_counter()
+        # Configure signal analyzer
+        self.configure_sigan(params)
+        # Get IQ capture parameters
+        duration_ms = utils.get_parameter(DURATION_MS, params)
+        nskip = utils.get_parameter(NUM_SKIP, params)
+        num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
+        # Collect IQ data
+        measurement_result = self.sensor.acquire_time_domain_samples(
+            num_samples, nskip, cal_params=params
+        )
+        # Store some metadata with the IQ
+        measurement_result.update(params)
+        toc = perf_counter()
+        logger.debug(
+            f"IQ Capture ({duration_ms} ms @ {(params[FREQUENCY]/1e6):.1f} MHz) completed in {toc-tic:.2f} s."
+        )
+        return measurement_result
+
+    def capture_diagnostics(
+        self, sensor: Sensor, action_start_tic: float, cpu_speeds: list
+    ) -> None:
+        """
+        Capture diagnostic sensor data.
+
+        This method pulls diagnostic data from web relays in the
+        sensor preselector and SPU as well as from the SPU computer
+        itself. All temperatures are reported in degrees Celsius,
+        and humidities in % relative humidity. The diagnostic data is
+        added to the SigMF metadata as an object in the global namespace.
+
+        The following diagnostic data is collected:
+
+        From the preselector: LNA temperature, noise diode temperature,
+            internal preselector temperature, internal preselector
+            humidity, and preselector door open/closed status.
+
+        From the SPU web relay: SPU RF tray power on/off, preselector
+            power on/off, aux 28 V power on/off, SPU RF tray temperature,
+            SPU power/control tray temperature, SPU power/control tray
+            humidity.
+
+        From the SPU computer: average CPU clock speed during action run,
+            systemwide CPU utilization (%) averaged over the action runtime,
+            system load (%) averaged over last 5 minutes, current memory
+            usage (%), SSD SMART health check status, SSD usage percent,
+            CPU temperature, CPU overheating status, CPU uptime, SCOS
+            start time, and SCOS uptime.
+
+        Software versions: the OS platform, Python version, scos_actions
+            version, the preselector API version, the signal analyzer API
+            version, and the signal analyzer firmware version.
+
+        The total action runtime is also recorded.
+
+        Preselector X410 Setup requires:
+        internal temperature : oneWireSensor 1, set units to C
+        noise diode temp : oneWireSensor 2, set units to C
+        LNA temp : oneWireSensor 3, set units to C
+        internal humidity : oneWireSensor 4
+        door sensor: digitalInput 1
+
+        SPU X410 requires:
+        config file: name field must be "SPU X410"
+        Power/Control Box Temperature: oneWireSensor 1, set units to C
+        RF Box Temperature: oneWireSensor 2, set units to C
+        Power/Control Box Humidity: oneWireSensor 3
+
+        Various CPU metrics make assumptions about the system: only
+        Intel CPUs are supported.
+
+        Disk health check collects SMART diagnostics on the
+        SSD specified by the `SSD_DEVICE` environment variable. This
+        requires the Docker container to have the required privileges
+        or capabilities and device passthrough. For more information,
+        see ``scos_actions.hardware.utils.get_disk_smart_data()``.
+
+        :param action_start_tic: Action start timestamp, as would
+             be returned by ``time.perf_counter()``
+        :param cpu_speeds: List of CPU speed values, recorded at
+            consecutive points as the action has been running.
+        """
+        tic = perf_counter()
+        switch_diag = {}
+        all_switch_status = {}
+        # Add status for any switch
+        for switch in self.sensor.switches.values():
+            switch_status = switch.get_status()
+            del switch_status["name"]
+            del switch_status["healthy"]
+            all_switch_status.update(switch_status)
+
+        self.set_ups_states(all_switch_status, switch_diag)
+        self.add_temperature_and_humidity_sensors(all_switch_status, switch_diag)
+        self.add_power_sensors(all_switch_status, switch_diag)
+        self.add_power_states(all_switch_status, switch_diag)
+        if "door_state" in all_switch_status:
+            switch_diag["door_closed"] = not bool(all_switch_status["door_state"])
+
+        # Read preselector sensors
+        ps_diag = sensor.preselector.get_status()
+        del ps_diag["name"]
+        del ps_diag["healthy"]
+
+        # Read computer performance metrics
+        cpu_diag = {  # Start with CPU min/max/mean speeds
+            "cpu_max_clock": round(max(cpu_speeds), 1),
+            "cpu_min_clock": round(min(cpu_speeds), 1),
+            "cpu_mean_clock": round(np.mean(cpu_speeds), 1),
+            "action_runtime": round(perf_counter() - action_start_tic, 2),
+        }
+        try:  # Computer uptime (days)
+            cpu_diag["cpu_uptime"] = round(get_cpu_uptime_seconds() / (60 * 60 * 24), 2)
+        except:
+            logger.warning("Failed to get computer uptime")
+        try:  # System CPU utilization (%), averaged over current action runtime
+            cpu_utilization = psutil.cpu_percent(interval=None)
+            cpu_diag["action_cpu_usage"] = round(cpu_utilization, 1)
+        except:
+            logger.warning("Failed to get CPU utilization diagnostics")
+        try:  # Average system load (%) over last 5m
+            load_avg_5m = (psutil.getloadavg()[1] / psutil.cpu_count()) * 100.0
+            cpu_diag["system_load_5m"] = round(load_avg_5m, 1)
+        except:
+            logger.warning("Failed to get system load 5m average")
+        try:  # Memory usage
+            mem_usage_pct = psutil.virtual_memory().percent
+            cpu_diag["memory_usage"] = round(mem_usage_pct, 1)
+        except:
+            logger.warning("Failed to get memory usage")
+        try:  # CPU temperature
+            cpu_temp_degC = get_current_cpu_temperature()
+            cpu_diag["cpu_temp"] = round(cpu_temp_degC, 1)
+        except:
+            logger.warning("Failed to get current CPU temperature")
+        try:  # CPU overheating
+            cpu_diag["cpu_overheating"] = cpu_temp_degC > get_max_cpu_temperature()
+        except:
+            logger.warning("Failed to get CPU overheating status")
+        try:  # SCOS start time
+            cpu_diag["software_start"] = convert_datetime_to_millisecond_iso_format(
+                self.sensor.start_time
+            )
+        except:
+            logger.warning("Failed to get SCOS start time")
+        try:  # SCOS uptime
+            cpu_diag["software_uptime"] = get_days_up(self.sensor.start_time)
+        except:
+            logger.warning("Failed to get SCOS uptime")
+        try:  # SSD SMART data
+            smart_data = get_disk_smart_data(SSD_DEVICE)
+            cpu_diag["ssd_smart_data"] = ntia_diagnostics.SsdSmartData(**smart_data)
+        except:
+            logger.warning("Failed to get SSD SMART data")
+        try:  # Disk usage
+            disk_usage = get_disk_usage()
+            cpu_diag["disk_usage"] = disk_usage
+        except:
+            logger.warning("Failed to get disk usage")
+
+        # Get software versions
+        software_diag = {
+            "system_platform": platform.platform(),
+            "python_version": sys.version.split()[0],
+            "scos_sensor_version": SCOS_SENSOR_GIT_TAG,
+            "scos_actions_version": SCOS_ACTIONS_VERSION,
+            "scos_sigan_plugin": ntia_diagnostics.ScosPlugin(
+                name="scos_tekrsa", version=self.sensor.signal_analyzer.plugin_version
+            ),
+            "preselector_api_version": PRESELECTOR_API_VERSION,
+            "sigan_firmware_version": self.sensor.signal_analyzer.firmware_version,
+            "sigan_api_version": self.sensor.signal_analyzer.api_version,
+        }
+
+        toc = perf_counter()
+        logger.debug(f"Got all diagnostics in {toc-tic} s")
+        diagnostics = {
+            "datetime": utils.get_datetime_str_now(),
+            "preselector": ntia_diagnostics.Preselector(**ps_diag),
+            "spu": ntia_diagnostics.SPU(**switch_diag),
+            "computer": ntia_diagnostics.Computer(**cpu_diag),
+            "software": ntia_diagnostics.Software(**software_diag),
+        }
+
+        # Add diagnostics to SigMF global object
+        self.sigmf_builder.set_diagnostics(ntia_diagnostics.Diagnostics(**diagnostics))
+
+    def set_ups_states(self, all_switch_status: dict, switch_diag: dict):
+        if "ups_power_state" in all_switch_status:
+            switch_diag["battery_backup"] = not all_switch_status["ups_power_state"]
+        else:
+            logger.warning("No ups_power_state found in switch status.")
+
+        if "ups_battery_level" in all_switch_status:
+            switch_diag["low_battery"] = not all_switch_status["ups_battery_level"]
+        else:
+            logger.warning("No ups_battery_level found in switch status.")
+
+        if "ups_state" in all_switch_status:
+            switch_diag["ups_healthy"] = not all_switch_status["ups_state"]
+        else:
+            logger.warning("No ups_state found in switch status.")
+
+        if "ups_battery_state" in all_switch_status:
+            switch_diag["replace_battery"] = not all_switch_status["ups_battery_state"]
+        else:
+            logger.warning("No ups_battery_state found in switch status")
+
+    def add_temperature_and_humidity_sensors(
+        self, all_switch_status: dict, switch_diag: dict
+    ):
+        switch_diag["temperature_sensors"] = []
+        if "internal_temp" in all_switch_status:
+            switch_diag["temperature_sensors"].append(
+                {"name": "internal_temp", "value": all_switch_status["internal_temp"]}
+            )
+        else:
+            logger.warning("No internal_temp found in switch status.")
+        try:
+            switch_diag["temperature_sensors"].append(
+                {
+                    "name": "sigan_internal_temp",
+                    "value": self.sensor.signal_analyzer.temperature,
+                }
+            )
+        except:
+            logger.warning("Unable to read internal sigan temperature")
+
+        if "tec_intake_temp" in all_switch_status:
+            switch_diag["temperature_sensors"].append(
+                {
+                    "name": "tec_intake_temp",
+                    "value": all_switch_status["tec_intake_temp"],
+                }
+            )
+        else:
+            logger.warning("No tec_intake_temp found in switch status.")
+
+        if "tec_exhaust_temp" in all_switch_status:
+            switch_diag["temperature_sensors"].append(
+                {
+                    "name": "tec_exhaust_temp",
+                    "value": all_switch_status["tec_exhaust_temp"],
+                }
+            )
+        else:
+            logger.warning("No tec_exhaust_temp found in switch status.")
+
+        if "internal_humidity" in all_switch_status:
+            switch_diag["humidity_sensors"] = [
+                {
+                    "name": "internal_humidity",
+                    "value": all_switch_status["internal_humidity"],
+                }
+            ]
+        else:
+            logger.warning("No internal_humidity found in switch status.")
+
+    def add_power_sensors(self, all_switch_status: dict, switch_diag: dict):
+        switch_diag["power_sensors"] = []
+        if "power_monitor5V" in all_switch_status:
+            switch_diag["power_sensors"].append(
+                {
+                    "name": "5V Monitor",
+                    "value": all_switch_status["power_monitor5V"],
+                    "expected_value": 5.0,
+                }
+            )
+        else:
+            logger.warning("No power_monitor5V found in switch status")
+
+        if "power_monitor15V" in all_switch_status:
+            switch_diag["power_sensors"].append(
+                {
+                    "name": "15V Monitor",
+                    "value": all_switch_status["power_monitor15V"],
+                    "expected_value": 15.0,
+                }
+            )
+        else:
+            logger.warning("No power_monitor15V found in switch status.")
+
+        if "power_monitor24V" in all_switch_status:
+            switch_diag["power_sensors"].append(
+                {
+                    "name": "24V Monitor",
+                    "value": all_switch_status["power_monitor24V"],
+                    "expected_value": 24.0,
+                }
+            )
+        else:
+            logger.warning("No power_monitor24V found in switch status")
+
+        if "power_monitor28V" in all_switch_status:
+            switch_diag["power_sensors"].append(
+                {
+                    "name": "28V Monitor",
+                    "value": all_switch_status["power_monitor28V"],
+                    "expected_value": 28.0,
+                }
+            )
+        else:
+            logger.warning("No power_monitor28V found in switch status")
+
+    def add_heating_cooling(self, all_switch_status: dict, switch_diag: dict):
+        if "heating" in all_switch_status:
+            switch_diag["heating"] = all_switch_status["heating"]
+        else:
+            logger.warning("No heating found in switch status.")
+
+        if "cooling" in all_switch_status:
+            switch_diag["cooling"] = all_switch_status["cooling"]
+        else:
+            logger.warning("No cooling found in switch status")
+
+    def add_power_states(self, all_switch_status: dict, switch_diag: dict):
+        if "sigan_powered" in all_switch_status:
+            switch_diag["sigan_powered"] = all_switch_status["sigan_powered"]
+        else:
+            logger.warning("No sigan_powered found in switch status.")
+
+        if "temperature_control_powered" in all_switch_status:
+            switch_diag["temperature_control_powered"] = all_switch_status[
+                "temperature_control_powered"
+            ]
+        else:
+            logger.warning("No temperature_control_powered found in switch status.")
+
+        if "preselector_powered" in all_switch_status:
+            switch_diag["preselector_powered"] = all_switch_status[
+                "preselector_powered"
+            ]
+        else:
+            logger.warning("No preselector_powered found in switch status.")
+
+    def create_global_sensor_metadata(self, sensor: Sensor):
+        # Add (minimal) ntia-sensor metadata to the sigmf_builder:
+        #   sensor ID, serial numbers for preselector, sigan, and computer
+        #   overall sensor_spec version, e.g. "Prototype Rev. 3"
+        #   sensor definition hash, to link to full sensor definition
+        self.sigmf_builder.set_sensor(
+            ntia_sensor.Sensor(
+                sensor_spec=ntia_core.HardwareSpec(
+                    id=sensor.capabilities["sensor"]["sensor_spec"]["id"],
+                ),
+                sensor_sha512=sensor.capabilities["sensor"]["sensor_sha512"],
+            )
+        )
+
+    def test_required_components(self):
+        """Fail acquisition if a required component is not available."""
+        if not self.sensor.signal_analyzer.is_available:
+            msg = "Acquisition failed: signal analyzer is not available"
+            trigger_api_restart.send(sender=self.__class__)
+            raise RuntimeError(msg)
+        if not self.sensor.signal_analyzer.healthy():
+            trigger_api_restart.send(sender=self.__class__)
+        return None
+
+    def create_global_data_product_metadata(self, data_products_reference: str, recording_id: Optional[int] = None,) -> None:
+        p = self.parameters
+        num_iq_samples = int(p[SAMPLE_RATE] * p[DURATION_MS] * 1e-3)
+        iir_obj = ntia_algorithm.DigitalFilter(
+            id="iir_1",
+            filter_type=ntia_algorithm.FilterType.IIR,
+            feedforward_coefficients=self.iir_numerators.tolist(),
+            feedback_coefficients=self.iir_denominators.tolist(),
+            attenuation_cutoff=self.iir_gstop_dB,
+            frequency_cutoff=self.iir_sb_edge_Hz,
+            description="5 MHz lowpass filter used as complex 10 MHz bandpass for channelization",
+        )
+        self.sigmf_builder.set_processing([iir_obj.id])
+
+        dft_obj = ntia_algorithm.DFT(
+            id="psd_fft",
+            equivalent_noise_bandwidth=round(
+                get_fft_enbw(get_fft_window(FFT_WINDOW_TYPE, p[FFT_SIZE]), p[SAMPLE_RATE]), 2
+            ),
+            samples=int(p[FFT_SIZE]),
+            dfts=int(p[NUM_FFTS]),
+            window=FFT_WINDOW_TYPE,
+            baseband=True,
+            description=f"First and last {int(p[FFT_SIZE] / 7)} samples from {p[FFT_SIZE]}-point FFT discarded",
+        )
+        self.sigmf_builder.set_processing_info([iir_obj, dft_obj])
+
+        psd_length = int(p[FFT_SIZE] * (5 / 7))
+        psd_bin_start = int(p[FFT_SIZE] / 7)  # bin_start = 125 with FFT_SIZE 875
+        psd_bin_end = p[FFT_SIZE] - psd_bin_start  # bin_end = 750 with FFT_SIZE 875
+        psd_x_axis__Hz = get_fft_frequencies(p[FFT_SIZE], p[SAMPLE_RATE], 0.0)  # Baseband
+        psd_graph = ntia_algorithm.Graph(
+            name="Power Spectral Density",
+            series=[d.value for d in FFT_M3_DETECTOR]
+            + [
+                f"{int(p)}th_percentile" if p.is_integer() else f"{p}th_percentile"
+                for p in FFT_PERCENTILES
+            ],  # ["max", "mean", "median", "25th_percentile", "75th_percentile", ... "99.99th_percentile"]
+            length=int(p[FFT_SIZE] * (5 / 7)),
+            x_units="Hz",
+            x_start=[psd_x_axis__Hz[psd_bin_start]],
+            x_stop=[psd_x_axis__Hz[psd_bin_end - 1]],  # -1 for zero-indexed array
+            x_step=[p[SAMPLE_RATE] / p[FFT_SIZE]],
+            y_units="dBm/Hz",
+            processing=[dft_obj.id],
+            reference=data_products_reference,
+            description=(
+                "Results of statistical detectors (max, mean, median, 25th_percentile, 75th_percentile, "
+                + "90th_percentile, 95th_percentile, 99th_percentile, 99.9th_percentile, 99.99th_percentile) "
+                + f"applied to power spectral density samples, with the first and last {int(p[FFT_SIZE] / 7)} "
+                + "samples discarded. FFTs computed on IIR-filtered data."
+            ),
+        )
+
+        pvt_length = int(p[DURATION_MS] / p[TD_BIN_SIZE_MS])
+        pvt_x_axis__s = np.arange(pvt_length) * (p[DURATION_MS] / 1e3 / pvt_length)
+        pvt_graph = ntia_algorithm.Graph(
+            name="Power vs. Time",
+            series=[d.value for d in TD_DETECTOR],  # ["max", "mean"]
+            length=pvt_length,
+            x_units="s",
+            x_start=[pvt_x_axis__s[0]],
+            x_stop=[pvt_x_axis__s[-1]],
+            x_step=[pvt_x_axis__s[1] - pvt_x_axis__s[0]],
+            y_units="dBm",
+            reference=data_products_reference,
+            description=(
+                "Max- and mean-detected channel power vs. time, with "
+                + f"an integration time of {p[TD_BIN_SIZE_MS]} ms. "
+                + "Each data point represents the result of a statistical "
+                + f"detector applied over the previous {p[TD_BIN_SIZE_MS]}."
+                + f" In total, {num_iq_samples} IQ samples were used as the input."
+            ),
+        )
+
+        pfp_length = int(round((p[PFP_FRAME_PERIOD_MS] / 1e3) / PFP_FRAME_RESOLUTION_S))
+        pfp_x_axis__s = np.arange(pfp_length) * (
+            p[DURATION_MS] / 1e3 / pfp_length / pvt_length
+        )
+        pfp_graph = ntia_algorithm.Graph(
+            name="Periodic Frame Power",
+            series=[
+                f"{det}_{stat.value}"
+                for det in ["mean", "max"]
+                for stat in PFP_M3_DETECTOR
+            ],
+            length=pfp_length,
+            x_units="s",
+            x_start=[pfp_x_axis__s[0]],
+            x_stop=[pfp_x_axis__s[-1]],
+            x_step=[pfp_x_axis__s[1] - pfp_x_axis__s[0]],
+            y_units="dBm",
+            reference=data_products_reference,
+            description=(
+                "Channelized periodic frame power statistics reported over"
+                + f" a {p[PFP_FRAME_PERIOD_MS]} ms frame period, with frame resolution"
+                + f" of {PFP_FRAME_RESOLUTION_S} s. Mean and max detectors are first "
+                + f"applied over the frame resolution, then {[d.value for d in PFP_M3_DETECTOR]} statistics"
+                + " are computed on samples sharing the same index within the frame period."
+            ),
+        )
+
+        apd_y_axis__dBm = np.arange(
+            p[APD_MIN_BIN_DBM],
+            p[APD_MAX_BIN_DBM] + p[APD_BIN_SIZE_DB],
+            p[APD_BIN_SIZE_DB],
+        )
+        apd_graph = ntia_algorithm.Graph(
+            name="Amplitude Probability Distribution",
+            length=apd_y_axis__dBm.size,
+            x_units="percent",
+            y_units="dBm",
+            y_start=[apd_y_axis__dBm[0]],
+            y_stop=[apd_y_axis__dBm[-1]],
+            y_step=[apd_y_axis__dBm[1] - apd_y_axis__dBm[0]],
+            reference=data_products_reference,
+            description=(
+                f"Estimate of the APD, using a {p[APD_BIN_SIZE_DB]} dB "
+                + "bin size for amplitude values. The data payload includes"
+                + " probability values, as percentages, indicating the "
+                + "probability that a given IQ sample exceeds the corresponding"
+                + " amplitudes, the y-axis values recorded by this metadata object."
+            ),
+        )
+
+        self.sigmf_builder.set_data_products(
+            [psd_graph, pvt_graph, pfp_graph, apd_graph]
+        )
+        self.total_channel_data_length = (
+            psd_length * (len(FFT_M3_DETECTOR) + len(FFT_PERCENTILES))
+            + pvt_length * len(TD_DETECTOR)
+            + pfp_length * len(PFP_M3_DETECTOR) * 2
+            + apd_graph.length
+        )
+        logger.debug(f"Total channel length:{self.total_channel_data_length}")
+
+    def create_capture_segment(
+        self,
+        channel_idx: int,
+        measurement_result: dict,
+    ) -> None:
+        """Add metadata corresponding to a single-frequency capture in the measurement"""
+
+        capture_segment = CaptureSegment(
+            sample_start=channel_idx * self.total_channel_data_length,
+            frequency=self.sensor.signal_analyzer.frequency,
+            datetime=measurement_result["capture_time"],
+            duration=measurement_result[DURATION_MS],
+            overload=measurement_result["overload"],
+            sensor_calibration=ntia_sensor.Calibration(
+                datetime=self.sensor.sensor_calibration_data["datetime"],
+                gain=round(measurement_result["applied_calibration"]["gain"], 3),
+                noise_figure=round(
+                    measurement_result["applied_calibration"]["noise_figure"], 3
+                ),
+                temperature=round(
+                    self.sensor.sensor_calibration_data["temperature"], 1
+                ),
+                reference=measurement_result["reference"],
+            ),
+            sigan_settings=ntia_sensor.SiganSettings(
+                reference_level=self.sensor.signal_analyzer.reference_level,
+                attenuation=self.sensor.signal_analyzer.attenuation,
+                preamp_enable=self.sensor.signal_analyzer.preamp_enable,
+            ),
+        )
+        if "compression_point" in measurement_result["applied_calibration"]:
+            capture_segment.sensor_calibration.compression_point = measurement_result[
+                "applied_calibration"
+            ]["compression_point"]
+        self.sigmf_builder.add_capture(capture_segment)
+
+    def get_sigmf_builder(
+        self,
+        sample_rate_Hz: float,
+        task_id: int,
+        schedule_entry: dict,
+        iter_params: list,
+    ) -> None:
+        """Build SigMF that applies to the entire capture (all channels)"""
+        sigmf_builder = SigMFBuilder()
+
+        # Keep only keys supported by ntia-scos ScheduleEntry SigMF
+        schedule_entry_cleaned = {
+            k: v
+            for k, v in schedule_entry.items()
+            if k in ["id", "name", "start", "stop", "interval", "priority", "roles"]
+        }
+        if "id" not in schedule_entry_cleaned:
+            # If there is no ID, reuse the "name" as the ID
+            schedule_entry_cleaned["id"] = schedule_entry_cleaned["name"]
+        schedule_entry_obj = ntia_scos.ScheduleEntry(**schedule_entry_cleaned)
+        sigmf_builder.set_schedule(schedule_entry_obj)
+
+        action_obj = ntia_scos.Action(
+            name=self.name,
+            summary=self.summary,
+            # Do not include lengthy description
+        )
+        sigmf_builder.set_action(action_obj)
+        if self.sensor.location is not None:
+            sigmf_builder.set_geolocation(self.sensor.location)
+        else:
+            raise Exception("Sensor does not have a location defined.")
+        sigmf_builder.set_data_type(self.is_complex(), bit_width=16, endianness="")
+        sigmf_builder.set_sample_rate(sample_rate_Hz)
+        sigmf_builder.set_num_channels(len(iter_params))
+        sigmf_builder.set_task(task_id)
+
+
+        sigmf_builder.set_classification("Unclassified")
+
+        self.sigmf_builder = sigmf_builder
+
+    @staticmethod
+    def transform_data(channel_data_products: list):
+        """Flatten data product list of arrays for a single channel."""
+        # Flatten data product, reduce dtype
+        return np.hstack(channel_data_products).astype(DATA_TYPE)
+
+    @staticmethod
+    def compress_bytes_data(data: bytes) -> bytes:
+        """Compress some <bytes> data and return the compressed version"""
+        return lzma.compress(data)
+
+    def is_complex(self) -> bool:
+        return False
+
+    @property
+    def description(self):
+        """Parameterize and return the module-level docstring."""
+        # TODO (low-priority)
+        return __doc__

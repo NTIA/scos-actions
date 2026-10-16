@@ -1,0 +1,95 @@
+generalized_sea_data_product:
+  name: test_generalized_SEA_action
+  rf_path: antenna
+  # IIR filter settings
+  iir_gpass_dB: 0.1  # Max passband ripple below unity gain
+  iir_gstop_dB: 40  # Minimum stopband attenuation
+  iir_pb_edge_Hz: 5e6  # Passband edge frequency
+  iir_sb_edge_Hz: 5.008e6  # Stopband edge frequency
+  # FFT settings
+  nffts: 320e3
+  fft_size: 175
+  # PFP frame
+  pfp_frame_period_ms: 10
+  # APD downsampling settings
+  apd_bin_size_dB: 1.0  # Set to 0 or negative for no downsampling
+  apd_max_bin_dBm: -30
+  apd_min_bin_dBm: -180
+  # Time domain power statistics settings
+  td_bin_size_ms: 10
+  # Sigan Settings
+  preamp_enable: True
+  reference_level: -25
+  attenuation: 0
+  sample_rate: 14e6
+  # Acquisition settings (3550-3700 MHz in 10 MHz steps, each 4s long)
+  duration_ms: 4000
+  nskip: 0
+  frequency:
+    - 3555e6
+    - 3565e6
+    - 3575e6
+    - 3585e6
+    - 3595e6
+    - 3605e6
+    - 3615e6
+    - 3625e6
+    - 3635e6
+    - 3645e6
+    - 3655e6
+    - 3665e6
+    - 3675e6
+    - 3685e6
+    - 3695e6
+  data_products:
+    - psd
+    - pvt
+    - pfp
+    - apd
+  captures:
+    - frequency:
+        - 3535e6
+        - 3545e6
+        - 3555e6
+        - 3565e6
+    - frequency:
+        - 3575e6
+        - 3585e6
+        - 3595e6
+        - 3605e6
+        - 3615e6
+      sample_rate: 15e6
+      duration_ms: 2000
+      data_products:
+        - pfp
+        - apd
+    - frequency:
+        - 3625e6
+        - 3635e6
+      sample_rate: 20e6
+      duration_ms: 2000
+    - frequency:
+        - 3645e6
+        - 3655e6
+      duration_ms: 2000
+      data_products:
+       - psd
+       - pvt
+    - frequency:
+        - 3665e6
+      sample_rate: 20e6
+    - frequency:
+        - 3675e6
+        - 3685e6
+      duration_ms: 2000
+    - frequency:
+        - 3695e6
+      data_products:
+        - psd
+        - apd
+    - frequency:
+        - 3705e6
+      sample_rate: 28e6
+      data_products:
+        - pfp
+        - apd
