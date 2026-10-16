@@ -117,6 +117,11 @@ class PeriodicFramePowerRayActor(PeriodicFramePower):
     """
 
     def __init__(self, params: dict):
+        """
+        less indirection during actor startup: Ray is creating and hydrating the actor in a separate worker process;
+        keeping actor __init__ flat reduces moving parts
+        avoids relying on MRO/parent init behavior inside Ray-managed process startup
+        """
         self._configure_from_params(params)
 
     def run(self, iq: ray.ObjectRef) -> np.ndarray:
