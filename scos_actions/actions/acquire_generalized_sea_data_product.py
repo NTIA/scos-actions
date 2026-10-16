@@ -80,25 +80,33 @@ logger = logging.getLogger(__name__)
 
 # Define parameter keys
 RF_PATH = "rf_path"
+# IIR filter settings
 IIR_GPASS = "iir_gpass_dB"
 IIR_GSTOP = "iir_gstop_dB"
 IIR_PB_EDGE = "iir_pb_edge_Hz"
 IIR_SB_EDGE = "iir_sb_edge_Hz"
+# FFT settings
 NUM_FFTS = "nffts"
 FFT_SIZE = "fft_size"
+# PFP frame
+PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
+# APD downsampling settings
 APD_BIN_SIZE_DB = "apd_bin_size_dB"
 APD_MIN_BIN_DBM = "apd_min_bin_dBm"
 APD_MAX_BIN_DBM = "apd_max_bin_dBm"
+# Time domain power statistics settings
 TD_BIN_SIZE_MS = "td_bin_size_ms"
-FREQUENCY = "frequency"
-SAMPLE_RATE = "sample_rate"
-ATTENUATION = "attenuation"
+# Sigan Settings
 PREAMP_ENABLE = "preamp_enable"
 REFERENCE_LEVEL = "reference_level"
+ATTENUATION = "attenuation"
+SAMPLE_RATE = "sample_rate"
+# Acquisition settings
 DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
-PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
-
+# Generalized parameter keys
+DATA_PRODUCTS = "data_products"
+FREQUENCY = "frequency"
 CAPTURES = "captures"
 
 # Constants
@@ -146,30 +154,14 @@ class IQProcessor:
     def __init__(self, params: dict, iir_sos: np.ndarray):
         # initialize worker processes
         self.iir_sos = iir_sos
-
-        self.fft_worker = product_classes["psd"].remote(
-            params[SAMPLE_RATE],
-            params[NUM_FFTS],
-            params[FFT_SIZE],
-            fft_window_type = FFT_WINDOW_TYPE,
-            fft_window_correction_type = FFT_WINDOW_CORRECTION_TYPE,
-            detector = FFT_M3_DETECTOR,
-            percentiles = FFT_PERCENTILES,
-            impedance_ohms = IMPEDANCE_OHMS,
-        )
+        self.fft_worker = product_classes["psd"].remote(params)
         self.pvt_worker = product_classes["pvt"].remote(
             params[SAMPLE_RATE],
             params[TD_BIN_SIZE_MS],
             impedance_ohms = IMPEDANCE_OHMS,
             detector = TD_DETECTOR,
         )
-        self.pfp_worker = product_classes["pfp"].remote(
-            params[SAMPLE_RATE],
-            params[PFP_FRAME_PERIOD_MS],
-            detector_period_s = PFP_FRAME_RESOLUTION_S,
-            impedance_ohms = IMPEDANCE_OHMS,
-            detector = PFP_M3_DETECTOR,
-        )
+        self.pfp_worker = product_classes["pfp"].remote(params)
         self.apd_worker = product_classes["apd"].remote(
             params[APD_BIN_SIZE_DB],
             params[APD_MIN_BIN_DBM],
@@ -295,9 +287,9 @@ class GeneralizedSeaDataProduct(Action):
         for recording_id, iteration_params in enumerate(
                 grouped_iteration_params, start=1
         ):
-            self.one_capture(sensor, schedule_entry, task_id, recording_id, iteration_params)
+            self.get_captures(sensor, schedule_entry, task_id, recording_id, iteration_params)
 
-    def one_capture(self, sensor: Sensor, schedule_entry: dict, task_id: int, recording_id: int, iteration_params: list):
+    def get_captures(self, sensor: Sensor, schedule_entry: dict, task_id: int, recording_id: int, iteration_params: list):
         action_start_tic = perf_counter()
 
         # Initialize metadata object
