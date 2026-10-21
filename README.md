@@ -30,6 +30,7 @@ architecture.
 
 - [Overview of Repo Structure](#overview-of-repo-structure)
 - [Running in SCOS Sensor](#running-in-scos-sensor)
+- [Ray Configuration (Environment Variables)](#ray-configuration-environment-variables)
 - [Development](#development)
 - [License](#license)
 - [Contact](#contact)
@@ -89,6 +90,89 @@ their parameters are defined in `scos_actions/configs/actions`.
 - `test_single_frequency_iq_action`
 - `test_single_frequency_m4s_action`
 - `test_single_frequency_y_factor_action`
+
+## Ray Configuration (Environment Variables)
+
+The SEA data product actions use [Ray](https://docs.ray.io/) for parallel processing.
+The following environment variables tune it. All are optional.
+
+| Variable | Default | Used by | Description |
+|---|---|---|---|
+| `RAY_WORKERS` | `3` | all SEA actions | Number of supervisor/worker actors (channels processed concurrently). |
+| `RAY_MAX_IN_FLIGHT` | `2 * RAY_WORKERS` | option A2 | Max channels being processed at once. Capture waits for the oldest to finish. |
+| `RAY_TASK_THREADS` | `4` | option A2 | numexpr threads per product task. |
+| `RAY_TASK_MAX_RETRIES` | `3` | options A, A2 | Retries of a task whose worker process died. |
+| `RAY_SUPERVISOR_MAX_RESTARTS` | `2` | options A, A2 | Restarts of a crashed supervisor actor (`-1` = unlimited). |
+| `RAY_SUPERVISOR_MAX_TASK_RETRIES` | `2` | options A, A2 | Re-runs of calls interrupted by a supervisor crash (`-1` = unlimited). |
+
+Values must be integers; an invalid value raises an error naming the variable.
+Variables are read once, when the modules are imported, so set them **before**
+starting Python (or the SCOS Sensor containers) and before `ray.init`.
+
+### Setting the variables
+
+**Linux / macOS (bash, zsh)**
+
+```bash
+# current shell only
+export RAY_WORKERS=4
+export RAY_TASK_THREADS=2
+python sample_debug2.py
+
+# one command only
+RAY_WORKERS=4 python sample_debug2.py
+
+# persistent: add the export lines to ~/.bashrc or ~/.zshrc, then reopen the shell
+```
+
+**Windows PowerShell**
+
+```powershell
+# current session only
+$env:RAY_WORKERS = "4"
+$env:RAY_TASK_THREADS = "2"
+python sample_debug2.py
+
+# persistent for the user (applies to new terminals)
+[Environment]::SetEnvironmentVariable("RAY_WORKERS", "4", "User")
+
+# remove
+Remove-Item Env:RAY_WORKERS
+```
+
+**Windows Command Prompt**
+
+```bat
+:: current session only
+set RAY_WORKERS=4
+python sample_debug2.py
+
+:: persistent (applies to new terminals)
+setx RAY_WORKERS 4
+```
+
+**Docker / SCOS Sensor**
+
+SCOS Sensor runs actions in a container. Set the variables in the sensor's
+`env` file (for example `scos-sensor/env.template` copied to `env`), or in the
+`environment:` section of the API service in `docker-compose.yml`:
+
+```yaml
+services:
+  api:
+    environment:
+      - RAY_WORKERS=4
+      - RAY_TASK_THREADS=2
+```
+
+Then recreate the container: `docker compose up -d`. For a one-off container:
+`docker run -e RAY_WORKERS=4 ...`.
+
+**Check a value**
+
+```bash
+python -c "import os; print(os.environ.get('RAY_WORKERS'))"
+```
 
 ## Development
 

@@ -111,21 +111,76 @@ class PeriodicFramePower(ProductInterface):
 
 
 @ray.remote
-class PeriodicFramePowerRayActor(PeriodicFramePower):
+class PeriodicFramePowerRayActor:
     """
-    Ray Wrapper (Only handles the distributed execution)
+    Compute periodic frame power results from IQ samples.
+
+    The result is a 2D NumPy array, with the shape depending on the
+    parameters which initialize this worker. In current form, the result
+    is a (6, 560) NumPy array. Power samples are chunked into periodic frames,
+    and statistical detectors are applied twice.
     """
 
-    def __init__(self, params: dict):
-        """
-        less indirection during actor startup: Ray is creating and hydrating the actor in a separate worker process;
-        keeping actor __init__ flat reduces moving parts
-        avoids relying on MRO/parent init behavior inside Ray-managed process startup
-        """
-        self._configure_from_params(params)
+    def __init__(
+        self,
+        sample_rate_Hz: float,
+        frame_period_ms: float,
+        detector_period_s: float,
+        impedance_ohms: float,
+        detector: EnumMeta,
+    ):
+        self.impedance_ohms = impedance_ohms
+        sampling_period_s = 1.0 / sample_rate_Hz
+        frame_period_s = 1e-3 * frame_period_ms
+        if not np.isclose(frame_period_s % sampling_period_s, 0, 1e-6):
+            raise ValueError(
+                "Frame period must be a positive integer multiple of sampling period"
+            )
+        if not np.isclose(detector_period_s % sampling_period_s, 0, 1e-6):
+            raise ValueError(
+                "Detector period must be a positive integer multiple of sampling period"
+            )
+        self.n_frames = int(round(frame_period_s / sampling_period_s))
+        self.n_points = int(round(frame_period_s / detector_period_s))
+        self.n_detectors = len(detector)
+        self.detector = detector
+        # PFP result is in pseudo-power log units, and needs to be scaled by
+        # adding the following factor
+        self.pfp_scale_factor = (
+            -10.0 * np.log10(impedance_ohms)  # Conversion from pseudo-power
+            + 27.0  # dBW to dBm (+30), baseband to RF (-3)
+        )
 
     def run(self, iq: ray.ObjectRef) -> np.ndarray:
         """
-        Calls local compute method internally on the worker node
+        Compute periodic frame power results from IQ samples.
+
+        :param iq: Complex-valued input waveform samples (which should
+            already exist in the Ray object store).
+        :return: A (6, 560) NumPy array containing the PFP results.
+            The order is (min-of-mean, max-of-mean, mean-of-mean,
+            min-of-max, max-of-max, mean-of-max).
         """
-        return self.compute(iq)
+        # Set up dimensions to make the statistics fast
+        chunked_shape = (
+            iq.shape[0] // self.n_frames,
+            self.n_points,
+            self.n_frames // self.n_points,
+        ) + tuple([iq.shape[1]] if iq.ndim == 2 else [])
+        power_bins = calculate_pseudo_power(iq.reshape(chunked_shape))
+        # compute statistics first by cycle
+        mean_power = power_bins.mean(axis=0)
+        max_power = power_bins.max(axis=0)
+        del power_bins
+
+        # then do the detector
+        pfp = np.array(
+            [
+                apply_statistical_detector(p, self.detector, axis=1)
+                for p in [mean_power, max_power]
+            ]
+        ).reshape(self.n_detectors * 2, self.n_points)
+
+        # Finish conversion to power and scale result
+        pfp = 10.0 * np.log10(pfp) + self.pfp_scale_factor
+        return pfp

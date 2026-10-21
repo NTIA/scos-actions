@@ -55,6 +55,7 @@ from scos_actions.metadata.structs import (
 )
 from scos_actions.metadata.structs.capture import CaptureSegment
 from scos_actions.product import product_classes
+from scos_actions.product.power_spectral_density import PowerSpectralDensity
 from scos_actions.settings import SCOS_SENSOR_GIT_TAG, SSD_DEVICE
 from scos_actions.signal_processing.fft import (
     get_fft_enbw,
@@ -154,20 +155,11 @@ class IQProcessor:
     def __init__(self, params: dict, iir_sos: np.ndarray):
         # initialize worker processes
         self.iir_sos = iir_sos
-        self.fft_worker = product_classes["psd"].remote(params)
-        self.pvt_worker = product_classes["pvt"].remote(
-            params[SAMPLE_RATE],
-            params[TD_BIN_SIZE_MS],
-            impedance_ohms = IMPEDANCE_OHMS,
-            detector = TD_DETECTOR,
-        )
+        psd = PowerSpectralDensity(params)
+        self.fft_worker = product_classes["psd"].remote(psd)
+        self.pvt_worker = product_classes["pvt"].remote(params)
         self.pfp_worker = product_classes["pfp"].remote(params)
-        self.apd_worker = product_classes["apd"].remote(
-            params[APD_BIN_SIZE_DB],
-            params[APD_MIN_BIN_DBM],
-            params[APD_MAX_BIN_DBM],
-            impedance_ohms = IMPEDANCE_OHMS,
-        )
+        self.apd_worker = product_classes["apd"].remote(params)
 
         del params
 
@@ -271,12 +263,13 @@ class GeneralizedSeaDataProduct(Action):
 
         # Get iterable parameter list
         grouped_iteration_params = []
+        if DATA_PRODUCTS in self.parameters.keys():
+            self.parameters[DATA_PRODUCTS] = dict.fromkeys(self.parameters[DATA_PRODUCTS])
         if CAPTURES in self.parameters:
             for grouped_captures in self.parameters[CAPTURES]:
                 grouped_captures_parameters = self.parameters.copy()
                 grouped_captures_parameters[FREQUENCY] = grouped_captures[FREQUENCY]
                 del grouped_captures_parameters[CAPTURES]
-                del grouped_captures_parameters["data_products"]
                 iteration_params = utils.get_iterable_parameters(grouped_captures_parameters)
                 grouped_iteration_params.append(iteration_params)
         else:
