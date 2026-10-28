@@ -124,7 +124,7 @@ class MeasurementAction(Action):
 
         # Set data type metadata using is_complex method
         # This assumes data is 32-bit little endian floating point
-        self.sigmf_builder.set_data_type(is_complex=self.is_complex())
+        self.sigmf_builder.set_data_type(is_complex=self.is_complex(), bit_depth=self._sensor.signal_analyzer.bit_width)
 
         # Set the recording, if provided
         if recording is not None:
