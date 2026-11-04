@@ -46,7 +46,7 @@ def load_from_json(fname: Path):
         raise e
 
 
-def get_iterable_parameters(parameters: dict, sortby: str = "frequency"):
+def get_iterable_parameters(parameters: dict, sort_by: str | None = "frequency"):
     """
     Convert parameter dictionary into iterable list.
 
@@ -94,7 +94,8 @@ def get_iterable_parameters(parameters: dict, sortby: str = "frequency"):
                 raise ParameterException(msg)
     # Construct iterable parameter mapping
     result = [dict(zip(params, v)) for v in zip(*params.values())]
-    result.sort(key=lambda param: param[sortby])
+    if sort_by is not None:
+        result.sort(key=lambda param: param[sort_by])
     return result
 
 
