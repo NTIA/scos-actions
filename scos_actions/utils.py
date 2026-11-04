@@ -3,6 +3,7 @@ import logging
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from dateutil import parser
 
@@ -46,7 +47,9 @@ def load_from_json(fname: Path):
         raise e
 
 
-def get_iterable_parameters(parameters: dict, sort_by: str | None = "frequency"):
+def get_iterable_parameters(
+    parameters: dict, sort_by: Optional[str] = "frequency"
+):
     """
     Convert parameter dictionary into iterable list.
 

@@ -367,7 +367,7 @@ class GeneralizedSeaDataProduct(Action):
             # Get diagnostics last to record action runtime
             if sensor.preselector is not None:
                 self.capture_diagnostics(
-                    self.sensor, action_start_tic, cpu_speed
+                    sigmf_builder, self.sensor, action_start_tic, cpu_speed
                 )  # Add diagnostics to metadata
 
             measurement_action_completed.send(
@@ -764,7 +764,7 @@ class GeneralizedSeaDataProduct(Action):
         return None
 
     def create_processing_metadata(self, sigmf_builder: SigMFBuilder, params: dict,
-                                   dft_obj: ntia_algorithm.DFT | None) -> None:
+                                   dft_obj: Optional[ntia_algorithm.DFT]) -> None:
         iir_obj = ntia_algorithm.DigitalFilter(
             id="iir_1",
             filter_type=ntia_algorithm.FilterType.IIR,
