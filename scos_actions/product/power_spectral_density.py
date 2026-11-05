@@ -49,7 +49,7 @@ class PowerSpectralDensity(DataProductInterface):
         self.fft_window_correction = get_fft_window_correction(
             self.fft_window, self.fft_window_correction_type
         )
-        self.num_ffts = self.sample_rate * self.duration_ms * 1e-3 / self.fft_size
+        self.num_ffts = int(self.sample_rate * self.duration_ms * 1e-3 / self.fft_size)
 
         # Get truncation points: truncate FFT result to middle 125 samples (middle 10 MHz from 14 MHz)
         self.bin_start = int(self.fft_size / 7)  # bin_start = 25 with FFT_SIZE 175
