@@ -7,7 +7,6 @@ generalized_sea_data_product:
   iir_pb_edge_Hz: 5e6  # Passband edge frequency
   iir_sb_edge_Hz: 5.008e6  # Stopband edge frequency
   # FFT settings
-  # nffts: 320e3
   fft_size: 175
   # PFP frame
   pfp_frame_period_ms: 10
@@ -33,7 +32,7 @@ generalized_sea_data_product:
     - pvt
     - pfp
     - apd
-  # If sample_rate, duration_ms or data_products not specified in the following grouped frequencies, using default
+  # If sample_rate, duration_ms, fft_size or data_products not specified in the following grouped frequencies, using default
   captures:
     - frequency:
         - 3575e6
@@ -72,6 +71,7 @@ generalized_sea_data_product:
       duration_ms: 2000
     - frequency:
         - 3695e6
+      fft_size: 350
       data_products:
         - psd
         - apd
