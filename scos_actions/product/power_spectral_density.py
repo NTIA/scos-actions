@@ -74,7 +74,7 @@ class PowerSpectralDensity(DataProductInterface):
         :return: PSD data, no summary, and graph metadata.
         """
         recording_id = params["recording_id"]
-        logger.warning("PowerSpectralDensity started: %s", recording_id)
+        logger.debug("PowerSpectralDensity started: %s", recording_id)
 
         self.set_parameters(params)
 
@@ -94,7 +94,7 @@ class PowerSpectralDensity(DataProductInterface):
         ]  # Truncation to middle bins
         fft_result = 10.0 * np.log10(fft_result) + self.fft_scale_factor
 
-        logger.warning("PowerSpectralDensity completed: %s", recording_id)
+        logger.debug("PowerSpectralDensity completed: %s", recording_id)
         # Returned order is (max, mean, median, 25%, 75%, 90%, 95%, 99%, 99.9%, 99.99%)
         # Total of 10 arrays, each of length 125 (output shape (10, 125))
         # Percentile computation linearly interpolates. See numpy documentation.

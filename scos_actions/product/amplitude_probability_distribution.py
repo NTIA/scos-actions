@@ -59,7 +59,7 @@ class AmplitudeProbabilityDistribution(DataProductInterface):
         :return: APD data, no summary, and graph metadata.
         """
         recording_id = params["recording_id"]
-        logger.warning("AmplitudeProbabilityDistribution started: %s", recording_id)
+        logger.debug("AmplitudeProbabilityDistribution started: %s", recording_id)
 
         self.set_parameters(params)
 
@@ -71,7 +71,7 @@ class AmplitudeProbabilityDistribution(DataProductInterface):
             self.impedance_ohms,
         )
 
-        logger.warning("AmplitudeProbabilityDistribution completed: %s", recording_id)
+        logger.debug("AmplitudeProbabilityDistribution completed: %s", recording_id)
         return DataProductResult(p.reshape(1, p.shape[0]), None, self.get_graph())
 
     def get_graph(self) -> ProductGraphInfo:

@@ -47,11 +47,11 @@ class PeriodicFramePower(DataProductInterface):
         frame_period_s = 1e-3 * self.pfp_frame_period_ms
         if not np.isclose(frame_period_s % sampling_period_s, 0, 1e-6):
             raise ValueError(
-                "Frame period must be a positive integer multiple of sampling period"
+                "Frame period must be a positive integer multiple of sampling period: %s", params["recording_id"]
             )
         if not np.isclose(self.detector_period_s % sampling_period_s, 0, 1e-6):
             raise ValueError(
-                "Detector period must be a positive integer multiple of sampling period"
+                "Detector period must be a positive integer multiple of sampling period: %s", params["recording_id"]
             )
         self.n_frames = int(round(frame_period_s / sampling_period_s))
         self.n_points = int(round(frame_period_s / self.detector_period_s))
@@ -76,7 +76,7 @@ class PeriodicFramePower(DataProductInterface):
         """
         # Set up dimensions to make the statistics fast
         recording_id = params["recording_id"]
-        logger.warning("PeriodicFramePower started: %s", recording_id)
+        logger.debug("PeriodicFramePower started: %s", recording_id)
 
         self.set_parameters(params)
 
@@ -102,7 +102,7 @@ class PeriodicFramePower(DataProductInterface):
         # Finish conversion to power and scale result
         pfp = 10.0 * np.log10(pfp) + self.pfp_scale_factor
 
-        logger.warning("PeriodicFramePower completed: %s", recording_id)
+        logger.debug("PeriodicFramePower completed: %s", recording_id)
         return DataProductResult(pfp, None, self.get_graph())
 
     def get_graph(self) -> ProductGraphInfo:

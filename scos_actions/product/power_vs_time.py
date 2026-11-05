@@ -56,7 +56,7 @@ class PowerVsTime(DataProductInterface):
         """
         # Reshape IQ data into blocks and calculate power
         recording_id = params["recording_id"]
-        logger.warning("PowerVsTime started: %s", recording_id)
+        logger.debug("PowerVsTime started: %s", recording_id)
 
         self.set_parameters(params)
 
@@ -84,7 +84,7 @@ class PowerVsTime(DataProductInterface):
             10.0 * np.log10(x) + 27.0 for x in [pvt_result, pvt_summary]
         )
 
-        logger.warning("PowerVsTime completed: %s", recording_id)
+        logger.debug("PowerVsTime completed: %s", recording_id)
         # Return order ((max array, mean array), (max-of-max, median-of-mean, mean, median))
         return DataProductResult(pvt_result, pvt_summary, self.get_graph())
 

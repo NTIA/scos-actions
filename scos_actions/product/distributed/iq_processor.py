@@ -40,13 +40,13 @@ class IQProcessorProductActors:
 
     def __init__(self, actor_id: int):
         self.actor_id = actor_id
-        logger.warning("IQProcessorProductActors initialized: %s", self.actor_id)
+        logger.debug("IQProcessorProductActors initialized: %s", self.actor_id)
         self.workers = {}
 
     @ray.method(num_returns=1)
     def run(self, iqdata: np.ndarray, params: dict, iir_sos: np.ndarray, consts: dict) -> tuple:
         recording_id = params["recording_id"]
-        logger.warning("IQProcessorProductActors run: %s, %s", self.actor_id, recording_id)
+        logger.debug("IQProcessorProductActors run: %s, %s", self.actor_id, recording_id)
 
         product_names = params["data_products"]
         for name in product_names:
@@ -58,12 +58,3 @@ class IQProcessorProductActors:
         return tuple(
             self.workers[name].run.remote(iq_ref, params) for name in product_names
         )
-
-    def shutdown(self) -> None:
-        """Gracefully terminate product workers before this supervisor exits."""
-        termination_refs = [
-            worker.__ray_terminate__.remote() for worker in self.workers.values()
-        ]
-        if termination_refs:
-            ray.wait(termination_refs, num_returns=len(termination_refs))
-        self.workers.clear()
