@@ -10,11 +10,13 @@ from scos_actions.product.interfaces import DataProductResult, ProductGraphInfo
 
 
 def test_distributed_package_exports_public_actors():
+    """Ensure the distributed package exposes both actor types."""
     assert distributed.ProductActor is actors.ProductActor
     assert distributed.IQProcessorProductActors is iq_processor.IQProcessorProductActors
 
 
 def test_product_actor_constructs_and_runs_product(monkeypatch):
+    """Ensure a product actor constructs its product once and delegates compute."""
     expected_result = DataProductResult(
         np.array([1.0]), None, ProductGraphInfo(1, 1, object(), None)
     )
@@ -36,6 +38,7 @@ def test_product_actor_constructs_and_runs_product(monkeypatch):
 
 
 def test_product_actor_rejects_unknown_product():
+    """Ensure unsupported product names fail explicitly."""
     actor_class = actors.ProductActor.__ray_metadata__.modified_class
 
     with pytest.raises(KeyError, match="unknown"):
@@ -43,6 +46,7 @@ def test_product_actor_rejects_unknown_product():
 
 
 def test_iq_processor_builds_workers_once_and_preserves_order(monkeypatch):
+    """Ensure worker reuse, filtering, and configured product order are preserved."""
     created_workers = []
     worker_calls = []
     filtered_iq = np.array([2.0 + 1.0j, 3.0 + 1.0j])
@@ -92,6 +96,7 @@ def test_iq_processor_builds_workers_once_and_preserves_order(monkeypatch):
 
 
 def test_iq_processor_shutdown_terminates_workers_and_clears_state(monkeypatch):
+    """Ensure shutdown waits for worker termination and clears actor state."""
     processor_class = (
         iq_processor.IQProcessorProductActors.__ray_metadata__.modified_class
     )
@@ -114,6 +119,7 @@ def test_iq_processor_shutdown_terminates_workers_and_clears_state(monkeypatch):
 
 
 def test_iq_processor_shutdown_without_workers_skips_wait(monkeypatch):
+    """Ensure shutdown without workers does not call Ray wait."""
     processor_class = (
         iq_processor.IQProcessorProductActors.__ray_metadata__.modified_class
     )

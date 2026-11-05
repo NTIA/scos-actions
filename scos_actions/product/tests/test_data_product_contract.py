@@ -27,6 +27,7 @@ class PFPDetector(Enum):
 
 
 def test_psd_compute_returns_data_and_no_summary(monkeypatch):
+    """Verify PSD data, no summary, and graph metadata use the shared contract."""
     monkeypatch.setattr(psd_module, "get_fft_window", lambda *_args: np.ones(7))
     monkeypatch.setattr(
         psd_module, "get_fft_window_correction", lambda *_args: 1.0
@@ -81,6 +82,7 @@ def test_psd_compute_returns_data_and_no_summary(monkeypatch):
 
 
 def test_pvt_compute_returns_data_and_summary(monkeypatch):
+    """Verify PVT returns detector data and its four power summary statistics."""
     monkeypatch.setattr(
         pvt_module,
         "calculate_power_watts",
@@ -121,6 +123,7 @@ def test_pvt_compute_returns_data_and_summary(monkeypatch):
 
 
 def test_pfp_compute_returns_data_and_no_summary(monkeypatch):
+    """Verify PFP output rows and graph series correspond to configured detectors."""
     product = pfp_module.PeriodicFramePower(
         {
             "PFP_M3_DETECTOR": PFPDetector,
@@ -166,6 +169,7 @@ def test_pfp_compute_returns_data_and_no_summary(monkeypatch):
 
 
 def test_apd_compute_returns_data_and_no_summary(monkeypatch):
+    """Verify APD data and graph lengths are returned without a summary."""
     monkeypatch.setattr(
         apd_module,
         "get_apd",

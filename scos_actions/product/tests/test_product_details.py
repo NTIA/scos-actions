@@ -24,6 +24,7 @@ class PFPDetector(Enum):
 
 
 def test_apd_compute_converts_bin_limits_and_builds_y_axis(monkeypatch):
+    """Verify APD converts dBm limits before computing its probability data."""
     probability = np.array([0.75, 0.25])
     get_apd_mock = Mock(return_value=(probability, None))
     monkeypatch.setattr(apd_module, "get_apd", get_apd_mock)
@@ -51,6 +52,7 @@ def test_apd_compute_converts_bin_limits_and_builds_y_axis(monkeypatch):
 
 
 def test_psd_parameters_and_graph_metadata(monkeypatch):
+    """Ensure PSD parameters produce the expected graph axes and DFT metadata."""
     window = np.ones(7)
     frequencies = np.arange(7, dtype=float)
     monkeypatch.setattr(psd_module, "get_fft_window", lambda *_args: window)
@@ -109,6 +111,7 @@ def test_psd_parameters_and_graph_metadata(monkeypatch):
     ],
 )
 def test_pfp_rejects_periods_not_aligned_to_sample_rate(overrides):
+    """Ensure PFP rejects frame and detector periods that do not align to samples."""
     detector_period_s = overrides.get("detector_period_s", 0.001)
     product = pfp_module.PeriodicFramePower(
         {
@@ -118,6 +121,7 @@ def test_pfp_rejects_periods_not_aligned_to_sample_rate(overrides):
         }
     )
     params = {
+        "recording_id": 1,
         "sample_rate": 1000,
         "duration_ms": 4,
         "td_bin_size_ms": 1,
@@ -129,6 +133,7 @@ def test_pfp_rejects_periods_not_aligned_to_sample_rate(overrides):
 
 
 def test_pfp_parameters_derive_frame_dimensions():
+    """Ensure PFP derives frame dimensions and power scaling from its parameters."""
     product = pfp_module.PeriodicFramePower(
         {
             "PFP_M3_DETECTOR": PFPDetector,

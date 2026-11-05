@@ -52,6 +52,7 @@ def make_action(monkeypatch):
 
 
 def test_init_sets_defaults_and_preserves_input(make_action):
+    """Verify constructor defaults, IIR data, iteration order, and input isolation."""
     build, generate_filter, _, sos, numerators, denominators = make_action
     params = _parameters(frequency=[200e6, 100e6])
 
@@ -79,6 +80,7 @@ def test_init_sets_defaults_and_preserves_input(make_action):
 
 
 def test_init_applies_per_capture_overrides_in_input_order(make_action):
+    """Verify grouped captures retain their order and override shared parameters."""
     build, generate_filter, _, _, _, _ = make_action
     params = _parameters(
         captures=[
@@ -118,6 +120,7 @@ def test_init_applies_per_capture_overrides_in_input_order(make_action):
 
 
 def test_update_iir_parameters_sets_sections_and_transfer_coefficients(make_action):
+    """Verify filter sections are converted and attached to iteration parameters."""
     build, generate_filter, convert_filter, sos, numerators, denominators = make_action
     action = build()
     generate_filter.reset_mock()
@@ -134,6 +137,7 @@ def test_update_iir_parameters_sets_sections_and_transfer_coefficients(make_acti
 
 
 def test_build_constants_exposes_product_configuration(make_action):
+    """Verify the action supplies all product detector and scaling constants."""
     action = make_action[0]()
 
     constants = action.build_constants()
@@ -149,6 +153,7 @@ def test_build_constants_exposes_product_configuration(make_action):
 
 
 def test_capture_iq_configures_sigan_and_merges_acquisition_parameters(make_action):
+    """Verify IQ sample counts, skip counts, analyzer setup, and returned parameters."""
     action = make_action[0]()
     action.configure_sigan = Mock()
     measurement = {"data": np.array([1.0 + 1.0j]), "overload": False}
@@ -177,6 +182,7 @@ def test_capture_iq_configures_sigan_and_merges_acquisition_parameters(make_acti
 def test_required_components_restarts_api_for_unavailable_or_unhealthy_sigan(
     make_action, monkeypatch
 ):
+    """Verify unavailable and unhealthy analyzers trigger the expected restart."""
     action = make_action[0]()
     send_restart = Mock()
     monkeypatch.setattr(generalized.trigger_api_restart, "send", send_restart)
@@ -201,6 +207,7 @@ def test_required_components_restarts_api_for_unavailable_or_unhealthy_sigan(
 
 
 def test_create_processing_metadata_records_filter_and_optional_dft(make_action):
+    """Verify processing metadata includes the IIR filter and optional DFT."""
     action = make_action[0]()
     builder = Mock()
     params = {
@@ -229,6 +236,7 @@ def test_create_processing_metadata_records_filter_and_optional_dft(make_action)
 def test_create_capture_segment_records_calibration_and_sigan_settings(
     make_action,
 ):
+    """Verify capture metadata records calibrated power and analyzer settings."""
     action = make_action[0]()
     action.sensor = MockSensor()
     action.total_channel_data_length = 128
@@ -258,6 +266,7 @@ def test_create_capture_segment_records_calibration_and_sigan_settings(
 def test_create_sigmf_builder_filters_schedule_and_sets_recording(
     make_action, monkeypatch
 ):
+    """Verify SigMF setup filters schedule fields and records capture metadata."""
     action = make_action[0]()
     builder = Mock()
     builder.metadata = {"global": {}}
@@ -295,6 +304,7 @@ def test_create_sigmf_builder_filters_schedule_and_sets_recording(
 
 
 def test_capture_switch_diagnostic_helpers_map_status_values(make_action):
+    """Verify switch values map to UPS, temperature, power, and state diagnostics."""
     action = make_action[0]()
     action.sensor = SimpleNamespace(
         signal_analyzer=SimpleNamespace(temperature=42.5)
@@ -353,6 +363,7 @@ def test_capture_switch_diagnostic_helpers_map_status_values(make_action):
 
 
 def test_create_global_sensor_metadata_uses_sensor_definition(make_action):
+    """Verify the sensor definition and hash are placed in global metadata."""
     action = make_action[0]()
     builder = Mock()
     sensor = SimpleNamespace(
@@ -374,6 +385,7 @@ def test_create_global_sensor_metadata_uses_sensor_definition(make_action):
 def test_capture_diagnostics_collects_sensor_and_computer_values(
     make_action, monkeypatch
 ):
+    """Verify diagnostics aggregate preselector, switch, CPU, and software values."""
     action = make_action[0]()
     switch_status = {
         "name": "spu",
@@ -476,6 +488,7 @@ def test_capture_diagnostics_collects_sensor_and_computer_values(
 def test_call_processes_product_results_and_emits_compressed_capture(
     make_action, monkeypatch
 ):
+    """Verify product results become compressed bytes and a completion event."""
     params = _parameters(data_products=["psd", "pvt"])
     action = make_action[0](params)
     sensor = SimpleNamespace(preselector=object())
@@ -580,6 +593,7 @@ def test_call_processes_product_results_and_emits_compressed_capture(
 
 
 def test_result_conversion_and_action_descriptors(make_action):
+    """Verify data flattening, compression, and action descriptor properties."""
     action = make_action[0]()
     data = action.transform_data(
         [np.array([1.25, 2.5]), np.array([3.75])]

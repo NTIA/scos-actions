@@ -9,6 +9,7 @@ from scos_actions.product.interfaces import (
 
 
 def test_result_types_are_named_and_positional_tuples():
+    """Ensure result objects expose named fields and retain tuple unpacking."""
     graph = object()
     graph_info = ProductGraphInfo(3, 6, graph, None)
     data = np.array([1.0, 2.0, 3.0])
@@ -23,5 +24,6 @@ def test_result_types_are_named_and_positional_tuples():
 
 
 def test_data_product_interface_is_abstract():
+    """Ensure callers cannot instantiate the unimplemented product interface."""
     with pytest.raises(TypeError):
         DataProductInterface({})
