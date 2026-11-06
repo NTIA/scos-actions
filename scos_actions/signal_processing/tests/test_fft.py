@@ -195,7 +195,10 @@ def test_get_fft_window():
         win = fft.get_fft_window(bad_w_type, 1024)
         true_win = get_window(window=true_w_type, Nx=1024, fftbins=True)
         assert np.array_equal(win, true_win)
-        with pytest.raises(ValueError, match="Unknown window type."):
+        with pytest.raises(
+            ValueError,
+            match=r"Unknown window type\.|Invalid window name '.*' in parameter window='.*'!",
+        ):
             _ = get_window(window=bad_w_type, Nx=1024, fftbins=True)
 
 
