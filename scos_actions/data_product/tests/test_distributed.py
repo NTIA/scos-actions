@@ -98,7 +98,7 @@ def test_iq_processor_builds_workers_once_and_preserves_order(monkeypatch):
 
     monkeypatch.setattr(
         iq_processor,
-        "ProductActor",
+        "DataProductActor",
         SimpleNamespace(remote=create_worker),
     )
     monkeypatch.setattr(iq_processor, "sosfilt", lambda *, sos, x: filtered_iq)
@@ -106,7 +106,7 @@ def test_iq_processor_builds_workers_once_and_preserves_order(monkeypatch):
     processor_class = (
         iq_processor.IQProcessorProductActors.__ray_metadata__.modified_class
     )
-    processor = processor_class(actor_id=5)
+    processor = processor_class(actor_id=5, compute_only=True)
     iq = np.array([1.0 + 1.0j, 2.0 + 1.0j])
     params = {"recording_id": 8, "data_products": ["pfp", "psd"]}
     consts = {"shared": True}
