@@ -85,6 +85,17 @@ def get_disk_smart_data(disk: str) -> Union[dict, str]:
     """
     try:
         report = subprocess.check_output(["smartctl", "-a", disk]).decode("utf-8")
+
+        result = subprocess.run(
+            ["smartctl", "-a", disk],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            logger.warning(f"Process returned exit code {result.returncode}")
+            logger.warning(result.stdout)
+        report = result.stdout
+
     except Exception:
         logger.exception(f"Unable to get SMART data for disk {disk}")
         return "Unavailable"
