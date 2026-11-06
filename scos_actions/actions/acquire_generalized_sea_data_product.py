@@ -118,7 +118,7 @@ PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "m
 
 
 class GeneralizedSeaDataProduct(Action):
-    """Acquire a stepped-frequency Generalized SEA data data_product.
+    """Acquire a stepped-frequency Generalized SEA data product.
 
     :param parameters: The dictionary of parameters needed for
         the action and the signal analyzer.
@@ -195,7 +195,7 @@ class GeneralizedSeaDataProduct(Action):
             self.iteration_params = utils.get_iterable_parameters(self.parameters, None)
 
     def build_constants(self) -> dict:
-        """Data data_product constants owned by this action, passed to IQ Processor as a dict."""
+        """Data product constants owned by this action, passed to IQ Processor as a dict."""
         return {
             "FFT_PERCENTILES": FFT_PERCENTILES,
             "FFT_WINDOW_TYPE": FFT_WINDOW_TYPE,
@@ -248,7 +248,7 @@ class GeneralizedSeaDataProduct(Action):
             parameters["recording_id"] = i
             measurement_result = self.capture_iq(parameters)
 
-            # Start data data_product processing but do not block next IQ capture
+            # Start data product processing but do not block next IQ capture
             tic = perf_counter()
             data_products_refs.append(
                 iq_processors[i % NUM_ACTORS]
@@ -363,7 +363,7 @@ class GeneralizedSeaDataProduct(Action):
             self.create_processing_metadata(sigmf_builder, parameters, channel_dft)
             sigmf_builder.set_data_products(channel_graph)
 
-            logger.debug(f"Channel data data_product length: {channel_data_length}")
+            logger.debug(f"Channel data product length: {channel_data_length}")
 
             # Get diagnostics last to record action runtime
             if sensor.preselector is not None:
@@ -870,8 +870,8 @@ class GeneralizedSeaDataProduct(Action):
 
     @staticmethod
     def transform_data(channel_data_products: list):
-        """Flatten data data_product list of arrays for a single channel."""
-        # Flatten data data_product, reduce dtype
+        """Flatten data product list of arrays for a single channel."""
+        # Flatten data product, reduce dtype
         return np.hstack(channel_data_products).astype(DATA_TYPE)
 
     @staticmethod
