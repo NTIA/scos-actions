@@ -6,7 +6,7 @@ import numpy as np
 from scos_actions.metadata.structs import ntia_algorithm
 
 
-class ProductGraphInfo(NamedTuple):
+class DataProductGraphInfo(NamedTuple):
     """Lengths and SigMF graph metadata describing a product's data."""
 
     data_length: int
@@ -20,7 +20,7 @@ class DataProductResult(NamedTuple):
 
     data_result: np.ndarray
     summary: Optional[np.ndarray]
-    graph_info: ProductGraphInfo
+    graph_info: DataProductGraphInfo
 
 
 class DataProductInterface(ABC):
@@ -48,7 +48,7 @@ class DataProductInterface(ABC):
     @abstractmethod
     def compute(
         self, iq: np.ndarray, params: dict
-    ) -> DataProductResult:
+    ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Compute product data, an optional summary, and graph metadata.
 
@@ -57,5 +57,5 @@ class DataProductInterface(ABC):
         pass
 
     @abstractmethod
-    def get_graph(self) -> ProductGraphInfo:
+    def get_graph(self) -> DataProductGraphInfo:
         pass

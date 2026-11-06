@@ -23,7 +23,7 @@ import ray
 from environs import Env
 from scipy.signal import sosfilt
 
-from scos_actions.product.distributed.actors import ProductActor
+from scos_actions.product.distributed.actors import DataProductActor
 
 env = Env()
 logger = logging.getLogger(__name__)
@@ -38,8 +38,9 @@ class IQProcessorProductActors:
     it for every ``run`` call, so no product object is ever copied.
     """
 
-    def __init__(self, actor_id: int):
+    def __init__(self, actor_id: int, compute_only: bool=False) -> None:
         self.actor_id = actor_id
+        self.compute_only = compute_only
         logger.debug("IQProcessorProductActors initialized: %s", self.actor_id)
         self.workers = {}
 
@@ -51,10 +52,15 @@ class IQProcessorProductActors:
         product_names = params["data_products"]
         for name in product_names:
             if name not in self.workers:
-                self.workers[name] = ProductActor.remote(name, consts)
+                self.workers[name] = DataProductActor.remote(name, consts)
 
         """Return product references in the configured product order."""
         iq_ref = ray.put(sosfilt(sos=iir_sos, x=iqdata))
-        return tuple(
-            self.workers[name].run.remote(iq_ref, params) for name in product_names
-        )
+        if self.compute_only:
+            return tuple(
+                self.workers[name].run.remote(iq_ref, params) for name in product_names
+            )
+        else:
+            return tuple(
+                self.workers[name].run_with_graph.remote(iq_ref, params) for name in product_names
+            )

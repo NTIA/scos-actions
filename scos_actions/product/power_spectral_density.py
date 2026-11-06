@@ -1,6 +1,7 @@
 """Power Spectral Density"""
 
 import logging
+from typing import Optional
 
 import numpy as np
 
@@ -8,7 +9,7 @@ from scos_actions.metadata.structs import ntia_algorithm
 from scos_actions.product.interfaces import (
     DataProductInterface,
     DataProductResult,
-    ProductGraphInfo,
+    DataProductGraphInfo,
 )
 from scos_actions.signal_processing.fft import get_fft, get_fft_window, get_fft_window_correction, get_fft_enbw, \
     get_fft_frequencies
@@ -65,7 +66,7 @@ class PowerSpectralDensity(DataProductInterface):
 
     def compute(
         self, iq: np.ndarray, params: dict
-    ) -> DataProductResult:
+    ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Compute power spectral densities from IQ samples.
 
@@ -98,7 +99,7 @@ class PowerSpectralDensity(DataProductInterface):
         # Returned order is (max, mean, median, 25%, 75%, 90%, 95%, 99%, 99.9%, 99.99%)
         # Total of 10 arrays, each of length 125 (output shape (10, 125))
         # Percentile computation linearly interpolates. See numpy documentation.
-        return DataProductResult(fft_result, None, self.get_graph())
+        return fft_result, None
 
     def get_dft(self) -> ntia_algorithm.DFT:
         dft_obj = ntia_algorithm.DFT(
@@ -113,7 +114,7 @@ class PowerSpectralDensity(DataProductInterface):
 
         return dft_obj
 
-    def get_graph(self) -> ProductGraphInfo:
+    def get_graph(self) -> DataProductGraphInfo:
         dft_obj = self.get_dft()
         psd_length = int(self.fft_size * (5 / 7))
         #psd_bin_start = int(self.fft_size / 7)  # bin_start = 125 with FFT_SIZE 875
@@ -144,4 +145,4 @@ class PowerSpectralDensity(DataProductInterface):
 
         psd_total_length = psd_length * (len(self.detector) + len(self.percentiles))
 
-        return ProductGraphInfo(psd_length, psd_total_length, psd_graph, dft_obj)
+        return DataProductGraphInfo(psd_length, psd_total_length, psd_graph, dft_obj)

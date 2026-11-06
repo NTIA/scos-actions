@@ -6,25 +6,25 @@ import pytest
 
 from scos_actions.product import distributed
 from scos_actions.product.distributed import actors, iq_processor
-from scos_actions.product.interfaces import DataProductResult, ProductGraphInfo
+from scos_actions.product.interfaces import DataProductResult, DataProductGraphInfo
 
 
 def test_distributed_package_exports_public_actors():
     """Ensure the distributed package exposes both actor types."""
-    assert distributed.ProductActor is actors.ProductActor
+    assert distributed.DataProductActor is actors.DataProductActor
     assert distributed.IQProcessorProductActors is iq_processor.IQProcessorProductActors
 
 
 def test_product_actor_constructs_and_runs_product(monkeypatch):
     """Ensure a product actor constructs its product once and delegates compute."""
     expected_result = DataProductResult(
-        np.array([1.0]), None, ProductGraphInfo(1, 1, object(), None)
+        np.array([1.0]), None, DataProductGraphInfo(1, 1, object(), None)
     )
     product = Mock()
     product.compute.return_value = expected_result
     build_product = Mock(return_value=product)
     monkeypatch.setitem(actors._product_builders, "apd", build_product)
-    actor_class = actors.ProductActor.__ray_metadata__.modified_class
+    actor_class = actors.DataProductActor.__ray_metadata__.modified_class
 
     actor = actor_class("apd", {"IMPEDANCE_OHMS": 50.0})
     iq = np.array([1.0 + 1.0j])
@@ -39,7 +39,7 @@ def test_product_actor_constructs_and_runs_product(monkeypatch):
 
 def test_product_actor_rejects_unknown_product():
     """Ensure unsupported product names fail explicitly."""
-    actor_class = actors.ProductActor.__ray_metadata__.modified_class
+    actor_class = actors.DataProductActor.__ray_metadata__.modified_class
 
     with pytest.raises(KeyError, match="unknown"):
         actor_class("unknown", {})

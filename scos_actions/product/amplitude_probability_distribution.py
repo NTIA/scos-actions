@@ -2,6 +2,7 @@
 """Amplitude Probability Distribution"""
 
 import logging
+from typing import Optional
 
 import numpy as np
 
@@ -9,7 +10,7 @@ from scos_actions.metadata.structs import ntia_algorithm
 from scos_actions.product.interfaces import (
     DataProductInterface,
     DataProductResult,
-    ProductGraphInfo,
+    DataProductGraphInfo,
 )
 from scos_actions.signal_processing.apd import get_apd
 
@@ -50,7 +51,7 @@ class AmplitudeProbabilityDistribution(DataProductInterface):
 
     def compute(
         self, iq: np.ndarray, params: dict
-    ) -> DataProductResult:
+    ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Generate the downsampled APD result from IQ samples.
 
@@ -72,9 +73,9 @@ class AmplitudeProbabilityDistribution(DataProductInterface):
         )
 
         logger.debug("AmplitudeProbabilityDistribution completed: %s", recording_id)
-        return DataProductResult(p.reshape(1, p.shape[0]), None, self.get_graph())
+        return p.reshape(1, p.shape[0]), None
 
-    def get_graph(self) -> ProductGraphInfo:
+    def get_graph(self) -> DataProductGraphInfo:
         apd_y_axis__dBm = np.arange(
             self.apd_min_bin_dbm,
             self.apd_max_bin_dbm + self.bin_size_dB,
@@ -100,4 +101,4 @@ class AmplitudeProbabilityDistribution(DataProductInterface):
 
         apd_length = apd_graph.length
 
-        return ProductGraphInfo(apd_length, apd_length, apd_graph, None)
+        return DataProductGraphInfo(apd_length, apd_length, apd_graph, None)

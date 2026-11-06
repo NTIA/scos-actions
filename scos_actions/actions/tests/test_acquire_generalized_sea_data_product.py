@@ -8,7 +8,7 @@ import pytest
 
 from scos_actions.actions import acquire_generalized_sea_data_product as generalized
 from scos_actions.hardware.mocks.mock_sensor import MockSensor
-from scos_actions.product.interfaces import DataProductResult, ProductGraphInfo
+from scos_actions.product.interfaces import DataProductResult, DataProductGraphInfo
 
 
 def _parameters(**overrides):
@@ -543,12 +543,12 @@ def test_call_processes_product_results_and_emits_compressed_capture(
         "psd-ref": DataProductResult(
             np.array([[1.0, 2.0], [3.0, 4.0]]),
             None,
-            ProductGraphInfo(2, 4, psd_graph, dft),
+            DataProductGraphInfo(2, 4, psd_graph, dft),
         ),
         "pvt-ref": DataProductResult(
             np.array([[5.0, 6.0]]),
             np.array([10.0, 20.0, 30.0, 40.0]),
-            ProductGraphInfo(2, 2, pvt_graph, None),
+            DataProductGraphInfo(2, 2, pvt_graph, None),
         ),
     }
     get = Mock(

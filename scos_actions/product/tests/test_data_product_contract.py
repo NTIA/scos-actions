@@ -6,7 +6,7 @@ from scos_actions.product import amplitude_probability_distribution as apd_modul
 from scos_actions.product import periodic_frame_power as pfp_module
 from scos_actions.product import power_spectral_density as psd_module
 from scos_actions.product import power_vs_time as pvt_module
-from scos_actions.product.interfaces import DataProductResult, ProductGraphInfo
+from scos_actions.product.interfaces import DataProductResult, DataProductGraphInfo
 
 
 class PSDDetector(Enum):
@@ -66,7 +66,7 @@ def test_psd_compute_returns_data_and_no_summary(monkeypatch):
     )
 
     assert isinstance(result, DataProductResult)
-    assert isinstance(result.graph_info, ProductGraphInfo)
+    assert isinstance(result.graph_info, DataProductGraphInfo)
     assert result.data_result.shape == (5, 5)
     assert result.summary is None
     assert result.graph_info.data_length == 5

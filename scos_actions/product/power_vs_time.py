@@ -2,6 +2,7 @@
 """Power vs. Time"""
 
 import logging
+from typing import Optional
 
 import numpy as np
 
@@ -9,7 +10,7 @@ from scos_actions.metadata.structs import ntia_algorithm
 from scos_actions.product.interfaces import (
     DataProductInterface,
     DataProductResult,
-    ProductGraphInfo,
+    DataProductGraphInfo,
 )
 from scos_actions.signal_processing.power_analysis import (
     apply_statistical_detector,
@@ -46,7 +47,7 @@ class PowerVsTime(DataProductInterface):
 
     def compute(
         self, iq: np.ndarray, params: dict
-    ) -> DataProductResult:
+    ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Compute power versus time results from IQ samples.
 
@@ -86,9 +87,9 @@ class PowerVsTime(DataProductInterface):
 
         logger.debug("PowerVsTime completed: %s", recording_id)
         # Return order ((max array, mean array), (max-of-max, median-of-mean, mean, median))
-        return DataProductResult(pvt_result, pvt_summary, self.get_graph())
+        return pvt_result, pvt_summary
 
-    def get_graph(self) -> ProductGraphInfo:
+    def get_graph(self) -> DataProductGraphInfo:
         num_iq_samples = int(self.sample_rate * self.duration_ms * 1e-3)
         pvt_length = int(self.duration_ms / self.td_bin_size_ms)
         pvt_x_axis__s = np.arange(pvt_length) * (self.duration_ms * 1e-3 / pvt_length)
@@ -113,4 +114,4 @@ class PowerVsTime(DataProductInterface):
 
         pvt_total_length = pvt_length * len(self.detector)
 
-        return ProductGraphInfo(pvt_length, pvt_total_length, pvt_graph, None)
+        return DataProductGraphInfo(pvt_length, pvt_total_length, pvt_graph, None)

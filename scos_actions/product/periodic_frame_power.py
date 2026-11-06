@@ -2,6 +2,7 @@
 """Periodic Frame Power"""
 
 import logging
+from typing import Optional
 
 import numpy as np
 
@@ -9,7 +10,7 @@ from scos_actions.metadata.structs import ntia_algorithm
 from scos_actions.product.interfaces import (
     DataProductInterface,
     DataProductResult,
-    ProductGraphInfo,
+    DataProductGraphInfo,
 )
 from scos_actions.signal_processing.power_analysis import (
     apply_statistical_detector,
@@ -66,7 +67,7 @@ class PeriodicFramePower(DataProductInterface):
 
     def compute(
         self, iq: np.ndarray, params: dict
-    ) -> DataProductResult:
+    ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Compute periodic frame power results from IQ samples.
 
@@ -103,9 +104,9 @@ class PeriodicFramePower(DataProductInterface):
         pfp = 10.0 * np.log10(pfp) + self.pfp_scale_factor
 
         logger.debug("PeriodicFramePower completed: %s", recording_id)
-        return DataProductResult(pfp, None, self.get_graph())
+        return pfp, None
 
-    def get_graph(self) -> ProductGraphInfo:
+    def get_graph(self) -> DataProductGraphInfo:
         pvt_length = int(self.duration_ms / self.td_bin_size_ms)
         pfp_length = int(round((self.pfp_frame_period_ms / 1e3) / self.detector_period_s))
         pfp_x_axis__s = np.arange(pfp_length) * (
@@ -136,4 +137,4 @@ class PeriodicFramePower(DataProductInterface):
 
         pfp_total_length = pfp_length * len(self.detector) * 2
 
-        return ProductGraphInfo(pfp_length, pfp_total_length, pfp_graph, None)
+        return DataProductGraphInfo(pfp_length, pfp_total_length, pfp_graph, None)

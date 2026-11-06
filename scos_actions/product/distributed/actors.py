@@ -1,4 +1,5 @@
 """Ray actor wrapper that holds one local product object for its lifetime."""
+from typing import Optional
 
 import numpy as np
 import ray
@@ -18,13 +19,23 @@ _product_builders = {
 
 
 @ray.remote
-class ProductActor:
+class DataProductActor:
     """Builds one product object once and reuses it for every ``run`` call."""
 
     def __init__(self, name: str, consts: dict):
-        self.product = _product_builders[name](consts)
+        self.data_product = _product_builders[name](consts)
 
     def run(
         self, iq: np.ndarray, params: dict
+    ) -> tuple[np.ndarray, Optional[np.ndarray]]:
+        return self.data_product.compute(iq, params)
+
+    def run_with_graph(
+        self, iq: np.ndarray, params: dict
     ) -> DataProductResult:
-        return self.product.compute(iq, params)
+        data_result, summary = self.data_product.compute(iq, params)
+        return DataProductResult(
+            data_result=data_result,
+            summary=summary,
+            graph_info=self.data_product.get_graph(),
+        )
