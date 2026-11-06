@@ -42,8 +42,8 @@ classifiers = [
 
 dependencies = [
     "environs>=9.5.0",
-    "django>=4.2.8,<5.0",  # As of 4.2.8, Python 3.13 is not supported.
-    "its_preselector @ git+https://github.com/NTIA/Preselector@python312",
+    "django>=4.2.20,<5.0",  # As of 4.2.8, Python 3.13 is not supported.
+    "its_preselector @ git+https://github.com/NTIA/Preselector@3.2.0",
     "msgspec>=0.16.0,<1.0.0",
     "numexpr>=2.8.3",
     "numpy>=1.25.0,<2",
