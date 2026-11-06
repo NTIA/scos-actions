@@ -90,8 +90,7 @@ def get_disk_smart_data(disk: str) -> Union[dict, str]:
             text=True,
         )
         if result.returncode != 0:
-            logger.warning(f"Process returned exit code {result.returncode}")
-            logger.warning(result.stdout)
+            logger.warning(f"smartctl returned exit code {result.returncode}")
         report = result.stdout
 
     except Exception:
