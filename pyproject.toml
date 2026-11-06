@@ -52,7 +52,7 @@ dependencies = [
     "ray>=2.43.0",
     "ruamel.yaml>=0.15",
     "scipy>=1.11.4, <1.17.0",
-    "sigmf @ git+https://github.com/NTIA/SigMF@multi-recording-archive",
+    "sigmf @ git+https://github.com/NTIA/SigMF@multi-recording-archive-toml",
 ]
 
 [project.optional-dependencies]
