@@ -28,12 +28,18 @@ class DataProductActor:
     def run(
         self, iq: np.ndarray, params: dict
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
-        return self.data_product.compute(iq, params)
+        self.data_product.set_parameters(params)
+        return self.data_product.compute(iq, params["recording_id"])
 
     def run_with_graph(
         self, iq: np.ndarray, params: dict
     ) -> DataProductResult:
-        data_result, summary = self.data_product.compute(iq, params)
+        self.data_product.set_parameters(params)
+        compute_result = self.data_product.compute(iq, params["recording_id"])
+        if isinstance(compute_result, np.ndarray):
+            data_result, summary = compute_result, None
+        else:
+            data_result, summary = compute_result
         return DataProductResult(
             data_result=data_result,
             summary=summary,

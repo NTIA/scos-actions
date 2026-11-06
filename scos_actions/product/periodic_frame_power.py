@@ -66,7 +66,7 @@ class PeriodicFramePower(DataProductInterface):
         )
 
     def compute(
-        self, iq: np.ndarray, params: dict
+        self, iq: np.ndarray, recording_id: int
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Compute periodic frame power results from IQ samples.
@@ -76,10 +76,7 @@ class PeriodicFramePower(DataProductInterface):
         :return: PFP data, no summary, and graph metadata.
         """
         # Set up dimensions to make the statistics fast
-        recording_id = params["recording_id"]
         logger.debug("PeriodicFramePower started: %s", recording_id)
-
-        self.set_parameters(params)
 
         chunked_shape = (
             iq.shape[0] // self.n_frames,

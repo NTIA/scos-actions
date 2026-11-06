@@ -55,15 +55,15 @@ def test_psd_compute_returns_data_and_no_summary(monkeypatch):
         }
     )
 
-    result = product.compute(
-        np.ones(7, dtype=np.complex64),
-        {
-            "recording_id": 0,
-            "sample_rate": 14e6,
-            "duration_ms": 1,
-            "fft_size": 7,
-        },
-    )
+    params = {
+        "recording_id": 0,
+        "sample_rate": 14e6,
+        "duration_ms": 1,
+        "fft_size": 7,
+    }
+    iq = np.ones(7, dtype=np.complex64)
+    product.set_parameters(params)
+    result = product.compute(iq, params["recording_id"])
 
     assert isinstance(result, DataProductResult)
     assert isinstance(result.graph_info, DataProductGraphInfo)
@@ -99,15 +99,15 @@ def test_pvt_compute_returns_data_and_summary(monkeypatch):
         {"TD_DETECTOR": PVTDetector, "IMPEDANCE_OHMS": 50.0}
     )
 
-    result = product.compute(
-        np.ones(4, dtype=np.complex64),
-        {
-            "recording_id": 0,
-            "sample_rate": 1000,
-            "duration_ms": 4,
-            "td_bin_size_ms": 1,
-        },
-    )
+    params = {
+        "recording_id": 0,
+        "sample_rate": 1000,
+        "duration_ms": 4,
+        "td_bin_size_ms": 1,
+    }
+    iq = np.ones(4, dtype=np.complex64)
+    product.set_parameters(params)
+    result = product.compute(iq, params["recording_id"])
 
     assert isinstance(result, DataProductResult)
     assert result.data_result.shape == (2, 4)
@@ -142,16 +142,16 @@ def test_pfp_compute_returns_data_and_no_summary(monkeypatch):
         lambda *_args, **_kwargs: np.ones((3, 2)),
     )
 
-    result = product.compute(
-        np.ones((4, 1), dtype=np.complex64),
-        {
-            "recording_id": 0,
-            "sample_rate": 1000,
-            "duration_ms": 4,
-            "td_bin_size_ms": 1,
-            "pfp_frame_period_ms": 2,
-        },
-    )
+    params = {
+        "recording_id": 0,
+        "sample_rate": 1000,
+        "duration_ms": 4,
+        "td_bin_size_ms": 1,
+        "pfp_frame_period_ms": 2,
+    }
+    iq = np.ones((4, 1), dtype=np.complex64)
+    product.set_parameters(params)
+    result = product.compute(iq, params["recording_id"])
 
     assert isinstance(result, DataProductResult)
     assert result.data_result.shape == (6, 2)
@@ -177,15 +177,15 @@ def test_apd_compute_returns_data_and_no_summary(monkeypatch):
     )
     product = apd_module.AmplitudeProbabilityDistribution({"IMPEDANCE_OHMS": 50.0})
 
-    result = product.compute(
-        np.ones(2, dtype=np.complex64),
-        {
-            "recording_id": 0,
-            "apd_bin_size_dB": 1.0,
-            "apd_min_bin_dBm": -100.0,
-            "apd_max_bin_dBm": 0.0,
-        },
-    )
+    params = {
+        "recording_id": 0,
+        "apd_bin_size_dB": 1.0,
+        "apd_min_bin_dBm": -100.0,
+        "apd_max_bin_dBm": 0.0,
+    }
+    iq = np.ones(2, dtype=np.complex64)
+    product.set_parameters(params)
+    result = product.compute(iq, params["recording_id"])
 
     assert isinstance(result, DataProductResult)
     assert result.data_result.shape == (1, 2)

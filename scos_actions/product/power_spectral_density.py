@@ -65,7 +65,7 @@ class PowerSpectralDensity(DataProductInterface):
         )
 
     def compute(
-        self, iq: np.ndarray, params: dict
+        self, iq: np.ndarray, recording_id: int
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Compute power spectral densities from IQ samples.
@@ -74,10 +74,7 @@ class PowerSpectralDensity(DataProductInterface):
             already exist in the Ray object store).
         :return: PSD data, no summary, and graph metadata.
         """
-        recording_id = params["recording_id"]
         logger.debug("PowerSpectralDensity started: %s", recording_id)
-
-        self.set_parameters(params)
 
         fft_amplitudes = get_fft(
             iq, self.fft_size, "backward", self.fft_window, self.num_ffts, False, 1

@@ -46,7 +46,7 @@ class PowerVsTime(DataProductInterface):
         self.block_size = int(self.td_bin_size_ms * self.sample_rate * 1e-3)
 
     def compute(
-        self, iq: np.ndarray, params: dict
+        self, iq: np.ndarray, recording_id: int
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Compute power versus time results from IQ samples.
@@ -56,10 +56,7 @@ class PowerVsTime(DataProductInterface):
         :return: PVT data, four summary statistics, and graph metadata.
         """
         # Reshape IQ data into blocks and calculate power
-        recording_id = params["recording_id"]
         logger.debug("PowerVsTime started: %s", recording_id)
-
-        self.set_parameters(params)
 
         n_blocks = len(iq) // self.block_size
         iq_pwr = calculate_power_watts(

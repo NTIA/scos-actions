@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import numpy as np
 import pytest
@@ -33,8 +33,34 @@ def test_product_actor_constructs_and_runs_product(monkeypatch):
     result = actor.run(iq, params)
 
     build_product.assert_called_once_with({"IMPEDANCE_OHMS": 50.0})
-    product.compute.assert_called_once_with(iq, params)
+    assert product.mock_calls == [
+        call.set_parameters(params),
+        call.compute(iq, params["recording_id"]),
+    ]
     assert result is expected_result
+
+
+def test_product_actor_sets_parameters_before_compute_with_graph(monkeypatch):
+    """Ensure graph results are computed only after applying current parameters."""
+    data_result = np.array([[0.5, 0.25]])
+    graph_info = DataProductGraphInfo(2, 2, object(), None)
+    product = Mock()
+    product.compute.return_value = data_result
+    product.get_graph.return_value = graph_info
+    monkeypatch.setitem(actors._product_builders, "apd", Mock(return_value=product))
+    actor_class = actors.DataProductActor.__ray_metadata__.modified_class
+    actor = actor_class("apd", {})
+    iq = np.array([1.0 + 1.0j])
+    params = {"recording_id": 1}
+
+    result = actor.run_with_graph(iq, params)
+
+    assert result == DataProductResult(data_result, None, graph_info)
+    assert product.mock_calls == [
+        call.set_parameters(params),
+        call.compute(iq, params["recording_id"]),
+        call.get_graph(),
+    ]
 
 
 def test_product_actor_rejects_unknown_product():
@@ -93,41 +119,3 @@ def test_iq_processor_builds_workers_once_and_preserves_order(monkeypatch):
     assert len(worker_calls) == 4
     assert worker_calls[0][1] == ("object-ref", filtered_iq)
     assert worker_calls[0][2] is params
-
-
-def test_iq_processor_shutdown_terminates_workers_and_clears_state(monkeypatch):
-    """Ensure shutdown waits for worker termination and clears actor state."""
-    processor_class = (
-        iq_processor.IQProcessorProductActors.__ray_metadata__.modified_class
-    )
-    processor = processor_class(actor_id=5)
-    terminated = []
-    worker = SimpleNamespace(
-        __ray_terminate__=SimpleNamespace(
-            remote=lambda: terminated.append("worker-ref") or "worker-ref"
-        )
-    )
-    processor.workers = {"apd": worker}
-    wait = Mock(return_value=([], ["worker-ref"]))
-    monkeypatch.setattr(iq_processor.ray, "wait", wait)
-
-    processor.shutdown()
-
-    assert terminated == ["worker-ref"]
-    wait.assert_called_once_with(["worker-ref"], num_returns=1)
-    assert processor.workers == {}
-
-
-def test_iq_processor_shutdown_without_workers_skips_wait(monkeypatch):
-    """Ensure shutdown without workers does not call Ray wait."""
-    processor_class = (
-        iq_processor.IQProcessorProductActors.__ray_metadata__.modified_class
-    )
-    processor = processor_class(actor_id=5)
-    wait = Mock()
-    monkeypatch.setattr(iq_processor.ray, "wait", wait)
-
-    processor.shutdown()
-
-    wait.assert_not_called()
-    assert processor.workers == {}

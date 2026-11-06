@@ -47,7 +47,7 @@ class DataProductInterface(ABC):
 
     @abstractmethod
     def compute(
-        self, iq: np.ndarray, params: dict
+        self, iq: np.ndarray, recording_id: int
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Compute product data, an optional summary, and graph metadata.

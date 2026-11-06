@@ -31,15 +31,14 @@ def test_apd_compute_converts_bin_limits_and_builds_y_axis(monkeypatch):
     product = apd_module.AmplitudeProbabilityDistribution({"IMPEDANCE_OHMS": 50.0})
 
     iq = np.array([1.0 + 1.0j])
-    result = product.compute(
-        iq,
-        {
-            "recording_id": 7,
-            "apd_bin_size_dB": 2.0,
-            "apd_min_bin_dBm": -100.0,
-            "apd_max_bin_dBm": -94.0,
-        },
-    )
+    params = {
+        "recording_id": 7,
+        "apd_bin_size_dB": 2.0,
+        "apd_min_bin_dBm": -100.0,
+        "apd_max_bin_dBm": -94.0,
+    }
+    product.set_parameters(params)
+    result = product.compute(iq, params["recording_id"])
 
     get_apd_mock.assert_called_once_with(iq, 2.0, -127.0, -121.0, 50.0)
     assert result.data_result.tolist() == [[0.75, 0.25]]
@@ -75,6 +74,7 @@ def test_psd_parameters_and_graph_metadata(monkeypatch):
 
     product.set_parameters(
         {
+            "recording_id": 0,
             "sample_rate": 1400,
             "duration_ms": 10,
             "fft_size": 7,
@@ -144,6 +144,7 @@ def test_pfp_parameters_derive_frame_dimensions():
 
     product.set_parameters(
         {
+            "recording_id": 0,
             "sample_rate": 1000,
             "duration_ms": 4,
             "td_bin_size_ms": 1,

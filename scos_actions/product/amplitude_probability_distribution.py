@@ -50,7 +50,7 @@ class AmplitudeProbabilityDistribution(DataProductInterface):
         self.max_bin_dBW_RF = self.apd_max_bin_dbm - 27.0
 
     def compute(
-        self, iq: np.ndarray, params: dict
+        self, iq: np.ndarray, recording_id: int
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Generate the downsampled APD result from IQ samples.
@@ -59,10 +59,9 @@ class AmplitudeProbabilityDistribution(DataProductInterface):
             already exist in the Ray object store).
         :return: APD data, no summary, and graph metadata.
         """
-        recording_id = params["recording_id"]
-        logger.debug("AmplitudeProbabilityDistribution started: %s", recording_id)
-
-        self.set_parameters(params)
+        logger.debug(
+            "AmplitudeProbabilityDistribution started: %s", recording_id
+        )
 
         p, _ = get_apd(
             iq,
@@ -72,7 +71,9 @@ class AmplitudeProbabilityDistribution(DataProductInterface):
             self.impedance_ohms,
         )
 
-        logger.debug("AmplitudeProbabilityDistribution completed: %s", recording_id)
+        logger.debug(
+            "AmplitudeProbabilityDistribution completed: %s", recording_id
+        )
         return p.reshape(1, p.shape[0]), None
 
     def get_graph(self) -> DataProductGraphInfo:
