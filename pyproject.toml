@@ -7,7 +7,7 @@ name = "scos-actions"
 dynamic = ["version"]
 description = "The base plugin providing common actions and interfaces for SCOS Sensor plugins"
 readme = "README.md"
-requires-python = ">=3.9, <3.13"
+requires-python = ">=3.12, <3.13"
 license = { file = "LICENSE.md" }
 
 authors = [
@@ -49,7 +49,7 @@ dependencies = [
     "numpy>=1.25.0,<2",
     "psutil>=5.9.4",
     "python-dateutil>=2.0",
-    "ray>=2.10.0",
+    "ray>=2.43.0",
     "ruamel.yaml>=0.15",
     "scipy>=1.11.4, <1.17.0",
     "sigmf @ git+https://github.com/NTIA/SigMF@multi-recording-archive",
