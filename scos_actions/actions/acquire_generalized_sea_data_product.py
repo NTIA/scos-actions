@@ -152,7 +152,7 @@ class GeneralizedSeaDataProduct(Action):
             )
         )
 
-        # Setup/pull config parameters
+        # Setup/pull iir config parameters
         self.iir_gpass_dB = utils.get_parameter(IIR_GPASS, self.parameters)
         self.iir_gstop_dB = utils.get_parameter(IIR_GSTOP, self.parameters)
         self.iir_pb_edge_Hz = utils.get_parameter(IIR_PB_EDGE, self.parameters)
@@ -363,7 +363,7 @@ class GeneralizedSeaDataProduct(Action):
             self.create_processing_metadata(sigmf_builder, parameters, channel_dft)
             sigmf_builder.set_data_products(channel_graph)
 
-            logger.debug(f"Channel data product length: {channel_data_length}")
+            logger.info(f"Channel data product length: {channel_data_length}")
 
             # Get diagnostics last to record action runtime
             if sensor.preselector is not None:
@@ -377,8 +377,6 @@ class GeneralizedSeaDataProduct(Action):
                 data=all_data,
                 metadata=sigmf_builder.metadata,
             )
-
-            sigmf_builder = None
 
         for ray_actor in iq_processors:
             ray.kill(ray_actor)
