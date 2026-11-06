@@ -7,7 +7,7 @@ from scos_actions.metadata.structs import ntia_algorithm
 
 
 class DataProductGraphInfo(NamedTuple):
-    """Lengths and SigMF graph metadata describing a product's data."""
+    """Lengths and SigMF graph metadata describing a data_product's data."""
 
     data_length: int
     total_length: int
@@ -16,7 +16,7 @@ class DataProductGraphInfo(NamedTuple):
 
 
 class DataProductResult(NamedTuple):
-    """Computed product data, optional summary, and graph metadata."""
+    """Computed data_product data, optional summary, and graph metadata."""
 
     data_result: np.ndarray
     summary: Optional[np.ndarray]
@@ -24,8 +24,9 @@ class DataProductResult(NamedTuple):
 
 
 class DataProductInterface(ABC):
-    """
-    Common interface for data product processors initialized from action constants.
+    """Lifecycle shared by products configured from action-owned constants.
+
+    Set per-capture parameters before computing data or building graph metadata.
     """
 
     def __init__(self, consts: dict):
@@ -34,14 +35,14 @@ class DataProductInterface(ABC):
     @abstractmethod
     def _configure_from_constants(self, consts: dict) -> None:
         """
-        Configure product state from the action-owned constants' dictionary.
+        Configure data_product state from the action-owned constants' dictionary.
         """
         pass
 
     @abstractmethod
     def set_parameters(self, params: dict) -> None:
         """
-        Set product parameters from a parameters' dictionary.
+        Set per-capture parameters before calling ``compute`` or ``get_graph``.
         """
         pass
 
@@ -50,9 +51,10 @@ class DataProductInterface(ABC):
         self, iq: np.ndarray, recording_id: int
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
-        Compute product data, an optional summary, and graph metadata.
+        Compute data_product data, an optional summary, and graph metadata.
 
-        ``summary`` is ``None`` when the product has no summary values.
+        Parameters must already have been applied with ``set_parameters``.
+        ``summary`` is ``None`` when the data_product has no summary values.
         """
         pass
 

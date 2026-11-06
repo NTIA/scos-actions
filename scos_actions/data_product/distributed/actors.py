@@ -1,14 +1,14 @@
-"""Ray actor wrapper that holds one local product object for its lifetime."""
+"""Ray actor wrapper that holds one local data_product object for its lifetime."""
 from typing import Optional
 
 import numpy as np
 import ray
 
-from scos_actions.product.amplitude_probability_distribution import AmplitudeProbabilityDistribution
-from scos_actions.product.interfaces import DataProductResult
-from scos_actions.product.periodic_frame_power import PeriodicFramePower
-from scos_actions.product.power_spectral_density import PowerSpectralDensity
-from scos_actions.product.power_vs_time import PowerVsTime
+from scos_actions.data_product.amplitude_probability_distribution import AmplitudeProbabilityDistribution
+from scos_actions.data_product.interfaces import DataProductResult
+from scos_actions.data_product.periodic_frame_power import PeriodicFramePower
+from scos_actions.data_product.power_spectral_density import PowerSpectralDensity
+from scos_actions.data_product.power_vs_time import PowerVsTime
 
 _product_builders = {
     "psd": PowerSpectralDensity,
@@ -20,7 +20,7 @@ _product_builders = {
 
 @ray.remote
 class DataProductActor:
-    """Builds one product object once and reuses it for every ``run`` call."""
+    """Builds one data_product object once and reuses it for every ``run`` call."""
 
     def __init__(self, name: str, consts: dict):
         self.data_product = _product_builders[name](consts)
@@ -36,6 +36,7 @@ class DataProductActor:
     ) -> DataProductResult:
         self.data_product.set_parameters(params)
         compute_result = self.data_product.compute(iq, params["recording_id"])
+        # Normalize data-only products to the same data/summary shape as other products.
         if isinstance(compute_result, np.ndarray):
             data_result, summary = compute_result, None
         else:

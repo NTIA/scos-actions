@@ -1,3 +1,5 @@
+"""Tests for generalized SEA configuration, capture flow, and metadata output."""
+
 import lzma
 from datetime import datetime
 from types import SimpleNamespace
@@ -8,7 +10,7 @@ import pytest
 
 from scos_actions.actions import acquire_generalized_sea_data_product as generalized
 from scos_actions.hardware.mocks.mock_sensor import MockSensor
-from scos_actions.product.interfaces import DataProductResult, DataProductGraphInfo
+from scos_actions.data_product.interfaces import DataProductResult, DataProductGraphInfo
 
 
 def _parameters(**overrides):
@@ -35,6 +37,7 @@ def _parameters(**overrides):
 
 @pytest.fixture
 def make_action(monkeypatch):
+    # Fixed filter coefficients keep these tests focused on action behavior.
     sos = np.array([[1.0, 0.0, 0.0, 1.0, 0.0, 0.0]])
     numerators = np.array([1.0, 0.5])
     denominators = np.array([1.0, -0.5])
@@ -137,7 +140,7 @@ def test_update_iir_parameters_sets_sections_and_transfer_coefficients(make_acti
 
 
 def test_build_constants_exposes_product_configuration(make_action):
-    """Verify the action supplies all product detector and scaling constants."""
+    """Verify the action supplies all data_product detector and scaling constants."""
     action = make_action[0]()
 
     constants = action.build_constants()
@@ -488,7 +491,7 @@ def test_capture_diagnostics_collects_sensor_and_computer_values(
 def test_call_processes_product_results_and_emits_compressed_capture(
     make_action, monkeypatch
 ):
-    """Verify product results become compressed bytes and a completion event."""
+    """Verify data_product results become compressed bytes and a completion event."""
     params = _parameters(data_products=["psd", "pvt"])
     action = make_action[0](params)
     sensor = SimpleNamespace(preselector=object())

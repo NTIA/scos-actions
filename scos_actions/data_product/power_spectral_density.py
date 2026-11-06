@@ -6,7 +6,7 @@ from typing import Optional
 import numpy as np
 
 from scos_actions.metadata.structs import ntia_algorithm
-from scos_actions.product.interfaces import (
+from scos_actions.data_product.interfaces import (
     DataProductInterface,
     DataProductResult,
     DataProductGraphInfo,
@@ -52,7 +52,7 @@ class PowerSpectralDensity(DataProductInterface):
         )
         self.num_ffts = int(self.sample_rate * self.duration_ms * 1e-3 / self.fft_size)
 
-        # Get truncation points: truncate FFT result to middle 125 samples (middle 10 MHz from 14 MHz)
+        # Keep the center 5/7 of the FFT bins, covering 10 MHz of a 14 MHz capture.
         self.bin_start = int(self.fft_size / 7)  # bin_start = 25 with FFT_SIZE 175
         self.bin_end = self.fft_size - self.bin_start  # bin_end = 150 with FFT_SIZE 175
         # Compute the amplitude shift for PSD scaling. The FFT result
@@ -79,7 +79,7 @@ class PowerSpectralDensity(DataProductInterface):
         fft_amplitudes = get_fft(
             iq, self.fft_size, "backward", self.fft_window, self.num_ffts, False, 1
         )
-        # Power in Watts
+        # Convert FFT magnitudes to pseudo-power before applying power detectors.
         fft_amplitudes = calculate_pseudo_power(fft_amplitudes)
         fft_result = apply_statistical_detector(
             fft_amplitudes, self.detector

@@ -1,10 +1,12 @@
+"""Tests for parameter conversion and product graph construction."""
+
 from enum import Enum
 from unittest.mock import Mock
 
 import numpy as np
 import pytest
 
-from scos_actions.product import (
+from scos_actions.data_product import (
     amplitude_probability_distribution as apd_module,
     periodic_frame_power as pfp_module,
     power_spectral_density as psd_module,

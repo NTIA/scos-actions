@@ -7,7 +7,7 @@ from typing import Optional
 import numpy as np
 
 from scos_actions.metadata.structs import ntia_algorithm
-from scos_actions.product.interfaces import (
+from scos_actions.data_product.interfaces import (
     DataProductInterface,
     DataProductResult,
     DataProductGraphInfo,
@@ -55,7 +55,7 @@ class PowerVsTime(DataProductInterface):
             already exist in the Ray object store).
         :return: PVT data, four summary statistics, and graph metadata.
         """
-        # Reshape IQ data into blocks and calculate power
+        # Use full integration blocks only; any incomplete trailing block is ignored.
         logger.debug("PowerVsTime started: %s", recording_id)
 
         n_blocks = len(iq) // self.block_size

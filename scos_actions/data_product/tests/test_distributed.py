@@ -1,12 +1,14 @@
+"""Tests for distributed product actors and their result ordering."""
+
 from types import SimpleNamespace
 from unittest.mock import Mock, call
 
 import numpy as np
 import pytest
 
-from scos_actions.product import distributed
-from scos_actions.product.distributed import actors, iq_processor
-from scos_actions.product.interfaces import DataProductResult, DataProductGraphInfo
+from scos_actions.data_product import distributed
+from scos_actions.data_product.distributed import actors, iq_processor
+from scos_actions.data_product.interfaces import DataProductResult, DataProductGraphInfo
 
 
 def test_distributed_package_exports_public_actors():
@@ -16,7 +18,7 @@ def test_distributed_package_exports_public_actors():
 
 
 def test_product_actor_constructs_and_runs_product(monkeypatch):
-    """Ensure a product actor constructs its product once and delegates compute."""
+    """Ensure a data_product actor constructs its data_product once and delegates compute."""
     expected_result = DataProductResult(
         np.array([1.0]), None, DataProductGraphInfo(1, 1, object(), None)
     )
@@ -64,7 +66,7 @@ def test_product_actor_sets_parameters_before_compute_with_graph(monkeypatch):
 
 
 def test_product_actor_rejects_unknown_product():
-    """Ensure unsupported product names fail explicitly."""
+    """Ensure unsupported data_product names fail explicitly."""
     actor_class = actors.DataProductActor.__ray_metadata__.modified_class
 
     with pytest.raises(KeyError, match="unknown"):
@@ -72,7 +74,7 @@ def test_product_actor_rejects_unknown_product():
 
 
 def test_iq_processor_builds_workers_once_and_preserves_order(monkeypatch):
-    """Ensure worker reuse, filtering, and configured product order are preserved."""
+    """Ensure worker reuse, filtering, and configured data_product order are preserved."""
     created_workers = []
     worker_calls = []
     filtered_iq = np.array([2.0 + 1.0j, 3.0 + 1.0j])

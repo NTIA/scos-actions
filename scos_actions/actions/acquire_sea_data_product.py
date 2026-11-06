@@ -16,7 +16,7 @@
 # - Markdown reference: https://commonmark.org/help/
 # - SCOS Markdown Editor: https://ntia.github.io/scos-md-editor/
 #
-r"""Acquire a NASCTN SEA data product.
+r"""Acquire a NASCTN SEA data data_product.
 
 Currently in development.
 """
@@ -125,7 +125,7 @@ PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "m
 @ray.remote
 class PowerSpectralDensity:
     """
-    Compute data product mean/max PSD results from IQ samples.
+    Compute data data_product mean/max PSD results from IQ samples.
 
     The result is a PSD, with amplitudes in dBm/Hz referenced to the
     calibration terminal (assuming IQ data has been scaled for calibration).
@@ -390,7 +390,7 @@ class IQProcessor:
     second-order-sections (``iir_sos``) is also used for filtering.
 
     Upon initialization of this supervisor actor, workers are spawned
-    for each of the components of the data product. Initializing these
+    for each of the components of the data data_product. Initializing these
     processes allows for certain parts of the computation, which do not
     depend on the IQ data, to be performed ahead-of-time. The workers are
     stateful, and reuse the initialized values for each consecutive run.
@@ -439,7 +439,7 @@ class IQProcessor:
 
 
 class NasctnSeaDataProduct(Action):
-    """Acquire a stepped-frequency NASCTN SEA data product.
+    """Acquire a stepped-frequency NASCTN SEA data data_product.
 
     :param parameters: The dictionary of parameters needed for
         the action and the signal analyzer.
@@ -537,7 +537,7 @@ class NasctnSeaDataProduct(Action):
         toc = perf_counter()
         logger.debug(f"Spawned {NUM_ACTORS} supervisor actors in {toc-tic:.2f} s")
 
-        # Collect all IQ data and spawn data product computation processes
+        # Collect all IQ data and spawn data data_product computation processes
         data_products_refs, cpu_speed, reference_points = [], [], []
         capture_tic = perf_counter()
 
@@ -547,7 +547,7 @@ class NasctnSeaDataProduct(Action):
                 self.create_global_data_product_metadata(
                     measurement_result["reference"]
                 )
-            # Start data product processing but do not block next IQ capture
+            # Start data data_product processing but do not block next IQ capture
             tic = perf_counter()
             data_products_refs.append(
                 iq_processors[i % NUM_ACTORS].run.remote(measurement_result["data"])
@@ -567,13 +567,13 @@ class NasctnSeaDataProduct(Action):
             f"Collected all IQ data and started all processing in {capture_toc-capture_tic:.2f} s"
         )
 
-        # Create data product metadata: requires all data reference points
+        # Create data data_product metadata: requires all data reference points
         # to be identical.
         assert (
             len(set(reference_points)) == 1
         ), "Channel data were scaled to different reference points. Cannot build metadata."
 
-        # Collect processed data product results
+        # Collect processed data data_product results
         all_data, max_max_ch_pwrs, med_mean_ch_pwrs, mean_ch_pwrs, median_ch_pwrs = (
             [],
             [],
@@ -627,10 +627,12 @@ class NasctnSeaDataProduct(Action):
         self.sigmf_builder.set_median_of_mean_channel_powers(med_mean_ch_pwrs)
         self.sigmf_builder.set_mean_channel_powers(mean_ch_pwrs)
         self.sigmf_builder.set_median_channel_powers(median_ch_pwrs)
-        # Get diagnostics last to record action runtime
-        self.capture_diagnostics(
-            self.sensor, action_start_tic, cpu_speed
-        )  # Add diagnostics to metadata
+
+        if sensor.preselector is not None:
+            # Get diagnostics last to record action runtime
+            self.capture_diagnostics(
+                self.sensor, action_start_tic, cpu_speed
+            )  # Add diagnostics to metadata
 
         measurement_action_completed.send(
             sender=self.__class__,
@@ -1216,8 +1218,8 @@ class NasctnSeaDataProduct(Action):
 
     @staticmethod
     def transform_data(channel_data_products: list):
-        """Flatten data product list of arrays for a single channel."""
-        # Flatten data product, reduce dtype
+        """Flatten data data_product list of arrays for a single channel."""
+        # Flatten data data_product, reduce dtype
         return np.hstack(channel_data_products).astype(DATA_TYPE)
 
     @staticmethod

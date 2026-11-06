@@ -53,7 +53,7 @@ from scos_actions.metadata.structs import (
     ntia_sensor,
 )
 from scos_actions.metadata.structs.capture import CaptureSegment
-from scos_actions.product.distributed import IQProcessorProductActors
+from scos_actions.data_product.distributed import IQProcessorProductActors
 from scos_actions.settings import SCOS_SENSOR_GIT_TAG, SSD_DEVICE
 from scos_actions.signal_processing.filtering import (
     generate_elliptic_iir_low_pass_filter,
@@ -118,7 +118,7 @@ PFP_M3_DETECTOR = create_statistical_detector("PfpM3Detector", ["min", "max", "m
 
 
 class GeneralizedSeaDataProduct(Action):
-    """Acquire a stepped-frequency Generalized SEA data product.
+    """Acquire a stepped-frequency Generalized SEA data data_product.
 
     :param parameters: The dictionary of parameters needed for
         the action and the signal analyzer.
@@ -195,7 +195,7 @@ class GeneralizedSeaDataProduct(Action):
             self.iteration_params = utils.get_iterable_parameters(self.parameters, None)
 
     def build_constants(self) -> dict:
-        """Data product constants owned by this action, passed to IQ Processor as a dict."""
+        """Data data_product constants owned by this action, passed to IQ Processor as a dict."""
         return {
             "FFT_PERCENTILES": FFT_PERCENTILES,
             "FFT_WINDOW_TYPE": FFT_WINDOW_TYPE,
@@ -229,7 +229,7 @@ class GeneralizedSeaDataProduct(Action):
 
         # Initialize remote supervisor actors for IQ processing
         tic = perf_counter()
-        # Each supervisor spawns its own product workers; constants are identical
+        # Each supervisor spawns its own data_product workers; constants are identical
         # for every channel.
         constants = self.build_constants()
         iq_processors = [
@@ -239,7 +239,7 @@ class GeneralizedSeaDataProduct(Action):
         toc = perf_counter()
         logger.debug(f"Spawned {NUM_ACTORS} supervisor actors in {toc - tic:.2f} s")
 
-        # Collect all IQ data and spawn data product computation processes
+        # Capture each channel and dispatch its IQ data while later captures proceed.
         data_products_refs, cpu_speed, reference_points = [], [], []
         capture_tic = perf_counter()
         #self.total_channel_data_length = 0
@@ -248,7 +248,7 @@ class GeneralizedSeaDataProduct(Action):
             parameters["recording_id"] = i
             measurement_result = self.capture_iq(parameters)
 
-            # Start data product processing but do not block next IQ capture
+            # Start data data_product processing but do not block next IQ capture
             tic = perf_counter()
             data_products_refs.append(
                 iq_processors[i % NUM_ACTORS]
@@ -282,8 +282,8 @@ class GeneralizedSeaDataProduct(Action):
             f"Collected all IQ data and started all processing in {capture_toc - capture_tic:.2f} s"
         )
 
-        # Create data product metadata: requires all data reference points
-        # to be identical.
+        # One channel's metadata can represent the result only if every capture
+        # used the same reference point.
         assert (
                 len(set(reference_points)) == 1
         ), "Channel data were scaled to different reference points. Cannot build metadata."
@@ -312,7 +312,7 @@ class GeneralizedSeaDataProduct(Action):
                 )
                 if pending_product_refs:
                     raise RuntimeError(
-                        f"Ray left product refs pending for channel {index}."
+                        f"Ray left data_product refs pending for channel {index}."
                     )
 
             sigmf_builder = sigmf_builders[index]
@@ -320,6 +320,7 @@ class GeneralizedSeaDataProduct(Action):
 
             channel_graph = []
             channel_dft = None
+            # Product refs follow DATA_PRODUCTS order; zip preserves each result's name.
             for product_name, product_ref in zip(parameters[DATA_PRODUCTS], product_refs):
                 data, summaries, graph_objects = ray.get(product_ref)
                 product_length, product_total_length, product_graph, dft_obj = graph_objects
@@ -329,7 +330,7 @@ class GeneralizedSeaDataProduct(Action):
                 if product_name == "psd":
                     if dft_obj is None:
                         raise RuntimeError(
-                            "PSD product result is missing DFT data"
+                            "PSD data_product result is missing DFT data"
                         )
                     else:
                         channel_dft = dft_obj
@@ -337,7 +338,7 @@ class GeneralizedSeaDataProduct(Action):
                 if product_name == "pvt":
                     if summaries is None:
                         raise RuntimeError(
-                            "PVT product result is missing summary data"
+                            "PVT data_product result is missing summary data"
                         )
                     max_max_ch_pwrs.append(DATA_TYPE(summaries[0]))
                     med_mean_ch_pwrs.append(DATA_TYPE(summaries[1]))
@@ -362,7 +363,7 @@ class GeneralizedSeaDataProduct(Action):
             self.create_processing_metadata(sigmf_builder, parameters, channel_dft)
             sigmf_builder.set_data_products(channel_graph)
 
-            logger.debug(f"Channel data product length: {channel_data_length}")
+            logger.debug(f"Channel data data_product length: {channel_data_length}")
 
             # Get diagnostics last to record action runtime
             if sensor.preselector is not None:
@@ -869,8 +870,8 @@ class GeneralizedSeaDataProduct(Action):
 
     @staticmethod
     def transform_data(channel_data_products: list):
-        """Flatten data product list of arrays for a single channel."""
-        # Flatten data product, reduce dtype
+        """Flatten data data_product list of arrays for a single channel."""
+        # Flatten data data_product, reduce dtype
         return np.hstack(channel_data_products).astype(DATA_TYPE)
 
     @staticmethod

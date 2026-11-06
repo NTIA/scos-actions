@@ -7,7 +7,7 @@ from typing import Optional
 import numpy as np
 
 from scos_actions.metadata.structs import ntia_algorithm
-from scos_actions.product.interfaces import (
+from scos_actions.data_product.interfaces import (
     DataProductInterface,
     DataProductResult,
     DataProductGraphInfo,
@@ -74,6 +74,7 @@ class AmplitudeProbabilityDistribution(DataProductInterface):
         logger.debug(
             "AmplitudeProbabilityDistribution completed: %s", recording_id
         )
+        # Keep the distribution as one row so every product result is two-dimensional.
         return p.reshape(1, p.shape[0]), None
 
     def get_graph(self) -> DataProductGraphInfo:

@@ -7,7 +7,7 @@ from typing import Optional
 import numpy as np
 
 from scos_actions.metadata.structs import ntia_algorithm
-from scos_actions.product.interfaces import (
+from scos_actions.data_product.interfaces import (
     DataProductInterface,
     DataProductResult,
     DataProductGraphInfo,
@@ -75,7 +75,7 @@ class PeriodicFramePower(DataProductInterface):
             already exist in the Ray object store).
         :return: PFP data, no summary, and graph metadata.
         """
-        # Set up dimensions to make the statistics fast
+        # Group complete frames, detector points per frame, then samples per point.
         logger.debug("PeriodicFramePower started: %s", recording_id)
 
         chunked_shape = (

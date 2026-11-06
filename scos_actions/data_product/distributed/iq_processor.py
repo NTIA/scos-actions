@@ -1,20 +1,7 @@
-"""
-Supervisor actors that filter IQ data and launch the data product computations.
+"""Filter captured IQ and dispatch it to reusable product actors.
 
-The variants differ in how products are held and executed:
-
-- ``IQProcessorActors``: one long-lived product actor per product, spawned by
-  each supervisor (original design).
-- ``IQProcessorProductActors``: like ``IQProcessorActors`` but the workers are
-  generic ``ProductActor`` objects built from a parameter dict (option B).
-- ``IQProcessorTasks``: product objects are shared by object reference and
-  each product runs as a Ray task (option A).
-- ``IQProcessorLocal``: the supervisor builds the products and computes them
-  sequentially in its own process (option D).
-
-``params`` are assumed identical for every channel. ``IQProcessorProductActors``
-returns results in the configured product order; the other variants use the
-fixed ``PRODUCT_NAMES`` order.
+Product workers receive a reference to the shared filtered buffer, and their
+results are returned in the order specified by ``params["data_products"]``.
 """
 import logging
 
@@ -23,7 +10,7 @@ import ray
 from environs import Env
 from scipy.signal import sosfilt
 
-from scos_actions.product.distributed.actors import DataProductActor
+from scos_actions.data_product.distributed.actors import DataProductActor
 
 env = Env()
 logger = logging.getLogger(__name__)
@@ -32,10 +19,10 @@ logger = logging.getLogger(__name__)
 @ray.remote
 class IQProcessorProductActors:
     """
-    Supervisor that spawns one long-lived ``ProductActor`` per product.
+    Supervisor that spawns one long-lived ``ProductActor`` per data_product.
 
-    Each worker builds its product object once, in its own process, and reuses
-    it for every ``run`` call, so no product object is ever copied.
+    Each worker builds its data_product object once, in its own process, and reuses
+    it for every ``run`` call, so no data_product object is ever copied.
     """
 
     def __init__(self, actor_id: int, compute_only: bool=False) -> None:
@@ -54,7 +41,7 @@ class IQProcessorProductActors:
             if name not in self.workers:
                 self.workers[name] = DataProductActor.remote(name, consts)
 
-        """Return product references in the configured product order."""
+        # Ray's object store lets all requested products reuse this filtered buffer.
         iq_ref = ray.put(sosfilt(sos=iir_sos, x=iqdata))
         if self.compute_only:
             return tuple(

@@ -1,7 +1,9 @@
+"""Tests for the public data-product result and interface types."""
+
 import numpy as np
 import pytest
 
-from scos_actions.product.interfaces import (
+from scos_actions.data_product.interfaces import (
     DataProductInterface,
     DataProductResult,
     DataProductGraphInfo,
@@ -24,6 +26,6 @@ def test_result_types_are_named_and_positional_tuples():
 
 
 def test_data_product_interface_is_abstract():
-    """Ensure callers cannot instantiate the unimplemented product interface."""
+    """Ensure callers cannot instantiate the unimplemented data_product interface."""
     with pytest.raises(TypeError):
         DataProductInterface({})

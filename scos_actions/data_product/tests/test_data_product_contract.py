@@ -1,12 +1,14 @@
+"""Contract tests for product data, summaries, and graph metadata."""
+
 from enum import Enum
 
 import numpy as np
 
-from scos_actions.product import amplitude_probability_distribution as apd_module
-from scos_actions.product import periodic_frame_power as pfp_module
-from scos_actions.product import power_spectral_density as psd_module
-from scos_actions.product import power_vs_time as pvt_module
-from scos_actions.product.interfaces import DataProductResult, DataProductGraphInfo
+from scos_actions.data_product import amplitude_probability_distribution as apd_module
+from scos_actions.data_product import periodic_frame_power as pfp_module
+from scos_actions.data_product import power_spectral_density as psd_module
+from scos_actions.data_product import power_vs_time as pvt_module
+from scos_actions.data_product.interfaces import DataProductResult, DataProductGraphInfo
 
 
 class PSDDetector(Enum):
