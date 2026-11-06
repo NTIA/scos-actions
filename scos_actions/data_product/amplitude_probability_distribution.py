@@ -9,7 +9,6 @@ import numpy as np
 from scos_actions.metadata.structs import ntia_algorithm
 from scos_actions.data_product.interfaces import (
     DataProductInterface,
-    DataProductResult,
     DataProductGraphInfo,
 )
 from scos_actions.signal_processing.apd import get_apd
@@ -57,7 +56,7 @@ class AmplitudeProbabilityDistribution(DataProductInterface):
 
         :param iq: Complex-valued input waveform samples (which should
             already exist in the Ray object store).
-        :return: APD data, no summary, and graph metadata.
+        :return: APD data and no summary.
         """
         logger.debug(
             "AmplitudeProbabilityDistribution started: %s", recording_id

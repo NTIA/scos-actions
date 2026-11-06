@@ -8,7 +8,7 @@ from scos_actions.data_product import amplitude_probability_distribution as apd_
 from scos_actions.data_product import periodic_frame_power as pfp_module
 from scos_actions.data_product import power_spectral_density as psd_module
 from scos_actions.data_product import power_vs_time as pvt_module
-from scos_actions.data_product.interfaces import DataProductResult, DataProductGraphInfo
+from scos_actions.data_product.interfaces import DataProductGraphInfo
 
 
 class PSDDetector(Enum):
@@ -29,7 +29,7 @@ class PFPDetector(Enum):
 
 
 def test_psd_compute_returns_data_and_no_summary(monkeypatch):
-    """Verify PSD data, no summary, and graph metadata use the shared contract."""
+    """Verify PSD data, no summary, and its separately exposed graph metadata."""
     monkeypatch.setattr(psd_module, "get_fft_window", lambda *_args: np.ones(7))
     monkeypatch.setattr(
         psd_module, "get_fft_window_correction", lambda *_args: 1.0
@@ -65,16 +65,16 @@ def test_psd_compute_returns_data_and_no_summary(monkeypatch):
     }
     iq = np.ones(7, dtype=np.complex64)
     product.set_parameters(params)
-    result = product.compute(iq, params["recording_id"])
+    data_result, summary = product.compute(iq, params["recording_id"])
+    graph_info = product.get_graph()
 
-    assert isinstance(result, DataProductResult)
-    assert isinstance(result.graph_info, DataProductGraphInfo)
-    assert result.data_result.shape == (5, 5)
-    assert result.summary is None
-    assert result.graph_info.data_length == 5
-    assert result.graph_info.total_length == 25
-    assert result.graph_info.dft is not None
-    assert result.graph_info.graph.series == [
+    assert isinstance(graph_info, DataProductGraphInfo)
+    assert data_result.shape == (5, 5)
+    assert summary is None
+    assert graph_info.data_length == 5
+    assert graph_info.total_length == 25
+    assert graph_info.dft is not None
+    assert graph_info.graph.series == [
         "max",
         "mean",
         "median",
@@ -109,19 +109,19 @@ def test_pvt_compute_returns_data_and_summary(monkeypatch):
     }
     iq = np.ones(4, dtype=np.complex64)
     product.set_parameters(params)
-    result = product.compute(iq, params["recording_id"])
+    data_result, summary = product.compute(iq, params["recording_id"])
+    graph_info = product.get_graph()
 
-    assert isinstance(result, DataProductResult)
-    assert result.data_result.shape == (2, 4)
-    assert result.summary.shape == (4,)
+    assert data_result.shape == (2, 4)
+    assert summary.shape == (4,)
     expected_summary = 10 * np.log10([4.0, 2.5, 2.5, 2.5]) + 27.0
-    np.testing.assert_allclose(result.summary, expected_summary)
-    assert result.graph_info.data_length == 4
-    assert result.graph_info.total_length == 8
-    assert result.graph_info.graph.series == ["max", "mean"]
-    assert result.graph_info.graph.x_start == [0.0]
-    assert result.graph_info.graph.x_stop == [0.003]
-    assert result.graph_info.graph.x_step == [0.001]
+    np.testing.assert_allclose(summary, expected_summary)
+    assert graph_info.data_length == 4
+    assert graph_info.total_length == 8
+    assert graph_info.graph.series == ["max", "mean"]
+    assert graph_info.graph.x_start == [0.0]
+    assert graph_info.graph.x_stop == [0.003]
+    assert graph_info.graph.x_step == [0.001]
 
 
 def test_pfp_compute_returns_data_and_no_summary(monkeypatch):
@@ -153,14 +153,14 @@ def test_pfp_compute_returns_data_and_no_summary(monkeypatch):
     }
     iq = np.ones((4, 1), dtype=np.complex64)
     product.set_parameters(params)
-    result = product.compute(iq, params["recording_id"])
+    data_result, summary = product.compute(iq, params["recording_id"])
+    graph_info = product.get_graph()
 
-    assert isinstance(result, DataProductResult)
-    assert result.data_result.shape == (6, 2)
-    assert result.summary is None
-    assert result.graph_info.data_length == 2
-    assert result.graph_info.total_length == 12
-    assert result.graph_info.graph.series == [
+    assert data_result.shape == (6, 2)
+    assert summary is None
+    assert graph_info.data_length == 2
+    assert graph_info.total_length == 12
+    assert graph_info.graph.series == [
         "mean_min",
         "mean_max",
         "mean_mean",
@@ -187,10 +187,10 @@ def test_apd_compute_returns_data_and_no_summary(monkeypatch):
     }
     iq = np.ones(2, dtype=np.complex64)
     product.set_parameters(params)
-    result = product.compute(iq, params["recording_id"])
+    data_result, summary = product.compute(iq, params["recording_id"])
+    graph_info = product.get_graph()
 
-    assert isinstance(result, DataProductResult)
-    assert result.data_result.shape == (1, 2)
-    assert result.summary is None
-    assert result.graph_info.data_length == 101
-    assert result.graph_info.total_length == 101
+    assert data_result.shape == (1, 2)
+    assert summary is None
+    assert graph_info.data_length == 101
+    assert graph_info.total_length == 101

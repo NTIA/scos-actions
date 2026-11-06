@@ -9,7 +9,6 @@ import numpy as np
 from scos_actions.metadata.structs import ntia_algorithm
 from scos_actions.data_product.interfaces import (
     DataProductInterface,
-    DataProductResult,
     DataProductGraphInfo,
 )
 from scos_actions.signal_processing.power_analysis import (
@@ -73,7 +72,7 @@ class PeriodicFramePower(DataProductInterface):
 
         :param iq: Complex-valued input waveform samples (which should
             already exist in the Ray object store).
-        :return: PFP data, no summary, and graph metadata.
+        :return: PFP data and no summary.
         """
         # Group complete frames, detector points per frame, then samples per point.
         logger.debug("PeriodicFramePower started: %s", recording_id)

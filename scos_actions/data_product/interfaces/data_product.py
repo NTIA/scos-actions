@@ -51,10 +51,11 @@ class DataProductInterface(ABC):
         self, iq: np.ndarray, recording_id: int
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
-        Compute data_product data, an optional summary, and graph metadata.
+        Compute data_product data and an optional summary.
 
         Parameters must already have been applied with ``set_parameters``.
-        ``summary`` is ``None`` when the data_product has no summary values.
+        Graph metadata is returned separately by ``get_graph``. ``summary`` is
+        ``None`` when the data_product has no summary values.
         """
         pass
 

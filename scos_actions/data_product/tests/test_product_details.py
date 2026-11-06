@@ -40,16 +40,18 @@ def test_apd_compute_converts_bin_limits_and_builds_y_axis(monkeypatch):
         "apd_max_bin_dBm": -94.0,
     }
     product.set_parameters(params)
-    result = product.compute(iq, params["recording_id"])
+    data_result, summary = product.compute(iq, params["recording_id"])
+    graph_info = product.get_graph()
 
     get_apd_mock.assert_called_once_with(iq, 2.0, -127.0, -121.0, 50.0)
-    assert result.data_result.tolist() == [[0.75, 0.25]]
-    assert result.graph_info.graph.y_start == [-100.0]
-    assert result.graph_info.graph.y_stop == [-94.0]
-    assert result.graph_info.graph.y_step == [2.0]
-    assert result.graph_info.data_length == 4
-    assert result.graph_info.total_length == 4
-    assert result.graph_info.dft is None
+    assert data_result.tolist() == [[0.75, 0.25]]
+    assert summary is None
+    assert graph_info.graph.y_start == [-100.0]
+    assert graph_info.graph.y_stop == [-94.0]
+    assert graph_info.graph.y_step == [2.0]
+    assert graph_info.data_length == 4
+    assert graph_info.total_length == 4
+    assert graph_info.dft is None
 
 
 def test_psd_parameters_and_graph_metadata(monkeypatch):

@@ -9,7 +9,6 @@ import numpy as np
 from scos_actions.metadata.structs import ntia_algorithm
 from scos_actions.data_product.interfaces import (
     DataProductInterface,
-    DataProductResult,
     DataProductGraphInfo,
 )
 from scos_actions.signal_processing.power_analysis import (
@@ -53,7 +52,7 @@ class PowerVsTime(DataProductInterface):
 
         :param iq: Complex-valued input waveform samples (which should
             already exist in the Ray object store).
-        :return: PVT data, four summary statistics, and graph metadata.
+        :return: PVT data and four summary statistics.
         """
         # Use full integration blocks only; any incomplete trailing block is ignored.
         logger.debug("PowerVsTime started: %s", recording_id)

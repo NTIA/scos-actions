@@ -8,7 +8,6 @@ import numpy as np
 from scos_actions.metadata.structs import ntia_algorithm
 from scos_actions.data_product.interfaces import (
     DataProductInterface,
-    DataProductResult,
     DataProductGraphInfo,
 )
 from scos_actions.signal_processing.fft import get_fft, get_fft_window, get_fft_window_correction, get_fft_enbw, \
@@ -72,7 +71,7 @@ class PowerSpectralDensity(DataProductInterface):
 
         :param iq: Complex-valued input waveform samples (which should
             already exist in the Ray object store).
-        :return: PSD data, no summary, and graph metadata.
+        :return: PSD data and no summary.
         """
         logger.debug("PowerSpectralDensity started: %s", recording_id)
 

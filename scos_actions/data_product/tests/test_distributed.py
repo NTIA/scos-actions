@@ -19,11 +19,9 @@ def test_distributed_package_exports_public_actors():
 
 def test_product_actor_constructs_and_runs_product(monkeypatch):
     """Ensure a data_product actor constructs its data_product once and delegates compute."""
-    expected_result = DataProductResult(
-        np.array([1.0]), None, DataProductGraphInfo(1, 1, object(), None)
-    )
+    expected_data = np.array([1.0])
     product = Mock()
-    product.compute.return_value = expected_result
+    product.compute.return_value = (expected_data, None)
     build_product = Mock(return_value=product)
     monkeypatch.setitem(actors._product_builders, "apd", build_product)
     actor_class = actors.DataProductActor.__ray_metadata__.modified_class
@@ -39,7 +37,7 @@ def test_product_actor_constructs_and_runs_product(monkeypatch):
         call.set_parameters(params),
         call.compute(iq, params["recording_id"]),
     ]
-    assert result is expected_result
+    assert result == (expected_data, None)
 
 
 def test_product_actor_sets_parameters_before_compute_with_graph(monkeypatch):
@@ -47,7 +45,7 @@ def test_product_actor_sets_parameters_before_compute_with_graph(monkeypatch):
     data_result = np.array([[0.5, 0.25]])
     graph_info = DataProductGraphInfo(2, 2, object(), None)
     product = Mock()
-    product.compute.return_value = data_result
+    product.compute.return_value = (data_result, None)
     product.get_graph.return_value = graph_info
     monkeypatch.setitem(actors._product_builders, "apd", Mock(return_value=product))
     actor_class = actors.DataProductActor.__ray_metadata__.modified_class
@@ -57,7 +55,10 @@ def test_product_actor_sets_parameters_before_compute_with_graph(monkeypatch):
 
     result = actor.run_with_graph(iq, params)
 
-    assert result == DataProductResult(data_result, None, graph_info)
+    assert isinstance(result, DataProductResult)
+    assert result.data_result is data_result
+    assert result.summary is None
+    assert result.graph_info is graph_info
     assert product.mock_calls == [
         call.set_parameters(params),
         call.compute(iq, params["recording_id"]),
@@ -73,8 +74,14 @@ def test_product_actor_rejects_unknown_product():
         actor_class("unknown", {})
 
 
-def test_iq_processor_builds_workers_once_and_preserves_order(monkeypatch):
-    """Ensure worker reuse, filtering, and configured data_product order are preserved."""
+@pytest.mark.parametrize(
+    ("compute_only", "expected_method"),
+    [(True, "run"), (False, "run_with_graph")],
+)
+def test_iq_processor_builds_workers_once_and_preserves_order(
+    monkeypatch, compute_only, expected_method
+):
+    """Ensure both execution modes reuse workers and preserve product order."""
     created_workers = []
     worker_calls = []
     filtered_iq = np.array([2.0 + 1.0j, 3.0 + 1.0j])
@@ -82,11 +89,20 @@ def test_iq_processor_builds_workers_once_and_preserves_order(monkeypatch):
     class FakeWorker:
         def __init__(self, name):
             self.name = name
-            self.run = SimpleNamespace(remote=self._run_remote)
+            self.run = SimpleNamespace(
+                remote=lambda iq_ref, params: self._run(
+                    "run", iq_ref, params
+                )
+            )
+            self.run_with_graph = SimpleNamespace(
+                remote=lambda iq_ref, params: self._run(
+                    "run_with_graph", iq_ref, params
+                )
+            )
             self.__ray_terminate__ = SimpleNamespace(remote=self._terminate_remote)
 
-        def _run_remote(self, iq_ref, params):
-            worker_calls.append((self.name, iq_ref, params))
+        def _run(self, method, iq_ref, params):
+            worker_calls.append((self.name, method, iq_ref, params))
             return f"ref-{self.name}"
 
         def _terminate_remote(self):
@@ -106,7 +122,7 @@ def test_iq_processor_builds_workers_once_and_preserves_order(monkeypatch):
     processor_class = (
         iq_processor.IQProcessorProductActors.__ray_metadata__.modified_class
     )
-    processor = processor_class(actor_id=5, compute_only=True)
+    processor = processor_class(actor_id=5, compute_only=compute_only)
     iq = np.array([1.0 + 1.0j, 2.0 + 1.0j])
     params = {"recording_id": 8, "data_products": ["pfp", "psd"]}
     consts = {"shared": True}
@@ -119,5 +135,11 @@ def test_iq_processor_builds_workers_once_and_preserves_order(monkeypatch):
     assert second_result == first_result
     assert created_workers == [("pfp", consts), ("psd", consts)]
     assert len(worker_calls) == 4
-    assert worker_calls[0][1] == ("object-ref", filtered_iq)
-    assert worker_calls[0][2] is params
+    assert [worker_call[1] for worker_call in worker_calls] == [
+        expected_method,
+        expected_method,
+        expected_method,
+        expected_method,
+    ]
+    assert worker_calls[0][2] == ("object-ref", filtered_iq)
+    assert worker_calls[0][3] is params

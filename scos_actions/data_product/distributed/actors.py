@@ -35,12 +35,7 @@ class DataProductActor:
         self, iq: np.ndarray, params: dict
     ) -> DataProductResult:
         self.data_product.set_parameters(params)
-        compute_result = self.data_product.compute(iq, params["recording_id"])
-        # Normalize data-only products to the same data/summary shape as other products.
-        if isinstance(compute_result, np.ndarray):
-            data_result, summary = compute_result, None
-        else:
-            data_result, summary = compute_result
+        data_result, summary = self.data_product.compute(iq, params["recording_id"])
         return DataProductResult(
             data_result=data_result,
             summary=summary,
