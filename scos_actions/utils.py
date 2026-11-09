@@ -18,7 +18,7 @@ class ParameterException(Exception):
 
 
 def get_datetime_str_now():
-    return datetime.now(UTC).isoformat(timespec="milliseconds") + "Z"
+    return datetime.now(UTC).replace(tzinfo=None).isoformat(timespec="milliseconds") + "Z"
 
 
 def convert_datetime_to_millisecond_iso_format(timestamp):
