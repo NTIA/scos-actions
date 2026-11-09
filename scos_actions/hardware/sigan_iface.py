@@ -19,6 +19,7 @@ class SignalAnalyzerInterface(ABC):
         self._api_version = "Unknown"
         self._firmware_version = "Unknown"
         self.switches = switches
+        self._bit_width = 32
 
     @property
     @abstractmethod
@@ -42,6 +43,10 @@ class SignalAnalyzerInterface(ABC):
     def firmware_version(self) -> str:
         """Returns the version of the signal analyzer firmware."""
         return self._firmware_version
+
+    @property
+    def bit_width(self) -> int:
+        return self._bit_width
 
     @property
     def api_version(self) -> str:
