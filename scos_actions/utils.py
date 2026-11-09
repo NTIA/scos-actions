@@ -122,7 +122,7 @@ def get_parameter(p: str, params: dict):
 
 
 def get_days_up(start_time):
-    elapsed = datetime.now(UTC) - start_time
+    elapsed =  datetime.now(datetime.UTC).replace(tzinfo=None)- start_time
     days = elapsed.days
     fractional_day = elapsed.seconds / (60 * 60 * 24)
     return round(days + fractional_day, 4)
