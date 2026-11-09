@@ -2,6 +2,7 @@ import json
 import logging
 import shutil
 from datetime import datetime
+from datetime import UTC
 from pathlib import Path
 
 from dateutil import parser
@@ -17,7 +18,7 @@ class ParameterException(Exception):
 
 
 def get_datetime_str_now():
-    return datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
+    return datetime.now(UTC).isoformat(timespec="milliseconds") + "Z"
 
 
 def convert_datetime_to_millisecond_iso_format(timestamp):
@@ -121,7 +122,7 @@ def get_parameter(p: str, params: dict):
 
 
 def get_days_up(start_time):
-    elapsed = datetime.utcnow() - start_time
+    elapsed = datetime.now(UTC) - start_time
     days = elapsed.days
     fractional_day = elapsed.seconds / (60 * 60 * 24)
     return round(days + fractional_day, 4)
