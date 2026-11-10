@@ -1,0 +1,1 @@
+"""Data-product algorithms, interfaces, and distributed execution helpers."""
