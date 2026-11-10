@@ -266,7 +266,7 @@ class GeneralizedSeaDataProduct(Action):
                 schedule_entry,
                 parameters[SAMPLE_RATE],
                 num_channels=1,
-                recording=i,
+                recording=i+1,
             )
             self.total_channel_data_length = 0
             # Create capture segment with channel-specific metadata before sigan is reconfigured
