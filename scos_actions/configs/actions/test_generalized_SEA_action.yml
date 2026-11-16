@@ -53,7 +53,7 @@ generalized_sea_data_product:
     - frequency:
         - 3625e6
         - 3635e6
-      sample_rate: 28e6
+      sample_rate: 56e6
       duration_ms: 2000
     - frequency:
         - 3645e6

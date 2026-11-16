@@ -245,7 +245,8 @@ class GeneralizedSeaDataProduct(Action):
         #self.total_channel_data_length = 0
 
         for i, parameters in enumerate(self.iteration_params):
-            parameters["recording_id"] = i
+            recording_id = i + 1
+            parameters["recording_id"] = recording_id
             measurement_result = self.capture_iq(parameters)
 
             # Start data product processing but do not block next IQ capture
@@ -266,7 +267,7 @@ class GeneralizedSeaDataProduct(Action):
                 schedule_entry,
                 parameters[SAMPLE_RATE],
                 num_channels=1,
-                recording=i+1,
+                recording=recording_id,
             )
             self.total_channel_data_length = 0
             # Create capture segment with channel-specific metadata before sigan is reconfigured
