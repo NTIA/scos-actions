@@ -302,7 +302,7 @@ class GeneralizedSeaDataProduct(Action):
                 [],
             )
             channel_data = []
-            channel_data_length = 0
+            channel_data_length = ""
 
             tic = perf_counter()
             # Now block until the data is ready
@@ -352,7 +352,7 @@ class GeneralizedSeaDataProduct(Action):
                     sigmf_builder.set_median_channel_powers(median_ch_pwrs)
 
                 channel_data.extend(data)
-                channel_data_length += product_total_length
+                channel_data_length += product_name + ": " + str(product_total_length) + ", "
 
             toc = perf_counter()
             logger.debug(f"Waited {toc - tic} s for channel data")
