@@ -354,9 +354,9 @@ class GeneralizedSeaDataProduct(Action):
                 channel_data.extend(data)
                 channel_data_length += product_name + ": " + str(product_total_length) + ", "
 
-            toc = perf_counter()
-            logger.debug(f"Waited {toc - tic} s for channel data")
             all_data.extend(self.transform_data(channel_data))
+            toc = perf_counter()
+            logger.debug(f"Waited {toc - tic} s for channel data, size %s", len(all_data))
 
             # Build metadata and convert data to compressed bytes
             all_data = self.compress_bytes_data(np.array(all_data).tobytes())
@@ -364,7 +364,7 @@ class GeneralizedSeaDataProduct(Action):
             self.create_processing_metadata(sigmf_builder, parameters, channel_dft)
             sigmf_builder.set_data_products(channel_graph)
 
-            logger.info(f"Channel data product length: {channel_data_length}")
+            logger.debug(f"Channel data product length: {channel_data_length}")
 
             # Get diagnostics last to record action runtime
             if sensor.preselector is not None:
