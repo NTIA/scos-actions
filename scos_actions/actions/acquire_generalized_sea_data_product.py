@@ -82,6 +82,7 @@ IIR_NUMERATORS = "iir_numerators"
 IIR_DENOMINATORS = "iir_denominators"
 IIR_SOS = "iir_sos"
 
+ATTENUATION = "attenuation"
 PREAMP_ENABLE = "preamp_enable"
 REFERENCE_LEVEL = "reference_level"
 NUM_SKIP = "nskip"
@@ -101,7 +102,6 @@ updatable_keys = {
     "APD_MAX_BIN_DBM": "apd_max_bin_dBm",
     "TD_BIN_SIZE_MS": "td_bin_size_ms",
     "PFP_FRAME_PERIOD_MS": "pfp_frame_period_ms",
-    "ATTENUATION": "attenuation",
 }
 
 # Constants

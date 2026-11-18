@@ -61,7 +61,7 @@ def test_init_sets_defaults_and_preserves_input(make_action):
 
     action = build(params)
 
-    assert action.parameters[generalized.FFT_SIZE] == generalized.DEFAULT_FFT_SIZE
+    assert action.parameters[generalized.updatable_keys["FFT_SIZE"]] == generalized.DEFAULT_FFT_SIZE
     assert action.parameters[generalized.DATA_PRODUCTS] == tuple(
         generalized.ALL_DATA_PRODUCTS
     )
@@ -79,7 +79,7 @@ def test_init_sets_defaults_and_preserves_input(make_action):
     )
     assert generate_filter.call_count == 1
     assert params[generalized.IIR_GPASS] == 1.0
-    assert generalized.FFT_SIZE not in params
+    assert generalized.updatable_keys["FFT_SIZE"] not in params
 
 
 def test_init_applies_per_capture_overrides_in_input_order(make_action):
@@ -107,11 +107,11 @@ def test_init_applies_per_capture_overrides_in_input_order(make_action):
         200e6,
         100e6,
     ]
-    assert [item[generalized.SAMPLE_RATE] for item in action.iteration_params] == [
+    assert [item[generalized.updatable_keys["SAMPLE_RATE"]] for item in action.iteration_params] == [
         2000,
         1000,
     ]
-    assert [item[generalized.FFT_SIZE] for item in action.iteration_params] == [
+    assert [item[generalized.updatable_keys["FFT_SIZE"]] for item in action.iteration_params] == [
         generalized.DEFAULT_FFT_SIZE,
         256,
     ]
@@ -128,7 +128,7 @@ def test_update_iir_parameters_sets_sections_and_transfer_coefficients(make_acti
     action = build()
     generate_filter.reset_mock()
     convert_filter.reset_mock()
-    params = {generalized.SAMPLE_RATE: 8000}
+    params = {generalized.updatable_keys["SAMPLE_RATE"]: 8000}
 
     action.update_iir_parameters(params)
 
@@ -164,8 +164,8 @@ def test_capture_iq_configures_sigan_and_merges_acquisition_parameters(make_acti
     sensor.acquire_time_domain_samples.return_value = measurement
     action.sensor = sensor
     params = {
-        generalized.SAMPLE_RATE: 2000,
-        generalized.DURATION_MS: 3,
+        generalized.updatable_keys["SAMPLE_RATE"]: 2000,
+        generalized.updatable_keys["DURATION_MS"]: 3,
         generalized.FREQUENCY: 100e6,
         generalized.NUM_SKIP: 5,
     }
@@ -178,8 +178,8 @@ def test_capture_iq_configures_sigan_and_merges_acquisition_parameters(make_acti
     )
     assert result is measurement
     assert result[generalized.FREQUENCY] == 100e6
-    assert result[generalized.SAMPLE_RATE] == 2000
-    assert result[generalized.DURATION_MS] == 3
+    assert result[generalized.updatable_keys["SAMPLE_RATE"]] == 2000
+    assert result[generalized.updatable_keys["DURATION_MS"]] == 3
 
 
 def test_required_components_restarts_api_for_unavailable_or_unhealthy_sigan(
@@ -246,7 +246,7 @@ def test_create_capture_segment_records_calibration_and_sigan_settings(
     builder = Mock()
     measurement = {
         "capture_time": "2026-01-02T03:04:05.000Z",
-        generalized.DURATION_MS: 4,
+        generalized.updatable_keys["DURATION_MS"]: 4,
         "overload": True,
         "reference": "signal analyzer input",
         "applied_calibration": {"gain": 1.2345, "noise_figure": 2.3456},
