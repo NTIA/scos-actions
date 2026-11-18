@@ -23,6 +23,7 @@ import logging
 import lzma
 import platform
 import sys
+from itertools import chain
 from time import perf_counter
 from typing import Optional
 
@@ -80,23 +81,28 @@ IIR_SB_EDGE = "iir_sb_edge_Hz"
 IIR_NUMERATORS = "iir_numerators"
 IIR_DENOMINATORS = "iir_denominators"
 IIR_SOS = "iir_sos"
-FFT_SIZE = "fft_size"  # Optional; defaults to DEFAULT_FFT_SIZE
-APD_BIN_SIZE_DB = "apd_bin_size_dB"
-APD_MIN_BIN_DBM = "apd_min_bin_dBm"
-APD_MAX_BIN_DBM = "apd_max_bin_dBm"
-TD_BIN_SIZE_MS = "td_bin_size_ms"
-FREQUENCY = "frequency"
-SAMPLE_RATE = "sample_rate"
-ATTENUATION = "attenuation"
+
 PREAMP_ENABLE = "preamp_enable"
 REFERENCE_LEVEL = "reference_level"
-DURATION_MS = "duration_ms"
 NUM_SKIP = "nskip"
-PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
 
 # Generalized action parameter keys
-DATA_PRODUCTS = "data_products"
+FREQUENCY = "frequency"
 CAPTURES = "captures"
+DATA_PRODUCTS = "data_products"
+
+# parameter keys might be updated in individual channel
+updatable_keys = {
+    "SAMPLE_RATE": "sample_rate",
+    "DURATION_MS": "duration_ms",
+    "FFT_SIZE": "fft_size",  # Optional; defaults to DEFAULT_FFT_SIZE
+    "APD_BIN_SIZE_DB": "apd_bin_size_dB",
+    "APD_MIN_BIN_DBM": "apd_min_bin_dBm",
+    "APD_MAX_BIN_DBM": "apd_max_bin_dBm",
+    "TD_BIN_SIZE_MS": "td_bin_size_ms",
+    "PFP_FRAME_PERIOD_MS": "pfp_frame_period_ms",
+    "ATTENUATION": "attenuation",
+}
 
 # Constants
 DATA_TYPE = np.half
@@ -128,7 +134,7 @@ class GeneralizedSeaDataProduct(Action):
     def __init__(self, parameters: dict):
         super().__init__(parameters)
         # Use fft_size from the YAML if present, otherwise the constant default
-        self.parameters.setdefault(FFT_SIZE, DEFAULT_FFT_SIZE)
+        self.parameters.setdefault(updatable_keys["FFT_SIZE"], DEFAULT_FFT_SIZE)
         # Assume preselector is present
         rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
         self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
@@ -136,19 +142,12 @@ class GeneralizedSeaDataProduct(Action):
         # Check that certain parameters are specified only once (not per-channel)
         assert not any(
             isinstance(self.parameters[k], list)
-            for k in (
-                IIR_GPASS,
+            for k in chain(
+                [IIR_GPASS,
                 IIR_GSTOP,
                 IIR_PB_EDGE,
-                IIR_SB_EDGE,
-                FFT_SIZE,
-                SAMPLE_RATE,
-                DURATION_MS,
-                TD_BIN_SIZE_MS,
-                PFP_FRAME_PERIOD_MS,
-                APD_BIN_SIZE_DB,
-                APD_MAX_BIN_DBM,
-                APD_MIN_BIN_DBM,
+                IIR_SB_EDGE],
+                updatable_keys.values(),
             )
         )
 
@@ -177,12 +176,9 @@ class GeneralizedSeaDataProduct(Action):
             for grouped_captures in self.parameters[CAPTURES]:
                 grouped_captures_parameters = self.parameters.copy()
                 grouped_captures_parameters[FREQUENCY] = grouped_captures[FREQUENCY]
-                if FFT_SIZE in grouped_captures:
-                    grouped_captures_parameters[FFT_SIZE] = grouped_captures[FFT_SIZE]
-                if SAMPLE_RATE in grouped_captures:
-                    grouped_captures_parameters[SAMPLE_RATE] = grouped_captures[SAMPLE_RATE]
-                if DURATION_MS in grouped_captures:
-                    grouped_captures_parameters[DURATION_MS] = grouped_captures[DURATION_MS]
+                for key, value in updatable_keys.items():
+                    if value in grouped_captures:
+                        grouped_captures_parameters[value] = grouped_captures[value]
                 if DATA_PRODUCTS in grouped_captures:
                     grouped_captures_parameters[DATA_PRODUCTS] = tuple(grouped_captures[DATA_PRODUCTS])
                 del grouped_captures_parameters[CAPTURES]
@@ -265,7 +261,7 @@ class GeneralizedSeaDataProduct(Action):
             sigmf_builder = self.create_sigmf_builder(
                 task_id,
                 schedule_entry,
-                parameters[SAMPLE_RATE],
+                parameters[updatable_keys["SAMPLE_RATE"]],
                 num_channels=1,
                 recording=recording_id,
             )
@@ -387,7 +383,7 @@ class GeneralizedSeaDataProduct(Action):
 
     def update_iir_parameters(self, params: dict):
         "Update iir parameters for each channel"
-        sample_rate_Hz = params[SAMPLE_RATE]
+        sample_rate_Hz = params[updatable_keys["SAMPLE_RATE"]]
         # Construct IIR filter
         iir_sos = generate_elliptic_iir_low_pass_filter(
             self.iir_gpass_dB,
@@ -408,9 +404,9 @@ class GeneralizedSeaDataProduct(Action):
         # Configure signal analyzer
         self.configure_sigan(params)
         # Get IQ capture parameters
-        duration_ms = utils.get_parameter(DURATION_MS, params)
+        duration_ms = utils.get_parameter(updatable_keys["DURATION_MS"], params)
         nskip = utils.get_parameter(NUM_SKIP, params)
-        num_samples = int(params[SAMPLE_RATE] * duration_ms * 1e-3)
+        num_samples = int(params[updatable_keys["SAMPLE_RATE"]] * duration_ms * 1e-3)
         # Collect IQ data
         measurement_result = self.sensor.acquire_time_domain_samples(
             num_samples, nskip, cal_params=params
@@ -793,7 +789,7 @@ class GeneralizedSeaDataProduct(Action):
             sample_start=channel_idx * self.total_channel_data_length,
             frequency=self.sensor.signal_analyzer.frequency,
             datetime=measurement_result["capture_time"],
-            duration=measurement_result[DURATION_MS],
+            duration=measurement_result[updatable_keys["DURATION_MS"]],
             overload=measurement_result["overload"],
             sensor_calibration=ntia_sensor.Calibration(
                 datetime=self.sensor.sensor_calibration_data["datetime"],
