@@ -54,7 +54,7 @@ class Sensor:
         self._differential_calibration_data = {}
         self._differential_calibration = differential_cal
         # There is no setter for start_time property
-        self._start_time = datetime.datetime.utcnow()
+        self._start_time = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
 
     @property
     def signal_analyzer(self) -> Optional[SignalAnalyzerInterface]:

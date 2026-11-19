@@ -2,7 +2,9 @@ import json
 import logging
 import shutil
 from datetime import datetime
+from datetime import UTC
 from pathlib import Path
+from typing import Optional
 
 from dateutil import parser
 
@@ -17,7 +19,7 @@ class ParameterException(Exception):
 
 
 def get_datetime_str_now():
-    return datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
+    return datetime.now(UTC).replace(tzinfo=None).isoformat(timespec="milliseconds") + "Z"
 
 
 def convert_datetime_to_millisecond_iso_format(timestamp):
@@ -46,7 +48,9 @@ def load_from_json(fname: Path):
         raise e
 
 
-def get_iterable_parameters(parameters: dict, sortby: str = "frequency"):
+def get_iterable_parameters(
+    parameters: dict, sort_by: Optional[str] = "frequency"
+):
     """
     Convert parameter dictionary into iterable list.
 
@@ -94,7 +98,8 @@ def get_iterable_parameters(parameters: dict, sortby: str = "frequency"):
                 raise ParameterException(msg)
     # Construct iterable parameter mapping
     result = [dict(zip(params, v)) for v in zip(*params.values())]
-    result.sort(key=lambda param: param[sortby])
+    if sort_by is not None:
+        result.sort(key=lambda param: param[sort_by])
     return result
 
 
@@ -121,7 +126,7 @@ def get_parameter(p: str, params: dict):
 
 
 def get_days_up(start_time):
-    elapsed = datetime.utcnow() - start_time
+    elapsed =  datetime.now(datetime.UTC).replace(tzinfo=None)- start_time
     days = elapsed.days
     fractional_day = elapsed.seconds / (60 * 60 * 24)
     return round(days + fractional_day, 4)

@@ -81,6 +81,34 @@ def test_get_iterable_parameters_all_lists():
     )
 
 
+def test_get_iterable_parameters_none_preserves_input_order():
+    params = {
+        "name": "preserve_input_order",
+        "frequency": [720e6, 710e6, 700e6],
+        "sample_rate": [14e6, 28e6, 56e6],
+    }
+
+    iterable = utils.get_iterable_parameters(params, sort_by=None)
+
+    assert [
+        (item["frequency"], item["sample_rate"]) for item in iterable
+    ] == [(720e6, 14e6), (710e6, 28e6), (700e6, 56e6)]
+
+
+def test_get_iterable_parameters_defaults_to_frequency_order():
+    params = {
+        "name": "sort_by_frequency",
+        "frequency": [720e6, 710e6, 700e6],
+        "sample_rate": [14e6, 28e6, 56e6],
+    }
+
+    iterable = utils.get_iterable_parameters(params)
+
+    assert [
+        (item["frequency"], item["sample_rate"]) for item in iterable
+    ] == [(700e6, 56e6), (710e6, 28e6), (720e6, 14e6)]
+
+
 def test_get_iterable_parameters_some_lists():
     some_lists = {
         "name": "some_lists",

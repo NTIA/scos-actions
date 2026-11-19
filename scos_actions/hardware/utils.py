@@ -84,7 +84,15 @@ def get_disk_smart_data(disk: str) -> Union[dict, str]:
         the string "Unavailable" if ``smartctl`` fails to run.
     """
     try:
-        report = subprocess.check_output(["smartctl", "-a", disk]).decode("utf-8")
+        result = subprocess.run(
+            ["smartctl", "-a", disk],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            logger.warning(f"smartctl returned exit code {result.returncode}")
+        report = result.stdout
+
     except Exception:
         logger.exception(f"Unable to get SMART data for disk {disk}")
         return "Unavailable"
