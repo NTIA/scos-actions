@@ -48,13 +48,14 @@ class AmplitudeProbabilityDistribution(DataProductInterface):
         self.max_bin_dBW_RF = self.apd_max_bin_dbm - 27.0
 
     def compute(
-        self, iq: np.ndarray, recording_id: int
+        self, iq: np.ndarray, recording_id: Optional[int]
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Generate the downsampled APD result from IQ samples.
 
         :param iq: Complex-valued input waveform samples (which should
             already exist in the Ray object store).
+        :param recording_id: Capture identifier for diagnostic logs, or ``None``.
         :return: APD data and no summary.
         """
         logger.debug(

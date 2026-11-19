@@ -63,13 +63,14 @@ class PowerSpectralDensity(DataProductInterface):
         )
 
     def compute(
-        self, iq: np.ndarray, recording_id: int
+        self, iq: np.ndarray, recording_id: Optional[int]
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Compute power spectral densities from IQ samples.
 
         :param iq: Complex-valued input waveform samples (which should
             already exist in the Ray object store).
+        :param recording_id: Capture identifier for diagnostic logs, or ``None``.
         :return: PSD data and no summary.
         """
         logger.debug("PowerSpectralDensity started: %s", recording_id)

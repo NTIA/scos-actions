@@ -67,13 +67,14 @@ class PeriodicFramePower(DataProductInterface):
         )
 
     def compute(
-        self, iq: np.ndarray, recording_id: int
+        self, iq: np.ndarray, recording_id: Optional[int]
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Compute periodic frame power results from IQ samples.
 
         :param iq: Complex-valued input waveform samples (which should
             already exist in the Ray object store).
+        :param recording_id: Capture identifier for diagnostic logs, or ``None``.
         :return: PFP data and no summary.
         """
         # Group complete frames, detector points per frame, then samples per point.

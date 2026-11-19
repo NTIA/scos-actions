@@ -44,13 +44,14 @@ class PowerVsTime(DataProductInterface):
         self.block_size = int(self.td_bin_size_ms * self.sample_rate * 1e-3)
 
     def compute(
-        self, iq: np.ndarray, recording_id: int
+        self, iq: np.ndarray, recording_id: Optional[int]
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Compute power versus time results from IQ samples.
 
         :param iq: Complex-valued input waveform samples (which should
             already exist in the Ray object store).
+        :param recording_id: Capture identifier for diagnostic logs, or ``None``.
         :return: PVT data and four summary statistics.
         """
         # Use full integration blocks only; any incomplete trailing block is ignored.

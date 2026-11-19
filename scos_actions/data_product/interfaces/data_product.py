@@ -48,7 +48,7 @@ class DataProductInterface(ABC):
 
     @abstractmethod
     def compute(
-        self, iq: np.ndarray, recording_id: int
+        self, iq: np.ndarray, recording_id: Optional[int]
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Compute data_product data and an optional summary.
@@ -56,6 +56,10 @@ class DataProductInterface(ABC):
         Parameters must already have been applied with ``set_parameters``.
         Graph metadata is returned separately by ``get_graph``. ``summary`` is
         ``None`` when the data_product has no summary values.
+
+        :param iq: Complex-valued input waveform samples.
+        :param recording_id: Capture identifier for diagnostic logs, or ``None``.
+        :return: Product data and an optional summary.
         """
         pass
 
