@@ -92,8 +92,8 @@ FREQUENCY = "frequency"
 CAPTURES = "captures"
 DATA_PRODUCTS = "data_products"
 
-# parameter keys might be updated in individual channel
-updatable_keys = {
+# Map setting names to YAML keys that may be overridden per capture.
+UPDATABLE_KEYS = {
     "SAMPLE_RATE": "sample_rate",
     "DURATION_MS": "duration_ms",
     "FFT_SIZE": "fft_size",  # Optional; defaults to DEFAULT_FFT_SIZE
@@ -133,13 +133,13 @@ class GeneralizedSeaDataProduct(Action):
 
     def __init__(self, parameters: dict):
         super().__init__(parameters)
-        # Use fft_size from the YAML if present, otherwise the constant default
-        self.parameters.setdefault(updatable_keys["FFT_SIZE"], DEFAULT_FFT_SIZE)
+        # Default fft_size when it is not specified at the top level.
+        self.parameters.setdefault(UPDATABLE_KEYS["FFT_SIZE"], DEFAULT_FFT_SIZE)
         # Assume preselector is present
         rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
         self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
 
-        # Check that certain parameters are specified only once (not per-channel)
+        # Top-level values must be scalars; per-capture overrides belong in captures.
         assert not any(
             isinstance(self.parameters[k], list)
             for k in chain(
@@ -147,7 +147,7 @@ class GeneralizedSeaDataProduct(Action):
                 IIR_GSTOP,
                 IIR_PB_EDGE,
                 IIR_SB_EDGE],
-                updatable_keys.values(),
+                UPDATABLE_KEYS.values(),
             )
         )
 
@@ -170,13 +170,13 @@ class GeneralizedSeaDataProduct(Action):
         self.parameters.setdefault(DATA_PRODUCTS, ALL_DATA_PRODUCTS)
         self.parameters[DATA_PRODUCTS] = tuple(self.parameters[DATA_PRODUCTS])
 
-        # Get iterable parameter list
+        # Build iteration parameters from grouped captures or top-level values.
         if CAPTURES in self.parameters:
             self.iteration_params = []
             for grouped_captures in self.parameters[CAPTURES]:
                 grouped_captures_parameters = self.parameters.copy()
                 grouped_captures_parameters[FREQUENCY] = grouped_captures[FREQUENCY]
-                for key, value in updatable_keys.items():
+                for key, value in UPDATABLE_KEYS.items():
                     if value in grouped_captures:
                         grouped_captures_parameters[value] = grouped_captures[value]
                 if DATA_PRODUCTS in grouped_captures:
@@ -261,7 +261,7 @@ class GeneralizedSeaDataProduct(Action):
             sigmf_builder = self.create_sigmf_builder(
                 task_id,
                 schedule_entry,
-                parameters[updatable_keys["SAMPLE_RATE"]],
+                parameters[UPDATABLE_KEYS["SAMPLE_RATE"]],
                 num_channels=1,
                 recording=recording_id,
             )
@@ -383,7 +383,7 @@ class GeneralizedSeaDataProduct(Action):
 
     def update_iir_parameters(self, params: dict):
         "Update iir parameters for each channel"
-        sample_rate_Hz = params[updatable_keys["SAMPLE_RATE"]]
+        sample_rate_Hz = params[UPDATABLE_KEYS["SAMPLE_RATE"]]
         # Construct IIR filter
         iir_sos = generate_elliptic_iir_low_pass_filter(
             self.iir_gpass_dB,
@@ -404,9 +404,9 @@ class GeneralizedSeaDataProduct(Action):
         # Configure signal analyzer
         self.configure_sigan(params)
         # Get IQ capture parameters
-        duration_ms = utils.get_parameter(updatable_keys["DURATION_MS"], params)
+        duration_ms = utils.get_parameter(UPDATABLE_KEYS["DURATION_MS"], params)
         nskip = utils.get_parameter(NUM_SKIP, params)
-        num_samples = int(params[updatable_keys["SAMPLE_RATE"]] * duration_ms * 1e-3)
+        num_samples = int(params[UPDATABLE_KEYS["SAMPLE_RATE"]] * duration_ms * 1e-3)
         # Collect IQ data
         measurement_result = self.sensor.acquire_time_domain_samples(
             num_samples, nskip, cal_params=params
@@ -789,7 +789,7 @@ class GeneralizedSeaDataProduct(Action):
             sample_start=channel_idx * self.total_channel_data_length,
             frequency=self.sensor.signal_analyzer.frequency,
             datetime=measurement_result["capture_time"],
-            duration=measurement_result[updatable_keys["DURATION_MS"]],
+            duration=measurement_result[UPDATABLE_KEYS["DURATION_MS"]],
             overload=measurement_result["overload"],
             sensor_calibration=ntia_sensor.Calibration(
                 datetime=self.sensor.sensor_calibration_data["datetime"],
