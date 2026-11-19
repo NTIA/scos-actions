@@ -9,6 +9,7 @@ from scos_actions.data_product import periodic_frame_power as pfp_module
 from scos_actions.data_product import power_spectral_density as psd_module
 from scos_actions.data_product import power_vs_time as pvt_module
 from scos_actions.data_product.interfaces import DataProductGraphInfo
+from scos_actions.data_product.parameters import RECORDING_ID_KEY
 
 
 class PSDDetector(Enum):
@@ -58,14 +59,14 @@ def test_psd_compute_returns_data_and_no_summary(monkeypatch):
     )
 
     params = {
-        "recording_id": 0,
+        RECORDING_ID_KEY: 0,
         "sample_rate": 14e6,
         "duration_ms": 1,
         "fft_size": 7,
     }
     iq = np.ones(7, dtype=np.complex64)
     product.set_parameters(params)
-    data_result, summary = product.compute(iq, params["recording_id"])
+    data_result, summary = product.compute(iq, params[RECORDING_ID_KEY])
     graph_info = product.get_graph()
 
     assert isinstance(graph_info, DataProductGraphInfo)
@@ -102,14 +103,14 @@ def test_pvt_compute_returns_data_and_summary(monkeypatch):
     )
 
     params = {
-        "recording_id": 0,
+        RECORDING_ID_KEY: 0,
         "sample_rate": 1000,
         "duration_ms": 4,
         "td_bin_size_ms": 1,
     }
     iq = np.ones(4, dtype=np.complex64)
     product.set_parameters(params)
-    data_result, summary = product.compute(iq, params["recording_id"])
+    data_result, summary = product.compute(iq, params[RECORDING_ID_KEY])
     graph_info = product.get_graph()
 
     assert data_result.shape == (2, 4)
@@ -145,7 +146,7 @@ def test_pfp_compute_returns_data_and_no_summary(monkeypatch):
     )
 
     params = {
-        "recording_id": 0,
+        RECORDING_ID_KEY: 0,
         "sample_rate": 1000,
         "duration_ms": 4,
         "td_bin_size_ms": 1,
@@ -153,7 +154,7 @@ def test_pfp_compute_returns_data_and_no_summary(monkeypatch):
     }
     iq = np.ones((4, 1), dtype=np.complex64)
     product.set_parameters(params)
-    data_result, summary = product.compute(iq, params["recording_id"])
+    data_result, summary = product.compute(iq, params[RECORDING_ID_KEY])
     graph_info = product.get_graph()
 
     assert data_result.shape == (6, 2)
@@ -180,14 +181,14 @@ def test_apd_compute_returns_data_and_no_summary(monkeypatch):
     product = apd_module.AmplitudeProbabilityDistribution({"IMPEDANCE_OHMS": 50.0})
 
     params = {
-        "recording_id": 0,
+        RECORDING_ID_KEY: 0,
         "apd_bin_size_dB": 1.0,
         "apd_min_bin_dBm": -100.0,
         "apd_max_bin_dBm": 0.0,
     }
     iq = np.ones(2, dtype=np.complex64)
     product.set_parameters(params)
-    data_result, summary = product.compute(iq, params["recording_id"])
+    data_result, summary = product.compute(iq, params[RECORDING_ID_KEY])
     graph_info = product.get_graph()
 
     assert data_result.shape == (1, 2)

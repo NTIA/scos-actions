@@ -11,20 +11,19 @@ from scos_actions.data_product.interfaces import (
     DataProductInterface,
     DataProductGraphInfo,
 )
+from scos_actions.data_product.parameters import (
+    DURATION_MS_KEY,
+    PFP_FRAME_PERIOD_MS_KEY,
+    RECORDING_ID_KEY,
+    SAMPLE_RATE_KEY,
+    TD_BIN_SIZE_MS_KEY,
+)
 from scos_actions.signal_processing.power_analysis import (
     apply_statistical_detector,
     calculate_pseudo_power,
 )
 
 logger = logging.getLogger(__name__)
-
-
-# PFP parameter keys
-PFP_FRAME_PERIOD_MS = "pfp_frame_period_ms"
-SAMPLE_RATE = "sample_rate"
-DURATION_MS = "duration_ms"
-TD_BIN_SIZE_MS = "td_bin_size_ms"
-
 
 class PeriodicFramePower(DataProductInterface):
     """
@@ -39,19 +38,19 @@ class PeriodicFramePower(DataProductInterface):
         self.detector_period_s = consts["PFP_FRAME_RESOLUTION_S"]
 
     def set_parameters(self, params: dict) -> None:
-        self.sample_rate = params[SAMPLE_RATE]
-        self.duration_ms = params[DURATION_MS]
-        self.td_bin_size_ms = params[TD_BIN_SIZE_MS]
+        self.sample_rate = params[SAMPLE_RATE_KEY]
+        self.duration_ms = params[DURATION_MS_KEY]
+        self.td_bin_size_ms = params[TD_BIN_SIZE_MS_KEY]
         sampling_period_s = 1.0 / self.sample_rate
-        self.pfp_frame_period_ms = params[PFP_FRAME_PERIOD_MS]
+        self.pfp_frame_period_ms = params[PFP_FRAME_PERIOD_MS_KEY]
         frame_period_s = 1e-3 * self.pfp_frame_period_ms
         if not np.isclose(frame_period_s % sampling_period_s, 0, 1e-6):
             raise ValueError(
-                "Frame period must be a positive integer multiple of sampling period: %s", params["recording_id"]
+                "Frame period must be a positive integer multiple of sampling period: %s", params[RECORDING_ID_KEY]
             )
         if not np.isclose(self.detector_period_s % sampling_period_s, 0, 1e-6):
             raise ValueError(
-                "Detector period must be a positive integer multiple of sampling period: %s", params["recording_id"]
+                "Detector period must be a positive integer multiple of sampling period: %s", params[RECORDING_ID_KEY]
             )
         self.n_frames = int(round(frame_period_s / sampling_period_s))
         self.n_points = int(round(frame_period_s / self.detector_period_s))

@@ -11,18 +11,17 @@ from scos_actions.data_product.interfaces import (
     DataProductInterface,
     DataProductGraphInfo,
 )
+from scos_actions.data_product.parameters import (
+    DURATION_MS_KEY,
+    SAMPLE_RATE_KEY,
+    TD_BIN_SIZE_MS_KEY,
+)
 from scos_actions.signal_processing.power_analysis import (
     apply_statistical_detector,
     calculate_power_watts,
 )
 
 logger = logging.getLogger(__name__)
-
-# PVT parameter keys
-SAMPLE_RATE = "sample_rate"
-TD_BIN_SIZE_MS = "td_bin_size_ms"
-DURATION_MS = "duration_ms"
-
 
 class PowerVsTime(DataProductInterface):
     """
@@ -39,9 +38,9 @@ class PowerVsTime(DataProductInterface):
         self.impedance_ohms = consts["IMPEDANCE_OHMS"]
 
     def set_parameters(self, params: dict) -> None:
-        self.sample_rate = params[SAMPLE_RATE]
-        self.duration_ms = params[DURATION_MS]
-        self.td_bin_size_ms = params[TD_BIN_SIZE_MS]
+        self.sample_rate = params[SAMPLE_RATE_KEY]
+        self.duration_ms = params[DURATION_MS_KEY]
+        self.td_bin_size_ms = params[TD_BIN_SIZE_MS_KEY]
         self.block_size = int(self.td_bin_size_ms * self.sample_rate * 1e-3)
 
     def compute(

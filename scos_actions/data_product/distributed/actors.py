@@ -7,6 +7,7 @@ import ray
 from scos_actions.data_product.amplitude_probability_distribution import AmplitudeProbabilityDistribution
 from scos_actions.data_product.interfaces import DataProductResult
 from scos_actions.data_product.periodic_frame_power import PeriodicFramePower
+from scos_actions.data_product.parameters import RECORDING_ID_KEY
 from scos_actions.data_product.power_spectral_density import PowerSpectralDensity
 from scos_actions.data_product.power_vs_time import PowerVsTime
 
@@ -29,13 +30,13 @@ class DataProductActor:
         self, iq: np.ndarray, params: dict
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         self.data_product.set_parameters(params)
-        return self.data_product.compute(iq, params["recording_id"])
+        return self.data_product.compute(iq, params[RECORDING_ID_KEY])
 
     def run_with_graph(
         self, iq: np.ndarray, params: dict
     ) -> DataProductResult:
         self.data_product.set_parameters(params)
-        data_result, summary = self.data_product.compute(iq, params["recording_id"])
+        data_result, summary = self.data_product.compute(iq, params[RECORDING_ID_KEY])
         return DataProductResult(
             data_result=data_result,
             summary=summary,

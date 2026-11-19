@@ -11,6 +11,12 @@ import pytest
 from scos_actions.actions import acquire_generalized_sea_data_product as generalized
 from scos_actions.hardware.mocks.mock_sensor import MockSensor
 from scos_actions.data_product.interfaces import DataProductResult, DataProductGraphInfo
+from scos_actions.data_product.parameters import (
+    DATA_PRODUCTS_KEY,
+    DURATION_MS_KEY,
+    FFT_SIZE_KEY,
+    SAMPLE_RATE_KEY,
+)
 
 
 def _parameters(**overrides):
@@ -61,25 +67,25 @@ def test_init_sets_defaults_and_preserves_input(make_action):
 
     action = build(params)
 
-    assert action.parameters[generalized.UPDATABLE_KEYS["FFT_SIZE"]] == generalized.DEFAULT_FFT_SIZE
-    assert action.parameters[generalized.DATA_PRODUCTS] == tuple(
+    assert action.parameters[FFT_SIZE_KEY] == generalized.DEFAULT_FFT_SIZE
+    assert action.parameters[DATA_PRODUCTS_KEY] == tuple(
         generalized.ALL_DATA_PRODUCTS
     )
-    assert generalized.IIR_GPASS not in action.parameters
-    assert [item[generalized.FREQUENCY] for item in action.iteration_params] == [
+    assert generalized.IIR_GPASS_KEY not in action.parameters
+    assert [item[generalized.FREQUENCY_KEY] for item in action.iteration_params] == [
         200e6,
         100e6,
     ]
-    assert all(item[generalized.IIR_SOS] is sos for item in action.iteration_params)
+    assert all(item[generalized.IIR_SOS_KEY] is sos for item in action.iteration_params)
     np.testing.assert_array_equal(
-        action.iteration_params[0][generalized.IIR_NUMERATORS], numerators
+        action.iteration_params[0][generalized.IIR_NUMERATORS_KEY], numerators
     )
     np.testing.assert_array_equal(
-        action.iteration_params[0][generalized.IIR_DENOMINATORS], denominators
+        action.iteration_params[0][generalized.IIR_DENOMINATORS_KEY], denominators
     )
     assert generate_filter.call_count == 1
-    assert params[generalized.IIR_GPASS] == 1.0
-    assert generalized.UPDATABLE_KEYS["FFT_SIZE"] not in params
+    assert params[generalized.IIR_GPASS_KEY] == 1.0
+    assert FFT_SIZE_KEY not in params
 
 
 def test_init_applies_per_capture_overrides_in_input_order(make_action):
@@ -90,32 +96,32 @@ def test_init_applies_per_capture_overrides_in_input_order(make_action):
             {
                 "frequency": 200e6,
                 "sample_rate": 2000,
-                "data_products": ["pvt"],
+                DATA_PRODUCTS_KEY: ["pvt"],
             },
             {
                 "frequency": 100e6,
                 "fft_size": 256,
                 "duration_ms": 8,
-                "data_products": ["psd", "apd"],
+                DATA_PRODUCTS_KEY: ["psd", "apd"],
             },
         ]
     )
 
     action = build(params)
 
-    assert [item[generalized.FREQUENCY] for item in action.iteration_params] == [
+    assert [item[generalized.FREQUENCY_KEY] for item in action.iteration_params] == [
         200e6,
         100e6,
     ]
-    assert [item[generalized.UPDATABLE_KEYS["SAMPLE_RATE"]] for item in action.iteration_params] == [
+    assert [item[SAMPLE_RATE_KEY] for item in action.iteration_params] == [
         2000,
         1000,
     ]
-    assert [item[generalized.UPDATABLE_KEYS["FFT_SIZE"]] for item in action.iteration_params] == [
+    assert [item[FFT_SIZE_KEY] for item in action.iteration_params] == [
         generalized.DEFAULT_FFT_SIZE,
         256,
     ]
-    assert [item[generalized.DATA_PRODUCTS] for item in action.iteration_params] == [
+    assert [item[DATA_PRODUCTS_KEY] for item in action.iteration_params] == [
         ("pvt",),
         ("psd", "apd"),
     ]
@@ -128,15 +134,15 @@ def test_update_iir_parameters_sets_sections_and_transfer_coefficients(make_acti
     action = build()
     generate_filter.reset_mock()
     convert_filter.reset_mock()
-    params = {generalized.UPDATABLE_KEYS["SAMPLE_RATE"]: 8000}
+    params = {SAMPLE_RATE_KEY: 8000}
 
     action.update_iir_parameters(params)
 
     generate_filter.assert_called_once_with(1.0, 40.0, 4.5e6, 5.0e6, 8000)
     convert_filter.assert_called_once_with(sos=sos)
-    assert params[generalized.IIR_SOS] is sos
-    np.testing.assert_array_equal(params[generalized.IIR_NUMERATORS], numerators)
-    np.testing.assert_array_equal(params[generalized.IIR_DENOMINATORS], denominators)
+    assert params[generalized.IIR_SOS_KEY] is sos
+    np.testing.assert_array_equal(params[generalized.IIR_NUMERATORS_KEY], numerators)
+    np.testing.assert_array_equal(params[generalized.IIR_DENOMINATORS_KEY], denominators)
 
 
 def test_build_constants_exposes_product_configuration(make_action):
@@ -164,10 +170,10 @@ def test_capture_iq_configures_sigan_and_merges_acquisition_parameters(make_acti
     sensor.acquire_time_domain_samples.return_value = measurement
     action.sensor = sensor
     params = {
-        generalized.UPDATABLE_KEYS["SAMPLE_RATE"]: 2000,
-        generalized.UPDATABLE_KEYS["DURATION_MS"]: 3,
-        generalized.FREQUENCY: 100e6,
-        generalized.NUM_SKIP: 5,
+        SAMPLE_RATE_KEY: 2000,
+        DURATION_MS_KEY: 3,
+        generalized.FREQUENCY_KEY: 100e6,
+        generalized.NUM_SKIP_KEY: 5,
     }
 
     result = action.capture_iq(params)
@@ -177,9 +183,9 @@ def test_capture_iq_configures_sigan_and_merges_acquisition_parameters(make_acti
         6, 5, cal_params=params
     )
     assert result is measurement
-    assert result[generalized.FREQUENCY] == 100e6
-    assert result[generalized.UPDATABLE_KEYS["SAMPLE_RATE"]] == 2000
-    assert result[generalized.UPDATABLE_KEYS["DURATION_MS"]] == 3
+    assert result[generalized.FREQUENCY_KEY] == 100e6
+    assert result[SAMPLE_RATE_KEY] == 2000
+    assert result[DURATION_MS_KEY] == 3
 
 
 def test_required_components_restarts_api_for_unavailable_or_unhealthy_sigan(
@@ -214,8 +220,8 @@ def test_create_processing_metadata_records_filter_and_optional_dft(make_action)
     action = make_action[0]()
     builder = Mock()
     params = {
-        generalized.IIR_NUMERATORS: np.array([1.0, 0.5]),
-        generalized.IIR_DENOMINATORS: np.array([1.0, -0.5]),
+        generalized.IIR_NUMERATORS_KEY: np.array([1.0, 0.5]),
+        generalized.IIR_DENOMINATORS_KEY: np.array([1.0, -0.5]),
     }
     dft = object()
 
@@ -246,7 +252,7 @@ def test_create_capture_segment_records_calibration_and_sigan_settings(
     builder = Mock()
     measurement = {
         "capture_time": "2026-01-02T03:04:05.000Z",
-        generalized.UPDATABLE_KEYS["DURATION_MS"]: 4,
+        DURATION_MS_KEY: 4,
         "overload": True,
         "reference": "signal analyzer input",
         "applied_calibration": {"gain": 1.2345, "noise_figure": 2.3456},
@@ -570,7 +576,7 @@ def test_call_processes_product_results_and_emits_compressed_capture(
     assert remote_run.options_args == {"num_returns": 2}
     assert remote_run.remote_args[0].tolist() == [1.0 + 1.0j]
     assert remote_run.remote_args[1] is action.iteration_params[0]
-    assert remote_run.remote_args[2] is action.iteration_params[0][generalized.IIR_SOS]
+    assert remote_run.remote_args[2] is action.iteration_params[0][generalized.IIR_SOS_KEY]
     assert action.create_processing_metadata.call_args.args == (
         builder,
         action.iteration_params[0],

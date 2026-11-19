@@ -55,6 +55,14 @@ from scos_actions.metadata.structs import (
 )
 from scos_actions.metadata.structs.capture import CaptureSegment
 from scos_actions.data_product.distributed import IQProcessorProductActors
+from scos_actions.data_product.parameters import (
+    DATA_PRODUCTS_KEY,
+    DURATION_MS_KEY,
+    FFT_SIZE_KEY,
+    RECORDING_ID_KEY,
+    SAMPLE_RATE_KEY,
+    UPDATABLE_KEYS,
+)
 from scos_actions.settings import SCOS_SENSOR_GIT_TAG, SSD_DEVICE
 from scos_actions.signal_processing.filtering import (
     generate_elliptic_iir_low_pass_filter,
@@ -73,36 +81,23 @@ env = Env()
 logger = logging.getLogger(__name__)
 
 # Define parameter keys
-RF_PATH = "rf_path"
-IIR_GPASS = "iir_gpass_dB"
-IIR_GSTOP = "iir_gstop_dB"
-IIR_PB_EDGE = "iir_pb_edge_Hz"
-IIR_SB_EDGE = "iir_sb_edge_Hz"
-IIR_NUMERATORS = "iir_numerators"
-IIR_DENOMINATORS = "iir_denominators"
-IIR_SOS = "iir_sos"
+RF_PATH_KEY = "rf_path"
+IIR_GPASS_KEY = "iir_gpass_dB"
+IIR_GSTOP_KEY = "iir_gstop_dB"
+IIR_PB_EDGE_KEY = "iir_pb_edge_Hz"
+IIR_SB_EDGE_KEY = "iir_sb_edge_Hz"
+IIR_NUMERATORS_KEY = "iir_numerators"
+IIR_DENOMINATORS_KEY = "iir_denominators"
+IIR_SOS_KEY = "iir_sos"
 
-ATTENUATION = "attenuation"
-PREAMP_ENABLE = "preamp_enable"
-REFERENCE_LEVEL = "reference_level"
-NUM_SKIP = "nskip"
+ATTENUATION_KEY = "attenuation"
+PREAMP_ENABLE_KEY = "preamp_enable"
+REFERENCE_LEVEL_KEY = "reference_level"
+NUM_SKIP_KEY = "nskip"
 
 # Generalized action parameter keys
-FREQUENCY = "frequency"
-CAPTURES = "captures"
-DATA_PRODUCTS = "data_products"
-
-# Map setting names to YAML keys that may be overridden per capture.
-UPDATABLE_KEYS = {
-    "SAMPLE_RATE": "sample_rate",
-    "DURATION_MS": "duration_ms",
-    "FFT_SIZE": "fft_size",  # Optional; defaults to DEFAULT_FFT_SIZE
-    "APD_BIN_SIZE_DB": "apd_bin_size_dB",
-    "APD_MIN_BIN_DBM": "apd_min_bin_dBm",
-    "APD_MAX_BIN_DBM": "apd_max_bin_dBm",
-    "TD_BIN_SIZE_MS": "td_bin_size_ms",
-    "PFP_FRAME_PERIOD_MS": "pfp_frame_period_ms",
-}
+FREQUENCY_KEY = "frequency"
+CAPTURES_KEY = "captures"
 
 # Constants
 DATA_TYPE = np.half
@@ -134,54 +129,54 @@ class GeneralizedSeaDataProduct(Action):
     def __init__(self, parameters: dict):
         super().__init__(parameters)
         # Default fft_size when it is not specified at the top level.
-        self.parameters.setdefault(UPDATABLE_KEYS["FFT_SIZE"], DEFAULT_FFT_SIZE)
+        self.parameters.setdefault(FFT_SIZE_KEY, DEFAULT_FFT_SIZE)
         # Assume preselector is present
-        rf_path_name = utils.get_parameter(RF_PATH, self.parameters)
+        rf_path_name = utils.get_parameter(RF_PATH_KEY, self.parameters)
         self.rf_path = {self.PRESELECTOR_PATH_KEY: rf_path_name}
 
         # Top-level values must be scalars; per-capture overrides belong in captures.
         assert not any(
             isinstance(self.parameters[k], list)
             for k in chain(
-                [IIR_GPASS,
-                IIR_GSTOP,
-                IIR_PB_EDGE,
-                IIR_SB_EDGE],
-                UPDATABLE_KEYS.values(),
+                [IIR_GPASS_KEY,
+                IIR_GSTOP_KEY,
+                IIR_PB_EDGE_KEY,
+                IIR_SB_EDGE_KEY],
+                UPDATABLE_KEYS,
             )
         )
 
         # Setup/pull iir config parameters
-        self.iir_gpass_dB = utils.get_parameter(IIR_GPASS, self.parameters)
-        self.iir_gstop_dB = utils.get_parameter(IIR_GSTOP, self.parameters)
-        self.iir_pb_edge_Hz = utils.get_parameter(IIR_PB_EDGE, self.parameters)
-        self.iir_sb_edge_Hz = utils.get_parameter(IIR_SB_EDGE, self.parameters)
+        self.iir_gpass_dB = utils.get_parameter(IIR_GPASS_KEY, self.parameters)
+        self.iir_gstop_dB = utils.get_parameter(IIR_GSTOP_KEY, self.parameters)
+        self.iir_pb_edge_Hz = utils.get_parameter(IIR_PB_EDGE_KEY, self.parameters)
+        self.iir_sb_edge_Hz = utils.get_parameter(IIR_SB_EDGE_KEY, self.parameters)
 
         # Remove IIR parameters which aren't needed after filter generation
         for key in [
-            IIR_GPASS,
-            IIR_GSTOP,
-            IIR_PB_EDGE,
-            IIR_SB_EDGE,
+            IIR_GPASS_KEY,
+            IIR_GSTOP_KEY,
+            IIR_PB_EDGE_KEY,
+            IIR_SB_EDGE_KEY,
         ]:
             self.parameters.pop(key)
 
         # Use data_products from the YAML if present, otherwise the constant default
-        self.parameters.setdefault(DATA_PRODUCTS, ALL_DATA_PRODUCTS)
-        self.parameters[DATA_PRODUCTS] = tuple(self.parameters[DATA_PRODUCTS])
+        self.parameters.setdefault(DATA_PRODUCTS_KEY, ALL_DATA_PRODUCTS)
+        self.parameters[DATA_PRODUCTS_KEY] = tuple(self.parameters[DATA_PRODUCTS_KEY])
 
         # Build iteration parameters from grouped captures or top-level values.
-        if CAPTURES in self.parameters:
+        if CAPTURES_KEY in self.parameters:
             self.iteration_params = []
-            for grouped_captures in self.parameters[CAPTURES]:
+            for grouped_captures in self.parameters[CAPTURES_KEY]:
                 grouped_captures_parameters = self.parameters.copy()
-                grouped_captures_parameters[FREQUENCY] = grouped_captures[FREQUENCY]
-                for key, value in UPDATABLE_KEYS.items():
-                    if value in grouped_captures:
-                        grouped_captures_parameters[value] = grouped_captures[value]
-                if DATA_PRODUCTS in grouped_captures:
-                    grouped_captures_parameters[DATA_PRODUCTS] = tuple(grouped_captures[DATA_PRODUCTS])
-                del grouped_captures_parameters[CAPTURES]
+                grouped_captures_parameters[FREQUENCY_KEY] = grouped_captures[FREQUENCY_KEY]
+                for key in UPDATABLE_KEYS:
+                    if key in grouped_captures:
+                        grouped_captures_parameters[key] = grouped_captures[key]
+                if DATA_PRODUCTS_KEY in grouped_captures:
+                    grouped_captures_parameters[DATA_PRODUCTS_KEY] = tuple(grouped_captures[DATA_PRODUCTS_KEY])
+                del grouped_captures_parameters[CAPTURES_KEY]
                 self.update_iir_parameters(grouped_captures_parameters)
                 # Using original frequency sequence in YAML, do not re-sort
                 self.iteration_params.extend(utils.get_iterable_parameters(grouped_captures_parameters, None))
@@ -242,15 +237,15 @@ class GeneralizedSeaDataProduct(Action):
 
         for i, parameters in enumerate(self.iteration_params):
             recording_id = i + 1
-            parameters["recording_id"] = recording_id
+            parameters[RECORDING_ID_KEY] = recording_id
             measurement_result = self.capture_iq(parameters)
 
             # Start data product processing but do not block next IQ capture
             tic = perf_counter()
             data_products_refs.append(
                 iq_processors[i % NUM_ACTORS]
-                .run.options(num_returns=len(parameters[DATA_PRODUCTS]))
-                .remote(measurement_result["data"], parameters, parameters[IIR_SOS], constants)
+                .run.options(num_returns=len(parameters[DATA_PRODUCTS_KEY]))
+                .remote(measurement_result["data"], parameters, parameters[IIR_SOS_KEY], constants)
             )
 
             del measurement_result["data"]
@@ -261,7 +256,7 @@ class GeneralizedSeaDataProduct(Action):
             sigmf_builder = self.create_sigmf_builder(
                 task_id,
                 schedule_entry,
-                parameters[UPDATABLE_KEYS["SAMPLE_RATE"]],
+                parameters[SAMPLE_RATE_KEY],
                 num_channels=1,
                 recording=recording_id,
             )
@@ -317,8 +312,9 @@ class GeneralizedSeaDataProduct(Action):
 
             channel_graph = []
             channel_dft = None
-            # Product refs follow DATA_PRODUCTS order; zip preserves each result's name.
-            for product_name, product_ref in zip(parameters[DATA_PRODUCTS], product_refs):
+            # Product refs follow configured data-product order; zip preserves
+            # each result's name.
+            for product_name, product_ref in zip(parameters[DATA_PRODUCTS_KEY], product_refs):
                 data, summaries, graph_objects = ray.get(product_ref)
                 product_length, product_total_length, product_graph, dft_obj = graph_objects
                 product_graph.reference = reference_points[index]
@@ -383,7 +379,7 @@ class GeneralizedSeaDataProduct(Action):
 
     def update_iir_parameters(self, params: dict):
         "Update iir parameters for each channel"
-        sample_rate_Hz = params[UPDATABLE_KEYS["SAMPLE_RATE"]]
+        sample_rate_Hz = params[SAMPLE_RATE_KEY]
         # Construct IIR filter
         iir_sos = generate_elliptic_iir_low_pass_filter(
             self.iir_gpass_dB,
@@ -394,9 +390,9 @@ class GeneralizedSeaDataProduct(Action):
         )
         iir_numerators, iir_denominators = sos2tf(sos=iir_sos)
 
-        params[IIR_NUMERATORS] = iir_numerators
-        params[IIR_DENOMINATORS] = iir_denominators
-        params[IIR_SOS] = iir_sos
+        params[IIR_NUMERATORS_KEY] = iir_numerators
+        params[IIR_DENOMINATORS_KEY] = iir_denominators
+        params[IIR_SOS_KEY] = iir_sos
 
     def capture_iq(self, params: dict) -> dict:
         """Acquire a single gap-free stream of IQ samples."""
@@ -404,9 +400,9 @@ class GeneralizedSeaDataProduct(Action):
         # Configure signal analyzer
         self.configure_sigan(params)
         # Get IQ capture parameters
-        duration_ms = utils.get_parameter(UPDATABLE_KEYS["DURATION_MS"], params)
-        nskip = utils.get_parameter(NUM_SKIP, params)
-        num_samples = int(params[UPDATABLE_KEYS["SAMPLE_RATE"]] * duration_ms * 1e-3)
+        duration_ms = utils.get_parameter(DURATION_MS_KEY, params)
+        nskip = utils.get_parameter(NUM_SKIP_KEY, params)
+        num_samples = int(params[SAMPLE_RATE_KEY] * duration_ms * 1e-3)
         # Collect IQ data
         measurement_result = self.sensor.acquire_time_domain_samples(
             num_samples, nskip, cal_params=params
@@ -415,7 +411,7 @@ class GeneralizedSeaDataProduct(Action):
         measurement_result.update(params)
         toc = perf_counter()
         logger.debug(
-            f"IQ Capture ({duration_ms} ms @ {(params[FREQUENCY] / 1e6):.1f} MHz) completed in {toc - tic:.2f} s."
+            f"IQ Capture ({duration_ms} ms @ {(params[FREQUENCY_KEY] / 1e6):.1f} MHz) completed in {toc - tic:.2f} s."
         )
         return measurement_result
 
@@ -764,8 +760,8 @@ class GeneralizedSeaDataProduct(Action):
         iir_obj = ntia_algorithm.DigitalFilter(
             id="iir_1",
             filter_type=ntia_algorithm.FilterType.IIR,
-            feedforward_coefficients=params[IIR_NUMERATORS].tolist(),
-            feedback_coefficients=params[IIR_DENOMINATORS].tolist(),
+            feedforward_coefficients=params[IIR_NUMERATORS_KEY].tolist(),
+            feedback_coefficients=params[IIR_DENOMINATORS_KEY].tolist(),
             attenuation_cutoff=self.iir_gstop_dB,
             frequency_cutoff=self.iir_sb_edge_Hz,
             description="5 MHz lowpass filter used as complex 10 MHz bandpass for channelization",
@@ -789,7 +785,7 @@ class GeneralizedSeaDataProduct(Action):
             sample_start=channel_idx * self.total_channel_data_length,
             frequency=self.sensor.signal_analyzer.frequency,
             datetime=measurement_result["capture_time"],
-            duration=measurement_result[UPDATABLE_KEYS["DURATION_MS"]],
+            duration=measurement_result[DURATION_MS_KEY],
             overload=measurement_result["overload"],
             sensor_calibration=ntia_sensor.Calibration(
                 datetime=self.sensor.sensor_calibration_data["datetime"],

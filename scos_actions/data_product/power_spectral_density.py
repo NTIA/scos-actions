@@ -10,6 +10,11 @@ from scos_actions.data_product.interfaces import (
     DataProductInterface,
     DataProductGraphInfo,
 )
+from scos_actions.data_product.parameters import (
+    DURATION_MS_KEY,
+    FFT_SIZE_KEY,
+    SAMPLE_RATE_KEY,
+)
 from scos_actions.signal_processing.fft import get_fft, get_fft_window, get_fft_window_correction, get_fft_enbw, \
     get_fft_frequencies
 from scos_actions.signal_processing.power_analysis import (
@@ -18,12 +23,6 @@ from scos_actions.signal_processing.power_analysis import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-# FFT parameter keys
-SAMPLE_RATE = "sample_rate"
-DURATION_MS = "duration_ms"
-FFT_SIZE = "fft_size"
 
 
 class PowerSpectralDensity(DataProductInterface):
@@ -42,9 +41,9 @@ class PowerSpectralDensity(DataProductInterface):
         self.impedance_ohms = consts["IMPEDANCE_OHMS"]
 
     def set_parameters(self, params: dict) -> None:
-        self.sample_rate = params[SAMPLE_RATE]
-        self.duration_ms = params[DURATION_MS]
-        self.fft_size = int(params[FFT_SIZE])
+        self.sample_rate = params[SAMPLE_RATE_KEY]
+        self.duration_ms = params[DURATION_MS_KEY]
+        self.fft_size = int(params[FFT_SIZE_KEY])
         self.fft_window = get_fft_window(self.fft_window_type, self.fft_size)
         self.fft_window_correction = get_fft_window_correction(
             self.fft_window, self.fft_window_correction_type

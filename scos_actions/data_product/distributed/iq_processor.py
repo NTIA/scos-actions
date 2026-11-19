@@ -1,7 +1,7 @@
 """Filter captured IQ and dispatch it to reusable product actors.
 
 Product workers receive a reference to the shared filtered buffer, and their
-results are returned in the order specified by ``params["data_products"]``.
+results are returned in the order specified by ``params[DATA_PRODUCTS_KEY]``.
 """
 import logging
 
@@ -11,6 +11,7 @@ from environs import Env
 from scipy.signal import sosfilt
 
 from scos_actions.data_product.distributed.actors import DataProductActor
+from scos_actions.data_product.parameters import DATA_PRODUCTS_KEY, RECORDING_ID_KEY
 
 env = Env()
 logger = logging.getLogger(__name__)
@@ -33,10 +34,10 @@ class IQProcessorProductActors:
 
     @ray.method(num_returns=1)
     def run(self, iqdata: np.ndarray, params: dict, iir_sos: np.ndarray, consts: dict) -> tuple:
-        recording_id = params["recording_id"]
+        recording_id = params[RECORDING_ID_KEY]
         logger.debug("IQProcessorProductActors run: %s, %s", self.actor_id, recording_id)
 
-        product_names = params["data_products"]
+        product_names = params[DATA_PRODUCTS_KEY]
         for name in product_names:
             if name not in self.workers:
                 self.workers[name] = DataProductActor.remote(name, consts)

@@ -9,6 +9,7 @@ import pytest
 from scos_actions.data_product import distributed
 from scos_actions.data_product.distributed import actors, iq_processor
 from scos_actions.data_product.interfaces import DataProductResult, DataProductGraphInfo
+from scos_actions.data_product.parameters import DATA_PRODUCTS_KEY, RECORDING_ID_KEY
 
 
 def test_distributed_package_exports_public_actors():
@@ -28,14 +29,14 @@ def test_product_actor_constructs_and_runs_product(monkeypatch):
 
     actor = actor_class("apd", {"IMPEDANCE_OHMS": 50.0})
     iq = np.array([1.0 + 1.0j])
-    params = {"recording_id": 1}
+    params = {RECORDING_ID_KEY: 1}
 
     result = actor.run(iq, params)
 
     build_product.assert_called_once_with({"IMPEDANCE_OHMS": 50.0})
     assert product.mock_calls == [
         call.set_parameters(params),
-        call.compute(iq, params["recording_id"]),
+        call.compute(iq, params[RECORDING_ID_KEY]),
     ]
     assert result == (expected_data, None)
 
@@ -51,7 +52,7 @@ def test_product_actor_sets_parameters_before_compute_with_graph(monkeypatch):
     actor_class = actors.DataProductActor.__ray_metadata__.modified_class
     actor = actor_class("apd", {})
     iq = np.array([1.0 + 1.0j])
-    params = {"recording_id": 1}
+    params = {RECORDING_ID_KEY: 1}
 
     result = actor.run_with_graph(iq, params)
 
@@ -61,7 +62,7 @@ def test_product_actor_sets_parameters_before_compute_with_graph(monkeypatch):
     assert result.graph_info is graph_info
     assert product.mock_calls == [
         call.set_parameters(params),
-        call.compute(iq, params["recording_id"]),
+        call.compute(iq, params[RECORDING_ID_KEY]),
         call.get_graph(),
     ]
 
@@ -124,7 +125,7 @@ def test_iq_processor_builds_workers_once_and_preserves_order(
     )
     processor = processor_class(actor_id=5, compute_only=compute_only)
     iq = np.array([1.0 + 1.0j, 2.0 + 1.0j])
-    params = {"recording_id": 8, "data_products": ["pfp", "psd"]}
+    params = {RECORDING_ID_KEY: 8, DATA_PRODUCTS_KEY: ["pfp", "psd"]}
     consts = {"shared": True}
     sos = np.array([[1.0, 0.0, 0.0]])
 

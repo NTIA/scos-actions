@@ -11,15 +11,14 @@ from scos_actions.data_product.interfaces import (
     DataProductInterface,
     DataProductGraphInfo,
 )
+from scos_actions.data_product.parameters import (
+    APD_BIN_SIZE_DB_KEY,
+    APD_MAX_BIN_DBM_KEY,
+    APD_MIN_BIN_DBM_KEY,
+)
 from scos_actions.signal_processing.apd import get_apd
 
 logger = logging.getLogger(__name__)
-
-# APD parameter keys
-APD_BIN_SIZE_DB = "apd_bin_size_dB"
-APD_MIN_BIN_DBM = "apd_min_bin_dBm"
-APD_MAX_BIN_DBM = "apd_max_bin_dBm"
-
 
 class AmplitudeProbabilityDistribution(DataProductInterface):
     """
@@ -38,13 +37,13 @@ class AmplitudeProbabilityDistribution(DataProductInterface):
         self.impedance_ohms = constants["IMPEDANCE_OHMS"]
 
     def set_parameters(self, params: dict) -> None:
-        self.bin_size_dB = params[APD_BIN_SIZE_DB]
+        self.bin_size_dB = params[APD_BIN_SIZE_DB_KEY]
         # get_apd requires amplitude bin edge values in dBW
         # Scale input to get_apd to account for:
         #     dBm -> dBW (-30)
         #     baseband -> RF power reference (+3)
-        self.apd_min_bin_dbm = params[APD_MIN_BIN_DBM]
-        self.apd_max_bin_dbm = params[APD_MAX_BIN_DBM]
+        self.apd_min_bin_dbm = params[APD_MIN_BIN_DBM_KEY]
+        self.apd_max_bin_dbm = params[APD_MAX_BIN_DBM_KEY]
         self.min_bin_dBW_RF = self.apd_min_bin_dbm - 27.0
         self.max_bin_dBW_RF = self.apd_max_bin_dbm - 27.0
 
