@@ -38,6 +38,7 @@ class PeriodicFramePower(DataProductInterface):
         self.detector_period_s = consts["PFP_FRAME_RESOLUTION_S"]
 
     def set_parameters(self, params: dict) -> None:
+        recording_id = params.get(RECORDING_ID_KEY)
         self.sample_rate = params[SAMPLE_RATE_KEY]
         self.duration_ms = params[DURATION_MS_KEY]
         self.td_bin_size_ms = params[TD_BIN_SIZE_MS_KEY]
@@ -46,11 +47,13 @@ class PeriodicFramePower(DataProductInterface):
         frame_period_s = 1e-3 * self.pfp_frame_period_ms
         if not np.isclose(frame_period_s % sampling_period_s, 0, 1e-6):
             raise ValueError(
-                "Frame period must be a positive integer multiple of sampling period: %s", params[RECORDING_ID_KEY]
+                "Frame period must be a positive integer multiple of sampling period: %s",
+                recording_id,
             )
         if not np.isclose(self.detector_period_s % sampling_period_s, 0, 1e-6):
             raise ValueError(
-                "Detector period must be a positive integer multiple of sampling period: %s", params[RECORDING_ID_KEY]
+                "Detector period must be a positive integer multiple of sampling period: %s",
+                recording_id,
             )
         self.n_frames = int(round(frame_period_s / sampling_period_s))
         self.n_points = int(round(frame_period_s / self.detector_period_s))

@@ -29,14 +29,14 @@ def test_product_actor_constructs_and_runs_product(monkeypatch):
 
     actor = actor_class("apd", {"IMPEDANCE_OHMS": 50.0})
     iq = np.array([1.0 + 1.0j])
-    params = {RECORDING_ID_KEY: 1}
+    params = {}
 
     result = actor.run(iq, params)
 
     build_product.assert_called_once_with({"IMPEDANCE_OHMS": 50.0})
     assert product.mock_calls == [
         call.set_parameters(params),
-        call.compute(iq, params[RECORDING_ID_KEY]),
+        call.compute(iq, None),
     ]
     assert result == (expected_data, None)
 
@@ -125,7 +125,7 @@ def test_iq_processor_builds_workers_once_and_preserves_order(
     )
     processor = processor_class(actor_id=5, compute_only=compute_only)
     iq = np.array([1.0 + 1.0j, 2.0 + 1.0j])
-    params = {RECORDING_ID_KEY: 8, DATA_PRODUCTS_KEY: ["pfp", "psd"]}
+    params = {DATA_PRODUCTS_KEY: ["pfp", "psd"]}
     consts = {"shared": True}
     sos = np.array([[1.0, 0.0, 0.0]])
 

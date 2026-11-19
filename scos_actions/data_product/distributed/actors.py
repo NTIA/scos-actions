@@ -30,13 +30,15 @@ class DataProductActor:
         self, iq: np.ndarray, params: dict
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         self.data_product.set_parameters(params)
-        return self.data_product.compute(iq, params[RECORDING_ID_KEY])
+        return self.data_product.compute(iq, params.get(RECORDING_ID_KEY))
 
     def run_with_graph(
         self, iq: np.ndarray, params: dict
     ) -> DataProductResult:
         self.data_product.set_parameters(params)
-        data_result, summary = self.data_product.compute(iq, params[RECORDING_ID_KEY])
+        data_result, summary = self.data_product.compute(
+            iq, params.get(RECORDING_ID_KEY)
+        )
         return DataProductResult(
             data_result=data_result,
             summary=summary,

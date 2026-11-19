@@ -34,7 +34,7 @@ class IQProcessorProductActors:
 
     @ray.method(num_returns=1)
     def run(self, iqdata: np.ndarray, params: dict, iir_sos: np.ndarray, consts: dict) -> tuple:
-        recording_id = params[RECORDING_ID_KEY]
+        recording_id = params.get(RECORDING_ID_KEY)
         logger.debug("IQProcessorProductActors run: %s, %s", self.actor_id, recording_id)
 
         product_names = params[DATA_PRODUCTS_KEY]

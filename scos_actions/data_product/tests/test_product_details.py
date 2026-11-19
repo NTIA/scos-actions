@@ -126,7 +126,6 @@ def test_pfp_rejects_periods_not_aligned_to_sample_rate(overrides):
         }
     )
     params = {
-        RECORDING_ID_KEY: 1,
         "sample_rate": 1000,
         "duration_ms": 4,
         "td_bin_size_ms": 1,
